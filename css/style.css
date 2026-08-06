@@ -1,0 +1,26 @@
+body{
+
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    background:#f6f6f6;
+
+}
+
+header{
+
+    background:#005A9C;
+    color:white;
+    text-align:center;
+    padding:30px;
+
+}
+
+#badgeContainer{
+
+    max-width:1200px;
+
+    margin:auto;
+
+    padding:40px;
+
+}
