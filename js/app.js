@@ -28,6 +28,9 @@ marken.forEach(marke => {
         <h3>${marke.namn}</h3>
         <p>${marke.grupp}</p>
     `;
+    card.addEventListener("click", () => {
+    alert(marke.namn);
+    });
 
     grid.appendChild(card);
 });
