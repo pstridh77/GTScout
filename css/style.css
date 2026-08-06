@@ -1,26 +1,37 @@
-body{
-
-    margin:0;
-    font-family:Arial, Helvetica, sans-serif;
-    background:#f6f6f6;
-
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f3f4f6;
 }
 
-header{
-
-    background:#005A9C;
-    color:white;
-    text-align:center;
-    padding:30px;
-
+header {
+    background: #006937;
+    color: white;
+    padding: 20px;
+    text-align: center;
 }
 
-#badgeContainer{
+#badgeGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 20px;
+    padding: 20px;
+}
 
-    max-width:1200px;
+.badge {
+    background: white;
+    border-radius: 12px;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
 
-    margin:auto;
+.badge img {
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+}
 
-    padding:40px;
-
+.badge h3 {
+    margin-top: 10px;
 }

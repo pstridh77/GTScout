@@ -1,6 +1,33 @@
-document.addEventListener("DOMContentLoaded", () => {
+const marken = [
+    {
+        namn: "Värme",
+        grupp: "Familjescout",
+        bild: "images/marken/varme.png"
+    },
+    {
+        namn: "Tända",
+        grupp: "Spårare",
+        bild: "images/marken/tanda.png"
+    },
+    {
+        namn: "Brinna",
+        grupp: "Upptäckare",
+        bild: "images/marken/brinna.png"
+    }
+];
 
-    document.getElementById("badgeContainer").innerHTML =
-        "<h2>Projektet fungerar 🎉</h2>";
+const grid = document.getElementById("badgeGrid");
 
+marken.forEach(marke => {
+    const card = document.createElement("div");
+
+    card.className = "badge";
+
+    card.innerHTML = `
+        <img src="${marke.bild}" alt="${marke.namn}">
+        <h3>${marke.namn}</h3>
+        <p>${marke.grupp}</p>
+    `;
+
+    grid.appendChild(card);
 });
