@@ -1,46 +1,38 @@
-const marken = [
-    {
-        namn: "Värme",
-        grupp: "Familjescout",
-        kategori: "Eld",
-        bild: "images/marken/varme.png",
-        inledning: "Genom att jobba med intressemärket Värme övar du på att bli trygg vid eld.",
-        kriterier: [
-            "Våga hålla i en tändsticka som brinner.",
-            "Blåsa ut en låga.",
-            "Prata om hur farlig eld är.",
-            "Veta hur man håller i en lykta."
-        ]
-    },
-    {
-        namn: "Tända",
-        grupp: "Spårare",
-        kategori: "Eld",
-        bild: "images/marken/tanda.png",
-        inledning: "Genom att jobba med intressemärket Tända övar du på grunderna för att elda.",
-        kriterier: [
-            "Kunna tända en tändsticka.",
-            "Provat att tända lykta och eld.",
-            "Känna till risker med eld.",
-            "Veta vad du gör om du bränner dig."
-        ]
-    },
-    {
-        namn: "Brinna",
-        grupp: "Upptäckare",
-        kategori: "Eld",
-        bild: "images/marken/brinna.png",
-        inledning: "Genom att jobba med intressemärket Brinna lär du dig hur man tar ansvar för eld och värme.",
-        kriterier: [
-            "Känna igen vilken eld som är säker.",
-            "Kunna göra upp en kontrollerad eld.",
-            "Förstå vad som händer om eld sprider sig.",
-            "Veta hur du släcker en eld på ett säkert sätt."
-        ]
-    }
-];
-
 const grid = document.getElementById("badgeGrid");
+
+async function loadMarken() {
+    try {
+        const response = await fetch("data/marken.json");
+        if (!response.ok) {
+            throw new Error(`Network response was not ok: ${response.status}`);
+        }
+
+        const marken = await response.json();
+        renderMarken(marken);
+    } catch (error) {
+        console.error("Failed to load marken.json", error);
+        const details = document.getElementById("details");
+        if (details) {
+            details.innerHTML = "<p>Data kunde inte laddas. Kontrollera filen data/marken.json och kör sidan via en webserver.</p>";
+        }
+    }
+}
+
+function renderMarken(marken) {
+    marken.forEach(marke => {
+        const card = document.createElement("div");
+        card.className = "badge";
+        card.innerHTML = `
+            <img src="${marke.bild}" alt="${marke.namn}">
+            <h3>${marke.namn}</h3>
+            <p>${marke.grupp || marke.malgrupp || "Ingen målgrupp"}</p>
+        `;
+        card.addEventListener("click", () => showPopup(marke));
+        grid.appendChild(card);
+    });
+}
+
+loadMarken();
 
 function createPopup() {
     const popup = document.createElement("div");
@@ -94,7 +86,7 @@ function showPopup(marke) {
                     <ul>${criteriaList}</ul>
                 </div>
             ` : ""}
-            <p><strong>Målgrupp:</strong> ${marke.grupp}</p>
+            <p><strong>Målgrupp:</strong> ${marke.grupp || marke.malgrupp || "Ingen målgrupp"}</p>
         </div>
     `;
     popup.classList.remove("hidden");

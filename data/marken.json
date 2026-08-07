@@ -26,5 +26,20 @@
       "Känna till risker med eld.",
       "Veta vad du gör om du bränner dig."
     ]
+  },
+  {
+    "id": "brinna",
+    "namn": "Brinna",
+    "kategori": "Eld",
+    "malgrupp": "Upptäckare",
+    "bild": "images/marken/brinna.png",
+    "inledning": "Genom att jobba med Brinna lär du dig mer om elden och hur man kan använda den på ett bra sätt.",
+    "kriterier": [
+      "Veta vad som behövs för att en eld ska fungera (syre, värme och bränsle).",
+      "Testat vad som händer om någon del av eldtriangeln saknas.",
+      "Veta hur man eldar säkert och gör en säker eldstad.",
+      "Veta hur man förbereder för att kunna släcka en eld.",
+      "Kunna göra upp en eld."
+    ]
   }
 ]
