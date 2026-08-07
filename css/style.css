@@ -16,11 +16,27 @@ header {
 
 #badgeGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 20px;
+    grid-template-columns: 1fr;
+    gap: 30px;
     padding: 20px;
 }
 
+.category-group {
+    display: grid;
+    gap: 18px;
+}
+
+.category-heading {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #003660;
+}
+
+.category-badges {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 20px;
+}
 
 .badge {
     background: white;
@@ -108,7 +124,29 @@ header {
     border-radius: 12px;
     max-width: 420px;
     width: 90%;
+    max-height: calc(100vh - 40px);
     box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    overflow: hidden;
+}
+
+.popup-body {
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.popup-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.popup-body::-webkit-scrollbar-thumb {
+    background: rgba(0, 54, 96, 0.35);
+    border-radius: 4px;
+}
+
+.popup-body::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
 }
 .close-popup {
     position: absolute;

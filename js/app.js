@@ -19,16 +19,43 @@ async function loadMarken() {
 }
 
 function renderMarken(marken) {
-    marken.forEach(marke => {
-        const card = document.createElement("div");
-        card.className = "badge";
-        card.innerHTML = `
-            <img src="${marke.bild}" alt="${marke.namn}">
-            <h3>${marke.namn}</h3>
-            <p>${marke.grupp || marke.malgrupp || "Ingen målgrupp"}</p>
-        `;
-        card.addEventListener("click", () => showPopup(marke));
-        grid.appendChild(card);
+    grid.innerHTML = "";
+
+    const categories = marken.reduce((acc, marke) => {
+        const key = marke.kategori || "Övrigt";
+        if (!acc[key]) {
+            acc[key] = [];
+        }
+        acc[key].push(marke);
+        return acc;
+    }, {});
+
+    Object.keys(categories).forEach(category => {
+        const categoryGroup = document.createElement("section");
+        categoryGroup.className = "category-group";
+
+        const heading = document.createElement("h2");
+        heading.className = "category-heading";
+        heading.textContent = category;
+        categoryGroup.appendChild(heading);
+
+        const badgeRow = document.createElement("div");
+        badgeRow.className = "category-badges";
+
+        categories[category].forEach(marke => {
+            const card = document.createElement("div");
+            card.className = "badge";
+            card.innerHTML = `
+                <img src="${marke.bild}" alt="${marke.namn}">
+                <h3>${marke.namn}</h3>
+                <p>${marke.grupp || marke.malgrupp || "Ingen målgrupp"}</p>
+            `;
+            card.addEventListener("click", () => showPopup(marke));
+            badgeRow.appendChild(card);
+        });
+
+        categoryGroup.appendChild(badgeRow);
+        grid.appendChild(categoryGroup);
     });
 }
 
