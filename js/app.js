@@ -84,15 +84,17 @@ function showPopup(marke) {
 
         <div class="detail-text">
             <h2>${marke.namn}</h2>
-            ${marke.inledning ? `<p class="detail-introduction">${marke.inledning}</p>` : ""}
-            <p><strong>Målgrupp:</strong> ${marke.grupp}</p>
             <p><strong>Kategori:</strong> ${marke.kategori}</p>
+            ${marke.inledning ? `<p class="detail-introduction">${marke.inledning}</p>` : ""}
+            
+            
             ${criteriaList ? `
                 <div class="detail-criteria">
                     <strong>Kriterier:</strong>
                     <ul>${criteriaList}</ul>
                 </div>
             ` : ""}
+            <p><strong>Målgrupp:</strong> ${marke.grupp}</p>
         </div>
     `;
     popup.classList.remove("hidden");
