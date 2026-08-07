@@ -57,7 +57,28 @@
       
     ]
   },
-  
+  {
+    "id": "ta_fyr",
+    "namn": "Ta fyr",
+    "kategori": "Eld",
+    "malgrupp": "Utmanare",
+    "bild": "images/marken/ta_fyr.png",
+    "inledning": "Märket Ta fyr är det femte i en märkesstegring om eld. Märket handlar både om att kunna tända eld i svåra förhållanden och att kunna släcka olika typer av bränder.",
+    "kriterier": [
+      "Kunna göra upp en eld med blöt ved.",
+      "Kunna elda i blåst.",
+      "Kunna tända en eld med högst tre tändstickor utan tändvätska eller liknande hjälpmedel.",
+      "Veta hur man släcker brand i olja, gryta eller stekpanna.",
+      "Veta hur man släcker brand i elektrisk utrustning.",
+      "Veta hur man släcker en vanlig eld.",
+      "Veta hur man släcker brinnande kläder.",
+      "Ha testat att släcka bränder med vatten.",
+      "Ha testat att släcka bränder med brandsläckare.",
+      "Ha testat att släcka en brinnande docka.",
+      "Kunna hantera en brandsläckare.",
+      "Veta vilken typ av brandsläckare som används i olika situationer."
+    ]
+  },
   {
     "id": "smaka",
     "namn": "Smaka",
