@@ -4,7 +4,7 @@ body {
     margin: 0;
     font-family: 'Inter', Arial, sans-serif;
     background: #f3f4f6;
-    color: #111827;
+    color:#003660;
 }
 
 header {
@@ -76,7 +76,7 @@ header {
 .detail-introduction {
     margin: 0 0 14px;
     line-height: 1.6;
-    color: #333;
+    
 }
 
 .detail-criteria {

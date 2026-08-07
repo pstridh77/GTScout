@@ -69,13 +69,14 @@ function showPopup(marke) {
         : "";
 
     body.innerHTML = `
+        <h2>${marke.namn}</h2>
         <img
             src="${marke.bild}"
             alt="${marke.namn}"
             class="detail-image">
 
         <div class="detail-text">
-            <h2>${marke.namn}</h2>
+            
             <p><strong>Kategori:</strong> ${marke.kategori}</p>
             ${marke.inledning ? `<p class="detail-introduction">${marke.inledning}</p>` : ""}
             
