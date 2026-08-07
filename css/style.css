@@ -73,6 +73,22 @@ header {
     flex: 1;
 }
 
+.detail-introduction {
+    margin: 0 0 14px;
+    line-height: 1.6;
+    color: #333;
+}
+
+.detail-criteria {
+    margin-top: 14px;
+}
+
+.detail-criteria ul {
+    margin: 6px 0 0 18px;
+    padding: 0;
+    list-style: disc;
+}
+
 .detail-popup {
     position: fixed;
     inset: 0;
