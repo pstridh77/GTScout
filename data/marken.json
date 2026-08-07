@@ -56,5 +56,84 @@
       "Ha provat på att göra upp eld med andra metoder än tändare och tändstickor, till exempel eldstål eller förstoringsglas."
       
     ]
-  }    
-]
+  },
+  
+  {
+    "id": "smaka",
+    "namn": "Smaka",
+    "kategori": "Mat",
+    "malgrupp": "Familjescouting",
+    "bild": "images/marken/smaka.png",
+    "inledning": "I märket Smaka utmanar du dig själv att våga prova nya smaker. Märket Smaka är det första i en märkesstegring om mat.",
+    "kriterier": [
+      "Våga testa smaker från naturen.",
+      "Testa att äta något som är lagat över eld eller på stormkök.",
+      "Tvätta händerna innan du smakar."
+    ]
+  },
+  {
+    "id": "matettan",
+    "namn": "Matettan",
+    "kategori": "Mat",
+    "malgrupp": "Spårare",
+    "bild": "images/marken/matettan.png",
+    "inledning": "Märket Matettan ingår i en märkesstegring om mat. Här tränar du på att laga en enklare måltid.",
+    "kriterier": [
+      "Vara med och laga mat både inomhus och utomhus på spritkök eller liknande.",
+      "Med ledarnas hjälp kunna följa ett enkelt recept och vara delaktig i matlagningen från början tills disken är klar.",
+      "Känna till vad som gäller kring hygien i samband med matlagning."
+    ]
+  },
+  {
+    "id": "mattvaan",
+    "namn": "Mattvåan",
+    "kategori": "Mat",
+    "malgrupp": "Upptäckare",
+    "bild": "images/marken/mattvaan.png",
+    "inledning": "Mattvåan ingår i en märkesstegring om mat. Du får öva dig mer i att planera för matlagningen och tillreda mer avancerad mat på olika sätt.",
+    "kriterier": [
+      "Vara med och planera en eller flera måltider under ett möte, en hajk eller en övernattning.",
+      "Kunna följa ett recept och laga mat med flera ingredienser både inomhus och på öppen eld.",
+      "Känna till vad som påverkar hållbarheten på olika livsmedel och hur de behöver förvaras."
+    ]
+  },
+  {
+    "id": "mattrean",
+    "namn": "Mattrean",
+    "kategori": "Mat",
+    "malgrupp": "Äventyrare",
+    "bild": "images/marken/mattrean.png",
+    "inledning": "Mattrean ingår i en märkesstegring om mat. Genom att jobba med märket tränar du på att planera en meny för hajk eller läger och tänka på mat ur olika perspektiv.",
+    "kriterier": [
+      "Vara med och utifrån en bestämd budget planera, köpa och laga mat för en del av ett veckoläger, två helgövernattningar eller motsvarande tid.",
+      "Välja mat som är anpassad efter tillfället med hänsyn till hållbarhet, vikt och tillagningsmetod.",
+      "Välja mat utifrån ett hälso-, miljö- och rättviseperspektiv."
+    ]
+  },
+  {
+    "id": "mat_avancerat",
+    "namn": "Mat avancerat",
+    "kategori": "Mat",
+    "malgrupp": "Utmanare",
+    "bild": "images/marken/mat_avancerat.png",
+    "inledning": "Mat avancerat är ett märke för att locka till matlagning på nya sätt. Märket är det femte i en märkesstegring om mat.",
+    "kriterier": [
+      "Vara delaktig i att laga mat med två nya metoder.",
+      "Vara med och förbereda eller bygga det som krävs för den valda matlagningsmetoden.",
+      "Lära någon annan att laga mat med de nya metoderna."
+    ]
+  },
+  {
+    "id": "skogsgourmet",
+    "namn": "Skogsgourmet",
+    "kategori": "Mat",
+    "malgrupp": "Rover",
+    "bild": "images/marken/skogsgourmet.png",
+    "inledning": "Målet med märket är att få nya kunskaper om det som går att äta i skogen och laga en måltid med så mycket från skogen som möjligt.",
+    "kriterier": [
+      "Identifiera 10 matingredienser som går att hitta i naturen.",
+      "Laga en trerättersmåltid baserad på så många ingredienser från naturen som möjligt.",
+      "Tälja egna bestick eller köksredskap."
+    ]
+  }
+]    
