@@ -41,5 +41,20 @@
       "Veta hur man förbereder för att kunna släcka en eld.",
       "Kunna göra upp en eld."
     ]
-  }
+  },
+  {
+    "id": "eldning",
+    "namn": "Elda",
+    "kategori": "Eld",
+    "malgrupp": "Äventyrare",
+    "bild": "images/marken/elda.png",
+    "inledning": "Märket Elda är det fjärde i en märkesstegring om eld. Genom att jobba med märket Elda tränar du på att få igång och underhålla en eld under längre tid för att kunna laga mat, få värme och skapa stämning på ett säkert sätt.",
+    "kriterier": [
+      "Kunna göra upp en eld med hjälp av kniv, tändstickor och enbart bränsle du hittar inaturen och hålla den vid liv under en längre tid.",
+      "Känna till olika eldtyper och kunna anpassa elden efter olika situationer som matlagning, värmekälla eller mys.",
+      "Kunna skilja på några olika typer av trä och veta vad som skiljer dem åt i när man eldar, till exempel vad som ger mest värme och vad som skvätter mest/minst.",
+      "Ha provat på att göra upp eld med andra metoder än tändare och tändstickor, till exempel eldstål eller förstoringsglas."
+      
+    ]
+  }    
 ]
