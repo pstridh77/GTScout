@@ -54,7 +54,8 @@ header {
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 
     display: flex;
-    gap: 25px;
+    flex-direction: column;
+    gap: 12px;
     align-items: flex-start;
 }
 
@@ -67,4 +68,35 @@ header {
 
 .detail-text {
     flex: 1;
+}
+
+.detail-popup {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.detail-popup.hidden {
+    display: none;
+}
+.detail-popup-content {
+    position: relative;
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    max-width: 420px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+.close-popup {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    border: none;
+    background: transparent;
+    font-size: 24px;
+    cursor: pointer;
 }
