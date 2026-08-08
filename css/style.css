@@ -93,6 +93,11 @@ header {
     color: #003660;
 }
 
+.search-field {
+    flex: 1 1 260px;
+}
+
+.filter-field input,
 .filter-field select {
     min-width: 220px;
     padding: 10px 12px;

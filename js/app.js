@@ -1,9 +1,11 @@
 const grid = document.getElementById("badgeGrid");
+const searchInput = document.getElementById("searchInput");
 const categoryFilter = document.getElementById("categoryFilter");
 const targetGroupFilter = document.getElementById("targetGroupFilter");
 
 let allMarken = [];
 const filters = {
+    search: "",
     category: "Alla",
     targetGroup: "Alla"
 };
@@ -43,10 +45,30 @@ function populateFilters(marken) {
 }
 
 function getFilteredMarken() {
+    const searchTerm = filters.search.trim().toLowerCase();
+
     return allMarken.filter(marke => {
         const matchesCategory = filters.category === "Alla" || (marke.kategori || "Övrigt") === filters.category;
         const matchesTargetGroup = filters.targetGroup === "Alla" || (marke.grupp || marke.malgrupp || "Ingen målgrupp") === filters.targetGroup;
-        return matchesCategory && matchesTargetGroup;
+
+        if (!searchTerm) {
+            return matchesCategory && matchesTargetGroup;
+        }
+
+        const searchableText = [
+            marke.namn,
+            marke.kategori,
+            marke.grupp,
+            marke.malgrupp,
+            marke.inledning,
+            ...(marke.kriterier || [])
+        ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+
+        const matchesSearch = searchableText.includes(searchTerm);
+        return matchesCategory && matchesTargetGroup && matchesSearch;
     });
 }
 
@@ -101,11 +123,13 @@ function renderMarken(marken) {
 }
 
 function handleFilterChange() {
+    filters.search = searchInput.value;
     filters.category = categoryFilter.value;
     filters.targetGroup = targetGroupFilter.value;
     renderMarken(allMarken);
 }
 
+searchInput.addEventListener("input", handleFilterChange);
 categoryFilter.addEventListener("change", handleFilterChange);
 targetGroupFilter.addEventListener("change", handleFilterChange);
 
