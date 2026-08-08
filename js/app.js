@@ -31,7 +31,26 @@ async function loadMarken() {
 
 function populateFilters(marken) {
     const categories = [...new Set(marken.map(marke => marke.kategori || "Övrigt"))].sort();
-    const targetGroups = [...new Set(marken.map(marke => marke.grupp || marke.malgrupp || "Ingen målgrupp"))].sort();
+    const targetGroups = [...new Set(marken.map(marke => marke.grupp || marke.malgrupp || "Ingen målgrupp"))];
+    const targetGroupOrder = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
+    const orderedTargetGroups = targetGroups.sort((a, b) => {
+        const indexA = targetGroupOrder.indexOf(a);
+        const indexB = targetGroupOrder.indexOf(b);
+
+        if (indexA !== -1 && indexB !== -1) {
+            return indexA - indexB;
+        }
+
+        if (indexA !== -1) {
+            return -1;
+        }
+
+        if (indexB !== -1) {
+            return 1;
+        }
+
+        return a.localeCompare(b, "sv");
+    });
 
     categoryFilter.innerHTML = [
         '<option value="Alla">Alla kategorier</option>',
@@ -40,7 +59,7 @@ function populateFilters(marken) {
 
     targetGroupFilter.innerHTML = [
         '<option value="Alla">Alla målgrupper</option>',
-        ...targetGroups.map(group => `<option value="${group}" ${filters.targetGroup === group ? "selected" : ""}>${group}</option>`)
+        ...orderedTargetGroups.map(group => `<option value="${group}" ${filters.targetGroup === group ? "selected" : ""}>${group}</option>`)
     ].join("");
 }
 
