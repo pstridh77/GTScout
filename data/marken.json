@@ -169,5 +169,20 @@
       "Vara delaktig i att hitta på konstruktionen och göra en ritning.",
       "Utvärdera tillsammans med de andra som varit med."
     ]
+  },
+  {
+    "id": "surra",
+    "namn": "Surra",
+    "kategori": "Bygga",
+    "malgrupp": "Äventyrare",
+    "bild": "images/marken/surra.png",
+    "inledning": "Märket Surra är det andra i en märkesstegring. Genom att jobba med märket fördjupar du dina kunskaper i surrningsteknik.",
+    "kriterier": [
+      "Välj ut lämpliga slanor för ert bygge; Tänk på hållfasthet och hållbarhet!",
+      "Välj surrningar och knopar som passar till det som ni tänkt bygga", 
+      "Testa att surra något jättestort eller jättelitet",
+      "Använd lämpligt tågvirke för ert bygge och diskutera olika rep och snörens för- och nackdelar",
+      "Dokumentera ert bygge med bilder eller film och visa upp det för några andra"
+    ]
   }
 ]    
