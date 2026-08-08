@@ -128,19 +128,6 @@ function renderMarken(marken) {
             const card = document.createElement("div");
             card.className = "badge";
             const targetGroup = marke.grupp || marke.malgrupp || "Ingen målgrupp";
-            const targetGroupColors = {
-                "Familjescouting": "#652483",
-                "Spårare": "#41a62a",
-                "Upptäckare": "#00a8e1",
-                "Äventyrare": "#e95f13",
-                "Utmanare": "#da005e",
-                "Rover": "#E2E000"
-            };
-            const color = targetGroupColors[targetGroup];
-            if (color) {
-                card.style.backgroundColor = color;
-                card.style.color = "white";
-            }
             card.innerHTML = `
                 <img src="${marke.bild}" alt="${marke.namn}">
                 <h3>${marke.namn}</h3>
