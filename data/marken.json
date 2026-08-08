@@ -156,5 +156,18 @@
       "Laga en trerättersmåltid baserad på så många ingredienser från naturen som möjligt.",
       "Tälja egna bestick eller köksredskap."
     ]
+  },
+  {
+    "id": "bygga",
+    "namn": "Bygga",
+    "kategori": "Bygga",
+    "malgrupp": "Upptäckare",
+    "bild": "images/marken/bygga.png",
+    "inledning": "Märket Bygga är det första i en märkesstegring som handlar just om att bygga. Genom att jobba med märket tränar du att planera, komma på smarta lösningar tillsammans medandra.",
+    "kriterier": [
+      "Bygg en större konstruktion, till exempel en flotte, ett lägerkök, en hinderbana eller ett stabilt vindskydd att sova i. Konstruktionen kan byggas antingen som pionjärarbete med rep och surrningar eller med vanlig byggteknik som ex spik och hammare.",
+      "Vara delaktig i att hitta på konstruktionen och göra en ritning.",
+      "Utvärdera tillsammans med de andra som varit med."
+    ]
   }
 ]    
