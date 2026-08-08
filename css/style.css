@@ -78,6 +78,39 @@ header {
     align-items: flex-start;
 }
 
+.filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 0 20px 20px;
+}
+
+.filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-weight: 600;
+    color: #003660;
+}
+
+.filter-field select {
+    min-width: 220px;
+    padding: 10px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 10px;
+    font: inherit;
+    color: #003660;
+    background: white;
+}
+
+.no-results {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    color: #003660;
+}
+
 .detail-image {
     width: 150px;
     height: 150px;

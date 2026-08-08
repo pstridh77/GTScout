@@ -1,4 +1,12 @@
 const grid = document.getElementById("badgeGrid");
+const categoryFilter = document.getElementById("categoryFilter");
+const targetGroupFilter = document.getElementById("targetGroupFilter");
+
+let allMarken = [];
+const filters = {
+    category: "Alla",
+    targetGroup: "Alla"
+};
 
 async function loadMarken() {
     try {
@@ -8,6 +16,7 @@ async function loadMarken() {
         }
 
         const marken = await response.json();
+        allMarken = marken;
         renderMarken(marken);
     } catch (error) {
         console.error("Failed to load marken.json", error);
@@ -18,10 +27,42 @@ async function loadMarken() {
     }
 }
 
+function populateFilters(marken) {
+    const categories = [...new Set(marken.map(marke => marke.kategori || "Övrigt"))].sort();
+    const targetGroups = [...new Set(marken.map(marke => marke.grupp || marke.malgrupp || "Ingen målgrupp"))].sort();
+
+    categoryFilter.innerHTML = [
+        '<option value="Alla">Alla kategorier</option>',
+        ...categories.map(category => `<option value="${category}" ${filters.category === category ? "selected" : ""}>${category}</option>`)
+    ].join("");
+
+    targetGroupFilter.innerHTML = [
+        '<option value="Alla">Alla målgrupper</option>',
+        ...targetGroups.map(group => `<option value="${group}" ${filters.targetGroup === group ? "selected" : ""}>${group}</option>`)
+    ].join("");
+}
+
+function getFilteredMarken() {
+    return allMarken.filter(marke => {
+        const matchesCategory = filters.category === "Alla" || (marke.kategori || "Övrigt") === filters.category;
+        const matchesTargetGroup = filters.targetGroup === "Alla" || (marke.grupp || marke.malgrupp || "Ingen målgrupp") === filters.targetGroup;
+        return matchesCategory && matchesTargetGroup;
+    });
+}
+
 function renderMarken(marken) {
+    allMarken = marken;
+    populateFilters(marken);
+
+    const filteredMarken = getFilteredMarken();
     grid.innerHTML = "";
 
-    const categories = marken.reduce((acc, marke) => {
+    if (filteredMarken.length === 0) {
+        grid.innerHTML = '<p class="no-results">Inga märken matchar filtret.</p>';
+        return;
+    }
+
+    const categories = filteredMarken.reduce((acc, marke) => {
         const key = marke.kategori || "Övrigt";
         if (!acc[key]) {
             acc[key] = [];
@@ -58,6 +99,15 @@ function renderMarken(marken) {
         grid.appendChild(categoryGroup);
     });
 }
+
+function handleFilterChange() {
+    filters.category = categoryFilter.value;
+    filters.targetGroup = targetGroupFilter.value;
+    renderMarken(allMarken);
+}
+
+categoryFilter.addEventListener("change", handleFilterChange);
+targetGroupFilter.addEventListener("change", handleFilterChange);
 
 loadMarken();
 
