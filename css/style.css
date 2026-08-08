@@ -116,15 +116,41 @@ header {
     color: #003660;
 }
 
+.detail-image-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+    justify-content: space-between;
+}
+
 .detail-image {
-    width: 150px;
-    height: 150px;
+    width: 128px;
+    height: 128px;
     object-fit: contain;
     flex-shrink: 0;
 }
 
 .detail-text {
     flex: 1;
+}
+
+.detail-category-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.detail-category-icon {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    flex-shrink: 0;
+    display: block;
+    margin-left: auto;
+    margin-top: -4px;
 }
 
 .detail-introduction {

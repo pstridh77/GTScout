@@ -134,7 +134,7 @@ function renderMarken(marken) {
                 "Upptäckare": "#00a8e1",
                 "Äventyrare": "#e95f13",
                 "Utmanare": "#da005e",
-                "Rover": "#837a02"
+                "Rover": "#E2E000"
             };
             const color = targetGroupColors[targetGroup];
             if (color) {
@@ -196,24 +196,44 @@ function createPopup() {
 
 const popup = createPopup();
 
+function getCategoryIconPath(marke) {
+    const targetGroup = (marke.grupp || marke.malgrupp || marke.målgrupp || "Ingen målgrupp").toString().trim();
+    const normalizedTargetGroup = targetGroup.toLowerCase();
+    const iconMap = {
+        "familjescouting": "./images/icons/familjescout.png",
+        "spårare": "./images/icons/sparare.png",
+        "upptäckare": "./images/icons/upptackare.png",
+        "äventyrare": "./images/icons/aventyrare.png",
+        "utmanare": "./images/icons/utmanare.png",
+        "rover": "./images/icons/rover.png"
+    };
+
+    return iconMap[normalizedTargetGroup] || "";
+}
+
 function showPopup(marke) {
     const body = popup.querySelector(".popup-body");
     const criteriaList = marke.kriterier
         ? marke.kriterier.map(k => `<li>${k}</li>`).join("")
         : "";
+    const categoryIcon = getCategoryIconPath(marke);
+    const targetGroup = (marke.grupp || marke.malgrupp || marke.målgrupp || "Ingen målgrupp").toString().trim();
 
     body.innerHTML = `
         <h2>${marke.namn}</h2>
-        <img
-            src="${marke.bild}"
-            alt="${marke.namn}"
-            class="detail-image">
+        <div class="detail-image-row">
+            <img
+                src="${marke.bild}"
+                alt="${marke.namn}"
+                class="detail-image">
+            ${categoryIcon ? `<img src="${categoryIcon}" alt="${targetGroup}" class="detail-category-icon">` : ""}
+        </div>
 
         <div class="detail-text">
-            
-            <p><strong>Kategori:</strong> ${marke.kategori}</p>
+            <div class="detail-category-row">
+                <p><strong>Kategori:</strong> ${marke.kategori}</p>
+            </div>
             ${marke.inledning ? `<p class="detail-introduction">${marke.inledning}</p>` : ""}
-            
             
             ${criteriaList ? `
                 <div class="detail-criteria">
@@ -221,7 +241,7 @@ function showPopup(marke) {
                     <ul>${criteriaList}</ul>
                 </div>
             ` : ""}
-            <p><strong>Målgrupp:</strong> ${marke.grupp || marke.malgrupp || "Ingen målgrupp"}</p>
+            <p><strong>Målgrupp:</strong> ${targetGroup}</p>
         </div>
     `;
     popup.classList.remove("hidden");
