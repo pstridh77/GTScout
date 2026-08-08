@@ -29,9 +29,26 @@ async function loadMarken() {
     }
 }
 
+function getTargetGroup(marke) {
+    const rawGroup = (marke.grupp || marke.malgrupp || marke.målgrupp || "Ingen målgrupp").toString().trim();
+    const normalizedGroup = rawGroup.toLowerCase();
+    const targetGroupMap = {
+        "familjescouting": "Familjescouting",
+        "spårare": "Spårare",
+        "upptäckare": "Upptäckare",
+        "upptackare": "Upptäckare",
+        "äventyrare": "Äventyrare",
+        "aventyrare": "Äventyrare",
+        "utmanare": "Utmanare",
+        "rover": "Rover"
+    };
+
+    return targetGroupMap[normalizedGroup] || rawGroup || "Ingen målgrupp";
+}
+
 function populateFilters(marken) {
     const categories = [...new Set(marken.map(marke => marke.kategori || "Övrigt"))].sort();
-    const targetGroups = [...new Set(marken.map(marke => marke.grupp || marke.malgrupp || "Ingen målgrupp"))];
+    const targetGroups = [...new Set(marken.map(getTargetGroup))];
     const targetGroupOrder = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
     const orderedTargetGroups = targetGroups.sort((a, b) => {
         const indexA = targetGroupOrder.indexOf(a);
@@ -68,7 +85,7 @@ function getFilteredMarken() {
 
     return allMarken.filter(marke => {
         const matchesCategory = filters.category === "Alla" || (marke.kategori || "Övrigt") === filters.category;
-        const matchesTargetGroup = filters.targetGroup === "Alla" || (marke.grupp || marke.malgrupp || "Ingen målgrupp") === filters.targetGroup;
+        const matchesTargetGroup = filters.targetGroup === "Alla" || getTargetGroup(marke) === filters.targetGroup;
 
         if (!searchTerm) {
             return matchesCategory && matchesTargetGroup;
@@ -112,6 +129,8 @@ function renderMarken(marken) {
         return acc;
     }, {});
 
+    const targetGroupOrder = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
+
     Object.keys(categories).forEach(category => {
         const categoryGroup = document.createElement("section");
         categoryGroup.className = "category-group";
@@ -124,17 +143,39 @@ function renderMarken(marken) {
         const badgeRow = document.createElement("div");
         badgeRow.className = "category-badges";
 
-        categories[category].forEach(marke => {
-            const card = document.createElement("div");
-            card.className = "badge";
-            const targetGroup = marke.grupp || marke.malgrupp || "Ingen målgrupp";
-            card.innerHTML = `
-                <img src="${marke.bild}" alt="${marke.namn}">
-                <h3>${marke.namn}</h3>
-                <p>${targetGroup}</p>
-            `;
-            card.addEventListener("click", () => showPopup(marke));
-            badgeRow.appendChild(card);
+        const groupedByTargetGroup = categories[category].reduce((acc, marke) => {
+            const targetGroup = getTargetGroup(marke);
+            if (!acc[targetGroup]) {
+                acc[targetGroup] = [];
+            }
+            acc[targetGroup].push(marke);
+            return acc;
+        }, {});
+
+        targetGroupOrder.forEach(targetGroup => {
+            const slot = document.createElement("div");
+            slot.className = "target-group-slot";
+
+            const groupItems = groupedByTargetGroup[targetGroup] || [];
+            if (groupItems.length === 0) {
+                const empty = document.createElement("div");
+                empty.className = "empty-slot";
+                slot.appendChild(empty);
+            } else {
+                groupItems.forEach(marke => {
+                    const card = document.createElement("div");
+                    card.className = "badge";
+                    card.innerHTML = `
+                        <img src="${marke.bild}" alt="${marke.namn}">
+                        <h3>${marke.namn}</h3>
+                        <p>${getTargetGroup(marke)}</p>
+                    `;
+                    card.addEventListener("click", () => showPopup(marke));
+                    slot.appendChild(card);
+                });
+            }
+
+            badgeRow.appendChild(slot);
         });
 
         categoryGroup.appendChild(badgeRow);
@@ -184,7 +225,7 @@ function createPopup() {
 const popup = createPopup();
 
 function getCategoryIconPath(marke) {
-    const targetGroup = (marke.grupp || marke.malgrupp || marke.målgrupp || "Ingen målgrupp").toString().trim();
+    const targetGroup = getTargetGroup(marke);
     const normalizedTargetGroup = targetGroup.toLowerCase();
     const iconMap = {
         "familjescouting": "./images/icons/familjescout.png",
@@ -204,7 +245,7 @@ function showPopup(marke) {
         ? marke.kriterier.map(k => `<li>${k}</li>`).join("")
         : "";
     const categoryIcon = getCategoryIconPath(marke);
-    const targetGroup = (marke.grupp || marke.malgrupp || marke.målgrupp || "Ingen målgrupp").toString().trim();
+    const targetGroup = getTargetGroup(marke);
 
     body.innerHTML = `
         <h2>${marke.namn}</h2>
@@ -234,14 +275,3 @@ function showPopup(marke) {
     popup.classList.remove("hidden");
 }
 
-marken.forEach(marke => {
-    const card = document.createElement("div");
-    card.className = "badge";
-    card.innerHTML = `
-        <img src="${marke.bild}" alt="${marke.namn}">
-        <h3>${marke.namn}</h3>
-        <p>${marke.grupp}</p>
-    `;
-    card.addEventListener("click", () => showPopup(marke));
-    grid.appendChild(card);
-});

@@ -16,14 +16,13 @@ header {
 
 #badgeGrid {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 30px;
+    gap: 24px;
     padding: 20px;
 }
 
 .category-group {
     display: grid;
-    gap: 18px;
+    gap: 14px;
 }
 
 .category-heading {
@@ -34,8 +33,32 @@ header {
 
 .category-badges {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 16px;
+    align-items: start;
+}
+
+.target-group-slot {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 100px;
+}
+
+.target-group-label {
+    font-weight: 700;
+    color: #003660;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.empty-slot {
+    min-height: 100%;
+    border: 1px dashed #d0d7de;
+    border-radius: 12px;
+    background: #f8fafc;
+    min-height: 220px;
 }
 
 .badge {
