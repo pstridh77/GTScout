@@ -50,7 +50,7 @@ header {
 
 @media (max-width: 600px) {
     #badgeGrid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .badge {
