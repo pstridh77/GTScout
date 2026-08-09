@@ -125,6 +125,13 @@ header {
     font-size: 0.9rem;
 }
 
+.badge-program {
+    margin-top: 2px;
+    font-size: 0.8rem;
+    color: #5b6b7a;
+    font-weight: 600;
+}
+
 #details {
     background: white;
     margin: 20px;

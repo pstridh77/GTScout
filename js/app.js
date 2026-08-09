@@ -2,12 +2,14 @@ const grid = document.getElementById("badgeGrid");
 const searchInput = document.getElementById("searchInput");
 const categoryFilter = document.getElementById("categoryFilter");
 const targetGroupFilter = document.getElementById("targetGroupFilter");
+const programFilter = document.getElementById("programFilter");
 
 let allMarken = [];
 const filters = {
     search: "",
     category: "Alla",
-    targetGroup: "Alla"
+    targetGroup: "Alla",
+    program: "Alla"
 };
 
 async function loadMarken() {
@@ -78,6 +80,12 @@ function populateFilters(marken) {
         '<option value="Alla">Alla målgrupper</option>',
         ...orderedTargetGroups.map(group => `<option value="${group}" ${filters.targetGroup === group ? "selected" : ""}>${group}</option>`)
     ].join("");
+
+    const programs = [...new Set(marken.flatMap(marke => Array.isArray(marke.program) ? marke.program : [marke.program || "Båda"]))].sort((a, b) => a.localeCompare(b, "sv"));
+    programFilter.innerHTML = [
+        '<option value="Alla">Alla program</option>',
+        ...programs.map(program => `<option value="${program}" ${filters.program === program ? "selected" : ""}>${program}</option>`)
+    ].join("");
 }
 
 function getFilteredMarken() {
@@ -86,9 +94,11 @@ function getFilteredMarken() {
     return allMarken.filter(marke => {
         const matchesCategory = filters.category === "Alla" || (marke.kategori || "Övrigt") === filters.category;
         const matchesTargetGroup = filters.targetGroup === "Alla" || getTargetGroup(marke) === filters.targetGroup;
+        const badgePrograms = Array.isArray(marke.program) ? marke.program : [marke.program || "Båda"];
+        const matchesProgram = filters.program === "Alla" || badgePrograms.includes(filters.program);
 
         if (!searchTerm) {
-            return matchesCategory && matchesTargetGroup;
+            return matchesCategory && matchesTargetGroup && matchesProgram;
         }
 
         const searchableText = [
@@ -104,7 +114,7 @@ function getFilteredMarken() {
             .toLowerCase();
 
         const matchesSearch = searchableText.includes(searchTerm);
-        return matchesCategory && matchesTargetGroup && matchesSearch;
+        return matchesCategory && matchesTargetGroup && matchesProgram && matchesSearch;
     });
 }
 
@@ -168,6 +178,7 @@ function renderMarken(marken) {
                     <img src="${marke.bild}" alt="${marke.namn}">
                     <h3>${marke.namn}</h3>
                     <p>${getTargetGroup(marke)}</p>
+                    <p class="badge-program">${(Array.isArray(marke.program) ? marke.program : [marke.program || "Båda"]).join(", ")}</p>
                 `;
                 card.addEventListener("click", () => showPopup(marke));
                 slot.appendChild(card);
@@ -185,12 +196,14 @@ function handleFilterChange() {
     filters.search = searchInput.value;
     filters.category = categoryFilter.value;
     filters.targetGroup = targetGroupFilter.value;
+    filters.program = programFilter.value;
     renderMarken(allMarken);
 }
 
 searchInput.addEventListener("input", handleFilterChange);
 categoryFilter.addEventListener("change", handleFilterChange);
 targetGroupFilter.addEventListener("change", handleFilterChange);
+programFilter.addEventListener("change", handleFilterChange);
 
 loadMarken();
 

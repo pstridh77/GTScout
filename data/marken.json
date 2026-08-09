@@ -11,6 +11,10 @@
       "Blåsa ut en låga.",
       "Prata om hur farlig eld är.",
       "Veta hur man håller i en lykta."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -25,6 +29,10 @@
       "Provat att tända lykta och eld.",
       "Känna till risker med eld.",
       "Veta vad du gör om du bränner dig."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -40,6 +48,10 @@
       "Veta hur man eldar säkert och gör en säker eldstad.",
       "Veta hur man förbereder för att kunna släcka en eld.",
       "Kunna göra upp en eld."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -54,7 +66,10 @@
       "Känna till olika eldtyper och kunna anpassa elden efter olika situationer som matlagning, värmekälla eller mys.",
       "Kunna skilja på några olika typer av trä och veta vad som skiljer dem åt i när man eldar, till exempel vad som ger mest värme och vad som skvätter mest/minst.",
       "Ha provat på att göra upp eld med andra metoder än tändare och tändstickor, till exempel eldstål eller förstoringsglas."
-      
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -77,6 +92,10 @@
       "Ha testat att släcka en brinnande docka.",
       "Kunna hantera en brandsläckare.",
       "Veta vilken typ av brandsläckare som används i olika situationer."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -90,6 +109,10 @@
       "Våga testa smaker från naturen.",
       "Testa att äta något som är lagat över eld eller på stormkök.",
       "Tvätta händerna innan du smakar."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -103,6 +126,10 @@
       "Vara med och laga mat både inomhus och utomhus på spritkök eller liknande.",
       "Med ledarnas hjälp kunna följa ett enkelt recept och vara delaktig i matlagningen från början tills disken är klar.",
       "Känna till vad som gäller kring hygien i samband med matlagning."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -116,6 +143,10 @@
       "Vara med och planera en eller flera måltider under ett möte, en hajk eller en övernattning.",
       "Kunna följa ett recept och laga mat med flera ingredienser både inomhus och på öppen eld.",
       "Känna till vad som påverkar hållbarheten på olika livsmedel och hur de behöver förvaras."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -129,6 +160,10 @@
       "Vara med och utifrån en bestämd budget planera, köpa och laga mat för en del av ett veckoläger, två helgövernattningar eller motsvarande tid.",
       "Välja mat som är anpassad efter tillfället med hänsyn till hållbarhet, vikt och tillagningsmetod.",
       "Välja mat utifrån ett hälso-, miljö- och rättviseperspektiv."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -142,6 +177,10 @@
       "Vara delaktig i att laga mat med två nya metoder.",
       "Vara med och förbereda eller bygga det som krävs för den valda matlagningsmetoden.",
       "Lära någon annan att laga mat med de nya metoderna."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -155,6 +194,9 @@
       "Identifiera 10 matingredienser som går att hitta i naturen.",
       "Laga en trerättersmåltid baserad på så många ingredienser från naturen som möjligt.",
       "Tälja egna bestick eller köksredskap."
+    ],
+    "program": [
+      "Scouterna"
     ]
   },
   {
@@ -168,6 +210,10 @@
       "Bygg en större konstruktion, till exempel en flotte, ett lägerkök, en hinderbana eller ett stabilt vindskydd att sova i. Konstruktionen kan byggas antingen som pionjärarbete med rep och surrningar eller med vanlig byggteknik som ex spik och hammare.",
       "Vara delaktig i att hitta på konstruktionen och göra en ritning.",
       "Utvärdera tillsammans med de andra som varit med."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -179,10 +225,14 @@
     "inledning": "Märket Surra är det andra i en märkesstegring. Genom att jobba med märket fördjupar du dina kunskaper i surrningsteknik.",
     "kriterier": [
       "Välj ut lämpliga slanor för ert bygge; Tänk på hållfasthet och hållbarhet!",
-      "Välj surrningar och knopar som passar till det som ni tänkt bygga", 
+      "Välj surrningar och knopar som passar till det som ni tänkt bygga",
       "Testa att surra något jättestort eller jättelitet",
       "Använd lämpligt tågvirke för ert bygge och diskutera olika rep och snörens för- och nackdelar",
       "Dokumentera ert bygge med bilder eller film och visa upp det för några andra"
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -205,6 +255,10 @@
       "Packa en picknickkorg och njut av fika utomhus.",
       "Gör en organisationstävling med baktema där ni får olika ingredienser för uppdrag och komponera ett eget bakverk.",
       "Kom på ett eget uppdrag med koppling till fika och genomför det."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -219,6 +273,10 @@
       "Bygg minst fem olika typer av konstruktioner och fundera över vad de kan användas till.",
       "Leda ett byggprojekt utifrån din egen konstruktion.",
       "Utvärdera konstruktionerna och deras användningsområde efter att de har färdigställts."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -233,6 +291,10 @@
       "Undersök om det krävs bygglov eller bygganmälan.",
       "Fördela arbetsuppgifter i roverlaget och utse ansvariga.",
       "Inviga nybygget på ett kreativt sätt."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -247,6 +309,10 @@
       "Veta vad du ska göra om du kommer bort från en vuxen eller din patrull.",
       "Veta vad du ska göra om du går vilse, hur du kramar ett träd och gör dig synlig.",
       "Kunna ditt för- och efternamn."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -261,6 +327,10 @@
       "Förstå hur en karta fungerar och tillsammans med ledare ta er till en förutbestämd plats på kartan.",
       "Lära dig vad du ska göra om du går vilse i skogen eller i staden och hur du kan öka chanserna att bli hittad.",
       "Kunna din adress och ett telefonnummer till en vuxen anhörig utantill."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -275,6 +345,10 @@
       "Kunna och förstå de vanligaste karttecknen.",
       "Med hjälp av en kompass kunna peka ut de fyra väderstrecken.",
       "Med hjälp av karta och kompass hitta en specifik plats."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -290,6 +364,10 @@
       "Kunna använda en kompass för att ta ut väderstreck och riktning till målet.",
       "Känna till andra sätt att hitta väderstreck, exempelvis med hjälp av klockan, polstjärnan eller tecken i naturen.",
       "Känna till hur du kan hitta kartor och satellitbilder på internet och prova en GPS om ni har tillgång till en."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -303,6 +381,10 @@
       "Reflektera kring vad som kan vara en god gärning.",
       "Gör en god gärning varje dag under till exempel en vecka.",
       "Skriv eller rita i en dagbok varje dag under tiden."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -315,6 +397,10 @@
     "kriterier": [
       "Gör en eller flera aktiviteter tillsammans med dina scoutkompisar där ni gör en god gärning för andra, till exempel en insamling, städning av ett skogsparti eller en kampanj för mindre bilåkande.",
       "Efter att ni genomfört aktiviteten pratar ni tillsammans i patrullen och med ledarna om hur det kändes och vad resultatet blev."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -330,6 +416,10 @@
       "Gör detta kontinuerligt tillsammans med din patrull under en termin.",
       "Följ upp hur det går och stötta varandra under terminens gång.",
       "I slutet av terminen utvärdera på vilket sätt er insats gjorde skillnad och vilka erfarenheter ni har fått."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -347,6 +437,10 @@
       "Öva på hur du kyler huden om du bränt dig.",
       "Veta var sjukvårdsväskan finns.",
       "Veta hur du ringer 112 och hur du ringer 112 från en låst telefon."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -362,6 +456,10 @@
       "Veta hur du kan förebygga skavsår och ta hand om skavsår om du ändå får ett.",
       "Veta vilka de viktigaste sakerna i sjukvårdsväskan är och vad vi använder dem till.",
       "Veta hur du ringer efter ambulans, brandkår och polis och vad du ska säga när de svarar."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -378,6 +476,10 @@
       "Veta vilken sjukvårdsutrustning ni behöver ha med er på hajk.",
       "Veta hur du tar hand om hygien vid sårskador utomhus.",
       "Känna igen symptomen för energibrist och vätskebrist och veta vad du kan göra för att undvika det."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -398,6 +500,10 @@
       "Veta hur du tar hand om lokala frostskador och vad du ska göra vid symptom på allmän nedkylning.",
       "Veta hur du ska agera när en diabetiker får blodsockerfall samt när en person får epilepsianfall.",
       "Veta hur du ska agera om någon blir medvetslös."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -413,6 +519,10 @@
       "Se över kårens återvinningssystem och gör det roligare med tydliga skyltar eller pyssel.",
       "Se över vad ni har på kåren eller hemma och skänk eller sälj det ni inte använder längre.",
       "Ta reda på var man kan köpa begagnat i er närhet och prata om vad ni tycker är okej att använda som varit någon annans."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -427,6 +537,10 @@
       "Gör en hållbarhetsutmaning inom social hållbarhet, till exempel gå på ett språkcafé, hjälpa till på ett härbärge eller sprida kunskap om hållbarhet.",
       "Gör en hållbarhetsutmaning inom miljömässig hållbarhet, till exempel rensa ett vattendrag eller arrangera en vegetarisk hajk.",
       "Gör en hållbarhetsutmaning inom ekonomisk hållbarhet, till exempel arrangera en loppis eller skapa något som säljs eller byts."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -437,12 +551,15 @@
     "bild": "images/marken/klimat.png",
     "inledning": "Märket Klimat är en del i en serie om att jobba om miljö, klimat och hållbarhet. Genom att jobba med märket får du koll på hur dina vardagsval påverkar klimatet, testa att förändra dina vanor på riktigt och dessutom inspirera hela din scoutkår att ta kliv i rätt riktning. ",
     "kriterier": [
-      "Ha räknat ut ditt CO2-avtryck.",  
+      "Ha räknat ut ditt CO2-avtryck.",
       "Under en månad ha gjort något för att minska ditt CO2-avtryck, t ex att äta vegetariskt eller lokalt, cykla i stället för att åka bil eller att inte konsumera nya saker. Välj något som du tror att du kommer vilja och kunna fortsätta med.",
-      "Ha tagit ett initiativ i scoutkåren för ökade klimatinsatser, t ex att skriva en motion till kårstämman om solceller, ha en hajk med bara vegetarisk mat, att ni blir Hållbar scoutkår eller uppmuntrar till mer samåkning." 
+      "Ha tagit ett initiativ i scoutkåren för ökade klimatinsatser, t ex att skriva en motion till kårstämman om solceller, ha en hajk med bara vegetarisk mat, att ni blir Hållbar scoutkår eller uppmuntrar till mer samåkning."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
- 
   {
     "id": "minipatrullen",
     "namn": "Minipatrullen",
@@ -455,6 +572,10 @@
       "Tillsammans i patrullen hitta på ett rop eller en symbol för patrullen.",
       "Genomföra en lek eller annan aktivitet tillsammans i patrullen.",
       "Tillsammans i patrullen genomföra en samarbetsövning eller problemlösningsuppgift. där uppgiften är utformad så att den inte går att göra ensam."
+    ],
+    "program": [
+      "Scouterna",
+      "GTorp"
     ]
   },
   {
@@ -462,62 +583,98 @@
     "namn": "Bra kompis",
     "bild": "images/marken/bra_kompis.png",
     "kategori": "Samarbete och grupp",
-    "malgrupp": "Spårare"
+    "malgrupp": "Spårare",
+    "program": [
+      "Scouterna",
+      "GTorp"
+    ]
   },
   {
     "id": "forebild",
     "namn": "Förebild",
     "bild": "images/marken/forebild.png",
     "kategori": "Samarbete och grupp",
-    "malgrupp": "Upptäckare"
+    "malgrupp": "Upptäckare",
+    "program": [
+      "Scouterna",
+      "GTorp"
+    ]
   },
   {
     "id": "superpatrullen",
     "namn": "Superpatrullen",
     "bild": "images/marken/superpatrullen.png",
     "kategori": "Samarbete och grupp",
-    "malgrupp": "Äventyrare"
+    "malgrupp": "Äventyrare",
+    "program": [
+      "Scouterna",
+      "GTorp"
+    ]
   },
   {
     "id": "pyssla",
     "namn": "Pyssla",
     "bild": "images/marken/pyssla.png",
     "kategori": "Skapande",
-    "malgrupp": "Familjescouting"
+    "malgrupp": "Familjescouting",
+    "program": [
+      "Scouterna",
+      "GTorp"
+    ]
   },
   {
     "id": "skapa",
     "namn": "Skapa",
     "bild": "images/marken/skapa.png",
     "kategori": "Skapande",
-    "malgrupp": "Spårare"
+    "malgrupp": "Spårare",
+    "program": [
+      "Scouterna",
+      "GTorp"
+    ]
   },
   {
     "id": "sy",
     "namn": "Sy",
     "bild": "images/marken/sy.png",
     "kategori": "Skapande",
-    "malgrupp": "Upptäckare"
+    "malgrupp": "Upptäckare",
+    "program": [
+      "Scouterna",
+      "GTorp"
+    ]
   },
   {
     "id": "fixa",
     "namn": "Fixa",
     "bild": "images/marken/fixa.png",
     "kategori": "Skapande",
-    "malgrupp": "Äventyrare"
+    "malgrupp": "Äventyrare",
+    "program": [
+      "Scouterna",
+      "GTorp"
+    ]
   },
   {
     "id": "hantverk",
     "namn": "Hantverk",
     "bild": "images/marken/hantverk.png",
     "kategori": "Skapande",
-    "malgrupp": "Utmanare"
+    "malgrupp": "Utmanare",
+    "program": [
+      "Scouterna",
+      "GTorp"
+    ]
   },
   {
     "id": "far_till_troja",
     "namn": "Får till tröja",
     "bild": "images/marken/far_till_troja.png",
     "kategori": "Skapande",
-    "malgrupp": "Rover"
+    "malgrupp": "Rover",
+    "program": [
+      "Scouterna",
+      "GTorp"
+    ]
   }
 ]
