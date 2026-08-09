@@ -939,5 +939,64 @@
       "Scouterna"
      
     ]
+  },
+   {
+    "id": "livraddning",
+    "namn": "Livräddning",
+    "bild": "images/marken/livraddning.png",
+    "kategori": "Säkerhet på och i vatten",
+    "malgrupp": "Spårare",
+    "inledning": "Märket Livräddning är det första i en serie om säkerhet på och i vattnet. I det här märket får du lära dig att förebygga drunkningsolyckor och öva på att agera om det händer en olycka i vattnet.  ", 
+    "kriterier": [
+      "Veta hur du använder utrustning för livräddning, såsom tex livboj eller räddningslina. ",
+      "Pratat om vid vilka situationer någon kan hamna oväntat i vattnet och hur scouterna ska hantera det. ",
+      "Prövat att ramla i vattnet med kläderna på. ",
+      "Träna på att kommunicera med den som är i nöd. ",
+      "Träna på att rädda en kompis med hjälp av olika tekniker. Det kan till exempel vara från land, från båt eller i vatten. "
+
+    ],
+    "program": [
+      "Scouterna"
+     
+    ]
+  },
+  {
+    "id": "isvett",
+    "namn": "Isvett",
+    "bild": "images/marken/isvett.png",
+    "kategori": "Säkerhet på och i vatten",
+    "malgrupp": "Upptäckare",
+    "inledning": "Märket Isvett är det andra i en serie om säkerhet på och i vattnet. I det här märket lär du dig att vara säker på is och öva på hur du ska agera om du eller någon annan går igenom isen.  ", 
+    "kriterier": [
+      "Veta vilken utrustning du behöver ha med dig när du ska ge dig ut på isen.",
+      "Lära dig  var det finns risk för svag is och hur du kontrollerar isens tjocklek.",
+      "Lära dig hur du ska hjälpa någon ur en vak.",
+      "Testa att dra dig fram på is med hjälp av isdubbar.",
+      "Göra en aktivitet på is som ex åka skridskor, pimpla eller åka skidor.",
+      "Om möjlighet finns, testa att bada i isvak och själv ta dig upp."
+    
+    ],
+    "program": [
+      "Scouterna"
+     
+    ]
+  },
+  {
+    "id": "sjovett",
+    "namn": "Sjövett",
+    "bild": "images/marken/sjovett.png",
+    "kategori": "Säkerhet på och i vatten",
+    "malgrupp": "Upptäckare",
+    "inledning": "Märket Sjövett är det tredje i en serie om säkerhet på och i vattnet. I det här märket lär du dig att vara trygg på sjön genom att säkert navigera och planera inför att du ger dig ut på sjön.", 
+    "kriterier": [
+    "Ha kunskap om vilka regler som gäller ute på sjön.", 
+    "Ha kunskap om de viktigaste sjömärkena och dess betydelser.", 
+    "Ansvara för att patrullen medför säkerhetsutrustning ombord när ni ska ut och segla, ex. livboj, flytvästar, lanternor och visselpipa.", 
+    "Kunna hålla god uppsikt över omgivningen, vara redo att väja om nödvändigt och tänka på farten. ",
+    "Ha som vana att kollat väderleksrapporten innan de ger sig ut på sjön. "
+    ],
+    "program": [
+      "Scouterna" 
+    ]
   }
 ]
