@@ -852,9 +852,18 @@
     "bild": "images/marken/flora.png",
     "kategori": "Natur",
     "malgrupp": "Äventyrare",
-    "inledning": "...",
+    "inledning": "Märket Flora är det fjärde i en serie om naturen. I det här märket får du studera olika växter och prova att laga mat med något ätbart från naturen.",
     "kriterier": [
-      "..."
+      "Välj en ruta på 1m2 som du kan återkomma till under minst 3 årstider. Dokumentera det som växer där genom att fotografera, filma eller rita av det du ser och hur det förändras genom årstiderna. ",
+      "Lära dig om 10 olika valfria växter som växer vilt i ditt närområde. Försök att hitta dem. Välj ur dessa grupper: ", 
+      "Träd och buskar",
+      "Svampar",
+      "Örter",
+      "Gräs",
+      "Mossor eller lavar",
+      "Alger eller sjögräs",
+      "Hur ser de ut? I vilken miljö växer de? Vad kan man använda dem till?" 
+
     ],
     "program": [
       "Scouterna"
@@ -867,9 +876,64 @@
     "bild": "images/marken/skogsexpert.png",
     "kategori": "Natur",
     "malgrupp": "Utmanare",
-    "inledning": "...",
+    "inledning": "Märket Skogsexpert är det femte i en serie om naturen. I det här märket lär du dig att leva i och av naturen.  ",
     "kriterier": [
-      "..."
+      "Bygg ett gömsle och tillbringa minst ett dygn där. Se, lyssna och dokumentera vilka djur som passerar.", 
+      "Identifiera 10 ätliga växter och hur de tillagas. Laga sedan en maträtt som innehåller minst 2 av dessa.", 
+      "Pröva två olika säkra sätt att ta till vara på vatten för dryck och matlagning i skogen.", 
+      "Lär dig vad som händer när en växt som vi tagit in som prydnads- eller nyttoväxt eller ett djur som inte ursprungligen funnits i Sveriges fauna hamnar i naturen och blir en invasiv art." 
+
+    ],
+    "program": [
+      "Scouterna"
+     
+    ]
+  },
+  {
+    "id": "klura",
+    "namn": "Klura",
+    "bild": "images/marken/klura.png",
+    "kategori": "Problemlösning",
+    "malgrupp": "Spårare",
+    "inledning": "Märket Klura är det första i en serie om problemlösning. I det här märket får du lära dig om chiffer" , 
+    "kriterier": [
+      "Lära dig att lösa och använda minst två olika sorters chiffer eller hemliga språk.", 
+      "Skapa ett eget chiffer med en chiffernyckel"
+    ],
+    "program": [
+      "Scouterna"
+     
+    ]
+  },
+  {
+    "id": "losa",
+    "namn": "Lösa",
+    "bild": "images/marken/losa.png",
+    "kategori": "Problemlösning",
+    "malgrupp": "Upptäckare",
+    "inledning": "Märket Lösa är det andra i en serie om problemlösning. I det här märket får patrullen hitta problem i sin omgivning och hitta på lösningar." , 
+    "kriterier": [
+      "Patrullen skall identifiera minst tre olika problem, tex att kylen i kårstugan alltid är full med gammal mjölk eller att det alltid står odiskade kåsor med gammalt kaffe i samlingssalen.", 
+      "Patrullen skall ta fram lösningar på problemen. ",
+      "Presentera lösningen för avdelningen ",
+      "Om det behövs skriva en motion till kårens nästa stämma. "
+    ],
+    "program": [
+      "Scouterna"
+     
+    ]
+  },
+  {
+    "id": "koda",
+    "namn": "Koda",
+    "bild": "images/marken/koda.png",
+    "kategori": "Problemlösning",
+    "malgrupp": "Äventyrare",
+    "inledning": "Märket Koda är det tredje i en serie om problemlösning. I det här märket får du öva på att programmera." , 
+    "kriterier": [
+      "Testa hur programmeringslogik fungerar genom att pröva i verkliga livet och se om logiken håller. Turas om att göra instruktioner som guidar scoutkompisen genom en egengjord bana.  ",
+      "Tillsammans med minst en annan person göra ett programmeringsprojekt: Koda något som ni själva hittat på. Det kan till exempel vara ett spel, en robot, en hemsida, en app eller kanske en värld i Minecraft. Beroende på era förkunskaper kan ni antigen välja ett verktyg som underlättar programmeringen eller så skriver ni ren kod i ett programmeringsspråk.  "
+
     ],
     "program": [
       "Scouterna"
