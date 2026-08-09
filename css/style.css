@@ -16,39 +16,40 @@ header {
 
 #badgeGrid {
     display: grid;
-    gap: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    column-gap: 12px;
+    row-gap: 20px;
     padding: 20px;
+    align-items: start;
 }
 
 .category-group {
-    display: grid;
-    gap: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 .category-heading {
-    margin: 0;
+    margin: 0 0 4px;
     font-size: 1.25rem;
     color: #003660;
 }
 
 .category-badges {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, max-content));
+    display: flex;
+    flex-direction: column;
     gap: 12px;
-    align-items: start;
-    justify-content: start;
 }
 
 @media (max-width: 900px) {
-    .category-badges {
+    #badgeGrid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
 @media (max-width: 600px) {
-    .category-badges {
+    #badgeGrid {
         grid-template-columns: 1fr;
-        gap: 12px;
     }
 
     .badge {
@@ -64,25 +65,22 @@ header {
 .target-group-slot {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    min-height: 100px;
-    width: min(100%, 220px);
+    gap: 12px;
 }
 
-.target-group-label {
-    font-weight: 700;
-    color: #003660;
-    font-size: 0.95rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+.target-group-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
 }
+
 
 .empty-slot {
     min-height: 100%;
     border: 1px dashed #d0d7de;
     border-radius: 12px;
     background: #f8fafc;
-    min-height: 220px;
+    min-height: 200px;
 }
 
 .badge {
@@ -93,7 +91,7 @@ header {
     box-shadow: 0 3px 10px rgba(0,0,0,0.08);
     width: 100%;
     max-width: 200px;
-    min-height: 220px;
+    min-height: 200px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;

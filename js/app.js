@@ -171,6 +171,9 @@ function renderMarken(marken) {
             const slot = document.createElement("div");
             slot.className = "target-group-slot";
 
+            const cards = document.createElement("div");
+            cards.className = "target-group-cards";
+
             groupItems.forEach(marke => {
                 const card = document.createElement("div");
                 card.className = "badge";
@@ -180,9 +183,10 @@ function renderMarken(marken) {
                     <p>${getTargetGroup(marke)}</p>
                 `;
                 card.addEventListener("click", () => showPopup(marke));
-                slot.appendChild(card);
+                cards.appendChild(card);
             });
 
+            slot.appendChild(cards);
             badgeRow.appendChild(slot);
         });
 
