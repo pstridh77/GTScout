@@ -184,5 +184,249 @@
       "Använd lämpligt tågvirke för ert bygge och diskutera olika rep och snörens för- och nackdelar",
       "Dokumentera ert bygge med bilder eller film och visa upp det för några andra"
     ]
+  },
+  {
+    "id": "fika",
+    "namn": "Fika",
+    "kategori": "Mat",
+    "malgrupp": "Utmanare",
+    "bild": "images/marken/fika.png",
+    "inledning": "Genom märket Fika får du chansen att ta fikat till nya höjder.",
+    "kriterier": [
+      "Välj minst tre av följande aktiviteter och genomför dem: ordna ett traditionellt kafferep med sju sorters kakor.",
+      "Bjud på brittiskt afternoon tea och baka egna scones.",
+      "Ordna ett knytkalas med kakbuffé.",
+      "Ordna en tårttävling i lag med ett självvalt tema.",
+      "Korsa två olika bakverk och skapa en helt ny variant.",
+      "Välj ett annat land och baka dess typiska bakverk eller kakor.",
+      "Anordna ett café för andra där vinsten går till ett ändamål som ni väljer.",
+      "Koka kaffe eller varm choklad över öppen eld.",
+      "Laga fika med hjälp av stormkök och ät det utomhus.",
+      "Packa en picknickkorg och njut av fika utomhus.",
+      "Gör en organisationstävling med baktema där ni får olika ingredienser för uppdrag och komponera ett eget bakverk.",
+      "Kom på ett eget uppdrag med koppling till fika och genomför det."
+    ]
+  },
+  {
+    "id": "bygga_avancerat",
+    "namn": "Bygga avancerat",
+    "kategori": "Bygga",
+    "malgrupp": "Utmanare",
+    "bild": "images/marken/bygga_avancerat.png",
+    "inledning": "Märket Bygga avancerat är det tredje i en märkesstegring. I märket Bygga avancerat får du tillsammans med din patrull utforska flera olika konstruktionstyper och vad de kan användas till i vår verksamhet.",
+    "kriterier": [
+      "Förstå vad som gör en konstruktion och byggprocess hållbar och säker.",
+      "Bygg minst fem olika typer av konstruktioner och fundera över vad de kan användas till.",
+      "Leda ett byggprojekt utifrån din egen konstruktion.",
+      "Utvärdera konstruktionerna och deras användningsområde efter att de har färdigställts."
+    ]
+  },
+  {
+    "id": "bygga_permanent",
+    "namn": "Bygga Permanent",
+    "kategori": "Bygga",
+    "malgrupp": "Rover",
+    "bild": "images/marken/bygga_permanent.png",
+    "inledning": "Märket Bygga permanent är det fjärde i en märkesstegring om att bygga. Det är ett märke för roverscouter som vill konstruera och bygga något bestående.",
+    "kriterier": [
+      "Gör en ritning, budget och tidsplanering.",
+      "Undersök om det krävs bygglov eller bygganmälan.",
+      "Fördela arbetsuppgifter i roverlaget och utse ansvariga.",
+      "Inviga nybygget på ett kreativt sätt."
+    ]
+  },
+  {
+    "id": "utforska",
+    "namn": "Utforska",
+    "kategori": "Natur",
+    "malgrupp": "Familjescouting",
+    "bild": "images/marken/utforska.png",
+    "inledning": "Märket Utforska är det första i en märkesstegring. Syftet med märket är att du ska känna dig trygg i skogen på dagen.",
+    "kriterier": [
+      "Leka i och utforska en skog eller naturområde.",
+      "Veta vad du ska göra om du kommer bort från en vuxen eller din patrull.",
+      "Veta vad du ska göra om du går vilse, hur du kramar ett träd och gör dig synlig.",
+      "Kunna ditt för- och efternamn."
+    ]
+  },
+  {
+    "id": "hitta",
+    "namn": "Hitta",
+    "kategori": "Natur",
+    "malgrupp": "Spårare",
+    "bild": "images/marken/hitta.png",
+    "inledning": "Märket Hitta är det andra i en märkesstegring. Syftet med märket är att du ska känna dig trygg i skogen i mörker eller skymning, veta hur du hittar rätt och vad du ska göra om du går vilse.",
+    "kriterier": [
+      "Leka och utforska en skog eller naturområde i mörker eller skymning.",
+      "Förstå hur en karta fungerar och tillsammans med ledare ta er till en förutbestämd plats på kartan.",
+      "Lära dig vad du ska göra om du går vilse i skogen eller i staden och hur du kan öka chanserna att bli hittad.",
+      "Kunna din adress och ett telefonnummer till en vuxen anhörig utantill."
+    ]
+  },
+  {
+    "id": "karta",
+    "namn": "Karta",
+    "kategori": "Natur",
+    "malgrupp": "Upptäckare",
+    "bild": "images/marken/karta.png",
+    "inledning": "Märket Karta är det tredje i en märkesstegring. Genom att jobba med märket får patrullen träna sig på att hitta med hjälp av karta och kompass.",
+    "kriterier": [
+      "Förstå hur en karta fungerar och prova på att rita en egen karta över ett mindre område.",
+      "Kunna och förstå de vanligaste karttecknen.",
+      "Med hjälp av en kompass kunna peka ut de fyra väderstrecken.",
+      "Med hjälp av karta och kompass hitta en specifik plats."
+    ]
+  },
+  {
+    "id": "navigera",
+    "namn": "Navigera",
+    "kategori": "Natur",
+    "malgrupp": "Äventyrare",
+    "bild": "images/marken/navigera.png",
+    "inledning": "Märket Navigera är det fjärde i en märkesstegring. Genom att jobba med märket fördjupar du dina kunskaper om karta, kompass, sjökort och navigation.",
+    "kriterier": [
+      "Förstå hur kartan eller sjökortet förhåller sig till verkligheten och fördjupa dig i symboler som höjdkurvor, djup och olika terrängtyper.",
+      "Kunna använda kartor eller sjökort av olika typ och skala för att hitta vägen du ska.",
+      "Kunna använda en kompass för att ta ut väderstreck och riktning till målet.",
+      "Känna till andra sätt att hitta väderstreck, exempelvis med hjälp av klockan, polstjärnan eller tecken i naturen.",
+      "Känna till hur du kan hitta kartor och satellitbilder på internet och prova en GPS om ni har tillgång till en."
+    ]
+  },
+  {
+    "id": "goda_garningar",
+    "namn": "Goda gärningar",
+    "kategori": "Samhälle",
+    "malgrupp": "Spårare",
+    "bild": "images/marken/goda_garningar.png",
+    "inledning": "Märket Goda gärningar är en del i en serie om att jobba för en bättre omvärld. Genom märket får du praktisk erfarenhet av att göra snälla saker för andra.",
+    "kriterier": [
+      "Reflektera kring vad som kan vara en god gärning.",
+      "Gör en god gärning varje dag under till exempel en vecka.",
+      "Skriv eller rita i en dagbok varje dag under tiden."
+    ]
+  },
+  {
+    "id": "varldsforbattraren",
+    "namn": "Världsförbättraren",
+    "kategori": "Samhälle",
+    "malgrupp": "Upptäckare",
+    "bild": "images/marken/varldsforbattraren.png",
+    "inledning": "Märket Världsförbättraren är en del i en serie om att jobba för en bättre omvärld. Genom märket får du erfarenhet av att göra saker som påverkar samhället i en bättre riktning.",
+    "kriterier": [
+      "Gör en eller flera aktiviteter tillsammans med dina scoutkompisar där ni gör en god gärning för andra, till exempel en insamling, städning av ett skogsparti eller en kampanj för mindre bilåkande.",
+      "Efter att ni genomfört aktiviteten pratar ni tillsammans i patrullen och med ledarna om hur det kändes och vad resultatet blev."
+    ]
+  },
+  {
+    "id": "superhjalte",
+    "namn": "Superhjälte",
+    "kategori": "Samhälle",
+    "malgrupp": "Äventyrare",
+    "bild": "images/marken/superhjalte.png",
+    "inledning": "Märket Superhjälte är en del i en serie om att jobba för en bättre omvärld. Genom märket får du hitta och fördjupa dig i en fråga som du brinner för och se att ditt engagemang kan göra skillnad.",
+    "kriterier": [
+      "Tillsammans med din patrull välj ett område eller en fråga där ni vill göra skillnad, till exempel klimatfrågan, mobbning, trafiksäkerhet, hälsa eller nedskräpning.",
+      "Bestäm hur ni ska göra skillnad, till exempel äta mindre kött, säga hej till alla i klassen, cykla tillsammans till skolan eller plocka skräp.",
+      "Gör detta kontinuerligt tillsammans med din patrull under en termin.",
+      "Följ upp hur det går och stötta varandra under terminens gång.",
+      "I slutet av terminen utvärdera på vilket sätt er insats gjorde skillnad och vilka erfarenheter ni har fått."
+    ]
+  },
+  {
+    "id": "aj",
+    "namn": "Aj",
+    "kategori": "Sjukvård",
+    "malgrupp": "Familjescouting",
+    "bild": "images/marken/aj.png",
+    "inledning": "Märket Aj är det första i en märkesstegring om sjukvård. Genom märket får du lära dig vad du kan göra om du eller en kompis gör sig illa.",
+    "kriterier": [
+      "Kunna tvätta ett mindre sår.",
+      "Prata om varför såret ska rengöras.",
+      "Kunna sätta på ett plåster på ett mindre sår.",
+      "Prata om hur du kan trösta en kompis som skadat sig.",
+      "Öva på hur du kyler huden om du bränt dig.",
+      "Veta var sjukvårdsväskan finns.",
+      "Veta hur du ringer 112 och hur du ringer 112 från en låst telefon."
+    ]
+  },
+  {
+    "id": "plastra",
+    "namn": "Plåstra",
+    "kategori": "Sjukvård",
+    "malgrupp": "Spårare",
+    "bild": "images/marken/plastra.png",
+    "inledning": "Märket Plåstra är det andra i en märkesstegring om sjukvård. Genom märket får du lära dig hur du tar hand om skador och hur du tillkallar hjälp.",
+    "kriterier": [
+      "Veta hur du tar hand om mindre sår som skärsår.",
+      "Veta hur du lägger ett tryckförband och placerar skadan i högläge.",
+      "Veta hur du kan förebygga skavsår och ta hand om skavsår om du ändå får ett.",
+      "Veta vilka de viktigaste sakerna i sjukvårdsväskan är och vad vi använder dem till.",
+      "Veta hur du ringer efter ambulans, brandkår och polis och vad du ska säga när de svarar."
+    ]
+  },
+  {
+    "id": "hjalpa",
+    "namn": "Hjälpa",
+    "kategori": "Sjukvård",
+    "malgrupp": "Upptäckare",
+    "bild": "images/marken/hjalpa.png",
+    "inledning": "Märket Hjälpa är det tredje i en märkesstegring om sjukvård. Genom märket fördjupar du dina kunskaper i första hjälpen och lär dig hur du tar hand om dig själv och andra.",
+    "kriterier": [
+      "Förstå vad LABC innebär och hur du ska agera kring det.",
+      "Kunna lägga en person i stabilt sidoläge.",
+      "Kunna lägga om en stukad fot.",
+      "Veta vilken sjukvårdsutrustning ni behöver ha med er på hajk.",
+      "Veta hur du tar hand om hygien vid sårskador utomhus.",
+      "Känna igen symptomen för energibrist och vätskebrist och veta vad du kan göra för att undvika det."
+    ]
+  },
+  {
+    "id": "radda",
+    "namn": "Rädda",
+    "kategori": "Sjukvård",
+    "malgrupp": "Äventyrare",
+    "bild": "images/marken/radda.png",
+    "inledning": "Märket Rädda är det fjärde i en märkesstegring om sjukvård. Genom märket fördjupar du dina kunskaper i första hjälpen och lär dig hantera allvarligare situationer.",
+    "kriterier": [
+      "Veta hur du ska agera vid luftvägsstopp.",
+      "Kunna överblicka en olyckssituation i patrullen och prioritera och fördela uppgifter.",
+      "Veta vad som ska packas i sjukvårdsväskan inför en specifik hajk.",
+      "Kunna tejpa ihop skärsår.",
+      "Veta hur du hanterar benbrott.",
+      "Veta hur du hanterar större brännskador.",
+      "Kunna släcka brand på person.",
+      "Veta hur du tar hand om lokala frostskador och vad du ska göra vid symptom på allmän nedkylning.",
+      "Veta hur du ska agera när en diabetiker får blodsockerfall samt när en person får epilepsianfall.",
+      "Veta hur du ska agera om någon blir medvetslös."
+    ]
+  },
+  {
+    "id": "sortera_och_atervinn",
+    "namn": "Sortera och återvinn",
+    "kategori": "Miljö",
+    "malgrupp": "Spårare",
+    "bild": "images/marken/sortera_och_atervinn.png",
+    "inledning": "Märket Sortera och återvinn är en del i en serie om miljö, klimat och hållbarhet. Genom märket får du göra en konkret insats för miljön.",
+    "kriterier": [
+      "Gör en städinsats tillsammans där ni samlar skräp utomhus, till exempel på en lekplats eller vid en återvinningsstation.",
+      "Ta reda på vad som händer med soporna efter att du slängt dem i rätt sopkärl.",
+      "Se över kårens återvinningssystem och gör det roligare med tydliga skyltar eller pyssel.",
+      "Se över vad ni har på kåren eller hemma och skänk eller sälj det ni inte använder längre.",
+      "Ta reda på var man kan köpa begagnat i er närhet och prata om vad ni tycker är okej att använda som varit någon annans."
+    ]
+  },
+  {
+    "id": "hallbarhet",
+    "namn": "Hållbarhet",
+    "kategori": "Miljö",
+    "malgrupp": "Upptäckare",
+    "bild": "images/marken/hallbarhet.png",
+    "inledning": "Märket Hållbarhet är en del i en serie om miljö, klimat och hållbarhet. Genom märket får du lära dig om de globala målen för hållbarhet och utmana dig själv inom social, miljömässig och ekonomisk hållbarhet.",
+    "kriterier": [
+      "Veta var de globala målen för hållbarhet finns.",
+      "Gör en hållbarhetsutmaning inom social hållbarhet, till exempel gå på ett språkcafé, hjälpa till på ett härbärge eller sprida kunskap om hållbarhet.",
+      "Gör en hållbarhetsutmaning inom miljömässig hållbarhet, till exempel rensa ett vattendrag eller arrangera en vegetarisk hajk.",
+      "Gör en hållbarhetsutmaning inom ekonomisk hållbarhet, till exempel arrangera en loppis eller skapa något som säljs eller byts."
+    ]
   }
-]    
+]
