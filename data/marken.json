@@ -998,5 +998,23 @@
     "program": [
       "Scouterna" 
     ]
+  },
+  {
+    "id": "kapsejsa",
+    "namn": "Kapsejsa",
+    "bild": "images/marken/kapsejsa.png",
+    "kategori": "Säkerhet på och i vatten",
+    "malgrupp": "Utmanare",
+    "inledning": "Märket Kapsejsa är det fjärde i en serie om säkerhet på och i vattnet. Genom att jobba med märket får du öva på vad du gör om din båt kapsejsar. ", 
+    "kriterier": [
+    "Förstå vilken säkerhetsutrustning som är passande för båttypen och kunna använda den.", 
+    "Trilla i vattnet utan att farkosten välter och ta dig upp i farkosten igen. ",
+    "Välta farkosten och vända tillbaka den. Ta dig upp i farkosten igen. ",
+    "Ta hand om er och er farkost efter en kapsejsning. ",
+    "Dokumentera er kapsejsning genom bild och text. "
+    ],
+    "program": [
+      "Scouterna" 
+    ]
   }
 ]
