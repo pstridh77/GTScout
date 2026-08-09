@@ -33,8 +33,8 @@ header {
 
 .category-badges {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, max-content));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, max-content));
+    gap: 12px;
     align-items: start;
     justify-content: start;
 }
@@ -64,9 +64,9 @@ header {
 .target-group-slot {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     min-height: 100px;
-    width: min(100%, 240px);
+    width: min(100%, 220px);
 }
 
 .target-group-label {
@@ -87,13 +87,18 @@ header {
 
 .badge {
     background: white;
-    border-radius: 16px;
-    padding: 20px;
+    border-radius: 14px;
+    padding: 14px 12px;
     text-align: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
     width: 100%;
-    max-width: 220px;
+    max-width: 200px;
+    min-height: 220px;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 
     cursor: pointer;
     transition: all 0.2s ease;
@@ -105,14 +110,19 @@ header {
 }
 
 .badge img {
-    width: 120px;
-    height: 120px;
+    width: 96px;
+    height: 96px;
     object-fit: contain;
 }
 
-
 .badge h3 {
-    margin-top: 10px;
+    margin: 8px 0 4px;
+    font-size: 1rem;
+}
+
+.badge p {
+    margin: 0;
+    font-size: 0.9rem;
 }
 
 #details {

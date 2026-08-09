@@ -428,5 +428,18 @@
       "Gör en hållbarhetsutmaning inom miljömässig hållbarhet, till exempel rensa ett vattendrag eller arrangera en vegetarisk hajk.",
       "Gör en hållbarhetsutmaning inom ekonomisk hållbarhet, till exempel arrangera en loppis eller skapa något som säljs eller byts."
     ]
+  },
+  {
+    "id": "klimat",
+    "namn": "Klimat",
+    "kategori": "Miljö",
+    "malgrupp": "Äventyrare",
+    "bild": "images/marken/klimat.png",
+    "inledning": "Märket Klimat är en del i en serie om att jobba om miljö, klimat och hållbarhet. Genom att jobba med märket får du koll på hur dina vardagsval påverkar klimatet, testa att förändra dina vanor på riktigt och dessutom inspirera hela din scoutkår att ta kliv i rätt riktning. ",
+    "kriterier": [
+      "Ha räknat ut ditt CO2-avtryck.",  
+      "Under en månad ha gjort något för att minska ditt CO2-avtryck, t ex att äta vegetariskt eller lokalt, cykla i stället för att åka bil eller att inte konsumera nya saker. Välj något som du tror att du kommer vilja och kunna fortsätta med.",
+      "Ha tagit ett initiativ i scoutkåren för ökade klimatinsatser, t ex att skriva en motion till kårstämman om solceller, ha en hajk med bara vegetarisk mat, att ni blir Hållbar scoutkår eller uppmuntrar till mer samåkning." 
+    ]
   }
 ]
