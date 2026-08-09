@@ -50,12 +50,12 @@ header {
 
 @media (max-width: 600px) {
     #badgeGrid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: 1fr;
     }
 
     .badge {
         padding: 16px;
-        max-width: none; /* eller 100% */
+        max-width:  none; 
         width: 100%;
     }
 
@@ -93,7 +93,7 @@ header {
     text-align: center;
     box-shadow: 0 3px 10px rgba(0,0,0,0.08);
     width: 100%;
-    max-width: 200px;
+    max-width: none;
     min-height: 200px;
     box-sizing: border-box;
     display: flex;
