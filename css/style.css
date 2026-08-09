@@ -44,6 +44,7 @@ header {
 @media (max-width: 900px) {
     #badgeGrid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        
     }
 }
 
@@ -54,6 +55,8 @@ header {
 
     .badge {
         padding: 16px;
+        max-width: none; /* eller 100% */
+        width: 100%;
     }
 
     .badge img {
