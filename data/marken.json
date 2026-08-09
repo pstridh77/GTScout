@@ -584,6 +584,14 @@
     "bild": "images/marken/bra_kompis.png",
     "kategori": "Samarbete och grupp",
     "malgrupp": "Spårare",
+    "inledning": "Märket Bra kompis är det andra i en serie om att vara med andra och att samarbeta. I det här märket utforskar du vad det innebär att vara en god vän och hur du kan göra när det är svårt. ",
+    "kriterier": [
+      "Prata om hur en bra kompis är.",  
+      "Anordna ett café för andra där vinsten går till ett ändamål som ni väljer.",
+      "Träna på hur du säger ifrån om någon är taskig mot dig eller någon annan.",   
+      "Prata om hur patrullen/avdelningen kan ta emot och välkomna nya scouter.",   
+      "Gör något snällt för en kompis."   
+    ],
     "program": [
       "Scouterna",
       "GTorp"
@@ -595,6 +603,13 @@
     "bild": "images/marken/forebild.png",
     "kategori": "Samarbete och grupp",
     "malgrupp": "Upptäckare",
+    "inledning": "Märket Förebild är det tredje i en serie om att vara med andra och att samarbeta. I det här märket får du fundera vilka dina egna förebilder är och hur du kan vara en förebild för andra.",
+    "kriterier": [
+      "Fundera över vilka dina förebilder är och vad det är som gör dem till förebilder.",
+      "Berätta för varandra i patrullen vilka förebilder ni har och varför.",
+      "Diskutera hur du kan vara en förebild för andra och vilket ansvar du har som förebild för andra.",
+      "Gör något snällt med patrullen för yngre scouter där ni är goda förebilder."
+    ],
     "program": [
       "Scouterna",
       "GTorp"
@@ -606,6 +621,14 @@
     "bild": "images/marken/superpatrullen.png",
     "kategori": "Samarbete och grupp",
     "malgrupp": "Äventyrare",
+    "inledning": "Märket Superpatrullen är det fjärde i en serie om att vara med andra och att samarbeta. I det här märket lär du dig om gruppdynamik och utmanar dig själv och patrullen för att ta samarbetet till en ny nivå. ",
+    "kriterier": [
+      "Låt alla i patrullen skriva ner sina främsta styrkor. Diskutera hur de olika styrkorna var för sig och alla styrkorna tillsammans kan hjälpa er som patrull.  ",
+      "Låt patrullen utföra olika uppgifter som kräver olika slags styrkor.  Diskutera efteråt vilka styrkor som behövdes för att lösa uppgiften och hur ni i patrullen kunde hjälpas åt i detta.  ",
+      "Lär er om de olika grundläggande faser som grupper går igenom i sin grupputvecklingsprocess. ",
+      "Genomför ett rollspel eller en annan aktivitet där medlemmarna i patrullen får prova på olika roller och andra roller än de vanligtvis brukar ha. Reflektera efteråt om vad som då hände med dynamiken i gruppen och hur det kändes för de olika medlemmarna i de olika rollerna.  ",
+      "Prata om olika konflikter som kan uppstå i en patrull. Gör rollspel eller annan aktivitet kring dessa scenarion där ni får prova på olika konfliktlösningsmetoder. " 
+    ],
     "program": [
       "Scouterna",
       "GTorp"
