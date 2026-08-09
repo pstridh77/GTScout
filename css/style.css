@@ -33,9 +33,10 @@ header {
 
 .category-badges {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, max-content));
     gap: 16px;
     align-items: start;
+    justify-content: start;
 }
 
 @media (max-width: 900px) {
@@ -65,6 +66,7 @@ header {
     flex-direction: column;
     gap: 10px;
     min-height: 100px;
+    width: min(100%, 240px);
 }
 
 .target-group-label {
@@ -89,6 +91,9 @@ header {
     padding: 20px;
     text-align: center;
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    width: 100%;
+    max-width: 220px;
+    box-sizing: border-box;
 
     cursor: pointer;
     transition: all 0.2s ease;
