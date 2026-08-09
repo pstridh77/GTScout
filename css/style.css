@@ -183,6 +183,18 @@ header {
     color: #003660;
 }
 
+.detail-popup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.detail-popup-header h2 {
+    margin: 0;
+}
+
 .detail-image-row {
     display: flex;
     align-items: flex-start;
@@ -217,7 +229,7 @@ header {
     flex-shrink: 0;
     display: block;
     margin-left: auto;
-    margin-top: -4px;
+    margin-top: 0;
 }
 
 .detail-introduction {

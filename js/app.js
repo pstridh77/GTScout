@@ -258,13 +258,15 @@ function showPopup(marke) {
     const targetGroup = getTargetGroup(marke);
 
     body.innerHTML = `
-        <h2>${marke.namn}</h2>
+        <div class="detail-popup-header">
+            <h2>${marke.namn}</h2>
+            ${categoryIcon ? `<img src="${categoryIcon}" alt="${targetGroup}" class="detail-category-icon">` : ""}
+        </div>
         <div class="detail-image-row">
             <img
                 src="${marke.bild}"
                 alt="${marke.namn}"
                 class="detail-image">
-            ${categoryIcon ? `<img src="${categoryIcon}" alt="${targetGroup}" class="detail-category-icon">` : ""}
         </div>
 
         <div class="detail-text">
