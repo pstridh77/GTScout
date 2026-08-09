@@ -238,7 +238,7 @@
   {
     "id": "utforska",
     "namn": "Utforska",
-    "kategori": "Natur",
+    "kategori": "Navigering",
     "malgrupp": "Familjescouting",
     "bild": "images/marken/utforska.png",
     "inledning": "Märket Utforska är det första i en märkesstegring. Syftet med märket är att du ska känna dig trygg i skogen på dagen.",
@@ -252,7 +252,7 @@
   {
     "id": "hitta",
     "namn": "Hitta",
-    "kategori": "Natur",
+    "kategori": "Navigering",
     "malgrupp": "Spårare",
     "bild": "images/marken/hitta.png",
     "inledning": "Märket Hitta är det andra i en märkesstegring. Syftet med märket är att du ska känna dig trygg i skogen i mörker eller skymning, veta hur du hittar rätt och vad du ska göra om du går vilse.",
@@ -266,7 +266,7 @@
   {
     "id": "karta",
     "namn": "Karta",
-    "kategori": "Natur",
+    "kategori": "Navigering",
     "malgrupp": "Upptäckare",
     "bild": "images/marken/karta.png",
     "inledning": "Märket Karta är det tredje i en märkesstegring. Genom att jobba med märket får patrullen träna sig på att hitta med hjälp av karta och kompass.",
@@ -280,7 +280,7 @@
   {
     "id": "navigera",
     "namn": "Navigera",
-    "kategori": "Natur",
+    "kategori": "Navigering",
     "malgrupp": "Äventyrare",
     "bild": "images/marken/navigera.png",
     "inledning": "Märket Navigera är det fjärde i en märkesstegring. Genom att jobba med märket fördjupar du dina kunskaper om karta, kompass, sjökort och navigation.",
@@ -441,5 +441,83 @@
       "Under en månad ha gjort något för att minska ditt CO2-avtryck, t ex att äta vegetariskt eller lokalt, cykla i stället för att åka bil eller att inte konsumera nya saker. Välj något som du tror att du kommer vilja och kunna fortsätta med.",
       "Ha tagit ett initiativ i scoutkåren för ökade klimatinsatser, t ex att skriva en motion till kårstämman om solceller, ha en hajk med bara vegetarisk mat, att ni blir Hållbar scoutkår eller uppmuntrar till mer samåkning." 
     ]
+  },
+ 
+  {
+    "id": "minipatrullen",
+    "namn": "Minipatrullen",
+    "bild": "images/marken/minipatrullen.png",
+    "kategori": "Samarbete och grupp",
+    "malgrupp": "Familjescouting",
+    "inledning": "Märket Minipatrullen är det första i en serie om att vara med andra och att samarbeta. Genom att jobba med det här märket får du prova på hur det är att vara i en patrull.",
+    "kriterier": [
+      "Ingå i en patrull som består av 4-8 scouter.",
+      "Tillsammans i patrullen hitta på ett rop eller en symbol för patrullen.",
+      "Genomföra en lek eller annan aktivitet tillsammans i patrullen.",
+      "Tillsammans i patrullen genomföra en samarbetsövning eller problemlösningsuppgift. där uppgiften är utformad så att den inte går att göra ensam."
+    ]
+  },
+  {
+    "id": "bra_kompis",
+    "namn": "Bra kompis",
+    "bild": "images/marken/bra_kompis.png",
+    "kategori": "Samarbete och grupp",
+    "malgrupp": "Spårare"
+  },
+  {
+    "id": "forebild",
+    "namn": "Förebild",
+    "bild": "images/marken/forebild.png",
+    "kategori": "Samarbete och grupp",
+    "malgrupp": "Upptäckare"
+  },
+  {
+    "id": "superpatrullen",
+    "namn": "Superpatrullen",
+    "bild": "images/marken/superpatrullen.png",
+    "kategori": "Samarbete och grupp",
+    "malgrupp": "Äventyrare"
+  },
+  {
+    "id": "pyssla",
+    "namn": "Pyssla",
+    "bild": "images/marken/pyssla.png",
+    "kategori": "Skapande",
+    "malgrupp": "Familjescouting"
+  },
+  {
+    "id": "skapa",
+    "namn": "Skapa",
+    "bild": "images/marken/skapa.png",
+    "kategori": "Skapande",
+    "malgrupp": "Spårare"
+  },
+  {
+    "id": "sy",
+    "namn": "Sy",
+    "bild": "images/marken/sy.png",
+    "kategori": "Skapande",
+    "malgrupp": "Upptäckare"
+  },
+  {
+    "id": "fixa",
+    "namn": "Fixa",
+    "bild": "images/marken/fixa.png",
+    "kategori": "Skapande",
+    "malgrupp": "Äventyrare"
+  },
+  {
+    "id": "hantverk",
+    "namn": "Hantverk",
+    "bild": "images/marken/hantverk.png",
+    "kategori": "Skapande",
+    "malgrupp": "Utmanare"
+  },
+  {
+    "id": "far_till_troja",
+    "namn": "Får till tröja",
+    "bild": "images/marken/far_till_troja.png",
+    "kategori": "Skapande",
+    "malgrupp": "Rover"
   }
 ]
