@@ -33,9 +33,31 @@ header {
 
 .category-badges {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 16px;
     align-items: start;
+}
+
+@media (max-width: 900px) {
+    .category-badges {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .category-badges {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .badge {
+        padding: 16px;
+    }
+
+    .badge img {
+        width: 96px;
+        height: 96px;
+    }
 }
 
 .target-group-slot {

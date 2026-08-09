@@ -153,27 +153,25 @@ function renderMarken(marken) {
         }, {});
 
         targetGroupOrder.forEach(targetGroup => {
+            const groupItems = groupedByTargetGroup[targetGroup] || [];
+            if (groupItems.length === 0) {
+                return;
+            }
+
             const slot = document.createElement("div");
             slot.className = "target-group-slot";
 
-            const groupItems = groupedByTargetGroup[targetGroup] || [];
-            if (groupItems.length === 0) {
-                const empty = document.createElement("div");
-                empty.className = "empty-slot";
-                slot.appendChild(empty);
-            } else {
-                groupItems.forEach(marke => {
-                    const card = document.createElement("div");
-                    card.className = "badge";
-                    card.innerHTML = `
-                        <img src="${marke.bild}" alt="${marke.namn}">
-                        <h3>${marke.namn}</h3>
-                        <p>${getTargetGroup(marke)}</p>
-                    `;
-                    card.addEventListener("click", () => showPopup(marke));
-                    slot.appendChild(card);
-                });
-            }
+            groupItems.forEach(marke => {
+                const card = document.createElement("div");
+                card.className = "badge";
+                card.innerHTML = `
+                    <img src="${marke.bild}" alt="${marke.namn}">
+                    <h3>${marke.namn}</h3>
+                    <p>${getTargetGroup(marke)}</p>
+                `;
+                card.addEventListener("click", () => showPopup(marke));
+                slot.appendChild(card);
+            });
 
             badgeRow.appendChild(slot);
         });
