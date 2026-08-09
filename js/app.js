@@ -178,7 +178,6 @@ function renderMarken(marken) {
                     <img src="${marke.bild}" alt="${marke.namn}">
                     <h3>${marke.namn}</h3>
                     <p>${getTargetGroup(marke)}</p>
-                    <p class="badge-program">${(Array.isArray(marke.program) ? marke.program : [marke.program || "Båda"]).join(", ")}</p>
                 `;
                 card.addEventListener("click", () => showPopup(marke));
                 slot.appendChild(card);
@@ -281,6 +280,7 @@ function showPopup(marke) {
                 </div>
             ` : ""}
             <p><strong>Målgrupp:</strong> ${targetGroup}</p>
+            <p><strong>Program:</strong> ${(Array.isArray(marke.program) ? marke.program : [marke.program || "Båda"]).join(", ")}</p>
         </div>
     `;
     popup.classList.remove("hidden");
