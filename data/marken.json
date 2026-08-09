@@ -640,6 +640,12 @@
     "bild": "images/marken/pyssla.png",
     "kategori": "Skapande",
     "malgrupp": "Familjescouting",
+    "inledning": "Märket Pyssla är det första i en serie om skapande. I det här märket får du pyssla med material från naturen.",
+    "kriterier": [
+      "Pyssla med saker från naturen",
+      "Skapa en leksak av något du får från naturen",
+      "Testa att känna på olika material som exempelvis färg eller tyg"
+    ],
     "program": [
       "Scouterna",
       "GTorp"
@@ -651,6 +657,13 @@
     "bild": "images/marken/skapa.png",
     "kategori": "Skapande",
     "malgrupp": "Spårare",
+    "inledning": "Märket Skapa är det andra i en serie om skapande. I det här märket får du prova att skapa saker med olika metoder.",
+    "kriterier": [
+      "Skapa tre olika saker, med tre olika metoder och med tre olika material: ",
+      "Något du kan använda ",
+      "En dekoration ",
+      "Något till någon annan "
+    ],   
     "program": [
       "Scouterna",
       "GTorp"
@@ -662,6 +675,13 @@
     "bild": "images/marken/sy.png",
     "kategori": "Skapande",
     "malgrupp": "Upptäckare",
+    "inledning": "Märket Sy är det tredje i en serie om skapande. I det här märket får du träna på att sy med maskin och för hand.  ",
+    "kriterier": [
+      "Kunna trä en symaskin och sy något enkelt",
+      "Kunna sy på ett märke på sin scoutdräkt",
+      "Kunna laga något som är trasigt",
+      "Kunna sy i en knapp som lossnat"
+    ],
     "program": [
       "Scouterna",
       "GTorp"
@@ -673,6 +693,15 @@
     "bild": "images/marken/fixa.png",
     "kategori": "Skapande",
     "malgrupp": "Äventyrare",
+    "inledning": "Märket Fixa är det fjärde i en serie om skapande. I det här märket får du förbättra, renovera eller laga.  ",
+    "kriterier": [
+      "Se över er scoutlokal och se vad ni kan förbättra. Exempelvis klä om möbler, måla om, sy gardiner, dekorera, renovera eller vad ni nu bestämmer er för att göra och lära er mer om.  ",
+      "Skapa eller göra om något till er scoutlokal, patrullyta, scoutstuga eller till någon annan. ",
+      "Gör en plan tillsammans vad ni behöver för material och hur lång tid ert arbete kommer ta. ",
+      "När arbetet är klart ska du tillsammans med andra som var med och dina ledare prata om hur det har gått och vad du lärt dig.  ",
+      "Dokumentera och fira ert arbete."  
+
+    ],
     "program": [
       "Scouterna",
       "GTorp"
@@ -684,6 +713,12 @@
     "bild": "images/marken/hantverk.png",
     "kategori": "Skapande",
     "malgrupp": "Utmanare",
+    "inledning": "Märket Hantverk är det femte i en serie om skapande. I det här märket får du prova på olika hantverksmetoder.  ",
+    "kriterier": [
+      "Testar två olika hantverk av olika material och stil, exempelvis keramik, sticka, tälja. ",
+      "Designa eller hitta en design som du vill testa. ",
+      "Lär ut ditt hantverk till någon annan. "
+    ],
     "program": [
       "Scouterna",
       "GTorp"
@@ -695,9 +730,15 @@
     "bild": "images/marken/far_till_troja.png",
     "kategori": "Skapande",
     "malgrupp": "Rover",
+    "inledning": "Märket Får till tröja är det sjätte i en serie om skapande. I här märket får du framställa en slutprodukt från början till slut och får god förståelse av framtagningen som produkten går igenom innan den hamnar i butiken.  ",
+    "kriterier":[
+      "Anordna ett café för andra där vinsten går till ett ändamål som ni väljer.",
+      "Med informationen från produktionsprocessen ska du nu producera fram den valda vara på egen hand.",  
+      "När du tagit fram produkten ska du nu reflektera över hela processen och se vad du lärde dig"  
+],
     "program": [
-      "Scouterna",
-      "GTorp"
+      "Scouterna"
+      
     ]
   }
 ]
