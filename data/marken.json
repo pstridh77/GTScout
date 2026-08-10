@@ -317,7 +317,7 @@
         "id":  "utforska",
         "namn":  "Utforska",
         "bild":  "images/marken/utforska.png",
-        "kategori":  "Navigering / Hitta rätt",
+        "kategori":  "Navigering",
         "malgrupp":  [
                          "Familjescouting"
                      ],
@@ -336,7 +336,7 @@
         "id":  "hitta",
         "namn":  "Hitta",
         "bild":  "images/marken/hitta.png",
-        "kategori":  "Navigering / Hitta rätt",
+        "kategori":  "Navigering",
         "malgrupp":  [
                          "Spårare"
                      ],
@@ -356,7 +356,7 @@
         "id":  "karta",
         "namn":  "Karta",
         "bild":  "images/marken/karta.png",
-        "kategori":  "Navigering / Hitta rätt",
+        "kategori":  "Navigering",
         "malgrupp":  [
                          "Upptäckare"
                      ],
@@ -376,7 +376,7 @@
         "id":  "navigera",
         "namn":  "Navigera",
         "bild":  "images/marken/navigera.png",
-        "kategori":  "Navigering / Hitta rätt",
+        "kategori":  "Navigering",
         "malgrupp":  [
                          "Äventyrare"
                      ],
@@ -396,7 +396,7 @@
         "id":  "goda_garningar",
         "namn":  "Goda gärningar",
         "bild":  "images/marken/goda_garningar.png",
-        "kategori":  "Bättre omvärld / Samhällsengagemang",
+        "kategori":  "Bättre värld",
         "malgrupp":  [
                          "Spårare"
                      ],
@@ -414,7 +414,7 @@
         "id":  "varldsforbattraren",
         "namn":  "Världsförbättraren",
         "bild":  "images/marken/varldsforbattraren.png",
-        "kategori":  "Bättre omvärld / Samhällsengagemang",
+        "kategori":  "Bättre värld",
         "malgrupp":  [
                          "Upptäckare"
                      ],
@@ -431,7 +431,7 @@
         "id":  "superhjalte",
         "namn":  "Superhjälte",
         "bild":  "images/marken/superhjalte.png",
-        "kategori":  "Bättre omvärld / Samhällsengagemang",
+        "kategori":  "Bättre värld",
         "malgrupp":  [
                          "Äventyrare"
                      ],
@@ -541,7 +541,7 @@
         "id":  "sortera_och_atervinn",
         "namn":  "Sortera och återvinn",
         "bild":  "images/marken/sortera_och_atervinn.png",
-        "kategori":  "Miljö, klimat och hållbarhet",
+        "kategori":  "Miljö",
         "malgrupp":  [
                          "Spårare"
                      ],
@@ -562,7 +562,7 @@
         "id":  "hallbarhet",
         "namn":  "Hållbarhet",
         "bild":  "images/marken/hallbarhet.png",
-        "kategori":  "Miljö, klimat och hållbarhet",
+        "kategori":  "Miljö",
         "malgrupp":  [
                          "Upptäckare"
                      ],
@@ -581,7 +581,7 @@
         "id":  "klimat",
         "namn":  "Klimat",
         "bild":  "images/marken/klimat.png",
-        "kategori":  "Miljö, klimat och hållbarhet",
+        "kategori":  "Miljö",
         "malgrupp":  [
                          "Äventyrare"
                      ],
@@ -599,7 +599,7 @@
         "id":  "minipatrullen",
         "namn":  "Minipatrullen",
         "bild":  "images/marken/minipatrullen.png",
-        "kategori":  "Samarbete och grupp",
+        "kategori":  "Samarbete",
         "malgrupp":  [
                          "Familjescouting"
                      ],
@@ -618,7 +618,7 @@
         "id":  "bra_kompis",
         "namn":  "Bra kompis",
         "bild":  "images/marken/bra_kompis.png",
-        "kategori":  "Samarbete och grupp",
+        "kategori":  "Samarbete",
         "malgrupp":  [
                          "Spårare"
                      ],
@@ -638,7 +638,7 @@
         "id":  "forebild",
         "namn":  "Förebild",
         "bild":  "images/marken/forebild.png",
-        "kategori":  "Samarbete och grupp",
+        "kategori":  "Samarbete",
         "malgrupp":  [
                          "Upptäckare"
                      ],
@@ -657,7 +657,7 @@
         "id":  "superpatrullen",
         "namn":  "Superpatrullen",
         "bild":  "images/marken/superpatrullen.png",
-        "kategori":  "Samarbete och grupp",
+        "kategori":  "Samarbete",
         "malgrupp":  [
                          "Äventyrare"
                      ],
@@ -1056,7 +1056,7 @@
         "id":  "livraddning",
         "namn":  "Livräddning",
         "bild":  "images/marken/livraddning.png",
-        "kategori":  "Säkerhet på och i vatten",
+        "kategori":  "Säkerhet på vatten",
         "malgrupp":  [
                          "Spårare"
                      ],
@@ -1076,7 +1076,7 @@
         "id":  "isvett",
         "namn":  "Isvett",
         "bild":  "images/marken/isvett.png",
-        "kategori":  "Säkerhet på och i vatten",
+        "kategori":  "Säkerhet på vatten",
         "malgrupp":  [
                          "Upptäckare"
                      ],
@@ -1097,7 +1097,7 @@
         "id":  "sjovett",
         "namn":  "Sjövett",
         "bild":  "images/marken/sjovett.png",
-        "kategori":  "Säkerhet på och i vatten",
+        "kategori":  "Säkerhet på vatten",
         "malgrupp":  [
                          "Äventyrare"
                      ],
@@ -1117,7 +1117,7 @@
         "id":  "kapsejsa",
         "namn":  "Kapsejsa",
         "bild":  "images/marken/kapsejsa.png",
-        "kategori":  "Säkerhet på och i vatten",
+        "kategori":  "Säkerhet på vatten",
         "malgrupp":  [
                          "Utmanare"
                      ],
@@ -1159,6 +1159,12 @@
         "malgrupp":  [
                          "Spårare"
                      ],
+        "inledning": "Märket Barkbåt är det andra i en serie om lek och tävling. I det här märket får du leka vid vatten och med din egengjorda barkbåt. ",             
+        "kriterier":["Tillverka en barkbåt.", 
+                    "Testa olika designer för din barkbåt.",
+                    "Delta i ett race med din barkbåt. ",
+                    "Leka säkert vid vattnet med din barkbåt. "
+                ],
         "program":  [
                         "Scouterna"
                     ]
@@ -1171,6 +1177,13 @@
         "malgrupp":  [
                          "Upptäckare"
                      ],
+        "inledning": "Märket Racing är det tredje i en serie om lek och tävling. I det här märket får du tävla i olika typer av race med olika typer av farkoster.   ",
+        "kriterier":  [
+                          "Delta i ett race med två farkoster mot varandra. ",
+                          "Delta i ett hinderbanerace. ",
+                          "Tävla mot varandra med olika förutsättningar, exempelvis kanot utan paddel, segelbåt utan segel. ",
+                          "Delta i två race på samma eller så lika tid som möjligt. "
+                        ],
         "program":  [
                         "Scouterna"
                     ]
