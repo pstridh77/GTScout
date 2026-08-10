@@ -2,6 +2,7 @@ const grid = document.getElementById("badgeGrid");
 const searchInput = document.getElementById("searchInput");
 const categoryFilter = document.getElementById("categoryFilter");
 const targetGroupFilter = document.getElementById("targetGroupFilter");
+const typeFilter = document.getElementById("typeFilter");
 const programFilter = document.getElementById("programFilter");
 
 let allMarken = [];
@@ -9,6 +10,7 @@ const filters = {
     search: "",
     category: "Alla",
     targetGroup: "Alla",
+    type: "Alla",
     program: "Alla"
 };
 
@@ -86,6 +88,12 @@ function populateFilters(marken) {
         '<option value="Alla">Alla program</option>',
         ...programs.map(program => `<option value="${program}" ${filters.program === program ? "selected" : ""}>${program}</option>`)
     ].join("");
+
+    const types = [...new Set(marken.map(marke => (marke.Typ || marke.typ || "Intressemärke").toString()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "sv"));
+    typeFilter.innerHTML = [
+        '<option value="Alla">Alla typer</option>',
+        ...types.map(type => `<option value="${type}" ${filters.type === type ? "selected" : ""}>${type}</option>`)
+    ].join("");
 }
 
 function getFilteredMarken() {
@@ -96,9 +104,11 @@ function getFilteredMarken() {
         const matchesTargetGroup = filters.targetGroup === "Alla" || getTargetGroup(marke) === filters.targetGroup;
         const badgePrograms = Array.isArray(marke.program) ? marke.program : [marke.program || "Båda"];
         const matchesProgram = filters.program === "Alla" || badgePrograms.includes(filters.program);
+        const markeType = (marke.Typ || marke.typ || "Intressemärke").toString();
+        const matchesType = filters.type === "Alla" || markeType === filters.type;
 
-        if (!searchTerm) {
-            return matchesCategory && matchesTargetGroup && matchesProgram;
+        if (!searchTerm && filters.type === "Alla") {
+            return matchesCategory && matchesTargetGroup && matchesProgram && matchesType;
         }
 
         const searchableText = [
@@ -114,7 +124,7 @@ function getFilteredMarken() {
             .toLowerCase();
 
         const matchesSearch = searchableText.includes(searchTerm);
-        return matchesCategory && matchesTargetGroup && matchesProgram && matchesSearch;
+        return matchesCategory && matchesTargetGroup && matchesProgram && matchesType && (searchTerm ? matchesSearch : true);
     });
 }
 
@@ -199,6 +209,7 @@ function handleFilterChange() {
     filters.search = searchInput.value;
     filters.category = categoryFilter.value;
     filters.targetGroup = targetGroupFilter.value;
+    filters.type = typeFilter.value;
     filters.program = programFilter.value;
     renderMarken(allMarken);
 }
@@ -206,6 +217,7 @@ function handleFilterChange() {
 searchInput.addEventListener("input", handleFilterChange);
 categoryFilter.addEventListener("change", handleFilterChange);
 targetGroupFilter.addEventListener("change", handleFilterChange);
+typeFilter.addEventListener("change", handleFilterChange);
 programFilter.addEventListener("change", handleFilterChange);
 
 loadMarken();
