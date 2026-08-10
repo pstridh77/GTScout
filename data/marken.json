@@ -16,7 +16,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "tanda",
@@ -36,7 +37,8 @@
         "program":  [
                         "Scouterna",
                         "GTorp"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "brinna",
@@ -57,7 +59,8 @@
         "program":  [
                         "Scouterna",
                         "GTorp"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "elda",
@@ -69,7 +72,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "ta_fyr",
@@ -96,7 +100,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "smaka",
@@ -114,7 +119,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "matettan",
@@ -133,7 +139,8 @@
         "program":  [
                         "Scouterna",
                         "GTorp"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "mattvaan",
@@ -152,7 +159,8 @@
         "program":  [
                         "Scouterna",
                         "GTorp"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "mattrean",
@@ -171,7 +179,8 @@
         "program":  [
                         "Scouterna",
                         "GTorp"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "mat_avancerat",
@@ -189,7 +198,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "skogsgourmet",
@@ -207,7 +217,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "fika",
@@ -234,7 +245,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "bygga",
@@ -252,7 +264,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "surra",
@@ -273,7 +286,8 @@
         "program":  [
                         "Scouterna",
                         "GTorp"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "bygga_avancerat",
@@ -292,7 +306,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "bygga_permanent",
@@ -311,7 +326,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "utforska",
@@ -330,7 +346,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "hitta",
@@ -350,7 +367,8 @@
         "program":  [
                         "Scouterna",
                         "GTorp"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "karta",
@@ -370,7 +388,8 @@
         "program":  [
                         "Scouterna",
                         "GTorp"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "navigera",
@@ -390,7 +409,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "goda_garningar",
@@ -408,7 +428,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "varldsforbattraren",
@@ -425,7 +446,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "superhjalte",
@@ -445,7 +467,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "aj",
@@ -467,7 +490,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "plastra",
@@ -488,7 +512,8 @@
         "program":  [
                         "Scouterna",
                         "GTorp"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "hjalpa",
@@ -510,7 +535,8 @@
         "program":  [
                         "Scouterna",
                         "GTorp"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "radda",
@@ -535,7 +561,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "sortera_och_atervinn",
@@ -556,7 +583,8 @@
         "program":  [
                         "Scouterna",
                         "GTorp"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "hallbarhet",
@@ -575,7 +603,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "klimat",
@@ -593,7 +622,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "minipatrullen",
@@ -612,7 +642,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "bra_kompis",
@@ -632,7 +663,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "forebild",
@@ -651,7 +683,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "superpatrullen",
@@ -671,7 +704,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "pyssla",
@@ -689,7 +723,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "skapa",
@@ -709,7 +744,8 @@
         "program":  [
                         "Scouterna",
                         "GTorp"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "sy",
@@ -728,7 +764,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "fixa",
@@ -748,7 +785,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "hantverk",
@@ -766,7 +804,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "far_till_troja",
@@ -784,7 +823,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "forsta_repmarket",
@@ -803,7 +843,8 @@
         "program":  [
                         "Scouterna",
                         "GTorp"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "andra_repmarket",
@@ -822,7 +863,8 @@
         "program":  [
                         "Scouterna",
                         "GTorp"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "tredje_repmarket",
@@ -842,7 +884,8 @@
         "program":  [
                         "Scouterna",
                         "GTorp"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "sno",
@@ -862,7 +905,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "morker",
@@ -881,7 +925,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "vader",
@@ -900,7 +945,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "ny_i_naturen",
@@ -917,7 +963,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "naturligt",
@@ -935,7 +982,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "fauna",
@@ -954,7 +1002,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "flora",
@@ -978,7 +1027,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "skogsexpert",
@@ -997,7 +1047,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "klura",
@@ -1014,7 +1065,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "losa",
@@ -1033,7 +1085,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "koda",
@@ -1050,7 +1103,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "livraddning",
@@ -1070,7 +1124,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "isvett",
@@ -1091,7 +1146,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "sjovett",
@@ -1111,7 +1167,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "kapsejsa",
@@ -1131,7 +1188,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "leka",
@@ -1149,7 +1207,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "barkbat",
@@ -1159,15 +1218,17 @@
         "malgrupp":  [
                          "Spårare"
                      ],
-        "inledning": "Märket Barkbåt är det andra i en serie om lek och tävling. I det här märket får du leka vid vatten och med din egengjorda barkbåt. ",             
-        "kriterier":["Tillverka en barkbåt.", 
-                    "Testa olika designer för din barkbåt.",
-                    "Delta i ett race med din barkbåt. ",
-                    "Leka säkert vid vattnet med din barkbåt. "
-                ],
+        "inledning":  "Märket Barkbåt är det andra i en serie om lek och tävling. I det här märket får du leka vid vatten och med din egengjorda barkbåt. ",
+        "kriterier":  [
+                          "Tillverka en barkbåt.",
+                          "Testa olika designer för din barkbåt.",
+                          "Delta i ett race med din barkbåt. ",
+                          "Leka säkert vid vattnet med din barkbåt. "
+                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "racing",
@@ -1177,7 +1238,7 @@
         "malgrupp":  [
                          "Upptäckare"
                      ],
-        "inledning": "Märket Racing är det tredje i en serie om lek och tävling. I det här märket får du tävla i olika typer av race med olika typer av farkoster.   ",
+        "inledning":  "Märket Racing är det tredje i en serie om lek och tävling. I det här märket får du tävla i olika typer av race med olika typer av farkoster.   ",
         "kriterier":  [
                           "Ta reda på hur och varför scoutrörelsen startade, vad man gjorde då som finns kvar idag. ",
                           "Ta reda på mer om WOSM, WAGGGS, scouting i Sverige och din kår. ",
@@ -1185,11 +1246,11 @@
                           "Jämför Lag och Löfte då och nu (t ex 1907, på 50-talet och idag). Varför tror du att scoutlagen har förändrats? Hur tror du att den ser ut år 2100?  ",
                           "Ta reda på vilka scouthögtider som finns och varför vi firar dem. ",
                           "Jämför din scoutkårs historia och utveckling med den hos en annan förening som finns på orten. "
-
-                        ],
+                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "da_och_nu",
@@ -1199,7 +1260,7 @@
         "malgrupp":  [
                          "Spårare"
                      ],
-        "inledning":"Genom att känna till scoutrörelsens historia och hur den har utvecklats ökar du din förståelse för varför vi gör vissa saker och varför vi till exempel ser ut som vi gör. Scoutrörelsen startade för mer än 100 år sedan i Storbritannien och är idag den största världsomspännande idéburna barn- och ungdomsrörelsen i världen. ",
+        "inledning":  "Genom att känna till scoutrörelsens historia och hur den har utvecklats ökar du din förståelse för varför vi gör vissa saker och varför vi till exempel ser ut som vi gör. Scoutrörelsen startade för mer än 100 år sedan i Storbritannien och är idag den största världsomspännande idéburna barn- och ungdomsrörelsen i världen. ",
         "kriterier":  [
                           "Känna till hur scoutrörelsen startade och varför den startade. ",
                           "Känna till hur scoutrörelsen har utvecklats i Sverige och i världen. ",
@@ -1207,7 +1268,8 @@
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "internationellt",
@@ -1217,38 +1279,38 @@
         "malgrupp":  [
                          "Upptäckare"
                      ],
-        "inledning":"Märket Internationellt är det första i en serie om vår internationella rörelse. I det här märket får du kontakt med scouter i ett annat land och lära dig mer om hur det är hos dem .",
+        "inledning":  "Märket Internationellt är det första i en serie om vår internationella rörelse. I det här märket får du kontakt med scouter i ett annat land och lära dig mer om hur det är hos dem .",
         "kriterier":  [
-                          "Ta aktiv kontakt med scouter i ett annat land. Ett sätt att komma i kontakt med en patrull utomlands är att gå in på Facebooksidan International Scouting Sweden och klicka på community för att se om någon söker kontakt med en svensk patrull. Om inte så skriv ett eget inlägg på sidan så delar sidan det med de som följer, och hoppas ni får napp.", 
-                            "Ta reda på hur det är att vara scout i ett annat land och vad det innebär. Det kan ni till exempel göra genom att ta reda på vad de gör för scoutaktiviteter, vilka likheterna och skillnaderna är det jämfört mot vad ni gör i Scouterna.", 
-                            "Testa en av deras aktiviteter på ett scoutmöte.", 
-                            "Under tiden ni har kontakt med de andra scouterna ska ni regelbundet reflektera med patrullkompisar och ledare om hur kontakten har påverkat er och vad ni tar med er från det.", 
-                            "Undersök möjligheten att kunna träffas i verkligheten genom till exempel ett läger eller hajk." 
-
+                          "Ta aktiv kontakt med scouter i ett annat land. Ett sätt att komma i kontakt med en patrull utomlands är att gå in på Facebooksidan International Scouting Sweden och klicka på community för att se om någon söker kontakt med en svensk patrull. Om inte så skriv ett eget inlägg på sidan så delar sidan det med de som följer, och hoppas ni får napp.",
+                          "Ta reda på hur det är att vara scout i ett annat land och vad det innebär. Det kan ni till exempel göra genom att ta reda på vad de gör för scoutaktiviteter, vilka likheterna och skillnaderna är det jämfört mot vad ni gör i Scouterna.",
+                          "Testa en av deras aktiviteter på ett scoutmöte.",
+                          "Under tiden ni har kontakt med de andra scouterna ska ni regelbundet reflektera med patrullkompisar och ledare om hur kontakten har påverkat er och vad ni tar med er från det.",
+                          "Undersök möjligheten att kunna träffas i verkligheten genom till exempel ett läger eller hajk."
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "varldens_utmaning",
         "namn":  "Världens utmaning",
         "bild":  "images/marken/varldens_utmaning.png",
         "kategori":  "Internationellt",
-        "inledning":"Märket Världens utmaning är det andra i en serie om vår internationella rörelse. I det här märket får ni utmanas och utmana scouter i andra länder. ",
+        "inledning":  "Märket Världens utmaning är det andra i en serie om vår internationella rörelse. I det här märket får ni utmanas och utmana scouter i andra länder. ",
         "kriterier":  [
                           "Kontakta tillsammans med din patrull scoutgrupper från minst två andra länder och lär kanna dem och deras scoutkår. ",
                           "Hitta på en utmaning som ni vill utmana er nya vängrupp i. Kanske är det vem som lagar köttbullar snabbast, vem som kan surra det högsta tornet eller något helt annat. Ni bestämmer. ",
                           "Be er nya vängrupp att utmana er i en utmaning som de själva hittat på. ",
                           "Behöver ni hjälp att få kontakt med scouter i andra länder kan ni kontakta Scouterna. "
-
                       ],
         "malgrupp":  [
                          "Äventyrare"
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "upptack_varlden",
@@ -1258,18 +1320,18 @@
         "malgrupp":  [
                          "Utmanare"
                      ],
-        "inledning":"Märket Upptäck världen är det tredje i en serie om vår internationella rörelse. I det här märket ska du resa till ett annat land och träffa scouter och se vad som är lika och vad som är annorlunda.   ",
+        "inledning":  "Märket Upptäck världen är det tredje i en serie om vår internationella rörelse. I det här märket ska du resa till ett annat land och träffa scouter och se vad som är lika och vad som är annorlunda.   ",
         "kriterier":  [
-            "Planera och genomför en scoutresa i ett annat land och besök samtidigt scouter i landet.", 
-            "Besök en scoutaktivitet i ett annat land.", 
-            "Gör en typisk svensk scoutaktivitet med scouter från andra länder.", 
-            "Reflektera över vad du har sett och skillnaderna mot scouting i Sverige.", 
-            "Berätta om din internationella scoutupplevelse för andra scouter i din scoutkår eller närliggande scoutkårer." 
-
+                          "Planera och genomför en scoutresa i ett annat land och besök samtidigt scouter i landet.",
+                          "Besök en scoutaktivitet i ett annat land.",
+                          "Gör en typisk svensk scoutaktivitet med scouter från andra länder.",
+                          "Reflektera över vad du har sett och skillnaderna mot scouting i Sverige.",
+                          "Berätta om din internationella scoutupplevelse för andra scouter i din scoutkår eller närliggande scoutkårer."
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "varldsmedborgare",
@@ -1279,15 +1341,15 @@
         "malgrupp":  [
                          "Rover"
                      ],
-        "inledning":"Märket Världsmedborgare är det fjärde i en serie om vår internationella rörelse. I det här märket ska du engagera dig som volontär internationellt.   ",
+        "inledning":  "Märket Världsmedborgare är det fjärde i en serie om vår internationella rörelse. I det här märket ska du engagera dig som volontär internationellt.   ",
         "kriterier":  [
                           "Engagera dig som internationell volontär i våra världsorganisationer WAGGGS eller WOSM. Antingen i ett projekt, i WAGGGS eller WOSMs region eller ett scoutcenter. ",
                           "Berätta för andra roverscouter om dina upplevelser."
-
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "klattring",
@@ -1297,54 +1359,53 @@
         "malgrupp":  [
                          "Äventyrare"
                      ],
-        "inledning":"I det här märket får du lära dig grunderna i klättring och hur du gör det på ett säkert sätt. Men också vad du behöver kunna om en olycka händer. För att få säkra andra klättrare ska du inneha topprepskort (grönt kort) eller motsvarande. Detta märke ger dig inte grönt kort och säkring av andra klättrare är inte del av detta märke. Topprepskort baseras på Svenska klätterförbundets nationella krav och utfärdas av godkända klätterklubbar.  ",
+        "inledning":  "I det här märket får du lära dig grunderna i klättring och hur du gör det på ett säkert sätt. Men också vad du behöver kunna om en olycka händer. För att få säkra andra klättrare ska du inneha topprepskort (grönt kort) eller motsvarande. Detta märke ger dig inte grönt kort och säkring av andra klättrare är inte del av detta märke. Topprepskort baseras på Svenska klätterförbundets nationella krav och utfärdas av godkända klätterklubbar.  ",
         "kriterier":  [
-            "Kunna grundläggande säkerhet såsom hur utrustningen fungerar, regler för säkring, knopar som behövs och kommandon som används vid klättring. Vid klättring på bergsvägg finns extra säkerhet att tänka på som att förbereda så det finns nödtelefon, en plan för att ta skadade från platsen och hur man beter sig på själva klättringsplatsen.",  
-            "Kunna sjukvård kopplad till klättring så som fallskador, stukade/vrickade leder, brutna leder, brännskador från rep, skärskador från vassa klippor mm.",  
-            "Ha utfört en klättring med topprep upp för en bergsvägg eller klättervägg och sen ha rapellerat ner.",  
-            "Kunna hur allemansrätten gäller vid klättring på klippor."  
-
-                      ],    
-        
+                          "Kunna grundläggande säkerhet såsom hur utrustningen fungerar, regler för säkring, knopar som behövs och kommandon som används vid klättring. Vid klättring på bergsvägg finns extra säkerhet att tänka på som att förbereda så det finns nödtelefon, en plan för att ta skadade från platsen och hur man beter sig på själva klättringsplatsen.",
+                          "Kunna sjukvård kopplad till klättring så som fallskador, stukade/vrickade leder, brutna leder, brännskador från rep, skärskador från vassa klippor mm.",
+                          "Ha utfört en klättring med topprep upp för en bergsvägg eller klättervägg och sen ha rapellerat ner.",
+                          "Kunna hur allemansrätten gäller vid klättring på klippor."
+                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "klattra_kebnekaise",
         "namn":  "Klättra Kebnekaise",
         "bild":  "images/marken/klattra_kebnekaise.png",
-        "kategori":  "Distansmärken",
+        "kategori":  "Distansmärke Höjd",
         "malgrupp":  [
                          "Utmanare"
                      ],
-        "inledning":"Fysiska utmaningar är vanligt förekommande i Scouterna. vi hajkar, klättrar och paddlar runt i den svenska naturen. Distansmärken är en serie med sex olika intressemärken, som uppmärksammar fysiska utmaningar du samlat på dig under din tid i scouterna.  ",
+        "inledning":  "Fysiska utmaningar är vanligt förekommande i Scouterna. vi hajkar, klättrar och paddlar runt i den svenska naturen. Distansmärken är en serie med sex olika intressemärken, som uppmärksammar fysiska utmaningar du samlat på dig under din tid i scouterna.  ",
         "kriterier":  [
-                          "För att få märket klättra Kebnekaise ska du sammanlagt ha klättrat eller bestigit en eller flera höjder motsvarande Kebnekaises högsta punkt, ca 2100 möh.", 
+                          "För att få märket klättra Kebnekaise ska du sammanlagt ha klättrat eller bestigit en eller flera höjder motsvarande Kebnekaises högsta punkt, ca 2100 möh.",
                           "Du som scout ansvarar själv för att dokumentera antalet höjdmeter du klättrar eller bestiger vid varje hajk eller scoutaktivitet. "
-
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "klattra_everest",
         "namn":  "Klättra Everest",
         "bild":  "images/marken/klattra_everest.png",
-        "kategori":  "Distansmärken",
+        "kategori":  "Distansmärke Höjd",
         "malgrupp":  [
                          "Rover"
                      ],
-        "inledning": "Fysiska utmaningar är vanligt förekommande i Scouterna. Vi hajkar, klättrar och paddlar runt i den svenska naturen. Distansmärken är en serie med sex olika intressemärken, som uppmärksammar hur stora fysiska utmaningar du samlat på dig under din tid i Scouterna. Märket Klättra Everest är en fortsättning på märket Klättra Kebnekaise. ",
+        "inledning":  "Fysiska utmaningar är vanligt förekommande i Scouterna. Vi hajkar, klättrar och paddlar runt i den svenska naturen. Distansmärken är en serie med sex olika intressemärken, som uppmärksammar hur stora fysiska utmaningar du samlat på dig under din tid i Scouterna. Märket Klättra Everest är en fortsättning på märket Klättra Kebnekaise. ",
         "kriterier":  [
-                          "För att få märket klättra Everest ska du sammanlagt ha klättrat eller bestigit en eller flera höjder motsvarande Everest, ca 8848 möh.", 
+                          "För att få märket klättra Everest ska du sammanlagt ha klättrat eller bestigit en eller flera höjder motsvarande Everest, ca 8848 möh.",
                           "Du som scout ansvarar själv för att dokumentera antalet höjdmeter du klättrar eller bestiger vid varje hajk eller scoutaktivitet. "
-
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "grottning",
@@ -1354,20 +1415,21 @@
         "malgrupp":  [
                          "Äventyrare"
                      ],
-        "inledning": "I det här märket får du prova på grottning och lära dig hur du gör det på ett säkert sätt.  ",
-        "kriterier": [
-            "Veta vilken säkerhet som gäller i den grotta ni ska besöka såsom risk för fallande sten, hur man tar sig fram i otillgänglig terräng och att man aldrig ska besöka grottor ensam.",   
-            "Veta riskerna med syrebrist i icke ventilerade utrymmen och riskerna med eldning i grottor",
-            "Kunna grundläggande sjukvård kopplat till grottmiljöer så som stukade/vrickade leder, brutna leder, skärskador från vassa klippor m.m.",
-            "Besöka en eller flera grottor.",
-            "Testa olika ljuskällor inne i grottan.",
-            "Fundera på hur människor använt just den grottan du besöker.",
-            "Ta reda på mer om de växter och djur som finns inne i grottan ni besöker.",
-            "Ta reda på om det finns några sägner eller historier om den grotta ni besöker. "
-        ],
+        "inledning":  "I det här märket får du prova på grottning och lära dig hur du gör det på ett säkert sätt.  ",
+        "kriterier":  [
+                          "Veta vilken säkerhet som gäller i den grotta ni ska besöka såsom risk för fallande sten, hur man tar sig fram i otillgänglig terräng och att man aldrig ska besöka grottor ensam.",
+                          "Veta riskerna med syrebrist i icke ventilerade utrymmen och riskerna med eldning i grottor",
+                          "Kunna grundläggande sjukvård kopplat till grottmiljöer så som stukade/vrickade leder, brutna leder, skärskador från vassa klippor m.m.",
+                          "Besöka en eller flera grottor.",
+                          "Testa olika ljuskällor inne i grottan.",
+                          "Fundera på hur människor använt just den grottan du besöker.",
+                          "Ta reda på mer om de växter och djur som finns inne i grottan ni besöker.",
+                          "Ta reda på om det finns några sägner eller historier om den grotta ni besöker. "
+                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "dykning",
@@ -1377,19 +1439,19 @@
         "malgrupp":  [
                          "Utmanare"
                      ],
-        "inledning": "Världen under ytan ger en helt ny upplevelse av vatten. Märket är utformat med dykning i åtanke men kan anpassas till en lägre nivå om möjlighet till provdyk inte finns. För att få märket måste scouten kunna simma 200 m och trampa vatten i 5 min. För provdyk ska alltid certifierad dykinstruktör anlitas. ",
-        "kriterier": [
-            "Veta hur man väljer, justerar och använder flytväst, snorkel, mask och fenor. ",
-            "Kunna grundläggande säkerhet kopplad till snorkling och dykning så som hantering av syrebrist, nedkylning och skärsår. Du ska även kunna rädda en person ur vattnet och utföra HLR. ",
-            "Kunna grundläggande sjukvård kopplad till snorkling och dykning så som hantering av syrebrist, nedkylning och skärsår. Du ska även kunna rädda en person ur vattnet och utföra HLR. ",
-            "Snorkling och dykningstekniker, inklusive kontroll av flytkraft, ytbad och rensning av vatten från din snorkel. ",
-            "Genomfört en snorkeltur vid ytan med kortare besök ner på 2 m djup. ",
-            "Om möjligt gjort ett provdyk under direkt övervakning av en dykledare och då ta dina första andetag under vattnet. "
-
-        ],
+        "inledning":  "Världen under ytan ger en helt ny upplevelse av vatten. Märket är utformat med dykning i åtanke men kan anpassas till en lägre nivå om möjlighet till provdyk inte finns. För att få märket måste scouten kunna simma 200 m och trampa vatten i 5 min. För provdyk ska alltid certifierad dykinstruktör anlitas. ",
+        "kriterier":  [
+                          "Veta hur man väljer, justerar och använder flytväst, snorkel, mask och fenor. ",
+                          "Kunna grundläggande säkerhet kopplad till snorkling och dykning så som hantering av syrebrist, nedkylning och skärsår. Du ska även kunna rädda en person ur vattnet och utföra HLR. ",
+                          "Kunna grundläggande sjukvård kopplad till snorkling och dykning så som hantering av syrebrist, nedkylning och skärsår. Du ska även kunna rädda en person ur vattnet och utföra HLR. ",
+                          "Snorkling och dykningstekniker, inklusive kontroll av flytkraft, ytbad och rensning av vatten från din snorkel. ",
+                          "Genomfört en snorkeltur vid ytan med kortare besök ner på 2 m djup. ",
+                          "Om möjligt gjort ett provdyk under direkt övervakning av en dykledare och då ta dina första andetag under vattnet. "
+                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "pa_ytan",
@@ -1399,16 +1461,16 @@
         "malgrupp":  [
                          "Familjescouting"
                      ],
-        "inledning":"Märket På ytan är det första i en serie om vatten. I det här märket får du utforska vad som händer på ytan i en sjö eller ett vattendrag.",
+        "inledning":  "Märket På ytan är det första i en serie om vatten. I det här märket får du utforska vad som händer på ytan i en sjö eller ett vattendrag.",
         "kriterier":  [
-                        "Göra en aktivitet där du testar hur ytspänning fungerar. Vad sjunker, vad flyter och varför är det så? Varför kan till exempel en båt flyta, men inte en pytteliten sten?",  
-                        "Undersöka en sjö, damm eller vattendrag i din närmiljö. Vilka växter och djur kan du hitta på vattenytan? Hur kan de leva där?", 
-                        "Rita, måla, fota eller pyssla det du har sett och testat."  
-
+                          "Göra en aktivitet där du testar hur ytspänning fungerar. Vad sjunker, vad flyter och varför är det så? Varför kan till exempel en båt flyta, men inte en pytteliten sten?",
+                          "Undersöka en sjö, damm eller vattendrag i din närmiljö. Vilka växter och djur kan du hitta på vattenytan? Hur kan de leva där?",
+                          "Rita, måla, fota eller pyssla det du har sett och testat."
                       ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "under_ytan",
@@ -1418,16 +1480,17 @@
         "malgrupp":  [
                          "Spårare"
                      ],
-        "inledning":"Märket Under ytan är det andra i en serie om vatten. I det här märket får du utforska vad du hittar under ytan och lära dig om olika djur och väster som finns där.  ",
+        "inledning":  "Märket Under ytan är det andra i en serie om vatten. I det här märket får du utforska vad du hittar under ytan och lära dig om olika djur och väster som finns där.  ",
         "kriterier":  [
-                        "Besöka en sjö, damm, hav eller vattendrag och undersöka vad som finns i vattnet, exempelvis genom att håva eller titta i cyklop.", 
-                        "Lära dig att känna igen några av de vanligaste fiskarna, djuren och växterna som finns i vattnet du undersöker.",  
-	                    "Veta hur du hittar information om djur och växter du ser i vatten.", 
-	                    "Kunna beskriva vattnets kretslopp. "
-                        ],
+                          "Besöka en sjö, damm, hav eller vattendrag och undersöka vad som finns i vattnet, exempelvis genom att håva eller titta i cyklop.",
+                          "Lära dig att känna igen några av de vanligaste fiskarna, djuren och växterna som finns i vattnet du undersöker.",
+                          "Veta hur du hittar information om djur och växter du ser i vatten.",
+                          "Kunna beskriva vattnets kretslopp. "
+                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "vatten",
@@ -1437,16 +1500,16 @@
         "malgrupp":  [
                          "Upptäckare"
                      ],
-        "inledning":"Märket Vatten är det tredje i en serie om just vatten. I det här märket får du utforska vatten som förutsättning för liv, och hur vatten påverkar oss människor på olika sätt. ",
+        "inledning":  "Märket Vatten är det tredje i en serie om just vatten. I det här märket får du utforska vatten som förutsättning för liv, och hur vatten påverkar oss människor på olika sätt. ",
         "kriterier":  [
-                        "Lära dig om vattenvård och hur vi får vatten rent. Exempelvis genom att besöka ett reningsverk, ett vattentorn eller tillverka ett eget vattenreningsverk i miniatyr", 
-                        "Gör en aktivitet där du undersöker din egen vattenförbrukning från ett scoutmöte till ett annat. Jämför med hur mycket vatten en person använder i ett land med andra förutsättningar.",  
-                        "Undersök hur nederbördsstatistiken sett ut i ditt område under de senaste åren.  Har det varit ovanligt mycket eller lite nederbörd? Vad beror skillnaderna på och hur påverkar det dig och andra?" 
-
-                        ],
+                          "Lära dig om vattenvård och hur vi får vatten rent. Exempelvis genom att besöka ett reningsverk, ett vattentorn eller tillverka ett eget vattenreningsverk i miniatyr",
+                          "Gör en aktivitet där du undersöker din egen vattenförbrukning från ett scoutmöte till ett annat. Jämför med hur mycket vatten en person använder i ett land med andra förutsättningar.",
+                          "Undersök hur nederbördsstatistiken sett ut i ditt område under de senaste åren.  Har det varit ovanligt mycket eller lite nederbörd? Vad beror skillnaderna på och hur påverkar det dig och andra?"
+                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "spela",
@@ -1458,7 +1521,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "fota",
@@ -1470,7 +1534,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "filma",
@@ -1482,7 +1547,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "musik",
@@ -1494,7 +1560,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "instrument",
@@ -1506,7 +1573,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "orkester",
@@ -1518,7 +1586,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "skogsrejv",
@@ -1530,7 +1599,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "min_rost",
@@ -1542,7 +1612,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "demokrati",
@@ -1554,7 +1625,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "lagerbal",
@@ -1566,7 +1638,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "dassmarket",
@@ -1578,7 +1651,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "kroppslig_halsa",
@@ -1590,7 +1664,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "psykisk_halsa",
@@ -1602,7 +1677,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "paddla",
@@ -1614,31 +1690,34 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "paddla_vanern",
         "namn":  "Paddla Vänern",
         "bild":  "images/marken/paddla_vanern.png",
-        "kategori":  "Distansmärken (paddling)",
+        "kategori":  "Distansmärke paddla",
         "malgrupp":  [
                          "Utmanare"
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "paddla_gotland",
         "namn":  "Paddla Gotland",
         "bild":  "images/marken/paddla_gotland.png",
-        "kategori":  "Distansmärken (paddling)",
+        "kategori":  "Distansmärke paddla",
         "malgrupp":  [
                          "Rover"
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "inkludering",
@@ -1650,7 +1729,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "genus_hbtqplus",
@@ -1662,7 +1742,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "livsaskadning",
@@ -1674,7 +1755,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "materialvard",
@@ -1686,7 +1768,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "reparera",
@@ -1698,7 +1781,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "vara_ute_vinter",
@@ -1710,7 +1794,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "vara_ute_staden",
@@ -1722,7 +1807,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "vara_ute_skogen",
@@ -1734,7 +1820,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "vara_ute_sjon",
@@ -1746,7 +1833,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "vara_ute_fjall",
@@ -1758,7 +1846,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "vara_ute_sjalv",
@@ -1770,7 +1859,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "vandra_sjalv",
@@ -1782,31 +1872,34 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "vandra_goteborg_stockholm",
         "namn":  "Vandra Göteborg-Stockholm",
         "bild":  "images/marken/vandra_goteborg_stockholm.png",
-        "kategori":  "Distansmärken (vandring)",
+        "kategori":  "Distansmärke vandring",
         "malgrupp":  [
                          "Utmanare"
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "vandra_sverige",
         "namn":  "Vandra Sverige",
         "bild":  "images/marken/vandra_sverige.png",
-        "kategori":  "Distansmärken (vandring)",
+        "kategori":  "Distansmärke vandring",
         "malgrupp":  [
                          "Rover"
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "offline",
@@ -1818,7 +1911,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "overlevnad",
@@ -1830,7 +1924,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "dygna",
@@ -1842,7 +1937,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "hela_aret_runt",
@@ -1854,7 +1950,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "kottmarket",
@@ -1862,11 +1959,25 @@
         "bild":  "images/marken/kottmarket.png",
         "kategori":  "Specialmärken",
         "malgrupp":  [
-                         "Familjescouter/Roverscouter"
+                         "Familjescouter"
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
+    },
+    {
+        "id":  "kottmarket_rover",
+        "namn":  "Kottmärket",
+        "bild":  "images/marken/kottmarket.png",
+        "kategori":  "Specialmärken",
+        "malgrupp":  [
+                         "Roverscouter"
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "sova_borta_helg",
@@ -1878,7 +1989,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "sova_borta_vecka",
@@ -1890,7 +2002,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "sova_borta_manad",
@@ -1902,7 +2015,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "sova_borta_100",
@@ -1914,7 +2028,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "sova_borta_ar",
@@ -1926,7 +2041,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "mitt_eget_marke",
@@ -1938,7 +2054,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "froet",
@@ -1950,7 +2067,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "blomman",
@@ -1962,7 +2080,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "skorden",
@@ -1974,7 +2093,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "experimentettan",
@@ -1986,7 +2106,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "experimenttvaan",
@@ -1998,7 +2119,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "experimenttrean",
@@ -2010,7 +2132,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "saker_pa_natet",
@@ -2022,7 +2145,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "tekniken",
@@ -2034,7 +2158,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "maskinen",
@@ -2046,7 +2171,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "innovationen",
@@ -2058,7 +2184,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "spara",
@@ -2070,7 +2197,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "budgetera",
@@ -2082,7 +2210,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "deklarera",
@@ -2094,7 +2223,8 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     },
     {
         "id":  "specialistmarken",
@@ -2106,6 +2236,7 @@
                      ],
         "program":  [
                         "Scouterna"
-                    ]
+                    ],
+        "Typ":  "Intressemärke"
     }
 ]
