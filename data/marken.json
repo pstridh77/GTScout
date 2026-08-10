@@ -66,7 +66,10 @@
         "kategori":  "Eld",
         "malgrupp":  [
                          "Äventyrare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "ta_fyr",
@@ -848,7 +851,18 @@
         "kategori":  "Vara ute säkert",
         "malgrupp":  [
                          "Familjescouting"
-                     ]
+                     ],
+        "inledning":  "Märket Snö är det första i en serie om att vara ute säkert i olika förhållanden. Genom att jobba med det här märket får du både leka och lära dig hur du är säker i snön.",
+        "kriterier":  [
+                          "Bygga en snöiglo, snökoja eller liknande.",
+                          "Känna till risker kring snö. ",
+                          "Veta hur du ska vara klädd i kalla temperaturer.  ",
+                          "Veta hur du torkar blöta kläder både inomhus och utomhus.  ",
+                          "Leka en snölek där alla i patrullen/gruppen är överens om reglerna och syftet med leken. "
+                      ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "morker",
@@ -857,7 +871,17 @@
         "kategori":  "Vara ute säkert",
         "malgrupp":  [
                          "Spårare"
-                     ]
+                     ],
+        "inledning":  "Märket Mörker är det andra i en serie om att vara ute säkert i olika förhållanden. Genom märket övar du på att känna dig trygg i mörker.  ",
+        "kriterier":  [
+                          "Genomföra någon typ av aktivitet i mörker som syftar till att få scouten att känna sig trygg i mörker. Gå ett ljusspår under tystnad eller spendera en stund i mörkret t.ex tillsammans med en stjärnkarta om det är en stjärnklar natt.  ",
+                          "Förstå grundläggande säkerhetsregler i mörker samt användning av reflexer.  ",
+                          "Förstå hur olika ljuskällor påverkar ditt och andras mörkerseende.  ",
+                          "Reflektera över hur du känner dig och beter dig i mörker. "
+                      ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "vader",
@@ -866,7 +890,17 @@
         "kategori":  "Vara ute säkert",
         "malgrupp":  [
                          "Upptäckare"
-                     ]
+                     ],
+        "inledning":  "Märket Väder är det tredje i en serie om att vara ute säkert i olika förhållanden. Genom märket får du lära dig om hur du kan läsa av väder och hur du ska agera i olika väder.  ",
+        "kriterier":  [
+                          "Känna till olika typer av väderförhållanden och hur de påverkar kroppen.",
+                          "Kunna berätta något om vilka faktorer som påverkar väderförhållanden, vad en väderleksrapport innehåller och hur du ska förhålla dig till den.",
+                          "Visa hur du kan hantera väderförhållanden genom att anpassa din klädsel, utrustning eller kanske din vandringsrutt. ",
+                          "I märket ingår också att lära sig läsa av naturens egna vädersignaler genom att exempelvis lära sig känna igen olika typer av moln eller genom att tillverka en väderpinne av en grankvist. "
+                      ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "ny_i_naturen",
@@ -1104,9 +1138,18 @@
         "namn":  "Leka",
         "bild":  "images/marken/leka.png",
         "kategori":  "Lek och tävling",
+        "inledning":  "Märket Leka är det första i en serie om lek och tävling. I det här märket får du testa nya lekar ute i naturen.  ",
+        "kriterier":  [
+                          "Testa en ny lek. ",
+                          "Leka med en ny kompis.",
+                          "Träna på att följa reglerna i en lek. "
+                      ],
         "malgrupp":  [
                          "Familjescouting"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "barkbat",
@@ -1115,7 +1158,10 @@
         "kategori":  "Lek och tävling",
         "malgrupp":  [
                          "Spårare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "racing",
@@ -1124,7 +1170,10 @@
         "kategori":  "Lek och tävling",
         "malgrupp":  [
                          "Upptäckare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "da_och_nu",
@@ -1133,7 +1182,10 @@
         "kategori":  "Scouting och historia",
         "malgrupp":  [
                          "Spårare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "internationellt",
@@ -1142,7 +1194,10 @@
         "kategori":  "Internationellt",
         "malgrupp":  [
                          "Upptäckare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "varldens_utmaning",
@@ -1151,7 +1206,10 @@
         "kategori":  "Internationellt",
         "malgrupp":  [
                          "Äventyrare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "upptack_varlden",
@@ -1160,7 +1218,10 @@
         "kategori":  "Internationellt",
         "malgrupp":  [
                          "Utmanare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "varldsmedborgare",
@@ -1169,7 +1230,10 @@
         "kategori":  "Internationellt",
         "malgrupp":  [
                          "Rover"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "klattring",
@@ -1178,7 +1242,10 @@
         "kategori":  "Äventyr",
         "malgrupp":  [
                          "Äventyrare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "klattra_kebnekaise",
@@ -1187,7 +1254,10 @@
         "kategori":  "Distansmärken (höjdmeter)",
         "malgrupp":  [
                          "Utmanare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "klattra_everest",
@@ -1196,7 +1266,10 @@
         "kategori":  "Distansmärken (höjdmeter)",
         "malgrupp":  [
                          "Rover"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "grottning",
@@ -1205,7 +1278,10 @@
         "kategori":  "Äventyr",
         "malgrupp":  [
                          "Äventyrare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "dykning",
@@ -1214,7 +1290,10 @@
         "kategori":  "Äventyr",
         "malgrupp":  [
                          "Utmanare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "pa_ytan",
@@ -1223,7 +1302,10 @@
         "kategori":  "Vatten",
         "malgrupp":  [
                          "Familjescouting"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "under_ytan",
@@ -1232,7 +1314,10 @@
         "kategori":  "Vatten",
         "malgrupp":  [
                          "Spårare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "vatten",
@@ -1241,7 +1326,10 @@
         "kategori":  "Vatten",
         "malgrupp":  [
                          "Upptäckare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "spela",
@@ -1250,7 +1338,10 @@
         "kategori":  "Konstnärliga uttryck",
         "malgrupp":  [
                          "Upptäckare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "fota",
@@ -1259,7 +1350,10 @@
         "kategori":  "Konstnärliga uttryck",
         "malgrupp":  [
                          "Utmanare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "filma",
@@ -1268,7 +1362,10 @@
         "kategori":  "Konstnärliga uttryck",
         "malgrupp":  [
                          "Äventyrare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "musik",
@@ -1277,7 +1374,10 @@
         "kategori":  "Musik",
         "malgrupp":  [
                          "Upptäckare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "instrument",
@@ -1286,7 +1386,10 @@
         "kategori":  "Musik",
         "malgrupp":  [
                          "Äventyrare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "orkester",
@@ -1295,7 +1398,10 @@
         "kategori":  "Musik",
         "malgrupp":  [
                          "Utmanare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "skogsrejv",
@@ -1304,7 +1410,10 @@
         "kategori":  "Musik",
         "malgrupp":  [
                          "Rover"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "min_rost",
@@ -1313,7 +1422,10 @@
         "kategori":  "Demokrati",
         "malgrupp":  [
                          "Upptäckare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "demokrati",
@@ -1322,7 +1434,10 @@
         "kategori":  "Demokrati",
         "malgrupp":  [
                          "Äventyrare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "lagerbal",
@@ -1331,7 +1446,10 @@
         "kategori":  "Lägerbål",
         "malgrupp":  [
                          "Upptäckare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "dassmarket",
@@ -1340,7 +1458,10 @@
         "kategori":  "Kroppen",
         "malgrupp":  [
                          "Upptäckare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "kroppslig_halsa",
@@ -1349,7 +1470,10 @@
         "kategori":  "Kroppen",
         "malgrupp":  [
                          "Äventyrare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "psykisk_halsa",
@@ -1358,7 +1482,10 @@
         "kategori":  "Kroppen",
         "malgrupp":  [
                          "Utmanare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "paddla",
@@ -1367,7 +1494,10 @@
         "kategori":  "Paddling",
         "malgrupp":  [
                          "Äventyrare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "paddla_vanern",
@@ -1376,7 +1506,10 @@
         "kategori":  "Distansmärken (paddling)",
         "malgrupp":  [
                          "Utmanare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "paddla_gotland",
@@ -1385,7 +1518,10 @@
         "kategori":  "Distansmärken (paddling)",
         "malgrupp":  [
                          "Rover"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "inkludering",
@@ -1394,7 +1530,10 @@
         "kategori":  "Öppenhet och respekt",
         "malgrupp":  [
                          "Upptäckare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "genus_hbtqplus",
@@ -1403,7 +1542,10 @@
         "kategori":  "Öppenhet och respekt",
         "malgrupp":  [
                          "Äventyrare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "livsaskadning",
@@ -1412,7 +1554,10 @@
         "kategori":  "Öppenhet och respekt",
         "malgrupp":  [
                          "Utmanare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "materialvard",
@@ -1421,7 +1566,10 @@
         "kategori":  "Materialvård",
         "malgrupp":  [
                          "Äventyrare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "reparera",
@@ -1430,7 +1578,10 @@
         "kategori":  "Materialvård",
         "malgrupp":  [
                          "Utmanare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "vara_ute_vinter",
@@ -1439,7 +1590,10 @@
         "kategori":  "Vara ute / Hajk",
         "malgrupp":  [
                          "Äventyrare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "vara_ute_staden",
@@ -1448,7 +1602,10 @@
         "kategori":  "Vara ute / Hajk",
         "malgrupp":  [
                          "Äventyrare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "vara_ute_skogen",
@@ -1457,7 +1614,10 @@
         "kategori":  "Vara ute / Hajk",
         "malgrupp":  [
                          "Äventyrare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "vara_ute_sjon",
@@ -1466,7 +1626,10 @@
         "kategori":  "Vara ute / Hajk",
         "malgrupp":  [
                          "Äventyrare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "vara_ute_fjall",
@@ -1475,7 +1638,10 @@
         "kategori":  "Vara ute / Hajk",
         "malgrupp":  [
                          "Äventyrare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "vara_ute_sjalv",
@@ -1484,7 +1650,10 @@
         "kategori":  "Vara ute / Hajk",
         "malgrupp":  [
                          "Utmanare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "vandra_sjalv",
@@ -1493,7 +1662,10 @@
         "kategori":  "Vara ute / Hajk",
         "malgrupp":  [
                          "Rover"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "vandra_goteborg_stockholm",
@@ -1502,7 +1674,10 @@
         "kategori":  "Distansmärken (vandring)",
         "malgrupp":  [
                          "Utmanare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "vandra_sverige",
@@ -1511,7 +1686,10 @@
         "kategori":  "Distansmärken (vandring)",
         "malgrupp":  [
                          "Rover"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "offline",
@@ -1520,7 +1698,10 @@
         "kategori":  "Friluftsliv och överlevnad",
         "malgrupp":  [
                          "Äventyrare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "overlevnad",
@@ -1529,7 +1710,10 @@
         "kategori":  "Friluftsliv och överlevnad",
         "malgrupp":  [
                          "Utmanare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "dygna",
@@ -1538,7 +1722,10 @@
         "kategori":  "Friluftsliv och överlevnad",
         "malgrupp":  [
                          "Äventyrare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "hela_aret_runt",
@@ -1547,7 +1734,10 @@
         "kategori":  "Friluftsliv och överlevnad",
         "malgrupp":  [
                          "Utmanare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "kottmarket",
@@ -1556,7 +1746,10 @@
         "kategori":  "Specialmärken",
         "malgrupp":  [
                          "Familjescouter/Roverscouter"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "sova_borta_helg",
@@ -1565,7 +1758,10 @@
         "kategori":  "Sova borta",
         "malgrupp":  [
                          "Spårare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "sova_borta_vecka",
@@ -1574,7 +1770,10 @@
         "kategori":  "Sova borta",
         "malgrupp":  [
                          "Upptäckare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "sova_borta_manad",
@@ -1583,7 +1782,10 @@
         "kategori":  "Sova borta",
         "malgrupp":  [
                          "Äventyrare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "sova_borta_100",
@@ -1592,7 +1794,10 @@
         "kategori":  "Sova borta",
         "malgrupp":  [
                          "Utmanare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "sova_borta_ar",
@@ -1601,7 +1806,10 @@
         "kategori":  "Sova borta",
         "malgrupp":  [
                          "Rover"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "mitt_eget_marke",
@@ -1610,7 +1818,10 @@
         "kategori":  "Specialmärken",
         "malgrupp":  [
                          "Utmanare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "froet",
@@ -1619,7 +1830,10 @@
         "kategori":  "Odling",
         "malgrupp":  [
                          "Familjescouter"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "blomman",
@@ -1628,7 +1842,10 @@
         "kategori":  "Odling",
         "malgrupp":  [
                          "Spårare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "skorden",
@@ -1637,7 +1854,10 @@
         "kategori":  "Odling",
         "malgrupp":  [
                          "Upptäckare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "experimentettan",
@@ -1646,7 +1866,10 @@
         "kategori":  "Experiment",
         "malgrupp":  [
                          "Spårare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "experimenttvaan",
@@ -1655,7 +1878,10 @@
         "kategori":  "Experiment",
         "malgrupp":  [
                          "Upptäckare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "experimenttrean",
@@ -1664,7 +1890,10 @@
         "kategori":  "Experiment",
         "malgrupp":  [
                          "Äventyrare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "saker_pa_natet",
@@ -1673,7 +1902,10 @@
         "kategori":  "Teknik och mekanik",
         "malgrupp":  [
                          "Spårare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "tekniken",
@@ -1682,7 +1914,10 @@
         "kategori":  "Teknik och mekanik",
         "malgrupp":  [
                          "Upptäckare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "maskinen",
@@ -1691,7 +1926,10 @@
         "kategori":  "Teknik och mekanik",
         "malgrupp":  [
                          "Äventyrare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "innovationen",
@@ -1700,7 +1938,10 @@
         "kategori":  "Teknik och mekanik",
         "malgrupp":  [
                          "Utmanare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "spara",
@@ -1709,7 +1950,10 @@
         "kategori":  "Pengar och ekonomi",
         "malgrupp":  [
                          "Äventyrare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "budgetera",
@@ -1718,7 +1962,10 @@
         "kategori":  "Pengar och ekonomi",
         "malgrupp":  [
                          "Utmanare"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "deklarera",
@@ -1727,7 +1974,10 @@
         "kategori":  "Pengar och ekonomi",
         "malgrupp":  [
                          "Rover"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     },
     {
         "id":  "specialistmarken",
@@ -1736,6 +1986,9 @@
         "kategori":  "Specialmärken",
         "malgrupp":  [
                          "Rover"
-                     ]
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ]
     }
 ]
