@@ -290,6 +290,11 @@ function renderPickerGrid() {
 
     pickerGrid.querySelectorAll(".picker-badge").forEach(btn => {
         btn.addEventListener("click", () => toggleBadgeInGroup(activeGroupId, btn.dataset.badgeId));
+        btn.addEventListener("dblclick", e => {
+            e.stopPropagation();
+            const marke = allMarken.find(m => m.id === btn.dataset.badgeId);
+            if (marke) showBadgeDetail(marke);
+        });
     });
 }
 
