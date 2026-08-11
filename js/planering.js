@@ -103,10 +103,18 @@ function renderPlanning() {
         grid.appendChild(card);
     });
 
-    // Bind remove-badge buttons
+    // Bind remove-badge and dblclick on planned badges
     document.querySelectorAll(".remove-badge-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", e => {
+            e.stopPropagation();
             removeBadgeFromGroup(btn.dataset.groupId, btn.dataset.badgeId);
+        });
+    });
+
+    document.querySelectorAll(".planned-badge").forEach(el => {
+        el.addEventListener("click", () => {
+            const marke = allMarken.find(m => m.id === el.dataset.badgeId);
+            if (marke) showBadgeDetail(marke);
         });
     });
 }
@@ -120,7 +128,7 @@ function renderGroupBadges(group) {
         const marke = allMarken.find(m => m.id === badgeId);
         if (!marke) return "";
         return `
-            <div class="planned-badge">
+            <div class="planned-badge" data-badge-id="${badgeId}" title="Klicka för mer info">
                 <button class="remove-badge-btn" type="button"
                     data-group-id="${group.id}" data-badge-id="${badgeId}"
                     title="Ta bort ${marke.namn}">&times;</button>
@@ -283,6 +291,60 @@ function renderPickerGrid() {
     pickerGrid.querySelectorAll(".picker-badge").forEach(btn => {
         btn.addEventListener("click", () => toggleBadgeInGroup(activeGroupId, btn.dataset.badgeId));
     });
+}
+
+// ── Badge detail popup ────────────────────────────────────────────────────
+
+function createDetailPopup() {
+    const popup = document.createElement("div");
+    popup.id = "detailPopup";
+    popup.className = "detail-popup hidden";
+    popup.innerHTML = `
+        <div class="detail-popup-content">
+            <button class="close-popup" type="button">&times;</button>
+            <div class="popup-body"></div>
+        </div>
+    `;
+    popup.querySelector(".close-popup").addEventListener("click", () => popup.classList.add("hidden"));
+    popup.addEventListener("click", e => { if (e.target === popup) popup.classList.add("hidden"); });
+    document.body.appendChild(popup);
+    return popup;
+}
+
+const detailPopup = createDetailPopup();
+
+function showBadgeDetail(marke) {
+    const body = detailPopup.querySelector(".popup-body");
+    const iconMap = {
+        "Familjescouting": "./images/icons/familjescout.png",
+        "Sp\u00e5rare": "./images/icons/sparare.png",
+        "Uppt\u00e4ckare": "./images/icons/upptackare.png",
+        "\u00c4ventyrare": "./images/icons/aventyrare.png",
+        "Utmanare": "./images/icons/utmanare.png",
+        "Rover": "./images/icons/rover.png"
+    };
+    const targetGroup = getTargetGroup(marke);
+    const categoryIcon = iconMap[targetGroup] || "";
+    const criteriaList = marke.kriterier ? marke.kriterier.map(k => `<li>${k}</li>`).join("") : "";
+    body.innerHTML = `
+        <div class="detail-popup-header">
+            <h2>${marke.namn}</h2>
+            ${categoryIcon ? `<img src="${categoryIcon}" alt="${targetGroup}" class="detail-category-icon">` : ""}
+        </div>
+        <div class="detail-image-row">
+            <img src="${marke.bild}" alt="${marke.namn}" class="detail-image">
+        </div>
+        <div class="detail-text">
+            <div class="detail-category-row">
+                <p><strong>Kategori:</strong> ${marke.kategori}</p>
+            </div>
+            ${marke.inledning ? `<p class="detail-introduction">${marke.inledning}</p>` : ""}
+            ${criteriaList ? `<div class="detail-criteria"><strong>Kriterier:</strong><ul>${criteriaList}</ul></div>` : ""}
+            <p><strong>M\u00e5lgrupp:</strong> ${targetGroup}</p>
+            <p><strong>Program:</strong> ${(Array.isArray(marke.program) ? marke.program : [marke.program || "B\u00e5da"]).join(", ")}</p>
+        </div>
+    `;
+    detailPopup.classList.remove("hidden");
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
