@@ -397,6 +397,13 @@ header {
     color: #003660;
 }
 
+.planning-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 12px 20px 0;
+}
+
 /* ── Planning grid ───────────────────────────────────────────────────────── */
 
 #planningGrid {

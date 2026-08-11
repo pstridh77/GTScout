@@ -3,6 +3,7 @@ const STORAGE_KEY = "gtscout_planering";
 let allMarken = [];
 let groups = loadGroups();
 let activeGroupId = null; // which group is getting badges added
+let groupFilters = { search: "", level: "Alla" };
 
 // ── Persistence ────────────────────────────────────────────────────────────
 
@@ -67,12 +68,24 @@ function renderPlanning() {
     const grid = document.getElementById("planningGrid");
     grid.innerHTML = "";
 
+    const searchTerm = groupFilters.search.trim().toLowerCase();
+    const visibleGroups = groups.filter(g => {
+        const matchesLevel = groupFilters.level === "Alla" || g.level === groupFilters.level;
+        const matchesSearch = !searchTerm || g.name.toLowerCase().includes(searchTerm);
+        return matchesLevel && matchesSearch;
+    });
+
     if (groups.length === 0) {
         grid.innerHTML = '<p class="no-results">Inga grupper ännu. Klicka på "+ Lägg till grupp" för att börja.</p>';
         return;
     }
 
-    groups.forEach(group => {
+    if (visibleGroups.length === 0) {
+        grid.innerHTML = '<p class="no-results">Inga grupper matchar filtret.</p>';
+        return;
+    }
+
+    visibleGroups.forEach(group => {
         const card = document.createElement("div");
         card.className = "group-card";
 
@@ -176,7 +189,17 @@ function toggleBadgeInGroup(groupId, badgeId) {
     // Also refresh the planning cards behind the modal
     renderPlanning();
 }
+// ── Group filters ─────────────────────────────────────────────────────
 
+document.getElementById("groupSearchInput").addEventListener("input", e => {
+    groupFilters.search = e.target.value;
+    renderPlanning();
+});
+
+document.getElementById("groupLevelFilter").addEventListener("change", e => {
+    groupFilters.level = e.target.value;
+    renderPlanning();
+});
 // ── Group modal ────────────────────────────────────────────────────────────
 
 const groupModal = document.getElementById("groupModal");

@@ -21,6 +21,25 @@
         <button id="addGroupBtn" class="btn-primary" type="button">+ Lägg till grupp</button>
     </div>
 
+    <div class="planning-filters">
+        <label class="filter-field search-field">
+            <span>Sök grupp</span>
+            <input id="groupSearchInput" type="text" placeholder="Sök efter gruppnamn...">
+        </label>
+        <label class="filter-field">
+            <span>Scoutnivå</span>
+            <select id="groupLevelFilter">
+                <option value="Alla">Alla nivåer</option>
+                <option value="Familjescouting">Familjescouting</option>
+                <option value="Spårare">Spårare</option>
+                <option value="Upptäckare">Upptäckare</option>
+                <option value="Äventyrare">Äventyrare</option>
+                <option value="Utmanare">Utmanare</option>
+                <option value="Rover">Rover</option>
+            </select>
+        </label>
+    </div>
+
     <main id="planningGrid"></main>
 
     <!-- Modal: Lägg till grupp -->
