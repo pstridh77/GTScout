@@ -391,6 +391,12 @@ header {
     gap: 12px;
 }
 
+.toolbar-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
 .planning-title {
     margin: 0;
     font-size: 1.4rem;
@@ -408,21 +414,18 @@ header {
 
 #planningGrid {
     display: flex;
-    flex-direction: row;
-    align-items: flex-start;
+    flex-direction: column;
     gap: 16px;
     padding: 20px;
-    overflow-x: auto;
 }
 
-.level-column {
-    flex: 0 0 260px;
+.level-row {
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
 
-.level-column-header {
+.level-row-header {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -434,9 +437,16 @@ header {
     font-size: 0.95rem;
 }
 
-.level-column-header .group-level-icon {
+.level-row-header .group-level-icon {
     width: 28px;
     height: 28px;
+}
+
+.level-row-cards {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px;
 }
 
 .group-card {
@@ -700,7 +710,6 @@ header {
 }
 
 @media (max-width: 600px) {
-    #planningGrid { flex-direction: column; overflow-x: unset; }
-    .level-column { flex: unset; width: 100%; }
+    .level-row-cards { flex-direction: column; }
     .modal-content--wide { max-width: 95vw; }
 }

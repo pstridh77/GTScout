@@ -1,5 +1,14 @@
 const STORAGE_KEY = "gtscout_planering";
 
+const DEFAULT_PLANNINGS = [
+    { level: "Familjescouting", names: ["\u00c5r 1 VT", "\u00c5r 1 HT"] },
+    { level: "Sp\u00e5rare",        names: ["\u00c5r 1 VT", "\u00c5r 1 HT", "\u00c5r 2 VT", "\u00c5r 2 HT"] },
+    { level: "Uppt\u00e4ckare",    names: ["\u00c5r 1 VT", "\u00c5r 1 HT", "\u00c5r 2 VT", "\u00c5r 2 HT"] },
+    { level: "\u00c4ventyrare",    names: ["\u00c5r 1 VT", "\u00c5r 1 HT", "\u00c5r 2 VT", "\u00c5r 2 HT", "\u00c5r 3 VT", "\u00c5r 3 HT"] },
+    { level: "Utmanare",       names: ["\u00c5r 1 VT", "\u00c5r 1 HT", "\u00c5r 2 VT", "\u00c5r 2 HT"] },
+    { level: "Rover",          names: ["\u00c5r 1 VT", "\u00c5r 1 HT"] },
+];
+
 let allMarken = [];
 let groups = loadGroups();
 let activeGroupId = null; // which group is getting badges added
@@ -107,16 +116,19 @@ function renderPlanning() {
         });
 
         const col = document.createElement("div");
-        col.className = "level-column";
+        col.className = "level-row";
 
         const icon = getLevelIcon(level);
         const colHeader = document.createElement("div");
-        colHeader.className = "level-column-header";
+        colHeader.className = "level-row-header";
         colHeader.innerHTML = `
             ${icon ? `<img src="${icon}" alt="${level}" class="group-level-icon">` : ""}
             <span>${level}</span>
         `;
         col.appendChild(colHeader);
+
+        const cardsRow = document.createElement("div");
+        cardsRow.className = "level-row-cards";
 
         levelGroups.forEach(group => {
             const card = document.createElement("div");
@@ -135,9 +147,10 @@ function renderPlanning() {
             `;
             card.querySelector(".add-badge-btn").addEventListener("click", () => openBadgePicker(group.id));
             card.querySelector(".remove-group-btn").addEventListener("click", () => removeGroup(group.id));
-            col.appendChild(card);
+            cardsRow.appendChild(card);
         });
 
+        col.appendChild(cardsRow);
         grid.appendChild(col);
     });
 
@@ -226,6 +239,19 @@ document.getElementById("groupLevelFilter").addEventListener("change", e => {
     renderPlanning();
 });
 // ── Group modal ────────────────────────────────────────────────────────────
+
+document.getElementById("loadDefaultsBtn").addEventListener("click", () => {
+    if (groups.length > 0 && !confirm("Detta lägger till standardplaneringar. Befintliga planeringar behålls. Fortsätta?")) return;
+    DEFAULT_PLANNINGS.forEach(({ level, names }) => {
+        names.forEach(name => {
+            if (!groups.some(g => g.level === level && g.name === name)) {
+                groups.push({ id: crypto.randomUUID(), name, level, badges: [] });
+            }
+        });
+    });
+    saveGroups();
+    renderPlanning();
+});
 
 const groupModal = document.getElementById("groupModal");
 document.getElementById("addGroupBtn").addEventListener("click", () => {
