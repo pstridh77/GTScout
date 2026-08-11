@@ -29,7 +29,7 @@ async function loadMarken() {
         console.error("Kunde inte ladda marken.json", err);
     }
     renderPlanning();
-    populatePickerCategoryFilter();
+    populatePickerFilters();
 }
 
 // ── Target-group helper (matches app.js) ───────────────────────────────────
@@ -199,12 +199,14 @@ document.getElementById("groupName").addEventListener("keydown", e => {
 
 const pickerModal = document.getElementById("badgePickerModal");
 const pickerSearch = document.getElementById("pickerSearch");
+const pickerTargetGroupFilter = document.getElementById("pickerTargetGroupFilter");
 const pickerCategoryFilter = document.getElementById("pickerCategoryFilter");
 
 document.getElementById("closeBadgePicker").addEventListener("click", () => pickerModal.classList.add("hidden"));
 pickerModal.addEventListener("click", e => { if (e.target === pickerModal) pickerModal.classList.add("hidden"); });
 
 pickerSearch.addEventListener("input", renderPickerGrid);
+pickerTargetGroupFilter.addEventListener("change", renderPickerGrid);
 pickerCategoryFilter.addEventListener("change", renderPickerGrid);
 
 function openBadgePicker(groupId) {
@@ -212,12 +214,28 @@ function openBadgePicker(groupId) {
     const group = groups.find(g => g.id === groupId);
     document.getElementById("pickerTitle").textContent = `Välj märken – ${group.name}`;
     pickerSearch.value = "";
+    pickerTargetGroupFilter.value = group.level;
     pickerCategoryFilter.value = "Alla";
     renderPickerGrid();
     pickerModal.classList.remove("hidden");
 }
 
-function populatePickerCategoryFilter() {
+function populatePickerFilters() {
+    const targetGroupOrder = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
+    const targetGroups = [...new Set(allMarken.map(getTargetGroup))]
+        .sort((a, b) => {
+            const ia = targetGroupOrder.indexOf(a);
+            const ib = targetGroupOrder.indexOf(b);
+            if (ia !== -1 && ib !== -1) return ia - ib;
+            if (ia !== -1) return -1;
+            if (ib !== -1) return 1;
+            return a.localeCompare(b, "sv");
+        });
+    pickerTargetGroupFilter.innerHTML = [
+        '<option value="Alla">Alla målgrupper</option>',
+        ...targetGroups.map(g => `<option value="${g}">${g}</option>`)
+    ].join("");
+
     const categories = [...new Set(allMarken.map(m => m.kategori || "Övrigt"))].sort();
     pickerCategoryFilter.innerHTML = [
         '<option value="Alla">Alla kategorier</option>',
@@ -231,9 +249,12 @@ function renderPickerGrid() {
     if (!group) return;
 
     const searchTerm = pickerSearch.value.trim().toLowerCase();
+    const targetGroupValue = pickerTargetGroupFilter.value;
     const categoryValue = pickerCategoryFilter.value;
 
     const filtered = allMarken.filter(marke => {
+        const matchesTargetGroup = targetGroupValue === "Alla" || getTargetGroup(marke) === targetGroupValue;
+        if (!matchesTargetGroup) return false;
         const matchesCategory = categoryValue === "Alla" || (marke.kategori || "Övrigt") === categoryValue;
         if (!matchesCategory) return false;
         if (!searchTerm) return true;

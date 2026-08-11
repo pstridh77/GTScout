@@ -593,6 +593,7 @@ header {
     color: #003660;
 }
 
+#pickerTargetGroupFilter,
 #pickerCategoryFilter {
     padding: 10px 12px;
     border: 1px solid #d0d7de;
