@@ -64,6 +64,8 @@ function getLevelIcon(level) {
 
 // ── Render planning grid ───────────────────────────────────────────────────
 
+const TARGET_GROUP_ORDER = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
+
 function renderPlanning() {
     const grid = document.getElementById("planningGrid");
     grid.innerHTML = "";
@@ -85,35 +87,58 @@ function renderPlanning() {
         return;
     }
 
-    visibleGroups.forEach(group => {
-        const card = document.createElement("div");
-        card.className = "group-card";
+    // Group plannings by scout level
+    const byLevel = TARGET_GROUP_ORDER.reduce((acc, lvl) => { acc[lvl] = []; return acc; }, {});
+    visibleGroups.forEach(g => { (byLevel[g.level] || (byLevel[g.level] = [])).push(g); });
 
-        const icon = getLevelIcon(group.level);
+    TARGET_GROUP_ORDER.forEach(level => {
+        const levelGroups = byLevel[level];
+        if (!levelGroups || levelGroups.length === 0) return;
 
-        card.innerHTML = `
-            <div class="group-card-header">
-                <div class="group-card-title">
-                    ${icon ? `<img src="${icon}" alt="${group.level}" class="group-level-icon">` : ""}
-                    <div>
-                        <h3 class="group-name">${group.name}</h3>
-                        <span class="group-level-label">${group.level}</span>
+        // Sort by year number, then VT before HT
+        levelGroups.sort((a, b) => {
+            const parse = name => {
+                const year = parseInt(name.match(/\d+/) || [0], 10);
+                const term = /\bVT\b/i.test(name) ? 0 : /\bHT\b/i.test(name) ? 1 : 2;
+                return { year, term };
+            };
+            const pa = parse(a.name), pb = parse(b.name);
+            return pa.year !== pb.year ? pa.year - pb.year : pa.term - pb.term;
+        });
+
+        const col = document.createElement("div");
+        col.className = "level-column";
+
+        const icon = getLevelIcon(level);
+        const colHeader = document.createElement("div");
+        colHeader.className = "level-column-header";
+        colHeader.innerHTML = `
+            ${icon ? `<img src="${icon}" alt="${level}" class="group-level-icon">` : ""}
+            <span>${level}</span>
+        `;
+        col.appendChild(colHeader);
+
+        levelGroups.forEach(group => {
+            const card = document.createElement("div");
+            card.className = "group-card";
+            card.innerHTML = `
+                <div class="group-card-header">
+                    <h3 class="group-name">${group.name}</h3>
+                    <div class="group-card-actions">
+                        <button class="btn-secondary add-badge-btn" type="button" data-group-id="${group.id}">+ Märke</button>
+                        <button class="btn-danger remove-group-btn" type="button" data-group-id="${group.id}" title="Ta bort planering">&times;</button>
                     </div>
                 </div>
-                <div class="group-card-actions">
-                    <button class="btn-secondary add-badge-btn" type="button" data-group-id="${group.id}">+ Märke</button>
-                    <button class="btn-danger remove-group-btn" type="button" data-group-id="${group.id}" title="Ta bort planering">&times;</button>
+                <div class="group-badges" data-group-id="${group.id}">
+                    ${renderGroupBadges(group)}
                 </div>
-            </div>
-            <div class="group-badges" data-group-id="${group.id}">
-                ${renderGroupBadges(group)}
-            </div>
-        `;
+            `;
+            card.querySelector(".add-badge-btn").addEventListener("click", () => openBadgePicker(group.id));
+            card.querySelector(".remove-group-btn").addEventListener("click", () => removeGroup(group.id));
+            col.appendChild(card);
+        });
 
-        card.querySelector(".add-badge-btn").addEventListener("click", () => openBadgePicker(group.id));
-        card.querySelector(".remove-group-btn").addEventListener("click", () => removeGroup(group.id));
-
-        grid.appendChild(card);
+        grid.appendChild(col);
     });
 
     // Bind remove-badge and dblclick on planned badges
