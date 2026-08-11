@@ -76,12 +76,12 @@ function renderPlanning() {
     });
 
     if (groups.length === 0) {
-        grid.innerHTML = '<p class="no-results">Inga grupper ännu. Klicka på "+ Lägg till grupp" för att börja.</p>';
+        grid.innerHTML = '<p class="no-results">Inga planeringar ännu. Klicka på "+ Lägg till planering" för att börja.</p>';
         return;
     }
 
     if (visibleGroups.length === 0) {
-        grid.innerHTML = '<p class="no-results">Inga grupper matchar filtret.</p>';
+        grid.innerHTML = '<p class="no-results">Inga planeringar matchar filtret.</p>';
         return;
     }
 
@@ -102,7 +102,7 @@ function renderPlanning() {
                 </div>
                 <div class="group-card-actions">
                     <button class="btn-secondary add-badge-btn" type="button" data-group-id="${group.id}">+ Märke</button>
-                    <button class="btn-danger remove-group-btn" type="button" data-group-id="${group.id}" title="Ta bort grupp">&times;</button>
+                    <button class="btn-danger remove-group-btn" type="button" data-group-id="${group.id}" title="Ta bort planering">&times;</button>
                 </div>
             </div>
             <div class="group-badges" data-group-id="${group.id}">
@@ -161,7 +161,7 @@ function addGroup(name, level) {
 }
 
 function removeGroup(id) {
-    if (!confirm("Ta bort gruppen och alla planerade märken?")) return;
+    if (!confirm("Ta bort planeringen och alla planerade märken?")) return;
     groups = groups.filter(g => g.id !== id);
     saveGroups();
     renderPlanning();

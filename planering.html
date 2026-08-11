@@ -17,19 +17,19 @@
     </header>
 
     <div class="planning-toolbar">
-        <h2 class="planning-title">Märkesschema – Planering</h2>
-        <button id="addGroupBtn" class="btn-primary" type="button">+ Lägg till grupp</button>
+        <h2 class="planning-title">Märkesschema</h2>
+        <button id="addGroupBtn" class="btn-primary" type="button">+ Lägg till planering</button>
     </div>
 
     <div class="planning-filters">
         <label class="filter-field search-field">
-            <span>Sök grupp</span>
-            <input id="groupSearchInput" type="text" placeholder="Sök efter gruppnamn...">
+            <span>Sök planering</span>
+            <input id="groupSearchInput" type="text" placeholder="Sök efter planering...">
         </label>
         <label class="filter-field">
-            <span>Scoutnivå</span>
+            <span>Målgrupp</span>
             <select id="groupLevelFilter">
-                <option value="Alla">Alla nivåer</option>
+                <option value="Alla">Alla målgrupper</option>
                 <option value="Familjescouting">Familjescouting</option>
                 <option value="Spårare">Spårare</option>
                 <option value="Upptäckare">Upptäckare</option>
@@ -42,17 +42,17 @@
 
     <main id="planningGrid"></main>
 
-    <!-- Modal: Lägg till grupp -->
+    <!-- Modal: Lägg till planering -->
     <div id="groupModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="groupModalTitle">
         <div class="modal-content">
             <button class="close-popup" type="button" id="closeGroupModal">&times;</button>
-            <h2 id="groupModalTitle">Ny grupp</h2>
+            <h2 id="groupModalTitle">Ny plannering</h2>
             <label class="modal-field">
-                <span>Gruppnamn</span>
-                <input id="groupName" type="text" placeholder="t.ex. Björnpatrullen">
+                <span>Namn</span>
+                <input id="groupName" type="text" placeholder="t.ex. År 1 - HT">
             </label>
             <label class="modal-field">
-                <span>Scoutnivå</span>
+                <span>Målgrupp</span>
                 <select id="groupLevel">
                     <option value="Familjescouting">Familjescouting</option>
                     <option value="Spårare">Spårare</option>
