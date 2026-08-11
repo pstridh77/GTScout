@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Märkesschema – Planering</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <header>
+        <h1>Gullbrandstorps Scoutkårs Intressemärken</h1>
+        <nav class="main-nav">
+            <a href="index.html" class="nav-link">Märkesbibliotek</a>
+            <a href="planering.html" class="nav-link active">Märkesschema</a>
+        </nav>
+    </header>
+
+    <div class="planning-toolbar">
+        <h2 class="planning-title">Märkesschema – Planering</h2>
+        <button id="addGroupBtn" class="btn-primary" type="button">+ Lägg till grupp</button>
+    </div>
+
+    <main id="planningGrid"></main>
+
+    <!-- Modal: Lägg till grupp -->
+    <div id="groupModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="groupModalTitle">
+        <div class="modal-content">
+            <button class="close-popup" type="button" id="closeGroupModal">&times;</button>
+            <h2 id="groupModalTitle">Ny grupp</h2>
+            <label class="modal-field">
+                <span>Gruppnamn</span>
+                <input id="groupName" type="text" placeholder="t.ex. Björnpatrullen">
+            </label>
+            <label class="modal-field">
+                <span>Scoutnivå</span>
+                <select id="groupLevel">
+                    <option value="Familjescouting">Familjescouting</option>
+                    <option value="Spårare">Spårare</option>
+                    <option value="Upptäckare">Upptäckare</option>
+                    <option value="Äventyrare">Äventyrare</option>
+                    <option value="Utmanare">Utmanare</option>
+                    <option value="Rover">Rover</option>
+                </select>
+            </label>
+            <div class="modal-actions">
+                <button id="saveGroupBtn" class="btn-primary" type="button">Spara</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Välj märken -->
+    <div id="badgePickerModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="pickerTitle">
+        <div class="modal-content modal-content--wide">
+            <button class="close-popup" type="button" id="closeBadgePicker">&times;</button>
+            <h2 id="pickerTitle">Välj märken</h2>
+            <div class="picker-filters">
+                <input id="pickerSearch" type="text" placeholder="Sök märke..." class="picker-search-input">
+                <select id="pickerCategoryFilter">
+                    <option value="Alla">Alla kategorier</option>
+                </select>
+            </div>
+            <div id="pickerGrid" class="picker-grid"></div>
+        </div>
+    </div>
+
+    <script src="js/planering.js"></script>
+</body>
+</html>
