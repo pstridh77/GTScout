@@ -2,7 +2,7 @@ const STORAGE_KEY = "gtscout_planering";
 
 const DEFAULT_PLANNINGS = [
     { level: "Familjescouting", names: ["\u00c5r 1 VT", "\u00c5r 1 HT"] },
-    { level: "Sp\u00e5rare",        names: ["\u00c5r 1 VT", "\u00c5r 1 HT", "\u00c5r 2 VT", "\u00c5r 2 HT"] },
+    { level: "Sp\u00e5rare",        names: ["\u00c5r 1 HT", "\u00c5r 2 VT", "\u00c5r 2 HT", "\u00c5r 3 VT"] },
     { level: "Uppt\u00e4ckare",    names: ["\u00c5r 1 VT", "\u00c5r 1 HT", "\u00c5r 2 VT", "\u00c5r 2 HT", "\u00c5r 3 VT", "\u00c5r 3 HT"] },
     { level: "\u00c4ventyrare",    names: ["\u00c5r 1 VT", "\u00c5r 1 HT", "\u00c5r 2 VT", "\u00c5r 2 HT", "\u00c5r 3 VT", "\u00c5r 3 HT"] },
     { level: "Utmanare",       names: ["\u00c5r 1 VT", "\u00c5r 1 HT", "\u00c5r 2 VT", "\u00c5r 2 HT"] },
