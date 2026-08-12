@@ -200,6 +200,7 @@ function renderPlanning() {
                 <div class="group-card-header">
                     <h3 class="group-name">${group.name}</h3>
                     <div class="group-card-actions">
+                        <button class="btn-secondary rename-group-btn" type="button" data-group-id="${group.id}" title="Byt namn">Byt namn</button>
                         <button class="btn-secondary add-badge-btn" type="button" data-group-id="${group.id}">+ Märke</button>
                         <button class="btn-danger remove-group-btn" type="button" data-group-id="${group.id}" title="Ta bort planering">&times;</button>
                     </div>
@@ -208,6 +209,7 @@ function renderPlanning() {
                     ${renderGroupBadges(group)}
                 </div>
             `;
+            card.querySelector(".rename-group-btn").addEventListener("click", () => renameGroup(group.id));
             card.querySelector(".add-badge-btn").addEventListener("click", () => openBadgePicker(group.id));
             card.querySelector(".remove-group-btn").addEventListener("click", () => removeGroup(group.id));
             cardsRow.appendChild(card);
@@ -264,6 +266,29 @@ function addGroup(name, level) {
 function removeGroup(id) {
     if (!confirm("Ta bort planeringen och alla planerade märken?")) return;
     groups = groups.filter(g => g.id !== id);
+    saveGroups();
+    renderPlanning();
+}
+
+function renameGroup(id) {
+    const group = groups.find(g => g.id === id);
+    if (!group) return;
+
+    const nextName = prompt("Nytt namn på planering:", group.name);
+    if (nextName === null) return;
+
+    const trimmedName = nextName.trim();
+    if (!trimmedName) {
+        alert("Namnet kan inte vara tomt.");
+        return;
+    }
+
+    if (groups.some(g => g.id !== id && g.level === group.level && g.name === trimmedName)) {
+        alert("Det finns redan en planering med det namnet i samma målgrupp.");
+        return;
+    }
+
+    group.name = trimmedName;
     saveGroups();
     renderPlanning();
 }
