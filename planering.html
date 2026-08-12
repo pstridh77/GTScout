@@ -71,6 +71,28 @@
         </div>
     </div>
 
+    <!-- Modal: Standardplaneringar -->
+    <div id="defaultPlanningModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="defaultPlanningTitle">
+        <div class="modal-content">
+            <button class="close-popup" type="button" id="closeDefaultPlanningModal">&times;</button>
+            <h2 id="defaultPlanningTitle">Lägg till standardplaneringar</h2>
+            <label class="modal-field">
+                <span>Målgrupp</span>
+                <select id="defaultPlanningLevel">
+                    <option value="Familjescouting">Familjescouting</option>
+                    <option value="Spårare">Spårare</option>
+                    <option value="Upptäckare">Upptäckare</option>
+                    <option value="Äventyrare">Äventyrare</option>
+                    <option value="Utmanare">Utmanare</option>
+                    <option value="Rover">Rover</option>
+                </select>
+            </label>
+            <div class="modal-actions">
+                <button id="saveDefaultPlanningBtn" class="btn-primary" type="button">Lägg till</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal: Välj märken -->
     <div id="badgePickerModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="pickerTitle">
         <div class="modal-content modal-content--wide">

@@ -1,11 +1,11 @@
 const STORAGE_KEY = "gtscout_planering";
 
 const DEFAULT_PLANNINGS = [
-    { level: "Familjescouting", names: ["\u00c5r 1 VT", "\u00c5r 1 HT"] },
+    { level: "Familjescouting", names: ["\u00c5r 1 HT", "\u00c5r 2 VT"] },
     { level: "Sp\u00e5rare",        names: ["\u00c5r 1 HT", "\u00c5r 2 VT", "\u00c5r 2 HT", "\u00c5r 3 VT"] },
-    { level: "Uppt\u00e4ckare",    names: ["\u00c5r 1 VT", "\u00c5r 1 HT", "\u00c5r 2 VT", "\u00c5r 2 HT", "\u00c5r 3 VT", "\u00c5r 3 HT"] },
-    { level: "\u00c4ventyrare",    names: ["\u00c5r 1 VT", "\u00c5r 1 HT", "\u00c5r 2 VT", "\u00c5r 2 HT", "\u00c5r 3 VT", "\u00c5r 3 HT"] },
-    { level: "Utmanare",       names: ["\u00c5r 1 VT", "\u00c5r 1 HT", "\u00c5r 2 VT", "\u00c5r 2 HT"] },
+    { level: "Uppt\u00e4ckare",    names: ["\u00c5r 1 HT", "\u00c5r 2 VT", "\u00c5r 2 HT", "\u00c5r 3 VT", "\u00c5r 3 HT", "\u00c5r 4 VT"] },
+    { level: "\u00c4ventyrare",    names: ["\u00c5r 1 HT", "\u00c5r 2 VT", "\u00c5r 2 HT", "\u00c5r 3 VT", "\u00c5r 3 HT", "\u00c5r 4 VT"] },
+    { level: "Utmanare",       names: ["\u00c5r 1 HT", "\u00c5r 2 VT", "\u00c5r 2 HT", "\u00c5r 3 VT"] },
     { level: "Rover",          names: ["\u00c5r 1 VT", "\u00c5r 1 HT"] },
 ];
 
@@ -240,17 +240,47 @@ document.getElementById("groupLevelFilter").addEventListener("change", e => {
 });
 // ── Group modal ────────────────────────────────────────────────────────────
 
-document.getElementById("loadDefaultsBtn").addEventListener("click", () => {
-    if (groups.length > 0 && !confirm("Detta lägger till standardplaneringar. Befintliga planeringar behålls. Fortsätta?")) return;
-    DEFAULT_PLANNINGS.forEach(({ level, names }) => {
-        names.forEach(name => {
-            if (!groups.some(g => g.level === level && g.name === name)) {
-                groups.push({ id: crypto.randomUUID(), name, level, badges: [] });
-            }
-        });
+const defaultPlanningModal = document.getElementById("defaultPlanningModal");
+const defaultPlanningLevel = document.getElementById("defaultPlanningLevel");
+
+function addDefaultPlanningForLevel(level) {
+    const template = DEFAULT_PLANNINGS.find(p => p.level === level);
+    if (!template) return 0;
+
+    let added = 0;
+    template.names.forEach(name => {
+        if (!groups.some(g => g.level === level && g.name === name)) {
+            groups.push({ id: crypto.randomUUID(), name, level, badges: [] });
+            added += 1;
+        }
     });
-    saveGroups();
-    renderPlanning();
+
+    if (added > 0) {
+        saveGroups();
+        renderPlanning();
+    }
+    return added;
+}
+
+document.getElementById("loadDefaultsBtn").addEventListener("click", () => {
+    const currentFilterLevel = document.getElementById("groupLevelFilter").value;
+    defaultPlanningLevel.value = currentFilterLevel !== "Alla" ? currentFilterLevel : "Familjescouting";
+    defaultPlanningModal.classList.remove("hidden");
+    defaultPlanningLevel.focus();
+});
+
+document.getElementById("closeDefaultPlanningModal").addEventListener("click", () => {
+    defaultPlanningModal.classList.add("hidden");
+});
+
+defaultPlanningModal.addEventListener("click", e => {
+    if (e.target === defaultPlanningModal) defaultPlanningModal.classList.add("hidden");
+});
+
+document.getElementById("saveDefaultPlanningBtn").addEventListener("click", () => {
+    const selectedLevel = defaultPlanningLevel.value;
+    addDefaultPlanningForLevel(selectedLevel);
+    defaultPlanningModal.classList.add("hidden");
 });
 
 const groupModal = document.getElementById("groupModal");
@@ -275,6 +305,10 @@ document.getElementById("saveGroupBtn").addEventListener("click", () => {
 
 document.getElementById("groupName").addEventListener("keydown", e => {
     if (e.key === "Enter") document.getElementById("saveGroupBtn").click();
+});
+
+defaultPlanningLevel.addEventListener("keydown", e => {
+    if (e.key === "Enter") document.getElementById("saveDefaultPlanningBtn").click();
 });
 
 // ── Badge picker modal ─────────────────────────────────────────────────────
