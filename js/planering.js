@@ -198,9 +198,8 @@ function renderPlanning() {
             card.className = "group-card";
             card.innerHTML = `
                 <div class="group-card-header">
-                    <h3 class="group-name">${group.name}</h3>
+                    <h3 class="group-name" title="Dubbelklicka för att byta namn">${group.name}</h3>
                     <div class="group-card-actions">
-                        <button class="btn-secondary rename-group-btn" type="button" data-group-id="${group.id}" title="Byt namn">Byt namn</button>
                         <button class="btn-secondary add-badge-btn" type="button" data-group-id="${group.id}">+ Märke</button>
                         <button class="btn-danger remove-group-btn" type="button" data-group-id="${group.id}" title="Ta bort planering">&times;</button>
                     </div>
@@ -209,7 +208,7 @@ function renderPlanning() {
                     ${renderGroupBadges(group)}
                 </div>
             `;
-            card.querySelector(".rename-group-btn").addEventListener("click", () => renameGroup(group.id));
+            card.querySelector(".group-name").addEventListener("dblclick", () => renameGroup(group.id));
             card.querySelector(".add-badge-btn").addEventListener("click", () => openBadgePicker(group.id));
             card.querySelector(".remove-group-btn").addEventListener("click", () => removeGroup(group.id));
             cardsRow.appendChild(card);
