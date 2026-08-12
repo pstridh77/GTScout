@@ -1,13 +1,63 @@
 const STORAGE_KEY = "gtscout_planering";
 
-const DEFAULT_PLANNINGS = [
-    { level: "Familjescouting", names: ["\u00c5r 1 HT", "\u00c5r 2 VT"] },
-    { level: "Sp\u00e5rare",        names: ["\u00c5r 1 HT", "\u00c5r 2 VT", "\u00c5r 2 HT", "\u00c5r 3 VT"] },
-    { level: "Uppt\u00e4ckare",    names: ["\u00c5r 1 HT", "\u00c5r 2 VT", "\u00c5r 2 HT", "\u00c5r 3 VT", "\u00c5r 3 HT", "\u00c5r 4 VT"] },
-    { level: "\u00c4ventyrare",    names: ["\u00c5r 1 HT", "\u00c5r 2 VT", "\u00c5r 2 HT", "\u00c5r 3 VT", "\u00c5r 3 HT", "\u00c5r 4 VT"] },
-    { level: "Utmanare",       names: ["\u00c5r 1 HT", "\u00c5r 2 VT", "\u00c5r 2 HT", "\u00c5r 3 VT"] },
-    { level: "Rover",          names: ["\u00c5r 1 VT", "\u00c5r 1 HT"] },
+const DEFAULT_PLANNINGS_FALLBACK = [
+    {
+        level: "Familjescouting",
+        plans: [
+            { name: "\u00c5r 1 HT", badges: ["varme", "smaka", "utforska"] },
+            { name: "\u00c5r 2 VT", badges: ["leka", "pyssla", "ny_i_naturen"] }
+        ]
+    },
+    {
+        level: "Sp\u00e5rare",
+        plans: [
+            { name: "\u00c5r 1 HT", badges: ["tanda", "matettan", "hitta"] },
+            { name: "\u00c5r 2 VT", badges: ["blomman", "forsta_repmarket", "under_ytan"] },
+            { name: "\u00c5r 2 HT", badges: ["experimentettan", "sortera_och_atervinn", "sova_borta_helg"] },
+            { name: "\u00c5r 3 VT", badges: ["livraddning", "naturligt", "morker"] }
+        ]
+    },
+    {
+        level: "Uppt\u00e4ckare",
+        plans: [
+            { name: "\u00c5r 1 HT", badges: ["brinna", "mattvaan", "karta"] },
+            { name: "\u00c5r 2 VT", badges: ["bygga", "andra_repmarket", "vatten"] },
+            { name: "\u00c5r 2 HT", badges: ["fauna", "tekniken", "losa"] },
+            { name: "\u00c5r 3 VT", badges: ["hallbarhet", "min_rost", "internationellt"] },
+            { name: "\u00c5r 3 HT", badges: ["sova_borta_vecka", "inkludering", "vader"] },
+            { name: "\u00c5r 4 VT", badges: ["lagerbal", "skorden", "varldsforbattraren"] }
+        ]
+    },
+    {
+        level: "\u00c4ventyrare",
+        plans: [
+            { name: "\u00c5r 1 HT", badges: ["elda", "mattrean", "navigera"] },
+            { name: "\u00c5r 2 VT", badges: ["surra", "klattring", "paddla"] },
+            { name: "\u00c5r 2 HT", badges: ["demokrati", "offline", "spara"] },
+            { name: "\u00c5r 3 VT", badges: ["klimat", "vara_ute_skogen", "sjovett"] },
+            { name: "\u00c5r 3 HT", badges: ["radda", "kroppslig_halsa", "genus_hbtqplus"] },
+            { name: "\u00c5r 4 VT", badges: ["experimenttrean", "superpatrullen", "varldens_utmaning"] }
+        ]
+    },
+    {
+        level: "Utmanare",
+        plans: [
+            { name: "\u00c5r 1 HT", badges: ["ta_fyr", "mat_avancerat", "overlevnad"] },
+            { name: "\u00c5r 2 VT", badges: ["bygga_avancerat", "budgetera", "upptack_varlden"] },
+            { name: "\u00c5r 2 HT", badges: ["paddla_vanern", "klattra_kebnekaise", "vara_ute_sjalv"] },
+            { name: "\u00c5r 3 VT", badges: ["innovationen", "reparera", "psykisk_halsa"] }
+        ]
+    },
+    {
+        level: "Rover",
+        plans: [
+            { name: "\u00c5r 1 VT", badges: ["skogsgourmet", "vandra_sjalv", "varldsmedborgare"] },
+            { name: "\u00c5r 1 HT", badges: ["bygga_permanent", "paddla_gotland", "skogsrejv"] }
+        ]
+    }
 ];
+
+let defaultPlannings = JSON.parse(JSON.stringify(DEFAULT_PLANNINGS_FALLBACK));
 
 let allMarken = [];
 let groups = loadGroups();
@@ -40,6 +90,19 @@ async function loadMarken() {
     }
     renderPlanning();
     populatePickerFilters();
+}
+
+async function loadDefaultPlannings() {
+    try {
+        const response = await fetch("data/default-planeringar.json");
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (Array.isArray(data) && data.length > 0) {
+            defaultPlannings = data;
+        }
+    } catch (err) {
+        console.warn("Kunde inte ladda default-planeringar.json, anv\u00e4nder fallback.", err);
+    }
 }
 
 // ── Target-group helper (matches app.js) ───────────────────────────────────
@@ -244,13 +307,19 @@ const defaultPlanningModal = document.getElementById("defaultPlanningModal");
 const defaultPlanningLevel = document.getElementById("defaultPlanningLevel");
 
 function addDefaultPlanningForLevel(level) {
-    const template = DEFAULT_PLANNINGS.find(p => p.level === level);
+    const template = defaultPlannings.find(p => p.level === level);
     if (!template) return 0;
 
     let added = 0;
-    template.names.forEach(name => {
-        if (!groups.some(g => g.level === level && g.name === name)) {
-            groups.push({ id: crypto.randomUUID(), name, level, badges: [] });
+    const plans = (template.plans || []).filter(p => p && typeof p.name === "string");
+    plans.forEach(plan => {
+        if (!groups.some(g => g.level === level && g.name === plan.name)) {
+            groups.push({
+                id: crypto.randomUUID(),
+                name: plan.name,
+                level,
+                badges: Array.isArray(plan.badges) ? [...new Set(plan.badges)] : []
+            });
             added += 1;
         }
     });
@@ -462,4 +531,5 @@ function showBadgeDetail(marke) {
 
 // ── Init ───────────────────────────────────────────────────────────────────
 
+loadDefaultPlannings();
 loadMarken();

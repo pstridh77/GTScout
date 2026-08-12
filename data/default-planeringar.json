@@ -1,0 +1,128 @@
+[
+  {
+    "level": "Familjescouting",
+    "plans": [
+      {
+        "name": "År 1 HT",
+        "badges": ["varme", "smaka", "utforska"]
+      },
+      {
+        "name": "År 2 VT",
+        "badges": ["leka", "pyssla", "ny_i_naturen"]
+      }
+    ]
+  },
+  {
+    "level": "Spårare",
+    "plans": [
+      {
+        "name": "År 1 HT",
+        "badges": ["tanda", "matettan", "hitta"]
+      },
+      {
+        "name": "År 2 VT",
+        "badges": ["blomman", "forsta_repmarket", "under_ytan"]
+      },
+      {
+        "name": "År 2 HT",
+        "badges": ["experimentettan", "sortera_och_atervinn", "sova_borta_helg"]
+      },
+      {
+        "name": "År 3 VT",
+        "badges": ["livraddning", "naturligt", "morker"]
+      }
+    ]
+  },
+  {
+    "level": "Upptäckare",
+    "plans": [
+      {
+        "name": "År 1 HT",
+        "badges": ["brinna", "mattvaan", "karta"]
+      },
+      {
+        "name": "År 2 VT",
+        "badges": ["bygga", "andra_repmarket", "vatten"]
+      },
+      {
+        "name": "År 2 HT",
+        "badges": ["fauna", "tekniken", "losa"]
+      },
+      {
+        "name": "År 3 VT",
+        "badges": ["hallbarhet", "min_rost", "internationellt"]
+      },
+      {
+        "name": "År 3 HT",
+        "badges": ["sova_borta_vecka", "inkludering", "vader"]
+      },
+      {
+        "name": "År 4 VT",
+        "badges": ["lagerbal", "skorden", "varldsforbattraren"]
+      }
+    ]
+  },
+  {
+    "level": "Äventyrare",
+    "plans": [
+      {
+        "name": "År 1 HT",
+        "badges": ["elda", "mattrean", "navigera"]
+      },
+      {
+        "name": "År 2 VT",
+        "badges": ["surra", "klattring", "paddla"]
+      },
+      {
+        "name": "År 2 HT",
+        "badges": ["demokrati", "offline", "spara"]
+      },
+      {
+        "name": "År 3 VT",
+        "badges": ["klimat", "vara_ute_skogen", "sjovett"]
+      },
+      {
+        "name": "År 3 HT",
+        "badges": ["radda", "kroppslig_halsa", "genus_hbtqplus"]
+      },
+      {
+        "name": "År 4 VT",
+        "badges": ["experimenttrean", "superpatrullen", "varldens_utmaning"]
+      }
+    ]
+  },
+  {
+    "level": "Utmanare",
+    "plans": [
+      {
+        "name": "År 1 HT",
+        "badges": ["ta_fyr", "mat_avancerat", "overlevnad"]
+      },
+      {
+        "name": "År 2 VT",
+        "badges": ["bygga_avancerat", "budgetera", "upptack_varlden"]
+      },
+      {
+        "name": "År 2 HT",
+        "badges": ["paddla_vanern", "klattra_kebnekaise", "vara_ute_sjalv"]
+      },
+      {
+        "name": "År 3 VT",
+        "badges": ["innovationen", "reparera", "psykisk_halsa"]
+      }
+    ]
+  },
+  {
+    "level": "Rover",
+    "plans": [
+      {
+        "name": "År 1 VT",
+        "badges": ["skogsgourmet", "vandra_sjalv", "varldsmedborgare"]
+      },
+      {
+        "name": "År 1 HT",
+        "badges": ["bygga_permanent", "paddla_gotland", "skogsrejv"]
+      }
+    ]
+  }
+]
