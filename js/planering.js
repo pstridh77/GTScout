@@ -185,9 +185,13 @@ function renderPlanning() {
         const colHeader = document.createElement("div");
         colHeader.className = "level-row-header";
         colHeader.innerHTML = `
-            ${icon ? `<img src="${icon}" alt="${level}" class="group-level-icon">` : ""}
-            <span>${level}</span>
+            <div class="level-row-title">
+                ${icon ? `<img src="${icon}" alt="${level}" class="group-level-icon">` : ""}
+                <span>${level}</span>
+            </div>
+            <button class="level-remove-all-btn" type="button" data-level="${level}" title="Ta bort alla planeringar i målgruppen">Ta bort alla</button>
         `;
+        colHeader.querySelector(".level-remove-all-btn").addEventListener("click", () => removeLevelGroups(level));
         col.appendChild(colHeader);
 
         const cardsRow = document.createElement("div");
@@ -265,6 +269,15 @@ function addGroup(name, level) {
 function removeGroup(id) {
     if (!confirm("Ta bort planeringen och alla planerade märken?")) return;
     groups = groups.filter(g => g.id !== id);
+    saveGroups();
+    renderPlanning();
+}
+
+function removeLevelGroups(level) {
+    const count = groups.filter(g => g.level === level).length;
+    if (count === 0) return;
+    if (!confirm(`Ta bort alla ${count} planeringar för ${level}?`)) return;
+    groups = groups.filter(g => g.level !== level);
     saveGroups();
     renderPlanning();
 }
