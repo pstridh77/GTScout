@@ -544,6 +544,14 @@ header {
     gap: 10px;
     padding: 14px 16px;
     min-height: 60px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.group-badges--dragover {
+    border-color: #60a5fa;
+    background: #eff6ff;
 }
 
 .group-empty {
@@ -560,6 +568,22 @@ header {
     align-items: center;
     gap: 4px;
     width: 72px;
+    cursor: grab;
+}
+
+.planned-badge:active {
+    cursor: grabbing;
+}
+
+.planned-badge--dragging {
+    opacity: 0.45;
+}
+
+.planned-badge--drop-target {
+    outline: 2px dashed #60a5fa;
+    outline-offset: 2px;
+    border-radius: 8px;
+    background: #eff6ff;
 }
 
 .planned-badge img {

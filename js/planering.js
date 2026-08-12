@@ -63,6 +63,7 @@ let allMarken = [];
 let groups = loadGroups();
 let activeGroupId = null; // which group is getting badges added
 let groupFilters = { search: "", level: "Alla" };
+const BADGE_DND_MIME = "text/plain";
 
 // ── Persistence ────────────────────────────────────────────────────────────
 
@@ -236,6 +237,8 @@ function renderPlanning() {
             if (marke) showBadgeDetail(marke);
         });
     });
+
+    bindBadgeDragAndDrop();
 }
 
 function renderGroupBadges(group) {
@@ -247,7 +250,7 @@ function renderGroupBadges(group) {
         const marke = allMarken.find(m => m.id === badgeId);
         if (!marke) return "";
         return `
-            <div class="planned-badge" data-badge-id="${badgeId}" title="Klicka för mer info">
+            <div class="planned-badge" data-group-id="${group.id}" data-badge-id="${badgeId}" draggable="true" title="Klicka för mer info">
                 <button class="remove-badge-btn" type="button"
                     data-group-id="${group.id}" data-badge-id="${badgeId}"
                     title="Ta bort ${marke.namn}">&times;</button>
@@ -303,6 +306,134 @@ function renameGroup(id) {
     group.name = trimmedName;
     saveGroups();
     renderPlanning();
+}
+
+function moveBadgeBetweenGroups(sourceGroupId, targetGroupId, badgeId, targetIndex = null) {
+    if (!sourceGroupId || !targetGroupId || !badgeId) return false;
+
+    const sourceGroup = groups.find(g => g.id === sourceGroupId);
+    const targetGroup = groups.find(g => g.id === targetGroupId);
+    if (!sourceGroup || !targetGroup) return false;
+    if (!sourceGroup.badges.includes(badgeId)) return false;
+
+    if (sourceGroupId === targetGroupId) {
+        const fromIndex = sourceGroup.badges.indexOf(badgeId);
+        if (fromIndex === -1) return false;
+
+        let toIndex = targetIndex == null ? sourceGroup.badges.length - 1 : targetIndex;
+        toIndex = Math.max(0, Math.min(toIndex, sourceGroup.badges.length - 1));
+        if (toIndex === fromIndex) return false;
+
+        const [moved] = sourceGroup.badges.splice(fromIndex, 1);
+        if (toIndex > fromIndex) toIndex -= 1;
+        sourceGroup.badges.splice(toIndex, 0, moved);
+    } else {
+        if (targetGroup.badges.includes(badgeId)) return false;
+        sourceGroup.badges = sourceGroup.badges.filter(b => b !== badgeId);
+
+        const insertAt = targetIndex == null
+            ? targetGroup.badges.length
+            : Math.max(0, Math.min(targetIndex, targetGroup.badges.length));
+        targetGroup.badges.splice(insertAt, 0, badgeId);
+    }
+
+    saveGroups();
+    renderPlanning();
+    return true;
+}
+
+function parseDraggedBadge(event) {
+    try {
+        const raw = event.dataTransfer.getData(BADGE_DND_MIME);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object") return null;
+        return {
+            badgeId: parsed.badgeId,
+            sourceGroupId: parsed.sourceGroupId
+        };
+    } catch {
+        return null;
+    }
+}
+
+function bindBadgeDragAndDrop() {
+    const clearDragMarkers = () => {
+        document.querySelectorAll(".group-badges--dragover").forEach(zone => zone.classList.remove("group-badges--dragover"));
+        document.querySelectorAll(".planned-badge--drop-target").forEach(el => el.classList.remove("planned-badge--drop-target"));
+    };
+
+    document.querySelectorAll(".planned-badge").forEach(el => {
+        el.addEventListener("dragstart", e => {
+            const { badgeId, groupId } = el.dataset;
+            if (!badgeId || !groupId) return;
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData(BADGE_DND_MIME, JSON.stringify({ badgeId, sourceGroupId: groupId }));
+            el.classList.add("planned-badge--dragging");
+        });
+
+        el.addEventListener("dragend", () => {
+            el.classList.remove("planned-badge--dragging");
+            clearDragMarkers();
+        });
+
+        el.addEventListener("dragover", e => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            el.classList.add("planned-badge--drop-target");
+        });
+
+        el.addEventListener("dragleave", e => {
+            if (!el.contains(e.relatedTarget)) {
+                el.classList.remove("planned-badge--drop-target");
+            }
+        });
+
+        el.addEventListener("drop", e => {
+            e.preventDefault();
+            e.stopPropagation();
+            clearDragMarkers();
+
+            const dragged = parseDraggedBadge(e);
+            if (!dragged) return;
+
+            const targetGroupId = el.dataset.groupId;
+            const targetBadgeId = el.dataset.badgeId;
+            const targetGroup = groups.find(g => g.id === targetGroupId);
+            if (!targetGroup) return;
+
+            const targetIndex = targetGroup.badges.indexOf(targetBadgeId);
+            moveBadgeBetweenGroups(dragged.sourceGroupId, targetGroupId, dragged.badgeId, targetIndex);
+        });
+    });
+
+    document.querySelectorAll(".group-badges").forEach(zone => {
+        zone.addEventListener("dragover", e => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+        });
+
+        zone.addEventListener("dragenter", e => {
+            e.preventDefault();
+            zone.classList.add("group-badges--dragover");
+        });
+
+        zone.addEventListener("dragleave", e => {
+            if (!zone.contains(e.relatedTarget)) {
+                zone.classList.remove("group-badges--dragover");
+            }
+        });
+
+        zone.addEventListener("drop", e => {
+            e.preventDefault();
+            clearDragMarkers();
+
+            const dragged = parseDraggedBadge(e);
+            if (!dragged) return;
+
+            moveBadgeBetweenGroups(dragged.sourceGroupId, zone.dataset.groupId, dragged.badgeId, null);
+        });
+    });
 }
 
 function removeBadgeFromGroup(groupId, badgeId) {
