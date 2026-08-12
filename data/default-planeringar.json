@@ -4,11 +4,11 @@
     "plans": [
       {
         "name": "År 1 HT",
-        "badges": ["varme", "smaka", "utforska"]
+        "badges": [ "smaka"]
       },
       {
         "name": "År 2 VT",
-        "badges": ["leka", "pyssla", "ny_i_naturen"]
+        "badges": ["ny_i_naturen"]
       }
     ]
   },
@@ -17,19 +17,19 @@
     "plans": [
       {
         "name": "År 1 HT",
-        "badges": ["tanda", "matettan", "hitta"]
+        "badges": ["tanda", "matettan"]
       },
       {
         "name": "År 2 VT",
-        "badges": ["blomman", "forsta_repmarket", "under_ytan"]
+        "badges": ["hitta"]
       },
       {
         "name": "År 2 HT",
-        "badges": ["experimentettan", "sortera_och_atervinn", "sova_borta_helg"]
+        "badges": ["sortera_och_atervinn"]
       },
       {
         "name": "År 3 VT",
-        "badges": ["livraddning", "naturligt", "morker"]
+        "badges": [ "morker"]
       }
     ]
   },
