@@ -2238,5 +2238,95 @@
                         "Scouterna"
                     ],
         "Typ":  "Intressemärke"
+    },
+    {
+        "id":  "tidsspar",
+        "namn":  "Tidsspår",
+        "bild":  "images/marken/tidsspar.png",
+        "kategori":  "Deltagandemärke",
+        "malgrupp":  [
+                         "Spårare"
+                     ],
+        "inledning":"Deltagandemärke Spårare",
+        "kriterier":  [
+                         "Delta i en termins aktiviteter."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Deltagandemärke"
+    },
+    {
+        "id":  "fotspar",
+        "namn":  "Fotsspår",
+        "bild":  "images/marken/fotspar.png",
+        "kategori":  "Deltagandemärke",
+        "malgrupp":  [
+                         "Spårare"
+                     ],
+        "inledning":"Deltagandemärke Spårare",
+        "kriterier":  [
+                         "Delta i en termins aktiviteter."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Deltagandemärke"
+    },
+    {
+        "id":  "ljusspar",
+        "namn":  "Ljusspår",
+        "bild":  "images/marken/ljusspar.png",
+        "kategori":  "Deltagandemärke",
+        "malgrupp":  [
+                         "Spårare"
+                     ],
+        "inledning":"Deltagandemärke Spårare",
+        "kriterier":  [
+                         "Delta i en termins aktiviteter."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Deltagandemärke"
+    },
+    {
+        "id":  "djurspar",
+        "namn":  "Djurspår",
+        "bild":  "images/marken/djurspar.png",
+        "kategori":  "Deltagandemärke",
+        "malgrupp":  [
+                         "Spårare"
+                     ],
+        "inledning":"Deltagandemärke Spårare",
+        "kriterier":  [
+                         "Delta i en termins aktiviteter."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Deltagandemärke"
+    },
+    {
+        "id":  "kniv",
+        "namn":  "Kniv",
+        "bild":  "images/marken/kniv.png",
+        "kategori":  "Bevismärke",
+        "malgrupp":  [
+                         "Upptäckare"
+                     ],
+        "inledning":"Bevismärke för att visa att scouten kan hantera en kniv på ett säkert sätt.",
+        "kriterier":  [
+                         "Hur en kniv används så att ingen person, du själv eller andra, skadar sig och följa detta när du använder kniven.",
+                         "Veta hur en kniv tas emot och lämnas på ett säkert sätt och följa detta när du använder kniven.",
+                         "Hantera kniven på ett sätt som gör att den inte skadas eller slits mer än nödvändigt.",
+                         "Känna till vad den svenska knivlagen innebär.",
+                         "Veta vad knivens delar kallas.",
+                         "Kunna slipa en kniv."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Bevismärke"
     }
 ]

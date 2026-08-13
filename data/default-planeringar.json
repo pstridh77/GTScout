@@ -17,19 +17,19 @@
     "plans": [
       {
         "name": "År 1 HT",
-        "badges": ["tanda", "matettan"]
+        "badges": [ "matettan", "skapa", "tidsspar"]
       },
       {
         "name": "År 2 VT",
-        "badges": ["hitta"]
+        "badges": ["forsta_repmarket","saker_pa_natet", "ljusspar"]
       },
       {
         "name": "År 2 HT",
-        "badges": ["sortera_och_atervinn"]
+        "badges": ["plastra", "sortera_och_atervinn", "djurspar"]
       },
       {
         "name": "År 3 VT",
-        "badges": [ "morker", "forsta_repmarket"]
+        "badges": [ "tanda", "hitta", "fotspar"]
       }
     ]
   },
@@ -38,7 +38,7 @@
     "plans": [
       {
         "name": "År 1 HT",
-        "badges": ["brinna", "mattvaan", "karta"]
+        "badges": ["mattvaan", "brinna", "kniv"]
       },
       {
         "name": "År 2 VT",
