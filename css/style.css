@@ -682,6 +682,7 @@ header {
 }
 
 .modal-actions { display: flex; justify-content: flex-end; }
+.modal-actions--split { justify-content: space-between; }
 
 /* ── Badge picker ────────────────────────────────────────────────────────── */
 

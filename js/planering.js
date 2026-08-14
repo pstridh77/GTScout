@@ -500,8 +500,7 @@ function addDefaultPlanningForLevel(level) {
 }
 
 document.getElementById("loadDefaultsBtn").addEventListener("click", () => {
-    const currentFilterLevel = document.getElementById("groupLevelFilter").value;
-    defaultPlanningLevel.value = currentFilterLevel !== "Alla" ? currentFilterLevel : "Familjescouting";
+    defaultPlanningLevel.value = document.getElementById("groupLevel").value;
     defaultPlanningModal.classList.remove("hidden");
     defaultPlanningLevel.focus();
 });
@@ -515,7 +514,7 @@ defaultPlanningModal.addEventListener("click", e => {
 });
 
 document.getElementById("saveDefaultPlanningBtn").addEventListener("click", () => {
-    const selectedLevel = defaultPlanningLevel.value;
+    const selectedLevel = document.getElementById("groupLevel").value;
     addDefaultPlanningForLevel(selectedLevel);
     defaultPlanningModal.classList.add("hidden");
     groupModal.classList.add("hidden");
