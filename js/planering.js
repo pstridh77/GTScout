@@ -518,6 +518,7 @@ document.getElementById("saveDefaultPlanningBtn").addEventListener("click", () =
     const selectedLevel = defaultPlanningLevel.value;
     addDefaultPlanningForLevel(selectedLevel);
     defaultPlanningModal.classList.add("hidden");
+    groupModal.classList.add("hidden");
 });
 
 const groupModal = document.getElementById("groupModal");
