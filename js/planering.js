@@ -806,6 +806,24 @@ document.getElementById("generatePdfBtn").addEventListener("click", () => {
 });
 
 const importPlanningInput = document.getElementById("importPlanningInput");
+const planningActionsBtn = document.getElementById("planningActionsBtn");
+const planningActionsDropdown = document.getElementById("planningActionsDropdown");
+planningActionsBtn.addEventListener("click", event => {
+    event.stopPropagation();
+    const isOpen = !planningActionsDropdown.classList.contains("hidden");
+    planningActionsDropdown.classList.toggle("hidden", isOpen);
+    planningActionsBtn.setAttribute("aria-expanded", String(!isOpen));
+});
+document.addEventListener("click", event => {
+    if (!planningActionsDropdown.contains(event.target) && event.target !== planningActionsBtn) {
+        planningActionsDropdown.classList.add("hidden");
+        planningActionsBtn.setAttribute("aria-expanded", "false");
+    }
+});
+planningActionsDropdown.addEventListener("click", () => {
+    planningActionsDropdown.classList.add("hidden");
+    planningActionsBtn.setAttribute("aria-expanded", "false");
+});
 document.getElementById("exportPlanningBtn").addEventListener("click", exportPlannings);
 document.getElementById("importPlanningBtn").addEventListener("click", () => importPlanningInput.click());
 document.getElementById("exportPlanningPdfBtn").addEventListener("click", openPdfSelection);

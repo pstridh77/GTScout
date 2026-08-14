@@ -19,11 +19,16 @@
     <div class="planning-toolbar">
         <h2 class="planning-title">Märkesschema</h2>
         <div class="toolbar-actions">
-            <button id="exportPlanningBtn" class="btn-secondary" type="button">Spara</button>
-            <button id="importPlanningBtn" class="btn-secondary" type="button">Öppna...</button>
-            <button id="exportPlanningPdfBtn" class="btn-secondary" type="button">Skriv ut</button>
             <input id="importPlanningInput" type="file" accept="application/json,.json" hidden>
             <button id="addGroupBtn" class="btn-primary" type="button">+ Lägg till planering</button>
+            <div class="planning-actions-menu">
+                <button id="planningActionsBtn" class="btn-secondary planning-actions-trigger" type="button" aria-label="Fler åtgärder" aria-expanded="false" title="Fler åtgärder">&#x22EE;</button>
+                <div id="planningActionsDropdown" class="planning-actions-dropdown hidden" role="menu">
+                    <button id="exportPlanningBtn" class="planning-menu-item" type="button" role="menuitem">Spara</button>
+                    <button id="importPlanningBtn" class="planning-menu-item" type="button" role="menuitem">Öppna...</button>
+                    <button id="exportPlanningPdfBtn" class="planning-menu-item" type="button" role="menuitem">Skriv ut</button>
+                </div>
+            </div>
         </div>
     </div>
 
