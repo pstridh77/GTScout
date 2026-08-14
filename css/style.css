@@ -254,6 +254,50 @@ header {
     list-style: disc;
 }
 
+.detail-planning-actions {
+    margin-top: 18px;
+}
+
+.detail-planning-status {
+    min-height: 1.2em;
+    margin: 6px 0 0;
+    color: #166534;
+    font-size: 0.9rem;
+}
+
+.planning-picker-content h2 {
+    margin: 0 0 16px;
+    color: #003660;
+}
+
+.planning-picker-filter {
+    margin-bottom: 14px;
+}
+
+.planning-picker-list {
+    display: grid;
+    gap: 8px;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.planning-picker-option {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #c5d8f6;
+    border-radius: 8px;
+    background: #e8f0fe;
+    color: #003660;
+    font: inherit;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+.planning-picker-option:hover {
+    background: #c5d8f6;
+}
+
 .detail-popup {
     position: fixed;
     inset: 0;

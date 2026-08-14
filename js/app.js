@@ -6,6 +6,7 @@ const typeFilter = document.getElementById("typeFilter");
 const programFilter = document.getElementById("programFilter");
 
 let allMarken = [];
+const PLANNING_STORAGE_KEY = "gtscout_planering";
 const filters = {
     search: "",
     category: "Alla",
@@ -48,6 +49,20 @@ function getTargetGroup(marke) {
     };
 
     return targetGroupMap[normalizedGroup] || rawGroup || "Ingen målgrupp";
+}
+
+function loadPlannings() {
+    try {
+        const storedPlannings = JSON.parse(localStorage.getItem(PLANNING_STORAGE_KEY));
+        return Array.isArray(storedPlannings) ? storedPlannings : [];
+    } catch {
+        return [];
+    }
+}
+
+function setupPlanningAction(marke) {
+    const addButton = popup.querySelector("#addBadgeToPlanningBtn");
+    addButton.addEventListener("click", () => openPlanningPicker(marke));
 }
 
 function populateFilters(marken) {
@@ -250,6 +265,92 @@ function createPopup() {
 
 const popup = createPopup();
 
+function createPlanningPickerPopup() {
+    const picker = document.createElement("div");
+    picker.id = "planningPickerPopup";
+    picker.className = "detail-popup hidden";
+    picker.innerHTML = `
+        <div class="detail-popup-content planning-picker-content">
+            <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2>Välj planering</h2>
+            <label class="filter-field planning-picker-filter">
+                <span>Målgrupp</span>
+                <select id="planningPickerFilter" aria-label="Filtrera planeringar efter målgrupp"></select>
+            </label>
+            <div class="planning-picker-list"></div>
+        </div>
+    `;
+
+    picker.querySelector(".close-popup").addEventListener("click", () => {
+        picker.classList.add("hidden");
+    });
+    picker.addEventListener("click", event => {
+        if (event.target === picker) picker.classList.add("hidden");
+    });
+    document.body.appendChild(picker);
+    return picker;
+}
+
+const planningPickerPopup = createPlanningPickerPopup();
+
+function openPlanningPicker(marke) {
+    const list = planningPickerPopup.querySelector(".planning-picker-list");
+    const filter = planningPickerPopup.querySelector("#planningPickerFilter");
+    const plannings = loadPlannings();
+    const targetGroups = [...new Set(plannings.map(planning => planning.level).filter(Boolean))];
+    const matchingTargetGroup = getTargetGroup(marke);
+
+    filter.innerHTML = "<option value=\"Alla\">Alla målgrupper</option>";
+    targetGroups.forEach(targetGroup => {
+        const option = document.createElement("option");
+        option.value = targetGroup;
+        option.textContent = targetGroup;
+        filter.appendChild(option);
+    });
+    filter.value = targetGroups.includes(matchingTargetGroup) ? matchingTargetGroup : "Alla";
+
+    const renderPlanningOptions = () => {
+        list.innerHTML = "";
+        const selectedTargetGroup = filter.value;
+        const visiblePlannings = plannings.filter(planning =>
+            selectedTargetGroup === "Alla" || planning.level === selectedTargetGroup
+        );
+
+        if (visiblePlannings.length === 0) {
+            list.innerHTML = plannings.length === 0
+                ? "<p>Det finns inga planeringar ännu.</p>"
+                : "<p>Inga planeringar finns i den valda målgruppen.</p>";
+            return;
+        }
+
+        visiblePlannings.forEach(planning => {
+            const button = document.createElement("button");
+            button.className = "planning-picker-option";
+            button.type = "button";
+            button.textContent = `${planning.name} (${planning.level})`;
+            button.addEventListener("click", () => {
+                planning.badges = Array.isArray(planning.badges) ? planning.badges : [];
+                const status = popup.querySelector("#badgePlanningStatus");
+
+                if (planning.badges.includes(marke.id)) {
+                    status.textContent = "Märket finns redan i planeringen.";
+                } else {
+                    planning.badges.push(marke.id);
+                    localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(plannings));
+                    status.textContent = `Märket lades till i ${planning.name}.`;
+                }
+                planningPickerPopup.classList.add("hidden");
+            });
+            list.appendChild(button);
+        });
+    };
+
+    filter.onchange = renderPlanningOptions;
+    renderPlanningOptions();
+
+    planningPickerPopup.classList.remove("hidden");
+}
+
 function getCategoryIconPath(marke) {
     const targetGroup = getTargetGroup(marke);
     const normalizedTargetGroup = targetGroup.toLowerCase();
@@ -299,8 +400,13 @@ function showPopup(marke) {
             ` : ""}
             <p><strong>Målgrupp:</strong> ${targetGroup}</p>
             <p><strong>Program:</strong> ${(Array.isArray(marke.program) ? marke.program : [marke.program || "Båda"]).join(", ")}</p>
+            <div class="detail-planning-actions">
+                <button id="addBadgeToPlanningBtn" class="btn-primary" type="button">Lägg till i planering</button>
+                <p id="badgePlanningStatus" class="detail-planning-status" role="status"></p>
+            </div>
         </div>
     `;
+    setupPlanningAction(marke);
     popup.classList.remove("hidden");
 }
 
