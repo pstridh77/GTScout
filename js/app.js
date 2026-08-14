@@ -7,6 +7,7 @@ const programFilter = document.getElementById("programFilter");
 
 let allMarken = [];
 const PLANNING_STORAGE_KEY = "gtscout_planering";
+const BADGE_NOTES_STORAGE_KEY = "gtscout_badge_notes";
 const filters = {
     search: "",
     category: "Alla",
@@ -77,6 +78,67 @@ function getBadgePlannings(badgeId) {
         Array.isArray(planning.badges) && planning.badges.includes(badgeId)
     );
 }
+
+function loadBadgeNotes() {
+    try {
+        const storedNotes = JSON.parse(localStorage.getItem(BADGE_NOTES_STORAGE_KEY));
+        return storedNotes && typeof storedNotes === "object" ? storedNotes : {};
+    } catch {
+        return {};
+    }
+}
+
+function saveBadgeNote(badgeId, note) {
+    const notes = loadBadgeNotes();
+    if (note.trim()) {
+        notes[badgeId] = note;
+    } else {
+        delete notes[badgeId];
+    }
+    localStorage.setItem(BADGE_NOTES_STORAGE_KEY, JSON.stringify(notes));
+}
+
+let activeNoteBadge = null;
+
+function createNotePopup() {
+    const notePopup = document.createElement("div");
+    notePopup.id = "badgeNotePopup";
+    notePopup.className = "detail-popup hidden";
+    notePopup.innerHTML = `
+        <div class="detail-popup-content badge-note-popup-content">
+            <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2>Info</h2>
+            <textarea id="badgeNoteInput" rows="6" placeholder="Skriv egen information..."></textarea>
+            <p id="badgeNoteStatus" class="detail-note-status" role="status"></p>
+            <div class="modal-actions">
+                <button id="saveBadgeNoteBtn" class="btn-primary" type="button">Spara information</button>
+            </div>
+        </div>
+    `;
+    notePopup.querySelector(".close-popup").addEventListener("click", () => notePopup.classList.add("hidden"));
+    notePopup.addEventListener("click", event => {
+        if (event.target === notePopup) notePopup.classList.add("hidden");
+    });
+    document.body.appendChild(notePopup);
+    return notePopup;
+}
+
+const notePopup = createNotePopup();
+
+function openNotePopup(marke) {
+    activeNoteBadge = marke;
+    notePopup.querySelector("#badgeNoteInput").value = loadBadgeNotes()[marke.id] || "";
+    notePopup.querySelector("#badgeNoteStatus").textContent = "";
+    notePopup.classList.remove("hidden");
+    notePopup.querySelector("#badgeNoteInput").focus();
+}
+
+notePopup.querySelector("#saveBadgeNoteBtn").addEventListener("click", () => {
+    const noteInput = notePopup.querySelector("#badgeNoteInput");
+    saveBadgeNote(activeNoteBadge.id, noteInput.value);
+    notePopup.classList.add("hidden");
+    showPopup(activeNoteBadge);
+});
 
 function setupPlanningAction(marke) {
     const addButton = popup.querySelector("#addBadgeToPlanningBtn");
@@ -482,6 +544,7 @@ function showPopup(marke) {
     const categoryIcon = getCategoryIconPath(marke);
     const targetGroup = getTargetGroup(marke);
     const badgePlannings = getBadgePlannings(marke.id);
+    const badgeNote = loadBadgeNotes()[marke.id] || "";
     const planningStatus = badgePlannings.length > 0
         ? `
             <div class="detail-planning-status detail-planning-status--active">
@@ -528,12 +591,23 @@ function showPopup(marke) {
             <p><strong>Målgrupp:</strong> ${targetGroup}</p>
             <p><strong>Program:</strong> ${(Array.isArray(marke.program) ? marke.program : [marke.program || "Båda"]).join(", ")}</p>
             ${planningStatus}
+            ${badgeNote ? `
+                <div class="detail-note">
+                    <strong>Info:</strong>
+                    <p id="badgeNoteDisplay" class="detail-note-display"></p>
+                </div>
+            ` : ""}
+            <button id="editBadgeNoteBtn" class="btn-secondary detail-note-button" type="button">
+                ${badgeNote ? "Redigera info" : "Lägg till info"}
+            </button>
             <div class="detail-planning-actions">
                 <button id="addBadgeToPlanningBtn" class="btn-primary" type="button">Lägg till i planering</button>
                 <p id="badgePlanningStatus" class="detail-planning-status" role="status"></p>
             </div>
         </div>
     `;
+    if (badgeNote) popup.querySelector("#badgeNoteDisplay").textContent = badgeNote;
+    popup.querySelector("#editBadgeNoteBtn").addEventListener("click", () => openNotePopup(marke));
     setupPlanningAction(marke);
     popup.classList.remove("hidden");
 }
