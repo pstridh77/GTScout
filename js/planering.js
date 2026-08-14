@@ -1,4 +1,5 @@
 const STORAGE_KEY = "gtscout_planering";
+const BADGE_NOTES_STORAGE_KEY = "gtscout_badge_notes";
 
 const DEFAULT_PLANNINGS_FALLBACK = [
     {
@@ -121,6 +122,15 @@ function getTargetGroup(marke) {
         "rover": "Rover"
     };
     return map[rawGroup.toLowerCase()] || rawGroup || "Ingen målgrupp";
+}
+
+function getBadgeNote(badgeId) {
+    try {
+        const notes = JSON.parse(localStorage.getItem(BADGE_NOTES_STORAGE_KEY));
+        return notes && typeof notes === "object" ? notes[badgeId] || "" : "";
+    } catch {
+        return "";
+    }
 }
 
 function getLevelIcon(level) {
@@ -676,6 +686,10 @@ function showBadgeDetail(marke) {
     const targetGroup = getTargetGroup(marke);
     const categoryIcon = iconMap[targetGroup] || "";
     const criteriaList = marke.kriterier ? marke.kriterier.map(k => `<li>${k}</li>`).join("") : "";
+    const badgeNote = getBadgeNote(marke.id);
+    const badgePlannings = groups.filter(group =>
+        Array.isArray(group.badges) && group.badges.includes(marke.id)
+    );
     body.innerHTML = `
         <div class="detail-popup-header">
             <h2>${marke.namn}</h2>
@@ -692,8 +706,34 @@ function showBadgeDetail(marke) {
             ${criteriaList ? `<div class="detail-criteria"><strong>Kriterier:</strong><ul>${criteriaList}</ul></div>` : ""}
             <p><strong>M\u00e5lgrupp:</strong> ${targetGroup}</p>
             <p><strong>Program:</strong> ${(Array.isArray(marke.program) ? marke.program : [marke.program || "B\u00e5da"]).join(", ")}</p>
+            ${badgePlannings.length > 0 ? `
+                <div class="detail-planning-status detail-planning-status--active">
+                    <strong>Finns i planering:</strong>
+                    <div class="detail-planning-list"></div>
+                </div>
+            ` : ""}
+            ${badgeNote ? `
+                <div class="detail-note">
+                    <strong>Info:</strong>
+                    <p class="detail-note-display"></p>
+                </div>
+            ` : ""}
         </div>
     `;
+    if (badgePlannings.length > 0) {
+        const planningList = body.querySelector(".detail-planning-list");
+        badgePlannings.forEach(group => {
+            const item = document.createElement("span");
+            item.className = "detail-planning-item";
+            const iconPath = iconMap[group.level] || "";
+            item.innerHTML = iconPath ? `<img src="${iconPath}" alt="${group.level}">` : "";
+            const name = document.createElement("span");
+            name.textContent = group.name;
+            item.appendChild(name);
+            planningList.appendChild(item);
+        });
+    }
+    if (badgeNote) body.querySelector(".detail-note-display").textContent = badgeNote;
     detailPopup.classList.remove("hidden");
 }
 
