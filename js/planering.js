@@ -210,11 +210,12 @@ function generatePlanningPdf(selectedIds) {
                 ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(marke.namn)}">` : ""}
                 <div>
                     <h3>${escapeHtml(marke.namn)}</h3>
-                    <p><strong>Kategori:</strong> ${escapeHtml(marke.kategori || "Övrigt")}</p>
                     ${marke.inledning ? `<p>${escapeHtml(marke.inledning)}</p>` : ""}
                     ${criteria}
                     ${note}
+                    <p class="pdf-category"><strong>Kategori:</strong> ${escapeHtml(marke.kategori || "Övrigt")}</p>
                     <p><strong>Målgrupp:</strong> ${escapeHtml(getTargetGroup(marke))}</p>
+                    
                 </div>
             </article>
         `;
@@ -256,7 +257,8 @@ function generatePlanningPdf(selectedIds) {
                 .pdf-badge img { width: 76px; height: 76px; flex: 0 0 76px; object-fit: contain; }
                 .pdf-badge h3 { margin: 0 0 5px; color: #003660; font-size: 13pt; }
                 .pdf-badge p { margin: 2px 0; }
-                .pdf-criteria { margin-top: 4px; }
+                .pdf-category { margin-top: 14px !important; }
+                .pdf-criteria { margin-top: 14px; }
                 .pdf-criteria ul { margin: 3px 0 0 18px; padding: 0; }
                 .pdf-criteria li { margin: 1px 0; }
                 .missing-badge { color: #9b1c1c; }
