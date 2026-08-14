@@ -198,9 +198,8 @@ function generatePlanningPdf(selectedIds) {
         if (!marke) return `<p class="missing-badge">Märke ${escapeHtml(badgeId)} kunde inte hittas.</p>`;
 
         const criteria = Array.isArray(marke.kriterier) && marke.kriterier.length > 0
-            ? `<p><strong>Kriterier:</strong> ${escapeHtml(marke.kriterier.join("; "))}</p>`
+            ? `<div class="pdf-criteria"><strong>Kriterier:</strong><ul>${marke.kriterier.map(criterion => `<li>${escapeHtml(criterion)}</li>`).join("")}</ul></div>`
             : "";
-        const programs = Array.isArray(marke.program) ? marke.program : [marke.program || "Båda"];
         const note = badgeNotes[marke.id]
             ? `<p><strong>Info:</strong> ${escapeHtml(badgeNotes[marke.id]).replace(/\n/g, "<br>")}</p>`
             : "";
@@ -212,24 +211,28 @@ function generatePlanningPdf(selectedIds) {
                 <div>
                     <h3>${escapeHtml(marke.namn)}</h3>
                     <p><strong>Kategori:</strong> ${escapeHtml(marke.kategori || "Övrigt")}</p>
-                    <p><strong>Målgrupp:</strong> ${escapeHtml(getTargetGroup(marke))}</p>
-                    <p><strong>Program:</strong> ${escapeHtml(programs.join(", "))}</p>
-                    ${marke.inledning ? `<p><strong>Beskrivning:</strong> ${escapeHtml(marke.inledning)}</p>` : ""}
+                    ${marke.inledning ? `<p>${escapeHtml(marke.inledning)}</p>` : ""}
                     ${criteria}
                     ${note}
+                    <p><strong>Målgrupp:</strong> ${escapeHtml(getTargetGroup(marke))}</p>
                 </div>
             </article>
         `;
     };
-    const planningSections = selectedGroups.map(group => `
+    const planningSections = selectedGroups.map(group => {
+        const planningIcon = getLevelIcon(group.level);
+        const icon = planningIcon
+            ? `<img class="pdf-planning-icon" src="${escapeHtml(resolveImage(planningIcon))}" alt="${escapeHtml(group.level)}">`
+            : "";
+        return `
         <section class="pdf-planning">
-            <h2>${escapeHtml(group.name)}</h2>
-            <p class="pdf-level">Målgrupp: ${escapeHtml(group.level)}</p>
+            <h2 class="pdf-planning-heading">${icon}<span>${escapeHtml(group.name)}</span></h2>
             ${Array.isArray(group.badges) && group.badges.length > 0
                 ? group.badges.map(renderBadge).join("")
                 : "<p>Inga märken planerade.</p>"}
         </section>
-    `).join("");
+        `;
+    }).join("");
 
     printWindow.addEventListener("load", () => printWindow.print(), { once: true });
     printWindow.document.open();
@@ -246,19 +249,23 @@ function generatePlanningPdf(selectedIds) {
                 .created { margin: 0 0 20px; color: #5b6b7a; }
                 .pdf-planning { page-break-before: always; }
                 .pdf-planning:first-of-type { page-break-before: auto; }
-                .pdf-planning h2 { margin: 0; padding-bottom: 4px; border-bottom: 2px solid #003660; color: #003660; font-size: 17pt; }
+                .pdf-planning-heading { display: flex; align-items: center; gap: 10px; margin: 0; padding-bottom: 4px; border-bottom: 2px solid #003660; color: #003660; font-size: 17pt; }
+                .pdf-planning-icon { width: 34px; height: 34px; object-fit: contain; }
                 .pdf-level { margin: 6px 0 14px; font-weight: bold; }
                 .pdf-badge { display: flex; gap: 14px; margin: 0 0 16px; padding: 10px 0; border-bottom: 1px solid #d0d7de; break-inside: avoid; }
                 .pdf-badge img { width: 76px; height: 76px; flex: 0 0 76px; object-fit: contain; }
                 .pdf-badge h3 { margin: 0 0 5px; color: #003660; font-size: 13pt; }
                 .pdf-badge p { margin: 2px 0; }
+                .pdf-criteria { margin-top: 4px; }
+                .pdf-criteria ul { margin: 3px 0 0 18px; padding: 0; }
+                .pdf-criteria li { margin: 1px 0; }
                 .missing-badge { color: #9b1c1c; }
             </style>
         </head>
         <body>
             <h1>Märkesschema</h1>
-            <p class="created">Exporterad ${escapeHtml(new Date().toLocaleDateString("sv-SE"))}</p>
             ${planningSections || "<p>Inga planeringar valdes.</p>"}
+            <p class="created">Exporterad ${escapeHtml(new Date().toLocaleDateString("sv-SE"))}</p>
         </body>
         </html>`);
     printWindow.document.close();
