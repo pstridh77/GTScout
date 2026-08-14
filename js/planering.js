@@ -170,7 +170,9 @@ function openPdfSelection() {
         filter.appendChild(option);
     });
     filter.value = targetGroups.includes(groupFilters.level) ? groupFilters.level : "Alla";
-    pdfSelectionState = new Set(groups.map(group => group.id));
+    pdfSelectionState = new Set(groups
+        .filter(group => filter.value === "Alla" || group.level === filter.value)
+        .map(group => group.id));
     renderPdfSelectionList();
     document.getElementById("pdfSelectionModal").classList.remove("hidden");
 }
@@ -794,7 +796,12 @@ document.getElementById("clearPdfBtn").addEventListener("click", () => {
         .forEach(group => pdfSelectionState.delete(group.id));
     renderPdfSelectionList();
 });
-pdfPlanningFilter.addEventListener("change", renderPdfSelectionList);
+pdfPlanningFilter.addEventListener("change", () => {
+    pdfSelectionState = new Set(groups
+        .filter(group => pdfPlanningFilter.value === "Alla" || group.level === pdfPlanningFilter.value)
+        .map(group => group.id));
+    renderPdfSelectionList();
+});
 document.getElementById("generatePdfBtn").addEventListener("click", () => {
     const selectedIds = pdfSelectionState;
     if (selectedIds.size === 0) {
