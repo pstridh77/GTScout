@@ -64,6 +64,7 @@ let allMarken = [];
 let groups = loadGroups();
 let activeGroupId = null; // which group is getting badges added
 let groupFilters = { search: "", level: "Alla" };
+let pdfSelectionState = new Set();
 const BADGE_DND_MIME = "text/plain";
 
 // ── Persistence ────────────────────────────────────────────────────────────
@@ -116,6 +117,150 @@ function exportPlannings() {
         <p><strong>Fil:</strong> gtscout-planeringar-${new Date().toISOString().slice(0, 10)}.json</p>
     `;
     document.getElementById("exportInfoModal").classList.remove("hidden");
+}
+
+function renderPdfSelectionList() {
+    const list = document.getElementById("pdfSelectionList");
+    const filterValue = document.getElementById("pdfPlanningFilter").value;
+    list.innerHTML = "";
+    const filteredGroups = groups.filter(group => filterValue === "Alla" || group.level === filterValue);
+    if (filteredGroups.length === 0) {
+        list.innerHTML = "<p>Det finns inga planeringar att exportera.</p>";
+    } else {
+        filteredGroups.forEach(group => {
+            const label = document.createElement("label");
+            label.className = "pdf-selection-option";
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.value = group.id;
+            checkbox.checked = pdfSelectionState.has(group.id);
+            checkbox.addEventListener("change", () => {
+                if (checkbox.checked) {
+                    pdfSelectionState.add(group.id);
+                } else {
+                    pdfSelectionState.delete(group.id);
+                }
+            });
+            const text = document.createElement("span");
+            const name = document.createElement("strong");
+            name.textContent = group.name;
+            const level = document.createElement("small");
+            level.textContent = group.level;
+            text.append(name, level);
+            label.append(checkbox, text);
+            list.appendChild(label);
+        });
+    }
+}
+
+function openPdfSelection() {
+    const filter = document.getElementById("pdfPlanningFilter");
+    const targetGroups = [...new Set(groups.map(group => group.level).filter(Boolean))];
+    const targetGroupOrder = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
+    targetGroups.sort((a, b) => {
+        const indexA = targetGroupOrder.indexOf(a);
+        const indexB = targetGroupOrder.indexOf(b);
+        return (indexA === -1 ? targetGroupOrder.length : indexA) - (indexB === -1 ? targetGroupOrder.length : indexB);
+    });
+    filter.innerHTML = "<option value=\"Alla\">Alla målgrupper</option>";
+    targetGroups.forEach(targetGroup => {
+        const option = document.createElement("option");
+        option.value = targetGroup;
+        option.textContent = targetGroup;
+        filter.appendChild(option);
+    });
+    filter.value = targetGroups.includes(groupFilters.level) ? groupFilters.level : "Alla";
+    pdfSelectionState = new Set(groups.map(group => group.id));
+    renderPdfSelectionList();
+    document.getElementById("pdfSelectionModal").classList.remove("hidden");
+}
+
+function generatePlanningPdf(selectedIds) {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+        alert("Kunde inte öppna PDF-vyn. Tillåt popupfönster för den här sidan.");
+        return;
+    }
+
+    const escapeHtml = value => String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    const badgeNotes = loadBadgeNotesForTransfer();
+    const selectedGroups = groups.filter(group => selectedIds.has(group.id));
+    const resolveImage = imagePath => imagePath ? new URL(imagePath, window.location.href).href : "";
+    const renderBadge = badgeId => {
+        const marke = allMarken.find(item => item.id === badgeId);
+        if (!marke) return `<p class="missing-badge">Märke ${escapeHtml(badgeId)} kunde inte hittas.</p>`;
+
+        const criteria = Array.isArray(marke.kriterier) && marke.kriterier.length > 0
+            ? `<p><strong>Kriterier:</strong> ${escapeHtml(marke.kriterier.join("; "))}</p>`
+            : "";
+        const programs = Array.isArray(marke.program) ? marke.program : [marke.program || "Båda"];
+        const note = badgeNotes[marke.id]
+            ? `<p><strong>Info:</strong> ${escapeHtml(badgeNotes[marke.id]).replace(/\n/g, "<br>")}</p>`
+            : "";
+        const image = resolveImage(marke.bild);
+
+        return `
+            <article class="pdf-badge">
+                ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(marke.namn)}">` : ""}
+                <div>
+                    <h3>${escapeHtml(marke.namn)}</h3>
+                    <p><strong>Kategori:</strong> ${escapeHtml(marke.kategori || "Övrigt")}</p>
+                    <p><strong>Målgrupp:</strong> ${escapeHtml(getTargetGroup(marke))}</p>
+                    <p><strong>Program:</strong> ${escapeHtml(programs.join(", "))}</p>
+                    ${marke.inledning ? `<p><strong>Beskrivning:</strong> ${escapeHtml(marke.inledning)}</p>` : ""}
+                    ${criteria}
+                    ${note}
+                </div>
+            </article>
+        `;
+    };
+    const planningSections = selectedGroups.map(group => `
+        <section class="pdf-planning">
+            <h2>${escapeHtml(group.name)}</h2>
+            <p class="pdf-level">Målgrupp: ${escapeHtml(group.level)}</p>
+            ${Array.isArray(group.badges) && group.badges.length > 0
+                ? group.badges.map(renderBadge).join("")
+                : "<p>Inga märken planerade.</p>"}
+        </section>
+    `).join("");
+
+    printWindow.addEventListener("load", () => printWindow.print(), { once: true });
+    printWindow.document.open();
+    printWindow.document.write(`<!DOCTYPE html>
+        <html lang="sv">
+        <head>
+            <meta charset="UTF-8">
+            <title>Märkesschema</title>
+            <style>
+                @page { size: A4; margin: 14mm; }
+                * { box-sizing: border-box; }
+                body { margin: 0; color: #172b4d; font: 11pt Arial, sans-serif; line-height: 1.45; }
+                h1 { margin: 0 0 4px; color: #003660; font-size: 22pt; }
+                .created { margin: 0 0 20px; color: #5b6b7a; }
+                .pdf-planning { page-break-before: always; }
+                .pdf-planning:first-of-type { page-break-before: auto; }
+                .pdf-planning h2 { margin: 0; padding-bottom: 4px; border-bottom: 2px solid #003660; color: #003660; font-size: 17pt; }
+                .pdf-level { margin: 6px 0 14px; font-weight: bold; }
+                .pdf-badge { display: flex; gap: 14px; margin: 0 0 16px; padding: 10px 0; border-bottom: 1px solid #d0d7de; break-inside: avoid; }
+                .pdf-badge img { width: 76px; height: 76px; flex: 0 0 76px; object-fit: contain; }
+                .pdf-badge h3 { margin: 0 0 5px; color: #003660; font-size: 13pt; }
+                .pdf-badge p { margin: 2px 0; }
+                .missing-badge { color: #9b1c1c; }
+            </style>
+        </head>
+        <body>
+            <h1>Märkesschema</h1>
+            <p class="created">Exporterad ${escapeHtml(new Date().toLocaleDateString("sv-SE"))}</p>
+            ${planningSections || "<p>Inga planeringar valdes.</p>"}
+        </body>
+        </html>`);
+    printWindow.document.close();
+    printWindow.focus();
 }
 
 function getImportedPlanningName(name, level) {
@@ -625,15 +770,45 @@ document.getElementById("saveDefaultPlanningBtn").addEventListener("click", () =
 
 const groupModal = document.getElementById("groupModal");
 const exportInfoModal = document.getElementById("exportInfoModal");
+const pdfSelectionModal = document.getElementById("pdfSelectionModal");
+const pdfSelectionList = document.getElementById("pdfSelectionList");
+const pdfPlanningFilter = document.getElementById("pdfPlanningFilter");
 document.getElementById("closeExportInfoModal").addEventListener("click", () => exportInfoModal.classList.add("hidden"));
 document.getElementById("closeExportInfoBtn").addEventListener("click", () => exportInfoModal.classList.add("hidden"));
 exportInfoModal.addEventListener("click", event => {
     if (event.target === exportInfoModal) exportInfoModal.classList.add("hidden");
 });
+document.getElementById("closePdfSelectionModal").addEventListener("click", () => pdfSelectionModal.classList.add("hidden"));
+pdfSelectionModal.addEventListener("click", event => {
+    if (event.target === pdfSelectionModal) pdfSelectionModal.classList.add("hidden");
+});
+document.getElementById("selectAllPdfBtn").addEventListener("click", () => {
+    groups
+        .filter(group => pdfPlanningFilter.value === "Alla" || group.level === pdfPlanningFilter.value)
+        .forEach(group => pdfSelectionState.add(group.id));
+    renderPdfSelectionList();
+});
+document.getElementById("clearPdfBtn").addEventListener("click", () => {
+    groups
+        .filter(group => pdfPlanningFilter.value === "Alla" || group.level === pdfPlanningFilter.value)
+        .forEach(group => pdfSelectionState.delete(group.id));
+    renderPdfSelectionList();
+});
+pdfPlanningFilter.addEventListener("change", renderPdfSelectionList);
+document.getElementById("generatePdfBtn").addEventListener("click", () => {
+    const selectedIds = pdfSelectionState;
+    if (selectedIds.size === 0) {
+        alert("Välj minst en planering.");
+        return;
+    }
+    pdfSelectionModal.classList.add("hidden");
+    generatePlanningPdf(selectedIds);
+});
 
 const importPlanningInput = document.getElementById("importPlanningInput");
 document.getElementById("exportPlanningBtn").addEventListener("click", exportPlannings);
 document.getElementById("importPlanningBtn").addEventListener("click", () => importPlanningInput.click());
+document.getElementById("exportPlanningPdfBtn").addEventListener("click", openPdfSelection);
 importPlanningInput.addEventListener("change", event => {
     const [file] = event.target.files;
     if (file) importPlannings(file);

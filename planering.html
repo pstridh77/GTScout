@@ -21,6 +21,7 @@
         <div class="toolbar-actions">
             <button id="exportPlanningBtn" class="btn-secondary" type="button">Spara</button>
             <button id="importPlanningBtn" class="btn-secondary" type="button">Öppna...</button>
+            <button id="exportPlanningPdfBtn" class="btn-secondary" type="button">PDF</button>
             <input id="importPlanningInput" type="file" accept="application/json,.json" hidden>
             <button id="addGroupBtn" class="btn-primary" type="button">+ Lägg till planering</button>
         </div>
@@ -54,6 +55,24 @@
             <div id="exportInfoBody"></div>
             <div class="modal-actions">
                 <button id="closeExportInfoBtn" class="btn-primary" type="button">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pdfSelectionModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="pdfSelectionTitle">
+        <div class="modal-content pdf-selection-content">
+            <button class="close-popup" type="button" id="closePdfSelectionModal" aria-label="Stäng">&times;</button>
+            <h2 id="pdfSelectionTitle">Välj planeringar till PDF</h2>
+            <p class="pdf-selection-intro">Markera de planeringar som ska ingå i PDF-filen.</p>
+            <label class="filter-field pdf-selection-filter">
+                <span>Målgrupp</span>
+                <select id="pdfPlanningFilter" aria-label="Filtrera planeringar efter målgrupp"></select>
+            </label>
+            <div id="pdfSelectionList" class="pdf-selection-list"></div>
+            <div class="modal-actions pdf-selection-actions">
+                <button id="selectAllPdfBtn" class="btn-secondary" type="button">Markera alla</button>
+                <button id="clearPdfBtn" class="btn-secondary" type="button">Rensa</button>
+                <button id="generatePdfBtn" class="btn-primary" type="button">Skapa PDF</button>
             </div>
         </div>
     </div>

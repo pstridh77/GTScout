@@ -834,6 +834,69 @@ header {
 .modal-actions { display: flex; justify-content: flex-end; }
 .modal-actions--split { justify-content: space-between; }
 
+.pdf-selection-content {
+    max-width: 520px;
+}
+
+.pdf-selection-intro {
+    margin: -6px 0 0;
+    color: #5b6b7a;
+}
+
+.pdf-selection-filter {
+    margin-bottom: 4px;
+}
+
+.pdf-selection-filter select {
+    min-width: 220px;
+}
+
+.pdf-selection-list {
+    display: grid;
+    gap: 8px;
+    max-height: 45vh;
+    overflow-y: auto;
+    padding: 2px;
+}
+
+.pdf-selection-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 10px;
+    background: #f8fafc;
+    cursor: pointer;
+}
+
+.pdf-selection-option:hover {
+    border-color: #94a3b8;
+    background: #f1f5f9;
+}
+
+.pdf-selection-option input {
+    width: 18px;
+    height: 18px;
+    accent-color: #003660;
+}
+
+.pdf-selection-option span {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    color: #003660;
+}
+
+.pdf-selection-option small {
+    color: #5b6b7a;
+}
+
+.pdf-selection-actions {
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
 /* ── Badge picker ────────────────────────────────────────────────────────── */
 
 .picker-filters {
@@ -930,4 +993,45 @@ header {
     .level-remove-all-btn { margin-left: auto; }
     .level-row-cards { flex-direction: column; }
     .modal-content--wide { max-width: 95vw; }
+}
+
+@media print {
+    @page {
+        margin: 14mm;
+    }
+
+    body {
+        background: white;
+    }
+
+    header,
+    .planning-filters,
+    .toolbar-actions,
+    .level-row-header button,
+    .group-card-actions,
+    .modal,
+    .detail-popup {
+        display: none !important;
+    }
+
+    .planning-toolbar {
+        margin: 0 0 16px;
+    }
+
+    .planning-title {
+        font-size: 1.6rem;
+    }
+
+    #planningGrid {
+        padding: 0;
+    }
+
+    .level-row {
+        break-inside: avoid;
+    }
+
+    .group-card {
+        box-shadow: none;
+        border: 1px solid #d0d7de;
+    }
 }
