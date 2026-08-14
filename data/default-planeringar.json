@@ -21,7 +21,7 @@
       },
       {
         "name": "År 2 VT",
-        "badges": ["forsta_repmarket","saker_pa_natet", "ljusspar"]
+        "badges": ["forsta_repmarket", "ljusspar"]
       },
       {
         "name": "År 2 HT",
@@ -50,15 +50,15 @@
       },
       {
         "name": "År 3 VT",
-        "badges": ["yxa_och_sag","manniskan"]
+        "badges": ["yxa_sag","manniskan"]
       },
       {
         "name": "År 3 HT",
-        "badges": ["manniskan","nara"]
+        "badges": ["nara"]
       },
       {
         "name": "År 4 VT",
-        "badges": ["berattelsen","vagen"]
+        "badges": ["vagen"]
       }
     ]
   },
