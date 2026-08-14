@@ -80,6 +80,67 @@ function saveGroups() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
 }
 
+function exportPlannings() {
+    const exportData = {
+        format: "gtscout-planeringar",
+        version: 1,
+        plannings: groups.map(group => ({
+            name: group.name,
+            level: group.level,
+            badges: Array.isArray(group.badges) ? group.badges : []
+        }))
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = `gtscout-planeringar-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(downloadUrl);
+}
+
+function getImportedPlanningName(name, level) {
+    let candidate = name;
+    let suffix = 2;
+    while (groups.some(group => group.name === candidate && group.level === level)) {
+        candidate = `${name} (${suffix++})`;
+    }
+    return candidate;
+}
+
+function importPlannings(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+        try {
+            const parsed = JSON.parse(reader.result);
+            const importedPlannings = Array.isArray(parsed) ? parsed : parsed.plannings;
+            if (!Array.isArray(importedPlannings)) throw new Error("Ogiltigt format");
+
+            const validPlannings = importedPlannings.filter(planning =>
+                planning && typeof planning.name === "string" && planning.name.trim() &&
+                typeof planning.level === "string"
+            );
+            if (validPlannings.length === 0) throw new Error("Inga giltiga planeringar");
+
+            validPlannings.forEach(planning => {
+                groups.push({
+                    id: crypto.randomUUID(),
+                    name: getImportedPlanningName(planning.name.trim(), planning.level),
+                    level: planning.level,
+                    badges: Array.isArray(planning.badges) ? [...new Set(planning.badges.filter(Boolean))] : []
+                });
+            });
+            saveGroups();
+            renderPlanning();
+            alert(`${validPlannings.length} planeringar importerades.`);
+        } catch (error) {
+            alert("Kunde inte importera planeringarna. Kontrollera att filen är en giltig JSON-export.");
+        }
+        importPlanningInput.value = "";
+    };
+    reader.readAsText(file);
+}
+
 // ── Data loading ───────────────────────────────────────────────────────────
 
 async function loadMarken() {
@@ -531,6 +592,14 @@ document.getElementById("saveDefaultPlanningBtn").addEventListener("click", () =
 });
 
 const groupModal = document.getElementById("groupModal");
+const importPlanningInput = document.getElementById("importPlanningInput");
+document.getElementById("exportPlanningBtn").addEventListener("click", exportPlannings);
+document.getElementById("importPlanningBtn").addEventListener("click", () => importPlanningInput.click());
+importPlanningInput.addEventListener("change", event => {
+    const [file] = event.target.files;
+    if (file) importPlannings(file);
+});
+
 document.getElementById("addGroupBtn").addEventListener("click", () => {
     document.getElementById("groupName").value = "";
     groupModal.classList.remove("hidden");
