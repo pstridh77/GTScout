@@ -481,6 +481,25 @@ function showPopup(marke) {
         : "";
     const categoryIcon = getCategoryIconPath(marke);
     const targetGroup = getTargetGroup(marke);
+    const badgePlannings = getBadgePlannings(marke.id);
+    const planningStatus = badgePlannings.length > 0
+        ? `
+            <div class="detail-planning-status detail-planning-status--active">
+                <strong>Finns i planering:</strong>
+                <div class="detail-planning-list">
+                    ${badgePlannings.map(planning => {
+                        const iconPath = getPlanningIconPath(planning.level);
+                        return `
+                            <span class="detail-planning-item">
+                                ${iconPath ? `<img src="${iconPath}" alt="${planning.level}">` : ""}
+                                <span>${planning.name}</span>
+                            </span>
+                        `;
+                    }).join("")}
+                </div>
+            </div>
+        `
+        : "";
 
     body.innerHTML = `
         <div class="detail-popup-header">
@@ -508,6 +527,7 @@ function showPopup(marke) {
             ` : ""}
             <p><strong>Målgrupp:</strong> ${targetGroup}</p>
             <p><strong>Program:</strong> ${(Array.isArray(marke.program) ? marke.program : [marke.program || "Båda"]).join(", ")}</p>
+            ${planningStatus}
             <div class="detail-planning-actions">
                 <button id="addBadgeToPlanningBtn" class="btn-primary" type="button">Lägg till i planering</button>
                 <p id="badgePlanningStatus" class="detail-planning-status" role="status"></p>

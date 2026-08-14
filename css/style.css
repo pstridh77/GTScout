@@ -278,6 +278,32 @@ header {
     font-size: 0.9rem;
 }
 
+.detail-planning-status--active {
+    min-height: 0;
+    margin: 1em 0;
+    color: #003660;
+    font-size: inherit;
+}
+
+.detail-planning-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.detail-planning-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.detail-planning-item img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+
 .planning-picker-content h2 {
     margin: 0 0 16px;
     color: #003660;
