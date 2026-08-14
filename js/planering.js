@@ -246,7 +246,9 @@ function generatePlanningPdf(selectedIds) {
                 @page { size: A4; margin: 14mm; }
                 * { box-sizing: border-box; }
                 body { margin: 0; color: #172b4d; font: 11pt Arial, sans-serif; line-height: 1.45; }
-                h1 { margin: 0 0 4px; color: #003660; font-size: 22pt; }
+                .pdf-document-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+                .pdf-document-logo { width: 28mm; height: 28mm; object-fit: contain; flex: 0 0 28mm; }
+                h1 { margin: 0; color: #003660; font-size: 22pt; line-height: 1.15; }
                 .created { margin: 0 0 20px; color: #5b6b7a; }
                 .pdf-planning { page-break-before: always; }
                 .pdf-planning:first-of-type { page-break-before: auto; }
@@ -265,7 +267,10 @@ function generatePlanningPdf(selectedIds) {
             </style>
         </head>
         <body>
-            <h1>Märkesschema</h1>
+            <header class="pdf-document-header">
+                <img class="pdf-document-logo" src="${escapeHtml(resolveImage("./images/icons/GTorp_250px.png"))}" alt="Gullbrandstorps Scoutkår">
+                <h1>Gullbrandstorps Scoutkårs Märkesschema</h1>
+            </header>
             ${planningSections || "<p>Inga planeringar valdes.</p>"}
             <p class="created">Exporterad ${escapeHtml(new Date().toLocaleDateString("sv-SE"))}</p>
         </body>
