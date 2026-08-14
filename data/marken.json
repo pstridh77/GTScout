@@ -1958,8 +1958,15 @@
         "namn":  "Kottmärket",
         "bild":  "images/marken/kottmarket.png",
         "kategori":  "Specialmärken",
+        "inledning": "Skogen är full av kottar och de går att använda på många olika sätt. Med detta märke visar du att du blivit en expert på kottar och dess användningsområden. ",
+        "kriterier": [
+            "Leta upp så många kottar som du kan under en halvtimme (gärna olika sorters kottar om det finns i närområdet).",
+            "Ta reda på vilka kottar du samlat in och varför de ser ut som de gör. Vilken art kommer kotten ifrån, varför har den formen, färgen, storleken, strukturen och utseendet?",
+            "Ta reda på vem som ätit på kotten om den är tuggad på eller vilka som gillar den sortens kottar om de är hela.",
+            "Bygg eller skapa ett konstverk av kottarna – du väljer fritt om det ska vara ett kottdjur, en kottvärld, ett kottmonster eller någon helt annan skapelse."
+        ],
         "malgrupp":  [
-                         "Familjescouter"
+                         "Familjescouting"
                      ],
         "program":  [
                         "Scouterna"
@@ -1969,10 +1976,19 @@
     {
         "id":  "kottmarket_rover",
         "namn":  "Kottmärket",
-        "bild":  "images/marken/kottmarket.png",
+        "bild":  "images/marken/kottmarket_rover.png",
         "kategori":  "Specialmärken",
+        "inledning": "Skogen är full av kottar och de går att använda på många olika sätt. Med detta märke visar du att du blivit en expert på kottar och dess användningsområden. ",
+        "kriterier": [
+            "Leta upp så många olika sorters kottar som du kan under en halvtimme (både gällande art, form, färg, utseende, struktur och storlek).",
+            "Ta reda på vilka kottar du samlat in och varför de ser ut som de gör. Vilken art kommer kotten ifrån, varför har den formen, färgen, storleken, strukturen och utseendet?",
+            "Ta reda på vem som ätit på kotten om den är tuggad på eller vilka som gillar den sortens kottar om de är hela.",
+            "Pyssla något med hjälp av kottarna. Använd gärna färg och annat material som komplement i din skapelse. Exempelvis en krans av kottar, en bordsdekoration, kottdjur att leka med eller något valfritt pyssel.",
+            "Ta tillvara något från träden som kottarna växer på och tillaga något av det. Exempel är tallbarrs-te, örtolja på tallbarr, granskottssirap eller något annat recept som du provar att tillaga."
+
+        ],
         "malgrupp":  [
-                         "Roverscouter"
+                         "Rover"
                      ],
         "program":  [
                         "Scouterna"

@@ -40,13 +40,15 @@ function getTargetGroup(marke) {
     const normalizedGroup = rawGroup.toLowerCase();
     const targetGroupMap = {
         "familjescouting": "Familjescouting",
+        "familjescouter": "Familjescouting",
         "spårare": "Spårare",
         "upptäckare": "Upptäckare",
         "upptackare": "Upptäckare",
         "äventyrare": "Äventyrare",
         "aventyrare": "Äventyrare",
         "utmanare": "Utmanare",
-        "rover": "Rover"
+        "rover": "Rover",
+        "roverscouter": "Rover"
     };
 
     return targetGroupMap[normalizedGroup] || rawGroup || "Ingen målgrupp";
