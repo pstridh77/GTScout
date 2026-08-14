@@ -270,6 +270,17 @@ header {
     color: #003660;
 }
 
+.new-planning-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.new-planning-content h2 {
+    margin: 0;
+    color: #003660;
+}
+
 .planning-picker-filter {
     margin-bottom: 14px;
 }
@@ -296,6 +307,11 @@ header {
 
 .planning-picker-option:hover {
     background: #c5d8f6;
+}
+
+.planning-picker-create {
+    width: 100%;
+    margin-top: 14px;
 }
 
 .detail-popup {

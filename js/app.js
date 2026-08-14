@@ -265,6 +265,8 @@ function createPopup() {
 
 const popup = createPopup();
 
+let activePlanningBadge = null;
+
 function createPlanningPickerPopup() {
     const picker = document.createElement("div");
     picker.id = "planningPickerPopup";
@@ -278,6 +280,7 @@ function createPlanningPickerPopup() {
                 <select id="planningPickerFilter" aria-label="Filtrera planeringar efter målgrupp"></select>
             </label>
             <div class="planning-picker-list"></div>
+            <button id="createPlanningBtn" class="btn-secondary planning-picker-create" type="button">Skapa ny planering</button>
         </div>
     `;
 
@@ -287,13 +290,90 @@ function createPlanningPickerPopup() {
     picker.addEventListener("click", event => {
         if (event.target === picker) picker.classList.add("hidden");
     });
+    picker.querySelector("#createPlanningBtn").addEventListener("click", () => {
+        if (!activePlanningBadge) return;
+        planningPickerPopup.classList.add("hidden");
+        openNewPlanningPopup(activePlanningBadge);
+    });
     document.body.appendChild(picker);
     return picker;
 }
 
 const planningPickerPopup = createPlanningPickerPopup();
 
+function createNewPlanningPopup() {
+    const planningPopup = document.createElement("div");
+    planningPopup.id = "newPlanningPopup";
+    planningPopup.className = "detail-popup hidden";
+    planningPopup.innerHTML = `
+        <div class="detail-popup-content new-planning-content">
+            <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2>Ny planering</h2>
+            <label class="modal-field">
+                <span>Namn</span>
+                <input id="newPlanningName" type="text" placeholder="t.ex. År 1 - HT">
+            </label>
+            <label class="modal-field">
+                <span>Målgrupp</span>
+                <select id="newPlanningLevel">
+                    <option value="Familjescouting">Familjescouting</option>
+                    <option value="Spårare">Spårare</option>
+                    <option value="Upptäckare">Upptäckare</option>
+                    <option value="Äventyrare">Äventyrare</option>
+                    <option value="Utmanare">Utmanare</option>
+                    <option value="Rover">Rover</option>
+                </select>
+            </label>
+            <p id="newPlanningStatus" class="detail-planning-status" role="status"></p>
+            <div class="modal-actions">
+                <button id="saveNewPlanningBtn" class="btn-primary" type="button">Spara</button>
+            </div>
+        </div>
+    `;
+    planningPopup.querySelector(".close-popup").addEventListener("click", () => planningPopup.classList.add("hidden"));
+    planningPopup.addEventListener("click", event => {
+        if (event.target === planningPopup) planningPopup.classList.add("hidden");
+    });
+    document.body.appendChild(planningPopup);
+    return planningPopup;
+}
+
+const newPlanningPopup = createNewPlanningPopup();
+
+function openNewPlanningPopup(marke) {
+    const nameInput = newPlanningPopup.querySelector("#newPlanningName");
+    newPlanningPopup.querySelector("#newPlanningStatus").textContent = "";
+    newPlanningPopup.querySelector("#newPlanningLevel").value = getTargetGroup(marke);
+    newPlanningPopup.dataset.badgeId = marke.id;
+    newPlanningPopup.classList.remove("hidden");
+    nameInput.value = "";
+    nameInput.focus();
+}
+
+newPlanningPopup.querySelector("#saveNewPlanningBtn").addEventListener("click", () => {
+    const nameInput = newPlanningPopup.querySelector("#newPlanningName");
+    const level = newPlanningPopup.querySelector("#newPlanningLevel").value;
+    const status = newPlanningPopup.querySelector("#newPlanningStatus");
+    const name = nameInput.value.trim();
+    const badgeId = newPlanningPopup.dataset.badgeId;
+    if (!name) {
+        nameInput.focus();
+        return;
+    }
+    const plannings = loadPlannings();
+    if (plannings.some(planning => planning.name === name && planning.level === level)) {
+        status.textContent = "Det finns redan en planering med det namnet i samma målgrupp.";
+        return;
+    }
+    plannings.push({ id: crypto.randomUUID(), name, level, badges: badgeId ? [badgeId] : [] });
+    localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(plannings));
+    popup.querySelector("#badgePlanningStatus").textContent = `Märket lades till i ${name}.`;
+    newPlanningPopup.classList.add("hidden");
+    planningPickerPopup.classList.add("hidden");
+});
+
 function openPlanningPicker(marke) {
+    activePlanningBadge = marke;
     const list = planningPickerPopup.querySelector(".planning-picker-list");
     const filter = planningPickerPopup.querySelector("#planningPickerFilter");
     const plannings = loadPlannings();
