@@ -50,11 +50,11 @@
       },
       {
         "name": "År 3 VT",
-        "badges": ["yxa_sag","manniskan"]
+        "badges": ["yxa_och_sag","manniskan"]
       },
       {
         "name": "År 3 HT",
-        "badges": ["nara"]
+        "badges": ["yxa_och_sag", "nara"]
       },
       {
         "name": "År 4 VT",
