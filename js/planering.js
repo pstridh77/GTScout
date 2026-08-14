@@ -80,7 +80,17 @@ function saveGroups() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
 }
 
+function loadBadgeNotesForTransfer() {
+    try {
+        const notes = JSON.parse(localStorage.getItem(BADGE_NOTES_STORAGE_KEY));
+        return notes && typeof notes === "object" && !Array.isArray(notes) ? notes : {};
+    } catch {
+        return {};
+    }
+}
+
 function exportPlannings() {
+    const badgeNotes = loadBadgeNotesForTransfer();
     const exportData = {
         format: "gtscout-planeringar",
         version: 1,
@@ -88,7 +98,8 @@ function exportPlannings() {
             name: group.name,
             level: group.level,
             badges: Array.isArray(group.badges) ? group.badges : []
-        }))
+        })),
+        badgeNotes
     };
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
     const downloadUrl = URL.createObjectURL(blob);
@@ -97,6 +108,14 @@ function exportPlannings() {
     link.download = `gtscout-planeringar-${new Date().toISOString().slice(0, 10)}.json`;
     link.click();
     URL.revokeObjectURL(downloadUrl);
+
+    const exportInfoBody = document.getElementById("exportInfoBody");
+    exportInfoBody.innerHTML = `
+        <p><strong>Planeringar:</strong> ${groups.length}</p>
+        <p><strong>Info-fält:</strong> ${Object.keys(badgeNotes).length}</p>
+        <p><strong>Fil:</strong> gtscout-planeringar-${new Date().toISOString().slice(0, 10)}.json</p>
+    `;
+    document.getElementById("exportInfoModal").classList.remove("hidden");
 }
 
 function getImportedPlanningName(name, level) {
@@ -122,6 +141,18 @@ function importPlannings(file) {
             );
             if (validPlannings.length === 0) throw new Error("Inga giltiga planeringar");
 
+            const importedNotes = parsed && !Array.isArray(parsed) && parsed.badgeNotes && typeof parsed.badgeNotes === "object"
+                ? parsed.badgeNotes
+                : {};
+            const badgeNotes = loadBadgeNotesForTransfer();
+            let importedNoteCount = 0;
+            Object.entries(importedNotes).forEach(([badgeId, note]) => {
+                if (typeof note === "string" && note.trim() && !badgeNotes[badgeId]) {
+                    badgeNotes[badgeId] = note;
+                    importedNoteCount += 1;
+                }
+            });
+
             validPlannings.forEach(planning => {
                 groups.push({
                     id: crypto.randomUUID(),
@@ -131,8 +162,9 @@ function importPlannings(file) {
                 });
             });
             saveGroups();
+            localStorage.setItem(BADGE_NOTES_STORAGE_KEY, JSON.stringify(badgeNotes));
             renderPlanning();
-            alert(`${validPlannings.length} planeringar importerades.`);
+            alert(`${validPlannings.length} planeringar och ${importedNoteCount} Info-fält importerades.`);
         } catch (error) {
             alert("Kunde inte importera planeringarna. Kontrollera att filen är en giltig JSON-export.");
         }
@@ -592,6 +624,13 @@ document.getElementById("saveDefaultPlanningBtn").addEventListener("click", () =
 });
 
 const groupModal = document.getElementById("groupModal");
+const exportInfoModal = document.getElementById("exportInfoModal");
+document.getElementById("closeExportInfoModal").addEventListener("click", () => exportInfoModal.classList.add("hidden"));
+document.getElementById("closeExportInfoBtn").addEventListener("click", () => exportInfoModal.classList.add("hidden"));
+exportInfoModal.addEventListener("click", event => {
+    if (event.target === exportInfoModal) exportInfoModal.classList.add("hidden");
+});
+
 const importPlanningInput = document.getElementById("importPlanningInput");
 document.getElementById("exportPlanningBtn").addEventListener("click", exportPlannings);
 document.getElementById("importPlanningBtn").addEventListener("click", () => importPlanningInput.click());

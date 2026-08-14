@@ -19,8 +19,8 @@
     <div class="planning-toolbar">
         <h2 class="planning-title">Märkesschema</h2>
         <div class="toolbar-actions">
-            <button id="exportPlanningBtn" class="btn-secondary" type="button">Exportera planeringar</button>
-            <button id="importPlanningBtn" class="btn-secondary" type="button">Importera planeringar</button>
+            <button id="exportPlanningBtn" class="btn-secondary" type="button">Spara</button>
+            <button id="importPlanningBtn" class="btn-secondary" type="button">Öppna...</button>
             <input id="importPlanningInput" type="file" accept="application/json,.json" hidden>
             <button id="addGroupBtn" class="btn-primary" type="button">+ Lägg till planering</button>
         </div>
@@ -46,6 +46,17 @@
     </div>
 
     <main id="planningGrid"></main>
+
+    <div id="exportInfoModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="exportInfoTitle">
+        <div class="modal-content">
+            <button class="close-popup" type="button" id="closeExportInfoModal" aria-label="Stäng">&times;</button>
+            <h2 id="exportInfoTitle">Export klar</h2>
+            <div id="exportInfoBody"></div>
+            <div class="modal-actions">
+                <button id="closeExportInfoBtn" class="btn-primary" type="button">OK</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal: Lägg till planering -->
     <div id="groupModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="groupModalTitle">
