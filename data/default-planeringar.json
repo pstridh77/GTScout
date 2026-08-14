@@ -4,11 +4,11 @@
     "plans": [
       {
         "name": "År 1 HT",
-        "badges": [ "smaka"]
+        "badges": [ "smaka","varme"]
       },
       {
         "name": "År 2 VT",
-        "badges": ["ny_i_naturen"]
+        "badges": ["ny_i_naturen","aj"]
       }
     ]
   },
