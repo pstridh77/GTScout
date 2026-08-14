@@ -387,7 +387,7 @@ function openPlanningPicker(marke) {
         option.textContent = targetGroup;
         filter.appendChild(option);
     });
-    filter.value = targetGroups.includes(matchingTargetGroup) ? matchingTargetGroup : "Alla";
+    filter.value = matchingTargetGroup;
 
     const renderPlanningOptions = () => {
         list.innerHTML = "";
