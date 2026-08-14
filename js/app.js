@@ -60,6 +60,24 @@ function loadPlannings() {
     }
 }
 
+function getPlanningIconPath(level) {
+    const iconMap = {
+        "Familjescouting": "./images/icons/familjescout.png",
+        "Spårare": "./images/icons/sparare.png",
+        "Upptäckare": "./images/icons/upptackare.png",
+        "Äventyrare": "./images/icons/aventyrare.png",
+        "Utmanare": "./images/icons/utmanare.png",
+        "Rover": "./images/icons/rover.png"
+    };
+    return iconMap[level] || "";
+}
+
+function getBadgePlannings(badgeId) {
+    return loadPlannings().filter(planning =>
+        Array.isArray(planning.badges) && planning.badges.includes(badgeId)
+    );
+}
+
 function setupPlanningAction(marke) {
     const addButton = popup.querySelector("#addBadgeToPlanningBtn");
     addButton.addEventListener("click", () => openPlanningPicker(marke));
@@ -202,10 +220,18 @@ function renderMarken(marken) {
             groupItems.forEach(marke => {
                 const card = document.createElement("div");
                 card.className = "badge";
+                const badgePlannings = getBadgePlannings(marke.id);
+                const planningIcons = badgePlannings.map(planning => {
+                    const iconPath = getPlanningIconPath(planning.level);
+                    return iconPath
+                        ? `<img src="${iconPath}" alt="${planning.level}" title="${planning.name}" class="badge-planning-icon">`
+                        : "";
+                }).join("");
                 card.innerHTML = `
                     <img src="${marke.bild}" alt="${marke.namn}">
                     <h3>${marke.namn}</h3>
                     <p>${getTargetGroup(marke)}</p>
+                    ${planningIcons ? `<div class="badge-planning-icons" title="Finns i: ${badgePlannings.map(planning => planning.name).join(", ")}">${planningIcons}</div>` : ""}
                 `;
                 card.addEventListener("click", () => showPopup(marke));
                 cards.appendChild(card);
@@ -367,6 +393,7 @@ newPlanningPopup.querySelector("#saveNewPlanningBtn").addEventListener("click", 
     }
     plannings.push({ id: crypto.randomUUID(), name, level, badges: badgeId ? [badgeId] : [] });
     localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(plannings));
+    renderMarken(allMarken);
     popup.querySelector("#badgePlanningStatus").textContent = `Märket lades till i ${name}.`;
     newPlanningPopup.classList.add("hidden");
     planningPickerPopup.classList.add("hidden");
@@ -417,6 +444,7 @@ function openPlanningPicker(marke) {
                 } else {
                     planning.badges.push(marke.id);
                     localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(plannings));
+                    renderMarken(allMarken);
                     status.textContent = `Märket lades till i ${planning.name}.`;
                 }
                 planningPickerPopup.classList.add("hidden");

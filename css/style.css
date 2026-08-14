@@ -131,6 +131,19 @@ header {
     font-size: 0.9rem;
 }
 
+.badge-planning-icons {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+    min-height: 24px;
+}
+
+.badge-planning-icon {
+    width: 24px !important;
+    height: 24px !important;
+    object-fit: contain;
+}
+
 .badge-program {
     margin-top: 2px;
     font-size: 0.8rem;
