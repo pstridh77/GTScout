@@ -38,27 +38,27 @@
     "plans": [
       {
         "name": "År 1 HT",
-        "badges": ["mattvaan", "brinna", "kniv"]
+        "badges": ["mattvaan", "brinna", "kniv","berattelsen"]
       },
       {
         "name": "År 2 VT",
-        "badges": ["bygga", "andra_repmarket", "vatten"]
+        "badges": ["hjalpa","naturligt","simma","fjarran"]
       },
       {
         "name": "År 2 HT",
-        "badges": ["fauna", "tekniken", "losa"]
+        "badges": ["klura", "sortera_och_atervinn", "kniv","horisonten"]
       },
       {
         "name": "År 3 VT",
-        "badges": ["hallbarhet", "min_rost", "internationellt"]
+        "badges": ["yxa_och_sag","manniskan"]
       },
       {
         "name": "År 3 HT",
-        "badges": ["sova_borta_vecka", "inkludering", "vader"]
+        "badges": ["manniskan","nara"]
       },
       {
         "name": "År 4 VT",
-        "badges": ["lagerbal", "skorden", "varldsforbattraren"]
+        "badges": ["berattelsen","vagen"]
       }
     ]
   },

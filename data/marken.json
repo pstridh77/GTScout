@@ -2308,6 +2308,108 @@
         "Typ":  "Deltagandemärke"
     },
     {
+        "id":  "berattelsen",
+        "namn":  "Berättelsen",
+        "bild":  "images/marken/berattelsen.png",
+        "kategori":  "Deltagandemärke",
+        "malgrupp":  [
+                         "Upptäckare"
+                     ],
+        "inledning":"Deltagandemärke Upptäckare",
+        "kriterier":  [
+                         "Delta i en termins aktiviteter."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Deltagandemärke"
+    },
+    {
+        "id":  "fjarran",
+        "namn":  "Fjärran",
+        "bild":  "images/marken/fjarran.png",
+        "kategori":  "Deltagandemärke",
+        "malgrupp":  [
+                         "Upptäckare"
+                     ],
+        "inledning":"Deltagandemärke Upptäckare",
+        "kriterier":  [
+                         "Delta i en termins aktiviteter."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Deltagandemärke"
+    },
+    {
+        "id":  "horisonten",
+        "namn":  "Horisonten",
+        "bild":  "images/marken/horisonten.png",
+        "kategori":  "Deltagandemärke",
+        "malgrupp":  [
+                         "Upptäckare"
+                     ],
+        "inledning":"Deltagandemärke Upptäckare",
+        "kriterier":  [
+                         "Delta i en termins aktiviteter."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Deltagandemärke"
+    },
+    {
+        "id":  "manniskan",
+        "namn":  "Människan",
+        "bild":  "images/marken/manniskan.png",
+        "kategori":  "Deltagandemärke",
+        "malgrupp":  [
+                         "Upptäckare"
+                     ],
+        "inledning":"Deltagandemärke Upptäckare",
+        "kriterier":  [
+                         "Delta i en termins aktiviteter."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Deltagandemärke"
+    },
+    {
+        "id":  "nara",
+        "namn":  "Nära",
+        "bild":  "images/marken/nara.png",
+        "kategori":  "Deltagandemärke",
+        "malgrupp":  [
+                         "Upptäckare"
+                     ],
+        "inledning":"Deltagandemärke Upptäckare",
+        "kriterier":  [
+                         "Delta i en termins aktiviteter."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Deltagandemärke"
+    },
+    {
+        "id":  "vagen",
+        "namn":  "Vägen",
+        "bild":  "images/marken/vagen.png",
+        "kategori":  "Deltagandemärke",
+        "malgrupp":  [
+                         "Upptäckare"
+                     ],
+        "inledning":"Deltagandemärke Upptäckare",
+        "kriterier":  [
+                         "Delta i en termins aktiviteter."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Deltagandemärke"
+    },
+    {
         "id":  "kniv",
         "namn":  "Kniv",
         "bild":  "images/marken/kniv.png",
@@ -2323,6 +2425,69 @@
                          "Känna till vad den svenska knivlagen innebär.",
                          "Veta vad knivens delar kallas.",
                          "Kunna slipa en kniv."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Bevismärke"
+    },
+    {
+        "id":  "yxa_och_sag",
+        "namn":  "Yxa och såg",
+        "bild":  "images/marken/yxa_och_sag.png",
+        "kategori":  "Bevismärke",
+        "malgrupp":  [
+                         "Upptäckare"
+                     ],
+        "inledning":"Bevismärke för att visa att scouten kan hantera en yxa och såg på ett säkert sätt.",
+        "kriterier":  [
+                         "Kunna hugga och såga säkert så att ingen person, du själv eller andra, skadar sig och följa detta när du använder yxan och sågen.",
+                         "Veta hur en såg och en yxa skyddas när man ska ta dem med sig och följa detta när ni ska någonstans.",
+                         "Veta hur en såg och en yxa förvaras när den inte används, både utomhus och inne (på övernattning och i förråd) och följa detta.",
+                         "Kunna använda yxan till att kvista en slana eller stock för att kunna använda den till något.",
+                         "Kunna namnge yxans och sågens olika delar.",
+                         "Kunna slipa en yxa och byta sågblad på en såg."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Bevismärke"
+    },
+    {
+        "id":  "simma",
+        "namn":  "Simma",
+        "bild":  "images/marken/simma.png",
+        "kategori":  "Bevismärke",
+        "malgrupp":  [
+                         "Upptäckare"
+                     ],
+        "inledning":"Bevismärke för att visa att scouten kan simma.",
+        "kriterier":  [
+                         "Att du kan simma 200 meter.",
+                         "Att du kan dyka eller hoppa i vattnet från en brygga eller bassängkant.",
+                         "Att du känner till och följer de viktigaste badreglerna, se nedan."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Bevismärke"
+    },
+    {
+        "id":  "stormkok",
+        "namn":  "Stormkök",
+        "bild":  "images/marken/stormkok.png",
+        "kategori":  "Bevismärke",
+        "malgrupp":  [
+                         "Spårare"
+                     ],
+        "inledning":"Bevismärke för att visa att scouten kan hantera ett stormkök.",
+        "kriterier":  [
+                         "Hur ett stormkök sätts upp och tas ner.",
+                         "Kunna på ett säkert sätt hantera minst en sorts bränsle och tända fyr på det som del av stormköket (t.ex t-sprit eller gas).",
+                         "Känna till riskerna med både t-sprit och gas som bränsle (men behöver inte ha använt båda).",
+                         "Veta vad stormkökets delar kallas.",
+                         "Kunna rengöra stormköket efter användning.",
+                         "Laga en maträtt i en gryta och på stekpannan i stormköket."
                      ],
         "program":  [
                         "Scouterna"
