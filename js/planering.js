@@ -71,6 +71,8 @@ let pdfSelectionState = new Set();
 const BADGE_DND_MIME = "text/plain";
 let editingStandaloneActivityId = null;
 let activeActivityGroupId = null;
+let activeStandaloneActivityBadge = null;
+let activeStandaloneActivityPlanning = null;
 
 function loadCustomActivities() {
     try {
@@ -108,6 +110,8 @@ function createStandaloneActivityPopup() {
     const modal = document.getElementById("createActivityModal");
     const reset = () => {
         editingStandaloneActivityId = null;
+        activeStandaloneActivityBadge = null;
+        activeStandaloneActivityPlanning = null;
         document.getElementById("createActivityTitle").textContent = "Skapa aktivitet";
         document.getElementById("savePlanningActivityBtn").textContent = "Spara aktivitet";
         modal.querySelectorAll("input, textarea").forEach(field => field.value = "");
@@ -136,7 +140,7 @@ function createStandaloneActivityPopup() {
         const activity = {
             id: editingStandaloneActivityId || `egen-${crypto.randomUUID()}`,
             namn: name,
-            kategori: existingActivity?.kategori || "Egna aktiviteter",
+            kategori: activeStandaloneActivityBadge?.kategori || existingActivity?.kategori || "Egna aktiviteter",
             beskrivning: document.getElementById("planningActivityDescription").value.trim(),
             tid: document.getElementById("planningActivityTime").value.trim(),
             material: document.getElementById("planningActivityMaterial").value.split(/\r?\n/).map(item => item.trim()).filter(Boolean),
@@ -146,6 +150,24 @@ function createStandaloneActivityPopup() {
         if (existingIndex === -1) customActivities.push(activity);
         else customActivities[existingIndex] = activity;
         localStorage.setItem(CUSTOM_ACTIVITIES_STORAGE_KEY, JSON.stringify(customActivities));
+        if (activeStandaloneActivityBadge) {
+            const links = loadCustomBadgeActivities();
+            links[activeStandaloneActivityBadge.id] = Array.isArray(links[activeStandaloneActivityBadge.id])
+                ? links[activeStandaloneActivityBadge.id]
+                : [];
+            if (!links[activeStandaloneActivityBadge.id].includes(activity.id)) {
+                links[activeStandaloneActivityBadge.id].push(activity.id);
+            }
+            localStorage.setItem(CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY, JSON.stringify(links));
+        }
+        if (activeStandaloneActivityPlanning) {
+            activeStandaloneActivityPlanning.activities = Array.isArray(activeStandaloneActivityPlanning.activities)
+                ? activeStandaloneActivityPlanning.activities
+                : [];
+            if (!activeStandaloneActivityPlanning.activities.includes(activity.id)) {
+                activeStandaloneActivityPlanning.activities.push(activity.id);
+            }
+        }
         saveGroups();
         const activityIndex = allAktiviteter.findIndex(item => item.id === activity.id);
         if (activityIndex === -1) allAktiviteter.push(activity);
@@ -153,6 +175,20 @@ function createStandaloneActivityPopup() {
         modal.classList.add("hidden");
         renderPlanning();
     });
+}
+
+function openStandaloneActivityForBadge(marke, planning) {
+    const modal = document.getElementById("createActivityModal");
+    activeStandaloneActivityBadge = marke;
+    activeStandaloneActivityPlanning = planning;
+    editingStandaloneActivityId = null;
+    document.getElementById("createActivityTitle").textContent = "Skapa egen aktivitet";
+    document.getElementById("savePlanningActivityBtn").textContent = "Spara aktivitet";
+    modal.querySelectorAll("input, textarea").forEach(field => field.value = "");
+    document.getElementById("planningActivityMemberships").innerHTML = `<span>${planning.name} (${planning.level})</span>`;
+    document.getElementById("createActivityStatus").textContent = "";
+    modal.classList.remove("hidden");
+    document.getElementById("planningActivityName").focus();
 }
 
 function openActivityPicker(groupId) {
@@ -309,6 +345,8 @@ function createEditActivitiesMenuAction() {
 
 function openStandaloneActivityEditor(activity) {
     const modal = document.getElementById("createActivityModal");
+    activeStandaloneActivityBadge = null;
+    activeStandaloneActivityPlanning = null;
     editingStandaloneActivityId = activity.id;
     document.getElementById("createActivityTitle").textContent = "Redigera aktivitet";
     document.getElementById("savePlanningActivityBtn").textContent = "Spara ändringar";
@@ -1467,24 +1505,23 @@ function showBadgeDetail(marke, planningId = null) {
         .map(activityId => allAktiviteter.find(activity => activity.id === activityId))
         .filter(Boolean);
     const selectedActivities = new Set(planning && Array.isArray(planning.activities) ? planning.activities : []);
-    const activitySection = activities.length > 0
-        ? `
+    const activitySection = `
             <div class="detail-activities">
                 <strong>Aktivitetsförslag:</strong>
                 ${planning ? `<p>Välj aktiviteter för ${planning.name}.</p>` : ""}
                 <div class="activity-list">
-                    ${activities.map(activity => `
+                    ${activities.length > 0 ? activities.map(activity => `
                         <label class="activity-item">
                             ${planning ? `<input type="checkbox" class="planning-activity-selection" value="${activity.id}" ${selectedActivities.has(activity.id) ? "checked" : ""}>` : ""}
                             <span class="activity-item-name"><strong>${activity.namn}</strong>${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}</span>
                             <button class="activity-info-button" type="button" data-activity-id="${activity.id}" aria-label="Visa detaljer för ${activity.namn}">i</button>
                         </label>
-                    `).join("")}
+                    `).join("") : "<p>Inga aktiviteter kopplade ännu.</p>"}
                 </div>
-                ${planning ? '<button id="saveBadgeActivitiesBtn" class="btn-primary" type="button">Spara aktiviteter</button>' : ""}
+                ${planning ? '<button id="createBadgeActivityBtn" class="btn-secondary" type="button">Lägg till egen aktivitet</button>' : ""}
+                ${planning ? '<button id="saveBadgeActivitiesBtn" class="btn-primary" type="button">Uppdatera planering</button>' : ""}
             </div>
-        `
-        : "";
+        `;
     body.innerHTML = `
         <div class="detail-popup-header">
             <h2>${marke.namn}</h2>
@@ -1537,6 +1574,13 @@ function showBadgeDetail(marke, planningId = null) {
         });
     });
     const saveActivitiesButton = body.querySelector("#saveBadgeActivitiesBtn");
+    const createBadgeActivityButton = body.querySelector("#createBadgeActivityBtn");
+    if (createBadgeActivityButton) {
+        createBadgeActivityButton.addEventListener("click", () => {
+            detailPopup.classList.add("hidden");
+            openStandaloneActivityForBadge(marke, planning);
+        });
+    }
     if (saveActivitiesButton) {
         saveActivitiesButton.addEventListener("click", () => {
             const currentBadgeActivityIds = new Set(getBadgeActivityIds(marke));
