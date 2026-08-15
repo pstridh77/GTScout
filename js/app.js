@@ -587,9 +587,11 @@ function saveCustomActivity(popup) {
         nameInput.focus();
         return;
     }
+    const existingActivity = loadCustomActivities().find(item => item.id === activeCustomActivityId);
     const activity = {
         id: activeCustomActivityId || `egen-${crypto.randomUUID()}`,
         namn: name,
+        kategori: activeCustomActivityBadge.kategori || existingActivity?.kategori || "Övrigt",
         beskrivning: popup.querySelector(".custom-activity-description").value.trim(),
         tid: Number(popup.querySelector(".custom-activity-time").value) || 0,
         material: popup.querySelector(".custom-activity-material").value

@@ -23,6 +23,7 @@
         <div class="toolbar-actions">
             <input id="importPlanningInput" type="file" accept="application/json,.json" hidden>
             <button id="addGroupBtn" class="btn-primary" type="button">+ Lägg till planering</button>
+            <button id="createActivityBtn" class="btn-secondary" type="button">+ Skapa aktivitet</button>
             <div class="planning-actions-menu">
                 <button id="planningActionsBtn" class="btn-secondary planning-actions-trigger" type="button" aria-label="Fler åtgärder" aria-expanded="false" title="Fler åtgärder">&#x22EE;</button>
                 <div id="planningActionsDropdown" class="planning-actions-dropdown hidden" role="menu">
@@ -63,6 +64,34 @@
             <div class="modal-actions">
                 <button id="closeExportInfoBtn" class="btn-primary" type="button">OK</button>
             </div>
+        </div>
+    </div>
+
+    <div id="createActivityModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="createActivityTitle">
+        <div class="modal-content custom-activity-form-content">
+            <button class="close-popup" type="button" id="closeCreateActivityModal" aria-label="Stäng">&times;</button>
+            <h2 id="createActivityTitle">Skapa aktivitet</h2>
+            <label class="modal-field"><span>Namn</span><input id="planningActivityName" type="text" required></label>
+            <label class="modal-field"><span>Beskrivning</span><textarea id="planningActivityDescription" rows="3"></textarea></label>
+            <label class="modal-field"><span>Tid i minuter</span><input id="planningActivityTime" type="number" min="0" step="5"></label>
+            <label class="modal-field"><span>Material, ett per rad</span><textarea id="planningActivityMaterial" rows="3"></textarea></label>
+            <label class="modal-field"><span>Genomförande</span><textarea id="planningActivityInstructions" rows="4"></textarea></label>
+            <label class="modal-field"><span>Lägg till i planering</span><select id="planningActivityGroup"></select></label>
+            <p id="createActivityStatus" class="detail-planning-status" role="status"></p>
+            <div class="modal-actions"><button id="savePlanningActivityBtn" class="btn-primary" type="button">Spara aktivitet</button></div>
+        </div>
+    </div>
+
+    <div id="selectActivityModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="selectActivityTitle">
+        <div class="modal-content modal-content--wide">
+            <button class="close-popup" type="button" id="closeSelectActivityModal" aria-label="Stäng">&times;</button>
+            <h2 id="selectActivityTitle">Välj aktiviteter</h2>
+            <div class="picker-filters">
+                <input id="selectActivitySearch" class="picker-search-input" type="search" placeholder="Sök aktivitet...">
+                <select id="selectActivityCategory" aria-label="Filtrera aktiviteter efter kategori"></select>
+            </div>
+            <div id="selectActivityList" class="activity-picker-list"></div>
+            <div class="modal-actions"><button id="saveSelectedActivitiesBtn" class="btn-primary" type="button">Spara val</button></div>
         </div>
     </div>
 
