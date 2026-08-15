@@ -9,5 +9,6 @@ Projektet innehåller:
 - Filtrering
 - Progression
 - Ledarstöd
+- Terminsplanering
 
 Utvecklas med HTML, CSS och JavaScript.
