@@ -71,6 +71,12 @@ function getBadgeActivityIds(marke) {
     ];
 }
 
+function formatActivityTime(activity) {
+    const time = String(activity.tid ?? "").trim();
+    if (!time) return "";
+    return /^\d+(?:[.,]\d+)?$/.test(time) ? `${time} min` : time;
+}
+
 function getActivitiesForBadge(marke) {
     const activityIds = getBadgeActivityIds(marke);
     return activityIds
@@ -547,7 +553,7 @@ function createCustomActivityPopup() {
             <h2 class="custom-activity-title">Skapa egen aktivitet</h2>
             <label class="modal-field"><span>Namn</span><input class="custom-activity-name" type="text" required></label>
             <label class="modal-field"><span>Beskrivning</span><textarea class="custom-activity-description" rows="3"></textarea></label>
-            <label class="modal-field"><span>Tid i minuter</span><input class="custom-activity-time" type="number" min="0" step="5"></label>
+            <label class="modal-field"><span>Tid</span><input class="custom-activity-time" type="text" placeholder="t.ex. 20 minuter eller en kväll"></label>
             <label class="modal-field"><span>Material, ett per rad</span><textarea class="custom-activity-material" rows="3"></textarea></label>
             <label class="modal-field"><span>Genomförande</span><textarea class="custom-activity-instructions" rows="4"></textarea></label>
             <p class="custom-activity-status detail-planning-status" role="status"></p>
@@ -593,7 +599,7 @@ function saveCustomActivity(popup) {
         namn: name,
         kategori: activeCustomActivityBadge.kategori || existingActivity?.kategori || "Övrigt",
         beskrivning: popup.querySelector(".custom-activity-description").value.trim(),
-        tid: Number(popup.querySelector(".custom-activity-time").value) || 0,
+        tid: popup.querySelector(".custom-activity-time").value.trim(),
         material: popup.querySelector(".custom-activity-material").value
             .split(/\r?\n/)
             .map(item => item.trim())
@@ -631,7 +637,7 @@ function showActivityPopup(activity) {
     activityPopup.querySelector(".activity-popup-body").innerHTML = `
         <h2>${activity.namn}</h2>
         ${activity.beskrivning ? `<p>${activity.beskrivning}</p>` : ""}
-        ${activity.tid ? `<p><strong>Tid:</strong> ${activity.tid} minuter</p>` : ""}
+        ${formatActivityTime(activity) ? `<p><strong>Tid:</strong> ${formatActivityTime(activity)}</p>` : ""}
         ${material.length > 0 ? `<div><strong>Material:</strong><ul>${material.map(item => `<li>${item}</li>`).join("")}</ul></div>` : ""}
         ${activity.genomforande ? `<div><strong>Genomförande:</strong><p>${activity.genomforande}</p></div>` : ""}
         ${linkedBadges ? `<p><strong>Kopplad till märken:</strong> ${linkedBadges}</p>` : ""}
@@ -713,7 +719,7 @@ function showPopup(marke) {
                 ${badgeActivities.length > 0
                     ? badgeActivities.map(activity => `
                         <div class="activity-item">
-                            <span class="activity-item-name"><strong>${activity.namn}</strong>${activity.tid ? `<small>${activity.tid} min</small>` : ""}</span>
+                                <span class="activity-item-name"><strong>${activity.namn}</strong>${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}</span>
                             <button class="activity-info-button" type="button" data-activity-id="${activity.id}" aria-label="Visa detaljer för ${activity.namn}">i</button>
                         </div>
                     `).join("")

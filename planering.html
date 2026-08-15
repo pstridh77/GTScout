@@ -35,6 +35,11 @@
         </div>
     </div>
 
+    <section id="planningIntro" class="planning-intro" aria-labelledby="planningIntroTitle">
+        <h2 id="planningIntroTitle">Så använder du planeringen</h2>
+        <p>Lägg till märken i en planering och klicka på märkena för att välja aktiviteter. Du kan också skapa egna aktiviteter, redigera innehåll och skriva ut färdiga planeringar.</p>
+    </section>
+
     <div class="planning-filters">
         <label class="filter-field search-field">
             <span>Sök planering</span>
@@ -73,7 +78,7 @@
             <h2 id="createActivityTitle">Skapa aktivitet</h2>
             <label class="modal-field"><span>Namn</span><input id="planningActivityName" type="text" required></label>
             <label class="modal-field"><span>Beskrivning</span><textarea id="planningActivityDescription" rows="3"></textarea></label>
-            <label class="modal-field"><span>Tid i minuter</span><input id="planningActivityTime" type="number" min="0" step="5"></label>
+            <label class="modal-field"><span>Tid</span><input id="planningActivityTime" type="text" placeholder="t.ex. 20 minuter eller en kväll"></label>
             <label class="modal-field"><span>Material, ett per rad</span><textarea id="planningActivityMaterial" rows="3"></textarea></label>
             <label class="modal-field"><span>Genomförande</span><textarea id="planningActivityInstructions" rows="4"></textarea></label>
             <label class="modal-field"><span>Lägg till i planering</span><select id="planningActivityGroup"></select></label>

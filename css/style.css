@@ -233,6 +233,28 @@ header {
     color: #003660;
 }
 
+.planning-intro {
+    margin: 20px;
+    padding: 20px 24px;
+    border-left: 5px solid #003660;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ffffff 0%, #eef5fb 100%);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.planning-intro h2 {
+    margin: 0 0 6px;
+    color: #003660;
+    font-size: 1.25rem;
+}
+
+.planning-intro p {
+    max-width: 850px;
+    margin: 0;
+    color: #40566d;
+    line-height: 1.55;
+}
+
 .detail-popup-header {
     display: flex;
     align-items: center;

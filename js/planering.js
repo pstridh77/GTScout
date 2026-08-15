@@ -98,6 +98,12 @@ function getBadgeActivityIds(marke) {
     ];
 }
 
+function formatActivityTime(activity) {
+    const time = String(activity.tid ?? "").trim();
+    if (!time) return "";
+    return /^\d+(?:[.,]\d+)?$/.test(time) ? `${time} min` : time;
+}
+
 function createStandaloneActivityPopup() {
     const modal = document.getElementById("createActivityModal");
     const groupSelect = document.getElementById("planningActivityGroup");
@@ -135,7 +141,7 @@ function createStandaloneActivityPopup() {
             namn: name,
             kategori: existingActivity?.kategori || "Egna aktiviteter",
             beskrivning: document.getElementById("planningActivityDescription").value.trim(),
-            tid: Number(document.getElementById("planningActivityTime").value) || 0,
+            tid: document.getElementById("planningActivityTime").value.trim(),
             material: document.getElementById("planningActivityMaterial").value.split(/\r?\n/).map(item => item.trim()).filter(Boolean),
             genomforande: document.getElementById("planningActivityInstructions").value.trim()
         };
@@ -199,7 +205,7 @@ function renderActivityPicker() {
         ? activities.map(activity => `
             <label class="activity-picker-item">
                 <input type="checkbox" value="${activity.id}" ${selected.has(activity.id) ? "checked" : ""}>
-                <span><strong>${activity.namn}</strong>${activity.tid ? `<small>${activity.tid} min</small>` : ""}</span>
+                <span><strong>${activity.namn}</strong>${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}</span>
             </label>
         `).join("")
         : '<p class="no-results">Inga aktiviteter matchar.</p>';
@@ -216,7 +222,27 @@ function createActivityPicker() {
     document.getElementById("saveSelectedActivitiesBtn").addEventListener("click", () => {
         const group = groups.find(item => item.id === activeActivityGroupId);
         if (!group) return;
-        group.activities = [...modal.querySelectorAll("#selectActivityList input:checked")].map(input => input.value);
+        const searchTerm = document.getElementById("selectActivitySearch").value.trim().toLowerCase();
+        const category = document.getElementById("selectActivityCategory").value;
+        const visibleActivityIds = new Set(allAktiviteter
+            .filter(activity => {
+                const matchesCategory = category === "Alla" || getActivityCategories(activity).includes(category);
+                const matchesSearch = !searchTerm || [activity.namn, activity.beskrivning, ...(activity.material || [])]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase()
+                    .includes(searchTerm);
+                return matchesCategory && matchesSearch;
+            })
+            .map(activity => activity.id));
+        const selectedVisibleActivityIds = [...modal.querySelectorAll("#selectActivityList input:checked")]
+            .map(input => input.value);
+        const existingActivityIds = Array.isArray(group.activities) ? group.activities : [];
+        group.activities = [
+            ...existingActivityIds.filter(activityId => !visibleActivityIds.has(activityId)),
+            ...selectedVisibleActivityIds
+        ];
+        group.activities = [...new Set(group.activities)];
         saveGroups();
         renderPlanning();
         modal.classList.add("hidden");
@@ -435,7 +461,7 @@ function generatePlanningPdf(selectedIds) {
         const activity = allAktiviteter.find(item => item.id === activityId);
         if (!activity) return `<p class="missing-badge">Aktivitet ${escapeHtml(activityId)} kunde inte hittas.</p>`;
         const material = Array.isArray(activity.material) ? activity.material.join(", ") : "";
-        return `<div class="pdf-activity"><h4>${escapeHtml(activity.namn)}</h4><p>${escapeHtml(activity.beskrivning || "")}</p>${activity.tid ? `<p><strong>Tid:</strong> ${escapeHtml(activity.tid)} min</p>` : ""}${material ? `<p><strong>Material:</strong> ${escapeHtml(material)}</p>` : ""}</div>`;
+        return `<div class="pdf-activity"><h4>${escapeHtml(activity.namn)}</h4><p>${escapeHtml(activity.beskrivning || "")}</p>${formatActivityTime(activity) ? `<p><strong>Tid:</strong> ${escapeHtml(formatActivityTime(activity))}</p>` : ""}${material ? `<p><strong>Material:</strong> ${escapeHtml(material)}</p>` : ""}</div>`;
     };
     const planningSections = selectedGroups.map(group => {
         const planningIcon = getLevelIcon(group.level);
@@ -450,7 +476,8 @@ function generatePlanningPdf(selectedIds) {
         const unassignedActivities = plannedActivityIds.filter(activityId => !linkedActivityIds.has(activityId));
         return `
         <section class="pdf-planning">
-            <h2 class="pdf-planning-heading">${icon}<span>${escapeHtml(group.name)}</span></h2>
+            <h2 class="pdf-planning-heading">${icon}<span>${escapeHtml(group.name)} - ${escapeHtml(group.level)}</span></h2>
+            <p class="pdf-planning-intro">Följande märken och aktiviteter är planerade:</p>
             ${Array.isArray(group.badges) && group.badges.length > 0
                 ? group.badges.map(badgeId => renderBadge(badgeId, group)).join("")
                 : "<p>Inga märken planerade.</p>"}
@@ -479,6 +506,7 @@ function generatePlanningPdf(selectedIds) {
                 .pdf-planning { page-break-before: always; }
                 .pdf-planning:first-of-type { page-break-before: auto; }
                 .pdf-planning-heading { display: flex; align-items: center; gap: 10px; margin: 0; padding-bottom: 4px; border-bottom: 2px solid #003660; color: #003660; font-size: 17pt; }
+                .pdf-planning-intro { margin: 8px 0 14px; color: #003660; font-size: 12pt; font-weight: 600; }
                 .pdf-planning-icon { width: 34px; height: 34px; object-fit: contain; }
                 .pdf-level { margin: 6px 0 14px; font-weight: bold; }
                 .pdf-badge { display: flex; gap: 14px; margin: 0 0 16px; padding: 10px 0; border-bottom: 1px solid #d0d7de; break-inside: avoid; }
@@ -819,7 +847,7 @@ function renderGroupBadges(group) {
             return activity
                 ? `<div class="planned-activity">
                         <span>${activity.namn}</span>
-                        ${activity.tid ? `<small>${activity.tid} min</small>` : ""}
+                        ${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}
                         <button class="activity-info-button planned-activity-info-btn" type="button" data-activity-id="${activity.id}" title="Visa detaljer för ${activity.namn}" aria-label="Visa detaljer för ${activity.namn}">i</button>
                         <button class="remove-activity-btn" type="button" data-group-id="${group.id}" data-activity-id="${activity.id}" title="Ta bort ${activity.namn} från planeringen" aria-label="Ta bort ${activity.namn}">&times;</button>
                    </div>`
@@ -1336,7 +1364,7 @@ function showActivityDetail(activity) {
     activityDetailPopup.querySelector(".activity-popup-body").innerHTML = `
         <h2>${activity.namn}</h2>
         ${activity.beskrivning ? `<p>${activity.beskrivning}</p>` : ""}
-        ${activity.tid ? `<p><strong>Tid:</strong> ${activity.tid} minuter</p>` : ""}
+        ${formatActivityTime(activity) ? `<p><strong>Tid:</strong> ${formatActivityTime(activity)}</p>` : ""}
         ${material.length > 0 ? `<div><strong>Material:</strong><ul>${material.map(item => `<li>${item}</li>`).join("")}</ul></div>` : ""}
         ${activity.genomforande ? `<div><strong>Genomförande:</strong><p>${activity.genomforande}</p></div>` : ""}
         ${linkedBadges ? `<p><strong>Kopplad till märken:</strong> ${linkedBadges}</p>` : ""}
@@ -1390,7 +1418,7 @@ function showBadgeDetail(marke, planningId = null) {
                     ${activities.map(activity => `
                         <label class="activity-item">
                             ${planning ? `<input type="checkbox" class="planning-activity-selection" value="${activity.id}" ${selectedActivities.has(activity.id) ? "checked" : ""}>` : ""}
-                            <span class="activity-item-name"><strong>${activity.namn}</strong>${activity.tid ? `<small>${activity.tid} min</small>` : ""}</span>
+                            <span class="activity-item-name"><strong>${activity.namn}</strong>${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}</span>
                             <button class="activity-info-button" type="button" data-activity-id="${activity.id}" aria-label="Visa detaljer för ${activity.namn}">i</button>
                         </label>
                     `).join("")}
@@ -1453,8 +1481,15 @@ function showBadgeDetail(marke, planningId = null) {
     const saveActivitiesButton = body.querySelector("#saveBadgeActivitiesBtn");
     if (saveActivitiesButton) {
         saveActivitiesButton.addEventListener("click", () => {
-            planning.activities = [...body.querySelectorAll(".planning-activity-selection:checked")]
+            const currentBadgeActivityIds = new Set(getBadgeActivityIds(marke));
+            const selectedForBadge = [...body.querySelectorAll(".planning-activity-selection:checked")]
                 .map(input => input.value);
+            const existingActivities = Array.isArray(planning.activities) ? planning.activities : [];
+            planning.activities = [
+                ...existingActivities.filter(activityId => !currentBadgeActivityIds.has(activityId)),
+                ...selectedForBadge
+            ];
+            planning.activities = [...new Set(planning.activities)];
             saveGroups();
             renderPlanning();
             detailPopup.classList.add("hidden");
