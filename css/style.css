@@ -50,9 +50,18 @@ header {
 }
 
 .category-heading {
+    display: flex;
+    align-items: center;
+    min-height: 28px;
     margin: 0 0 4px;
-    font-size: 1.25rem;
-    color: #003660;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: #003660;
+    color: white;
+    font-size: 0.95rem;
+    font-weight: 700;
+    justify-content: center;
+    text-align: center;
 }
 
 .category-badges {
