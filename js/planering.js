@@ -106,16 +106,13 @@ function formatActivityTime(activity) {
 
 function createStandaloneActivityPopup() {
     const modal = document.getElementById("createActivityModal");
-    const groupSelect = document.getElementById("planningActivityGroup");
     const reset = () => {
         editingStandaloneActivityId = null;
         document.getElementById("createActivityTitle").textContent = "Skapa aktivitet";
         document.getElementById("savePlanningActivityBtn").textContent = "Spara aktivitet";
         modal.querySelectorAll("input, textarea").forEach(field => field.value = "");
         document.getElementById("createActivityStatus").textContent = "";
-        groupSelect.innerHTML = groups.length > 0
-            ? groups.map(group => `<option value="${group.id}">${group.name} (${group.level})</option>`).join("")
-            : "<option value=\"\">Skapa eller lägg till en planering först</option>";
+        document.getElementById("planningActivityMemberships").textContent = "Inte tillagd i någon planering.";
     };
     document.getElementById("createActivityBtn").addEventListener("click", () => {
         reset();
@@ -129,14 +126,9 @@ function createStandaloneActivityPopup() {
     document.getElementById("savePlanningActivityBtn").addEventListener("click", () => {
         const nameInput = document.getElementById("planningActivityName");
         const name = nameInput.value.trim();
-        const group = groups.find(item => item.id === groupSelect.value);
         const status = document.getElementById("createActivityStatus");
         if (!name) {
             nameInput.focus();
-            return;
-        }
-        if (!group && !editingStandaloneActivityId) {
-            status.textContent = "Välj en planering innan du sparar en ny aktivitet.";
             return;
         }
         const customActivities = loadCustomActivities();
@@ -154,10 +146,6 @@ function createStandaloneActivityPopup() {
         if (existingIndex === -1) customActivities.push(activity);
         else customActivities[existingIndex] = activity;
         localStorage.setItem(CUSTOM_ACTIVITIES_STORAGE_KEY, JSON.stringify(customActivities));
-        if (group) {
-            group.activities = Array.isArray(group.activities) ? group.activities : [];
-            if (!group.activities.includes(activity.id)) group.activities.push(activity.id);
-        }
         saveGroups();
         const activityIndex = allAktiviteter.findIndex(item => item.id === activity.id);
         if (activityIndex === -1) allAktiviteter.push(activity);
@@ -321,13 +309,13 @@ function createEditActivitiesMenuAction() {
 
 function openStandaloneActivityEditor(activity) {
     const modal = document.getElementById("createActivityModal");
-    const groupSelect = document.getElementById("planningActivityGroup");
     editingStandaloneActivityId = activity.id;
     document.getElementById("createActivityTitle").textContent = "Redigera aktivitet";
     document.getElementById("savePlanningActivityBtn").textContent = "Spara ändringar";
-    groupSelect.innerHTML = groups.map(group => `<option value="${group.id}">${group.name} (${group.level})</option>`).join("");
-    const currentGroup = groups.find(group => Array.isArray(group.activities) && group.activities.includes(activity.id));
-    if (currentGroup) groupSelect.value = currentGroup.id;
+    const currentGroups = groups.filter(group => Array.isArray(group.activities) && group.activities.includes(activity.id));
+    document.getElementById("planningActivityMemberships").innerHTML = currentGroups.length > 0
+        ? currentGroups.map(group => `<span>${group.name} (${group.level})</span>`).join("")
+        : "Inte tillagd i någon planering.";
     document.getElementById("planningActivityName").value = activity.namn || "";
     document.getElementById("planningActivityDescription").value = activity.beskrivning || "";
     document.getElementById("planningActivityTime").value = activity.tid || "";

@@ -82,7 +82,10 @@
             <label class="modal-field"><span>Tid</span><input id="planningActivityTime" type="text" placeholder="t.ex. 20 minuter eller en kväll"></label>
             <label class="modal-field"><span>Material, ett per rad</span><textarea id="planningActivityMaterial" rows="3"></textarea></label>
             <label class="modal-field"><span>Genomförande</span><textarea id="planningActivityInstructions" rows="4"></textarea></label>
-            <label class="modal-field"><span>Lägg till i planering</span><select id="planningActivityGroup"></select></label>
+            <div class="activity-membership-field">
+                <span>Ingår i planeringar</span>
+                <div id="planningActivityMemberships" class="activity-membership-list">Inte tillagd i någon planering.</div>
+            </div>
             <p id="createActivityStatus" class="detail-planning-status" role="status"></p>
             <div class="modal-actions"><button id="savePlanningActivityBtn" class="btn-primary" type="button">Spara aktivitet</button></div>
         </div>

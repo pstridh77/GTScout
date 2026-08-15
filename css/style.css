@@ -465,6 +465,24 @@ header {
     flex-shrink: 0;
 }
 
+.activity-membership-field {
+    display: grid;
+    gap: 6px;
+    color: #003660;
+    font-weight: 600;
+}
+
+.activity-membership-list {
+    display: grid;
+    gap: 4px;
+    padding: 10px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #536477;
+    font-weight: 400;
+}
+
 #selectActivityCategory {
     flex: 1 1 180px;
     padding: 10px 12px;
