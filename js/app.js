@@ -165,11 +165,6 @@ notePopup.querySelector("#saveBadgeNoteBtn").addEventListener("click", () => {
     showPopup(activeNoteBadge);
 });
 
-function setupPlanningAction(marke) {
-    const addButton = popup.querySelector("#addBadgeToPlanningBtn");
-    addButton.addEventListener("click", () => openPlanningPicker(marke));
-}
-
 function populateFilters(marken) {
     const categories = [...new Set(marken.map(marke => marke.kategori || "Övrigt"))].sort();
     const targetGroups = [...new Set(marken.map(getTargetGroup))];
@@ -378,189 +373,38 @@ function createPopup() {
 
 const popup = createPopup();
 
-let activePlanningBadge = null;
-let activePlanningActivities = [];
-
-function createPlanningPickerPopup() {
-    const picker = document.createElement("div");
-    picker.id = "planningPickerPopup";
-    picker.className = "detail-popup hidden";
-    picker.innerHTML = `
-        <div class="detail-popup-content planning-picker-content">
+function createActivityPopup() {
+    const activityPopup = document.createElement("div");
+    activityPopup.id = "activityPopup";
+    activityPopup.className = "detail-popup hidden";
+    activityPopup.innerHTML = `
+        <div class="detail-popup-content activity-popup-content">
             <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
-            <h2>Välj planering</h2>
-            <label class="filter-field planning-picker-filter">
-                <span>Målgrupp</span>
-                <select id="planningPickerFilter" aria-label="Filtrera planeringar efter målgrupp"></select>
-            </label>
-            <div class="planning-picker-list"></div>
-            <button id="createPlanningBtn" class="btn-secondary planning-picker-create" type="button">Skapa ny planering</button>
+            <div class="activity-popup-body"></div>
         </div>
     `;
-
-    picker.querySelector(".close-popup").addEventListener("click", () => {
-        picker.classList.add("hidden");
+    activityPopup.querySelector(".close-popup").addEventListener("click", () => activityPopup.classList.add("hidden"));
+    activityPopup.addEventListener("click", event => {
+        if (event.target === activityPopup) activityPopup.classList.add("hidden");
     });
-    picker.addEventListener("click", event => {
-        if (event.target === picker) picker.classList.add("hidden");
-    });
-    picker.querySelector("#createPlanningBtn").addEventListener("click", () => {
-        if (!activePlanningBadge) return;
-        planningPickerPopup.classList.add("hidden");
-        openNewPlanningPopup(activePlanningBadge);
-    });
-    document.body.appendChild(picker);
-    return picker;
+    document.body.appendChild(activityPopup);
+    return activityPopup;
 }
 
-const planningPickerPopup = createPlanningPickerPopup();
+const activityPopup = createActivityPopup();
 
-function createNewPlanningPopup() {
-    const planningPopup = document.createElement("div");
-    planningPopup.id = "newPlanningPopup";
-    planningPopup.className = "detail-popup hidden";
-    planningPopup.innerHTML = `
-        <div class="detail-popup-content new-planning-content">
-            <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
-            <h2>Ny planering</h2>
-            <label class="modal-field">
-                <span>Namn</span>
-                <input id="newPlanningName" type="text" placeholder="t.ex. År 1 - HT">
-            </label>
-            <label class="modal-field">
-                <span>Målgrupp</span>
-                <select id="newPlanningLevel">
-                    <option value="Familjescouting">Familjescouting</option>
-                    <option value="Spårare">Spårare</option>
-                    <option value="Upptäckare">Upptäckare</option>
-                    <option value="Äventyrare">Äventyrare</option>
-                    <option value="Utmanare">Utmanare</option>
-                    <option value="Rover">Rover</option>
-                </select>
-            </label>
-            <p id="newPlanningStatus" class="detail-planning-status" role="status"></p>
-            <div class="modal-actions">
-                <button id="saveNewPlanningBtn" class="btn-primary" type="button">Spara</button>
-            </div>
-        </div>
+function showActivityPopup(activity) {
+    const linkedBadges = getBadgesForActivity(activity.id).map(marke => marke.namn).join(", ");
+    const material = Array.isArray(activity.material) ? activity.material : [];
+    activityPopup.querySelector(".activity-popup-body").innerHTML = `
+        <h2>${activity.namn}</h2>
+        ${activity.beskrivning ? `<p>${activity.beskrivning}</p>` : ""}
+        ${activity.tid ? `<p><strong>Tid:</strong> ${activity.tid} minuter</p>` : ""}
+        ${material.length > 0 ? `<div><strong>Material:</strong><ul>${material.map(item => `<li>${item}</li>`).join("")}</ul></div>` : ""}
+        ${activity.genomforande ? `<div><strong>Genomförande:</strong><p>${activity.genomforande}</p></div>` : ""}
+        ${linkedBadges ? `<p><strong>Kopplad till märken:</strong> ${linkedBadges}</p>` : ""}
     `;
-    planningPopup.querySelector(".close-popup").addEventListener("click", () => planningPopup.classList.add("hidden"));
-    planningPopup.addEventListener("click", event => {
-        if (event.target === planningPopup) planningPopup.classList.add("hidden");
-    });
-    document.body.appendChild(planningPopup);
-    return planningPopup;
-}
-
-const newPlanningPopup = createNewPlanningPopup();
-
-function openNewPlanningPopup(marke) {
-    const nameInput = newPlanningPopup.querySelector("#newPlanningName");
-    newPlanningPopup.querySelector("#newPlanningStatus").textContent = "";
-    newPlanningPopup.querySelector("#newPlanningLevel").value = getTargetGroup(marke);
-    newPlanningPopup.dataset.badgeId = marke.id;
-    newPlanningPopup.dataset.activityIds = JSON.stringify(activePlanningActivities);
-    newPlanningPopup.classList.remove("hidden");
-    nameInput.value = "";
-    nameInput.focus();
-}
-
-newPlanningPopup.querySelector("#saveNewPlanningBtn").addEventListener("click", () => {
-    const nameInput = newPlanningPopup.querySelector("#newPlanningName");
-    const level = newPlanningPopup.querySelector("#newPlanningLevel").value;
-    const status = newPlanningPopup.querySelector("#newPlanningStatus");
-    const name = nameInput.value.trim();
-    const badgeId = newPlanningPopup.dataset.badgeId;
-    if (!name) {
-        nameInput.focus();
-        return;
-    }
-    const plannings = loadPlannings();
-    if (plannings.some(planning => planning.name === name && planning.level === level)) {
-        status.textContent = "Det finns redan en planering med det namnet i samma målgrupp.";
-        return;
-    }
-    plannings.push({
-        id: crypto.randomUUID(),
-        name,
-        level,
-        badges: badgeId ? [badgeId] : [],
-        activities: JSON.parse(newPlanningPopup.dataset.activityIds || "[]")
-    });
-    localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(plannings));
-    renderMarken(allMarken);
-    popup.querySelector("#badgePlanningStatus").textContent = `Märket lades till i ${name}.`;
-    newPlanningPopup.classList.add("hidden");
-    planningPickerPopup.classList.add("hidden");
-});
-
-function openPlanningPicker(marke, activityIds = []) {
-    activePlanningBadge = marke;
-    activePlanningActivities = activityIds;
-    const list = planningPickerPopup.querySelector(".planning-picker-list");
-    const filter = planningPickerPopup.querySelector("#planningPickerFilter");
-    const plannings = loadPlannings();
-    const targetGroups = [...new Set(plannings.map(planning => planning.level).filter(Boolean))];
-    const matchingTargetGroup = getTargetGroup(marke);
-
-    filter.innerHTML = "<option value=\"Alla\">Alla målgrupper</option>";
-    targetGroups.forEach(targetGroup => {
-        const option = document.createElement("option");
-        option.value = targetGroup;
-        option.textContent = targetGroup;
-        filter.appendChild(option);
-    });
-    filter.value = matchingTargetGroup;
-
-    const renderPlanningOptions = () => {
-        list.innerHTML = "";
-        const selectedTargetGroup = filter.value;
-        const visiblePlannings = plannings.filter(planning =>
-            selectedTargetGroup === "Alla" || planning.level === selectedTargetGroup
-        );
-
-        if (visiblePlannings.length === 0) {
-            list.innerHTML = plannings.length === 0
-                ? "<p>Det finns inga planeringar ännu.</p>"
-                : "<p>Inga planeringar finns i den valda målgruppen.</p>";
-            return;
-        }
-
-        visiblePlannings.forEach(planning => {
-            const button = document.createElement("button");
-            button.className = "planning-picker-option";
-            button.type = "button";
-            button.textContent = `${planning.name} (${planning.level})`;
-            button.addEventListener("click", () => {
-                planning.badges = Array.isArray(planning.badges) ? planning.badges : [];
-                planning.activities = Array.isArray(planning.activities) ? planning.activities : [];
-                const status = popup.querySelector("#badgePlanningStatus");
-
-                if (planning.badges.includes(marke.id)) {
-                    status.textContent = "Märket finns redan i planeringen.";
-                } else {
-                    planning.badges.push(marke.id);
-                }
-                activityIds.forEach(activityId => {
-                    if (!planning.activities.includes(activityId)) {
-                        planning.activities.push(activityId);
-                    }
-                });
-                localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(plannings));
-                renderMarken(allMarken);
-                status.textContent = activityIds.length > 0
-                    ? `Valda aktiviteter lades till i ${planning.name}.`
-                    : `Märket lades till i ${planning.name}.`;
-                planningPickerPopup.classList.add("hidden");
-            });
-            list.appendChild(button);
-        });
-    };
-
-    filter.onchange = renderPlanningOptions;
-    renderPlanningOptions();
-
-    planningPickerPopup.classList.remove("hidden");
+    activityPopup.classList.remove("hidden");
 }
 
 function getCategoryIconPath(marke) {
@@ -591,25 +435,17 @@ function showPopup(marke) {
     const activitySection = badgeActivities.length > 0
         ? `
             <div class="detail-activities">
-                <strong>Aktiviteter:</strong>
+                <strong>Aktivitetsförslag:</strong>
                 <div class="activity-list">
                     ${badgeActivities.map(activity => {
-                        const linkedBadges = getBadgesForActivity(activity.id).map(item => item.namn).join(", ");
-                        const material = Array.isArray(activity.material) ? activity.material.join(", ") : "";
                         return `
-                            <label class="activity-item">
-                                <input type="checkbox" class="activity-selection" value="${activity.id}">
-                                <span>
-                                    <strong>${activity.namn}</strong>
-                                    ${activity.beskrivning ? `<small>${activity.beskrivning}</small>` : ""}
-                                    <small>${activity.tid ? `${activity.tid} min` : "Tid saknas"}${material ? ` · Material: ${material}` : ""}</small>
-                                    <small>Kopplad till: ${linkedBadges}</small>
-                                </span>
-                            </label>
+                            <div class="activity-item">
+                                <span class="activity-item-name"><strong>${activity.namn}</strong>${activity.tid ? `<small>${activity.tid} min</small>` : ""}</span>
+                                <button class="activity-info-button" type="button" data-activity-id="${activity.id}" aria-label="Visa detaljer för ${activity.namn}">i</button>
+                            </div>
                         `;
                     }).join("")}
                 </div>
-                <button id="addActivitiesToPlanningBtn" class="btn-secondary" type="button">Lägg valda aktiviteter till planering</button>
             </div>
         `
         : "";
@@ -669,23 +505,16 @@ function showPopup(marke) {
             <button id="editBadgeNoteBtn" class="btn-secondary detail-note-button" type="button">
                 ${badgeNote ? "Redigera info" : "Lägg till info"}
             </button>
-            <div class="detail-planning-actions">
-                <button id="addBadgeToPlanningBtn" class="btn-primary" type="button">Lägg till i planering</button>
-                <p id="badgePlanningStatus" class="detail-planning-status" role="status"></p>
-            </div>
         </div>
     `;
     if (badgeNote) popup.querySelector("#badgeNoteDisplay").textContent = badgeNote;
     popup.querySelector("#editBadgeNoteBtn").addEventListener("click", () => openNotePopup(marke));
-    const addActivitiesButton = popup.querySelector("#addActivitiesToPlanningBtn");
-    if (addActivitiesButton) {
-        addActivitiesButton.addEventListener("click", () => {
-            const activityIds = [...popup.querySelectorAll(".activity-selection:checked")].map(input => input.value);
-            if (activityIds.length === 0) return;
-            openPlanningPicker(marke, activityIds);
+    popup.querySelectorAll(".activity-info-button").forEach(button => {
+        button.addEventListener("click", () => {
+            const activity = allAktiviteter.find(item => item.id === button.dataset.activityId);
+            if (activity) showActivityPopup(activity);
         });
-    }
-    setupPlanningAction(marke);
+    });
     popup.classList.remove("hidden");
 }
 

@@ -513,10 +513,25 @@ function renderPlanning() {
         });
     });
 
+    document.querySelectorAll(".remove-activity-btn").forEach(btn => {
+        btn.addEventListener("click", e => {
+            e.stopPropagation();
+            removeActivityFromGroup(btn.dataset.groupId, btn.dataset.activityId);
+        });
+    });
+
+    document.querySelectorAll(".planned-activity-info-btn").forEach(btn => {
+        btn.addEventListener("click", e => {
+            e.stopPropagation();
+            const activity = allAktiviteter.find(item => item.id === btn.dataset.activityId);
+            if (activity) showActivityDetail(activity);
+        });
+    });
+
     document.querySelectorAll(".planned-badge").forEach(el => {
         el.addEventListener("click", () => {
             const marke = allMarken.find(m => m.id === el.dataset.badgeId);
-            if (marke) showBadgeDetail(marke);
+            if (marke) showBadgeDetail(marke, el.dataset.groupId);
         });
     });
 
@@ -524,7 +539,8 @@ function renderPlanning() {
 }
 
 function renderGroupBadges(group) {
-    if (!group.badges || group.badges.length === 0) {
+    const activities = Array.isArray(group.activities) ? group.activities : [];
+    if ((!group.badges || group.badges.length === 0) && activities.length === 0) {
         return '<p class="group-empty">Inga märken planerade än.</p>';
     }
 
@@ -541,12 +557,16 @@ function renderGroupBadges(group) {
             </div>
         `;
     }).join("");
-    const activities = Array.isArray(group.activities) ? group.activities : [];
     const activityMarkup = activities.length > 0
         ? `<div class="planned-activities"><strong>Aktiviteter</strong>${activities.map(activityId => {
             const activity = allAktiviteter.find(item => item.id === activityId);
             return activity
-                ? `<div class="planned-activity"><span>${activity.namn}</span>${activity.tid ? `<small>${activity.tid} min</small>` : ""}</div>`
+                ? `<div class="planned-activity">
+                        <span>${activity.namn}</span>
+                        ${activity.tid ? `<small>${activity.tid} min</small>` : ""}
+                        <button class="activity-info-button planned-activity-info-btn" type="button" data-activity-id="${activity.id}" title="Visa detaljer för ${activity.namn}" aria-label="Visa detaljer för ${activity.namn}">i</button>
+                        <button class="remove-activity-btn" type="button" data-group-id="${group.id}" data-activity-id="${activity.id}" title="Ta bort ${activity.namn} från planeringen" aria-label="Ta bort ${activity.namn}">&times;</button>
+                   </div>`
                 : "";
         }).join("")}</div>`
         : "";
@@ -732,6 +752,14 @@ function removeBadgeFromGroup(groupId, badgeId) {
     const group = groups.find(g => g.id === groupId);
     if (!group) return;
     group.badges = group.badges.filter(b => b !== badgeId);
+    saveGroups();
+    renderPlanning();
+}
+
+function removeActivityFromGroup(groupId, activityId) {
+    const group = groups.find(g => g.id === groupId);
+    if (!group || !Array.isArray(group.activities)) return;
+    group.activities = group.activities.filter(id => id !== activityId);
     saveGroups();
     renderPlanning();
 }
@@ -999,7 +1027,7 @@ function renderPickerGrid() {
         btn.addEventListener("dblclick", e => {
             e.stopPropagation();
             const marke = allMarken.find(m => m.id === btn.dataset.badgeId);
-            if (marke) showBadgeDetail(marke);
+            if (marke) showBadgeDetail(marke, activeGroupId);
         });
     });
 }
@@ -1024,7 +1052,43 @@ function createDetailPopup() {
 
 const detailPopup = createDetailPopup();
 
-function showBadgeDetail(marke) {
+function createActivityDetailPopup() {
+    const popup = document.createElement("div");
+    popup.className = "detail-popup hidden";
+    popup.innerHTML = `
+        <div class="detail-popup-content activity-popup-content">
+            <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <div class="activity-popup-body"></div>
+        </div>
+    `;
+    popup.querySelector(".close-popup").addEventListener("click", () => popup.classList.add("hidden"));
+    popup.addEventListener("click", event => {
+        if (event.target === popup) popup.classList.add("hidden");
+    });
+    document.body.appendChild(popup);
+    return popup;
+}
+
+const activityDetailPopup = createActivityDetailPopup();
+
+function showActivityDetail(activity) {
+    const linkedBadges = allMarken
+        .filter(marke => Array.isArray(marke.aktiviteter) && marke.aktiviteter.includes(activity.id))
+        .map(marke => marke.namn)
+        .join(", ");
+    const material = Array.isArray(activity.material) ? activity.material : [];
+    activityDetailPopup.querySelector(".activity-popup-body").innerHTML = `
+        <h2>${activity.namn}</h2>
+        ${activity.beskrivning ? `<p>${activity.beskrivning}</p>` : ""}
+        ${activity.tid ? `<p><strong>Tid:</strong> ${activity.tid} minuter</p>` : ""}
+        ${material.length > 0 ? `<div><strong>Material:</strong><ul>${material.map(item => `<li>${item}</li>`).join("")}</ul></div>` : ""}
+        ${activity.genomforande ? `<div><strong>Genomförande:</strong><p>${activity.genomforande}</p></div>` : ""}
+        ${linkedBadges ? `<p><strong>Kopplad till märken:</strong> ${linkedBadges}</p>` : ""}
+    `;
+    activityDetailPopup.classList.remove("hidden");
+}
+
+function showBadgeDetail(marke, planningId = null) {
     const body = detailPopup.querySelector(".popup-body");
     const iconMap = {
         "Familjescouting": "./images/icons/familjescout.png",
@@ -1041,6 +1105,29 @@ function showBadgeDetail(marke) {
     const badgePlannings = groups.filter(group =>
         Array.isArray(group.badges) && group.badges.includes(marke.id)
     );
+    const planning = planningId ? groups.find(group => group.id === planningId) : null;
+    const activities = (Array.isArray(marke.aktiviteter) ? marke.aktiviteter : [])
+        .map(activityId => allAktiviteter.find(activity => activity.id === activityId))
+        .filter(Boolean);
+    const selectedActivities = new Set(planning && Array.isArray(planning.activities) ? planning.activities : []);
+    const activitySection = activities.length > 0
+        ? `
+            <div class="detail-activities">
+                <strong>Aktivitetsförslag:</strong>
+                ${planning ? `<p>Välj aktiviteter för ${planning.name}.</p>` : ""}
+                <div class="activity-list">
+                    ${activities.map(activity => `
+                        <label class="activity-item">
+                            ${planning ? `<input type="checkbox" class="planning-activity-selection" value="${activity.id}" ${selectedActivities.has(activity.id) ? "checked" : ""}>` : ""}
+                            <span class="activity-item-name"><strong>${activity.namn}</strong>${activity.tid ? `<small>${activity.tid} min</small>` : ""}</span>
+                            <button class="activity-info-button" type="button" data-activity-id="${activity.id}" aria-label="Visa detaljer för ${activity.namn}">i</button>
+                        </label>
+                    `).join("")}
+                </div>
+                ${planning ? '<button id="saveBadgeActivitiesBtn" class="btn-primary" type="button">Spara aktiviteter</button>' : ""}
+            </div>
+        `
+        : "";
     body.innerHTML = `
         <div class="detail-popup-header">
             <h2>${marke.namn}</h2>
@@ -1055,6 +1142,7 @@ function showBadgeDetail(marke) {
             </div>
             ${marke.inledning ? `<p class="detail-introduction">${marke.inledning}</p>` : ""}
             ${criteriaList ? `<div class="detail-criteria"><strong>Kriterier:</strong><ul>${criteriaList}</ul></div>` : ""}
+            ${activitySection}
             <p><strong>M\u00e5lgrupp:</strong> ${targetGroup}</p>
             <p><strong>Program:</strong> ${(Array.isArray(marke.program) ? marke.program : [marke.program || "B\u00e5da"]).join(", ")}</p>
             ${badgePlannings.length > 0 ? `
@@ -1085,6 +1173,22 @@ function showBadgeDetail(marke) {
         });
     }
     if (badgeNote) body.querySelector(".detail-note-display").textContent = badgeNote;
+    body.querySelectorAll(".activity-info-button").forEach(button => {
+        button.addEventListener("click", () => {
+            const activity = allAktiviteter.find(item => item.id === button.dataset.activityId);
+            if (activity) showActivityDetail(activity);
+        });
+    });
+    const saveActivitiesButton = body.querySelector("#saveBadgeActivitiesBtn");
+    if (saveActivitiesButton) {
+        saveActivitiesButton.addEventListener("click", () => {
+            planning.activities = [...body.querySelectorAll(".planning-activity-selection:checked")]
+                .map(input => input.value);
+            saveGroups();
+            renderPlanning();
+            detailPopup.classList.add("hidden");
+        });
+    }
     detailPopup.classList.remove("hidden");
 }
 
