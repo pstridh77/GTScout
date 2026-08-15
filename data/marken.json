@@ -70,8 +70,8 @@
         "malgrupp":  [
                          "Äventyrare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Elda är det fjärde i en märkesstegring om eld. Genom att jobba med märket Elda tränar du på att få igång och underhålla en eld under längre tid för att kunna laga mat, få värme och skapa stämning på ett säkert sätt.",
+        "kriterier": ["Kunna göra upp en eld med hjälp av kniv, tändstickor och enbart bränsle du hittar i naturen och hålla den vid liv under en längre tid.","Känna till olika eldtyper och kunna anpassa elden efter olika situationer som matlagning, värmekälla eller mys.","Kunna skilja på några olika typer av trä och veta vad som skiljer dem åt i när man eldar, till exempel vad som ger mest värme och vad som skvätter mest/minst.","Ha provat på att göra upp eld med andra metoder än tändare och tändstickor, till exempel eldstål eller förstoringsglas."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1521,8 +1521,8 @@
         "malgrupp":  [
                          "Upptäckare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Spela är det första i en serie om konstnärliga uttryck. I det här märket får du sätta upp en föreställning tillsammans med dina scoutkompisar.",
+        "kriterier": ["Skapa ett manus, antingen utifrån en egen idé eller utifrån en färdig berättelse.","Förbereda scen, miljö och rekvisita.","Öva in repliker och repetera.","Antingen är du engagerad i alla dess saker eller så fördjupar du dig i någon av dem, t.ex. att du skriver manus och regisserar dina kamrater eller att du ansvarar för scen, dekor och rekvisita.","Efteråt ska du, tillsammans med de andra som var med, prata om hur det gick och vad ni har lärt er."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1536,8 +1536,8 @@
         "malgrupp":  [
                          "Utmanare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Fota är det tredje i en serie om konstnärliga uttryck. I det här märket får du utforska olika fototekniker och hur man kan använda foto i berättande.",
+        "kriterier": ["Berätta en historia med patrullen enbart med hjälp av kamerabilder.","Testa att ta bilder där ljuset har olika riktning och styrka och jämfört resultaten.","Testa olika former av komposition av bilder. Till exempel med tredjedelsregeln eller med att ha motiv i förgrund och bakgrund, grodperspektiv eller närbilder.","Prata om vilka regler som finns när det gäller fotografering, till exempel integritet, skyddsobjekt, delade foton, publicering eller att använda andras foton."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1551,8 +1551,8 @@
         "malgrupp":  [
                          "Äventyrare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Filma är det andra i en serie om konstnärliga uttryck. I det här märket får du skapa en film tillsammans med dina scoutkompisar",
+        "kriterier": ["Vara delaktig i att skapa en film med handling med början, mitt och slut.","I det ingår att skriva manus, förbereda miljö och rekvisita, öva in repliker, repetera och agera, filma och redigera.","Antingen är du engagerad i alla dessa saker eller så fördjupar du dig i någon av dem, exempelvis skriver manus och regisserar dina kamrater eller att du ansvarar för filmning och lär dig mer om det.","Filmen ska vara minst fem minuter lång.","När filmen är färdig ska den ha premiär och visas för andra och du ska, tillsammans med de andra som var med, prata om hur det gick och vad ni har lärt er."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1566,8 +1566,8 @@
         "malgrupp":  [
                          "Upptäckare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Musik är det första i en serie om just musik. I det här märket får du prova att göra musik tillsammans med dina kompisar.",
+        "kriterier": ["Testa olika sätt att göra musik tillsammans, som till exempel att sjunga i stämmor, sjunga kanon, spela instrument eller något annat som ni är nyfikna på.","Tillsammans i patrullen dela med er av vilken musik ni tycker om och lyssna på den.","Lyssna på musik som speglar olika känslor.","Skriva en ny text till en sång och sedan sjunga och spela den tillsammans i patrullen."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1581,8 +1581,8 @@
         "malgrupp":  [
                          "Äventyrare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Instrument är det andra i en serie om musik. I det här märket får du börja lära dig ett instrument.",
+        "kriterier": ["Lära dig att spela en enkel melodi eller några ackord på ett instrument.","Kunna läsa enklare noter.","Ha lärt dig teknikövningar som passar ditt instrument.","Veta hur ditt instrument fungerar och hur du tar hand om det."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1596,8 +1596,8 @@
         "malgrupp":  [
                          "Utmanare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Orkester är det tredje i en serie om musik. Det här märket får du spela tillsammans med andra och bilda en orkester.",
+        "kriterier": ["Vara delaktig i att skapa en konsert med början, mitt och slut.","I det ingår att välja ut låtar, solopartier och bestämma hur låtarna passar ihop.","När konserten är färdig ska den ha premiär och visas för andra och du ska, tillsammans med de andra som var med, prata om hur det gick och vad ni har lärt er."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1611,8 +1611,8 @@
         "malgrupp":  [
                          "Rover"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Skogsrejv är det fjärde i en serie om musik. Det här märket får du planera och genomföra ett skogsrejv.",
+        "kriterier": ["Samla ett gäng vänner i en glänta eller skogsparti. Skaffa fram bra musik. Dansa och lev life. Ni gör det hur stort eller litet ni vill men ju större ni gör det, desto fler tillstånd och sådant finns det att ta hänsyn till."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1626,8 +1626,8 @@
         "malgrupp":  [
                          "Upptäckare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Min röst är det första i en serie om demokrati. I det här märket får du lära dig mer om demokrati och se hur du kan använda din röst för att vara med och påverka.",
+        "kriterier": ["Kunna förklara fem ord som har med demokrati att göra.","Prova på att göra din röst hörd genom att delta i en värderingsövning eller en omröstning.","Skapa något som visar för andra vad demokrati är. Det kan till exempel vara ett drama, en plansch, en väggtidning eller en installation.","Ha deltagit i ett beslutandemöte/årsmöte i patrullen eller på högre nivå i kåren."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1641,8 +1641,8 @@
         "malgrupp":  [
                          "Äventyrare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Demokrati är det andra i en serie om just demokrati. I det här märket får du lära dig mer om demokrati och hur det fungerar i Scouterna.",
+        "kriterier": ["Veta hur scouting är organiserat i din scoutkår, i Sverige och i världen.","Ha varit med på en kårstämma (eller beslutande årsmöte på högre nivå).","Veta hur du kan påverka genom att skriva en motion eller ett förslag till styrelsen.","I din patrull haft en diskussion om demokrati, hur alla kommer till tals, hur ni fattar beslut mm.","I din patrull ha provat på att ha ett möte med agenda, ordförande och sekreterare.","I din patrull eller scoutgrupp ha provat olika metoder att diskutera och bestämma saker, t ex genom brainstorming."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1656,8 +1656,8 @@
         "malgrupp":  [
                          "Upptäckare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "I det här märket får du ta del av flera lägerbål, dela med dig av dina talanger och samtidigt lära dig nya lägerbålssånger.",
+        "kriterier": ["Vara med på minst tre lägerbål, exempelvis med din avdelning, kår eller på ett läger.","Lära dig fem lägerbålssånger som du tycker om.","Lära dig en lägerbålssång på ett annat språk.","Framföra en sketch eller sång tillsammans med din patrull på ett lägerbål."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1671,8 +1671,8 @@
         "malgrupp":  [
                          "Upptäckare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Dassmärket är det första i en serie om kroppen. I det här märket får du lära dig om hur du uträttar dina behov när du inte har en toalett till hands och hur du sköter hygienen.",
+        "kriterier": ["Diskutera hur du sköter din personliga hygien och uträttar dina behov när du inte har tillgång till en vanlig toalett. Prata om hur du gör om du har mens.","Känna till vilka regler som finns för utedass och för toalettbehov som uträttas på platser som helt saknar toalett, dass eller liknande.","Diskutera hur ni kan göra för att användandet av dass eller “friluftstoalett” ska kännas tryggt och naturligt.","Ha pratat om magont och att vara lös eller hård i magen och hur en hanterar det när du inte har tillgång till hemmet och en toalett."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1686,8 +1686,8 @@
         "malgrupp":  [
                          "Äventyrare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Kroppslig hälsa är det andra i en serie om kroppen. I det här märket utforskar vad kroppen behöver för att må bra. Det här märket hänger nära samman med märket Psykisk hälsa.",
+        "kriterier": ["Samtala i patrullen vad varje person behöver för att må bra i form av fysisk aktivitet, återhämtning och mat. Finns det speciella rutiner, hur ofta eller hur länge?","Skapa en gemensam “mat och sov-klocka” för patrullen. Den ska täcka dagarna under en hel vecka. Den ska innehålla hur ni tänker att man ska leva så att kroppen mår så bra som möjligt. Bestäm hur mycket och när ni ska sova/återhämta er, när ni äter och hur länge samt hur mycket fysisk aktivitet ni ska ha och när.","Lev efter er “mat och sov-klocka” under en vecka.","Samtala om hur det gick. Hur passade de nya rutinerna? Hur mådde kroppen? Finns det något du vill förändra i “mat och sov-klockan\" för att du och din kropp ska må ännu bättre eller för att kunna leva efter rutinerna under en längre tid?"],
         "program":  [
                         "Scouterna"
                     ],
@@ -1701,8 +1701,8 @@
         "malgrupp":  [
                          "Utmanare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Psykiska hälsa är det tredje i en serie om kroppen. I det här märket får du utforska hur du gör för att du ska må bra på insidan.",
+        "kriterier": ["Gå igenom 5 tips för psykisk hälsa. De hittar du på Scouternas webbplats, klicka här.","Lista saker som får dig att må bra och saker som får dig att bli stressad eller känna oro.","Diskutera era listor tillsammans i patrullen och 5 tips för psykisk hälsa. Hjälps sedan åt att komma på sätt som får er att kunna göra mer av det som får er att må bra och strategier för att minska det som får er att känna stress och oro.","Genomför ett må-bra-möte. Detta ska vara en “spa-dag för hjärnan” där ni kan prova på något av de tips ni kommit på i patrullen. Det kan också vara tex yoga, avslappning eller mindfullness. Se till att ni också äter och dricker något gott samt lyssnar på musik som ger er glädje. Sprid pepp till andra! Planera och genomför en god gärning/aktivitet för andra som fokuserar på/handlar om välmående."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1716,8 +1716,8 @@
         "malgrupp":  [
                          "Äventyrare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "I det här märket får du lära dig grunderna i paddling och säkerhet vid vatten.",
+        "kriterier": ["Kunna lyfta, bära och lägga i kanoten tillsammans med kompisar","Kunna kliva i och ur kanoten","Känna till grundläggande regler kring paddling så som säkerhet på och vid vatten.","Känna till kanoten/kajakens egenskaper i vatten och hur du bär dig åt om du ramlar i.","Ha kunskap om vilken utrustning du behöver och hur du sköter om den.","Visa att du behärskar paddelteknik på ett sådant sätt att du med säkerhet kan manövrera kanoten/kajaken i olika situationer."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1731,8 +1731,8 @@
         "malgrupp":  [
                          "Utmanare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Fysiska utmaningar är vanligt förekommande i Scouterna. Vi hajkar, klättrar och paddlar runt i den svenska naturen. Längdmärken är en är en serie med sex olika intressemärken, som uppmärksammar hur stora fysiska utmaningar du samlat på dig under din tid i Scouterna. Märkeskriterier: • För att få märket Paddla Vänern ska du ha paddlat en sträcka motsvarande längden av Vänern, ca 140 km. • Du som scout ansvarar själv för att dokumentera antalet km du har paddlat. Paddla Gotland Rover Inledning Fysiska utmaningar är vanligt förekommande i Scouterna. vi hajkar, klättrar och paddlar runt i den svenska naturen Längdmärken är en är en serie med sex olika intressemärken, som uppmärksammar hur stora fysiska utmaningar du samlat på dig under din tid i Scouterna. Märket Paddla Gotland är en fortsättning på märket Paddla Vänern. Märkeskriterier: • För att få märket Paddla Gotland ska du ha paddlat en sträcka motsvarande Gotlands kuststräcka, ca 770 km • Du som scout ansvarar själv för att dokumentera antalet km du har paddlat. Inkludering Upptäckare Inledning Märket Inkludering är det första i en serie om öppenhet och respekt. I det här märket får du göra aktiva handlingar för att alla ska känna sig välkomna. Märkeskriterier: • Träna på att ta plats själv och att ge plats åt andra, till exempel genom att använda talpinne eller skapa gruppregler. • Berätta något för din patrull som kan vara bra att andra vet om dig för att du ska trivas bra i Scouterna. • Fundera på om det finns vanor eller normer i Scouterna som gör det svårare för vissa att vara med. Om du kommer på några ska du också fundera på om det finns saker du eller er patrull kan göra för att minska svårigheterna. • Skapa något som gör att fler känner sig välkomna till er verksamhet, där ni visar på att ni tar ställning i en viss fråga eller hitta på sätt att visa på mångfald och inkludering. Genus HBTQ+ Äventyrare Inledning Märket Genus HBTQ+ är det andra i en serie om öppenhet och respekt. I det här märket får du lära dig mer om normer och hur du kan hjälpa till att utmana dem.",
+        "kriterier": ["Lära dig om normer kopplade till genus, sexualitet, könsidentitet och könsuttryck.","Undersöka hur normer och acceptans för olikheter ser ut i de olika sammanhang du befinner dig i, exempelvis i hemmet, skolan, scouterna och i övriga samhället.","Reflektera och ge förslag på hur vi kan bidra till öppnare förhållningssätt och till att utmana normer kring genus och HBTQ+","Jämföra med hur det är i andra länder och deras samhällen samt scoutrörelser. Alla människor är lika mycket värda men hur ser människors säkerhet och rättigheter ut i praktiken i olika länder?"],
         "program":  [
                         "Scouterna"
                     ],
@@ -1746,8 +1746,8 @@
         "malgrupp":  [
                          "Rover"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Fysiska utmaningar är vanligt förekommande i Scouterna. vi hajkar, klättrar och paddlar runt i den svenska naturen Längdmärken är en är en serie med sex olika intressemärken, som uppmärksammar hur stora fysiska utmaningar du samlat på dig under din tid i Scouterna. Märket Paddla Gotland är en fortsättning på märket Paddla Vänern. Märkeskriterier: • För att få märket Paddla Gotland ska du ha paddlat en sträcka motsvarande Gotlands kuststräcka, ca 770 km • Du som scout ansvarar själv för att dokumentera antalet km du har paddlat. Inkludering Upptäckare Inledning Märket Inkludering är det första i en serie om öppenhet och respekt. I det här märket får du göra aktiva handlingar för att alla ska känna sig välkomna. Märkeskriterier: • Träna på att ta plats själv och att ge plats åt andra, till exempel genom att använda talpinne eller skapa gruppregler. • Berätta något för din patrull som kan vara bra att andra vet om dig för att du ska trivas bra i Scouterna. • Fundera på om det finns vanor eller normer i Scouterna som gör det svårare för vissa att vara med. Om du kommer på några ska du också fundera på om det finns saker du eller er patrull kan göra för att minska svårigheterna. • Skapa något som gör att fler känner sig välkomna till er verksamhet, där ni visar på att ni tar ställning i en viss fråga eller hitta på sätt att visa på mångfald och inkludering. Genus HBTQ+ Äventyrare Inledning Märket Genus HBTQ+ är det andra i en serie om öppenhet och respekt. I det här märket får du lära dig mer om normer och hur du kan hjälpa till att utmana dem.",
+        "kriterier": ["Lära dig om normer kopplade till genus, sexualitet, könsidentitet och könsuttryck.","Undersöka hur normer och acceptans för olikheter ser ut i de olika sammanhang du befinner dig i, exempelvis i hemmet, skolan, scouterna och i övriga samhället.","Reflektera och ge förslag på hur vi kan bidra till öppnare förhållningssätt och till att utmana normer kring genus och HBTQ+","Jämföra med hur det är i andra länder och deras samhällen samt scoutrörelser. Alla människor är lika mycket värda men hur ser människors säkerhet och rättigheter ut i praktiken i olika länder?"],
         "program":  [
                         "Scouterna"
                     ],
@@ -1761,8 +1761,8 @@
         "malgrupp":  [
                          "Upptäckare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Inkludering är det första i en serie om öppenhet och respekt. I det här märket får du göra aktiva handlingar för att alla ska känna sig välkomna. Märkeskriterier: • Träna på att ta plats själv och att ge plats åt andra, till exempel genom att använda talpinne eller skapa gruppregler. • Berätta något för din patrull som kan vara bra att andra vet om dig för att du ska trivas bra i Scouterna. • Fundera på om det finns vanor eller normer i Scouterna som gör det svårare för vissa att vara med. Om du kommer på några ska du också fundera på om det finns saker du eller er patrull kan göra för att minska svårigheterna. • Skapa något som gör att fler känner sig välkomna till er verksamhet, där ni visar på att ni tar ställning i en viss fråga eller hitta på sätt att visa på mångfald och inkludering. Genus HBTQ+ Äventyrare Inledning Märket Genus HBTQ+ är det andra i en serie om öppenhet och respekt. I det här märket får du lära dig mer om normer och hur du kan hjälpa till att utmana dem.",
+        "kriterier": ["Lära dig om normer kopplade till genus, sexualitet, könsidentitet och könsuttryck.","Undersöka hur normer och acceptans för olikheter ser ut i de olika sammanhang du befinner dig i, exempelvis i hemmet, skolan, scouterna och i övriga samhället.","Reflektera och ge förslag på hur vi kan bidra till öppnare förhållningssätt och till att utmana normer kring genus och HBTQ+","Jämföra med hur det är i andra länder och deras samhällen samt scoutrörelser. Alla människor är lika mycket värda men hur ser människors säkerhet och rättigheter ut i praktiken i olika länder?"],
         "program":  [
                         "Scouterna"
                     ],
@@ -1776,8 +1776,8 @@
         "malgrupp":  [
                          "Äventyrare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Genus HBTQ+ är det andra i en serie om öppenhet och respekt. I det här märket får du lära dig mer om normer och hur du kan hjälpa till att utmana dem.",
+        "kriterier": ["Lära dig om normer kopplade till genus, sexualitet, könsidentitet och könsuttryck.","Undersöka hur normer och acceptans för olikheter ser ut i de olika sammanhang du befinner dig i, exempelvis i hemmet, skolan, scouterna och i övriga samhället.","Reflektera och ge förslag på hur vi kan bidra till öppnare förhållningssätt och till att utmana normer kring genus och HBTQ+","Jämföra med hur det är i andra länder och deras samhällen samt scoutrörelser. Alla människor är lika mycket värda men hur ser människors säkerhet och rättigheter ut i praktiken i olika länder?"],
         "program":  [
                         "Scouterna"
                     ],
@@ -1791,8 +1791,8 @@
         "malgrupp":  [
                          "Utmanare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Livsåskådning är det tredje i en serie om öppenhet och respekt. I det här märket får du utforska din tro och livsåskådning och skapa förståelse för andras.",
+        "kriterier": ["Fundera över vad som ger ditt liv mening, vad som händer när vi dör och vilka känslor det väcker. Här följer några exempel på vad du kan göra. Arbeta gärna med det här märket en längre period för att lämna utrymme för reflektion.","Leta upp en text, dikt, sång eller filmklipp som du tycker beskriver vad du tror på och hur du vill leva. Ta med detta till ett scoutmöte och berätta för dina scoutkompisar varför du valt som du valt.","Fundera själv över de här frågorna och undersök vad personer med olika tro tycker om de här frågorna: Vad tror du på? Vad är bra med din tro? Vad gör dig glad med din tro? Finns det något som gör det svårt att tro som du gör? Finns det en gud? Vad händer när vi dör?","Prata med någon som tillhör en annan generation (förälder eller mor- och farförälder) om hur det var när de var unga. Vad trodde de på? Har samhället förändrats?","Undersök vad religion har för roll i samhället. På vilka sätt kan religionen vara en positiv kraft? Vilka krafter fungerar på liknande sätt för personer som inte har en religiös tro?","Tillhör din scoutkår en specifik religion passa på att utforska vad det betyder för dig som scout."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1806,8 +1806,8 @@
         "malgrupp":  [
                          "Äventyrare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Materialvård är det första i en serie om att ta hand om sina grejer. I det här märket får du lära dig ta hand om ditt och kårens material på ett bra sätt så det håller längre.",
+        "kriterier": ["Lära dig hur du tar hand om din personliga utrustning som exempelvis kängor, ryggsäck och sovsäck för att materialet ska fungera länge och väl. Veta hur din utrustning bäst förvaras när den inte används.","Underhålla en produkt som kräver kontinuerlig omvårdnad som exempelvis fetta in kängor eller andra läderprodukter, förbättra impregnering på regnkläder eller tält.","Göra rent och underhåll något av kårens material, till exempel fotogenlyktor eller segel.","Slipa en kniv eller yxa och byt ett sågblad.","Känna till din scoutkårs materialsystem och hur det fungerar. Veta hur du förvarar och transporterar olika sorters material på hajk, övernattningar och läger."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1821,8 +1821,8 @@
         "malgrupp":  [
                          "Utmanare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Reparera är det andra i en serie om att ta hand om sina grejer. I det här märket får du lära dig ta hand om ditt och kårens material som har blivit trasigt så det håller längre.",
+        "kriterier": ["Reparera något i din personliga packning, exempelvis sy fast en rem på ryggsäcken, sy i en knapp eller laga ett liggunderlag.","Reparera material som ni använder i kåren exempelvis laga en reva, byta ut ett yxskaft, byta ett trasigt glas på en fotogenlykta eller liknande.","Reparera något som finns utomhus, till exempel vedbod, brygga eller eldring."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1836,8 +1836,8 @@
         "malgrupp":  [
                          "Äventyrare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Intressemärkena Vara ute finns i fem varianter beroende på miljö, välj att jobba med ett av dem eller allihop.",
+        "kriterier": ["Ha varit med på en hajk med övernattning i den valda miljön (vatten, fjället, skogen, staden, vintern). Beroende på var och när ni genomför ert äventyr kan aktiviteten se olika ut, ni kan till exempel vandra, cykla, klättra, segla, paddla, åka skidor eller skridskor.","Vara delaktig i de förberedelser som behövs, som att planera packning, färdväg, övernattningsplats och matsedel.","Efter hajken är det viktigt att du utvärderar den tillsammans med de andra som var med. Ni ska diskutera vad ni gjorde bra och vad ni kan göra annorlunda nästa gång. För att komma ihåg dina upplevelser och tankar är det bra om du fotograferar och antecknar under hajken."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1851,8 +1851,8 @@
         "malgrupp":  [
                          "Äventyrare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Intressemärkena Vara ute finns i fem varianter beroende på miljö, välj att jobba med ett av dem eller allihop.",
+        "kriterier": ["Ha varit med på en hajk med övernattning i den valda miljön (vatten, fjället, skogen, staden, vintern). Beroende på var och när ni genomför ert äventyr kan aktiviteten se olika ut, ni kan till exempel vandra, cykla, klättra, segla, paddla, åka skidor eller skridskor.","Vara delaktig i de förberedelser som behövs, som att planera packning, färdväg, övernattningsplats och matsedel.","Efter hajken är det viktigt att du utvärderar den tillsammans med de andra som var med. Ni ska diskutera vad ni gjorde bra och vad ni kan göra annorlunda nästa gång. För att komma ihåg dina upplevelser och tankar är det bra om du fotograferar och antecknar under hajken."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1866,8 +1866,8 @@
         "malgrupp":  [
                          "Äventyrare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Intressemärkena Vara ute finns i fem varianter beroende på miljö, välj att jobba med ett av dem eller allihop.",
+        "kriterier": ["Ha varit med på en hajk med övernattning i den valda miljön (vatten, fjället, skogen, staden, vintern). Beroende på var och när ni genomför ert äventyr kan aktiviteten se olika ut, ni kan till exempel vandra, cykla, klättra, segla, paddla, åka skidor eller skridskor.","Vara delaktig i de förberedelser som behövs, som att planera packning, färdväg, övernattningsplats och matsedel.","Efter hajken är det viktigt att du utvärderar den tillsammans med de andra som var med. Ni ska diskutera vad ni gjorde bra och vad ni kan göra annorlunda nästa gång. För att komma ihåg dina upplevelser och tankar är det bra om du fotograferar och antecknar under hajken."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1881,8 +1881,8 @@
         "malgrupp":  [
                          "Äventyrare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Intressemärkena Vara ute finns i fem varianter beroende på miljö, välj att jobba med ett av dem eller allihop.",
+        "kriterier": ["Ha varit med på en hajk med övernattning i den valda miljön (vatten, fjället, skogen, staden, vintern). Beroende på var och när ni genomför ert äventyr kan aktiviteten se olika ut, ni kan till exempel vandra, cykla, klättra, segla, paddla, åka skidor eller skridskor.","Vara delaktig i de förberedelser som behövs, som att planera packning, färdväg, övernattningsplats och matsedel.","Efter hajken är det viktigt att du utvärderar den tillsammans med de andra som var med. Ni ska diskutera vad ni gjorde bra och vad ni kan göra annorlunda nästa gång. För att komma ihåg dina upplevelser och tankar är det bra om du fotograferar och antecknar under hajken."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1896,8 +1896,8 @@
         "malgrupp":  [
                          "Äventyrare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Intressemärkena Vara ute finns i fem varianter beroende på miljö, välj att jobba med ett av dem eller allihop.",
+        "kriterier": ["Ha varit med på en hajk med övernattning i den valda miljön (vatten, fjället, skogen, staden, vintern). Beroende på var och när ni genomför ert äventyr kan aktiviteten se olika ut, ni kan till exempel vandra, cykla, klättra, segla, paddla, åka skidor eller skridskor.","Vara delaktig i de förberedelser som behövs, som att planera packning, färdväg, övernattningsplats och matsedel.","Efter hajken är det viktigt att du utvärderar den tillsammans med de andra som var med. Ni ska diskutera vad ni gjorde bra och vad ni kan göra annorlunda nästa gång. För att komma ihåg dina upplevelser och tankar är det bra om du fotograferar och antecknar under hajken."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1911,8 +1911,8 @@
         "malgrupp":  [
                          "Utmanare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Detta märke är andra märket i en märkesstegring om att gå på hajk eller övernatta utomhus. I detta märke ska du planera och genomföra en övernattning utomhus på egen hand.",
+        "kriterier": ["Med stöd av din ledare planera en övernattning där du övernattar själv ute i naturen i ett dygn.","Planera var och hur övernattningen ska ske och hur du tar dig dit och hem","Planera vilken mat du ska ha med dig och hur den ska tillagas","Planera för säkerhet i form av nödkontakt och sjukvård om något händer,","Fundera över regler som gäller i området och förbered för eventuella eldningsförbud, dåligt väder eller annat som med kort varsel kan påverka övernattningens genomförande","Reflektera över hur att vara ute själv påverkar dig och vilka skillnader det finns mot att vara ute flera tillsammans både före, under och efter övernattningen"],
         "program":  [
                         "Scouterna"
                     ],
@@ -1926,8 +1926,8 @@
         "malgrupp":  [
                          "Rover"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Detta märke är tredje märket i en märkesstegring om att gå på hajk eller övernatta utomhus.",
+        "kriterier": ["Planera en ensamvandring med minst två övernattningar utomhus.","Stort fokus skall ligga på att ensam göra en säker vandring. Planera rutten och gör en riskbedömning.","Reflektera över hur att vara ute själv påverkar dig och vilka skillnader det finns mot att vara ute flera tillsammans både före, under och efter övernattningen."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1941,8 +1941,8 @@
         "malgrupp":  [
                          "Utmanare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Fysiska utmaningar är vanligt förekommande i Scouterna. Vi hajkar, klättrar och paddlar runt i den svenska naturen. Längdmärken är en är en serie med sex olika intressemärken, som uppmärksammar hur stora fysiska utmaningar du samlat på dig under din tid i Scouterna.",
+        "kriterier": ["För att få märket Vandra Gbg-Sthlm ska du ha vandrat en sträcka motsvarande sträckan mellan Göteborg och Stockholm, ca 400 km.","Du som scout ansvarar själv för att dokumentera antalet km du har vandrat."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1956,8 +1956,8 @@
         "malgrupp":  [
                          "Rover"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Fysiska utmaningar är vanligt förekommande i Scouterna. Vi hajkar, klättrar och paddlar runt i den svenska naturen. Längdmärken är en är en serie med sex olika intressemärken, som uppmärksammar hur stora fysiska utmaningar du samlat på dig under din tid i Scouterna. Märket Vandra Sverige är en fortsättning på märket Vandra Göteborg-Stockholm.",
+        "kriterier": ["För att få märket Vandra Sverige ska du ha vandrat en sträcka motsvarande Sveriges längd, ca 1570km.","Du som scout ansvarar själv för att dokumentera antalet km du har vandrat."],
         "program":  [
                         "Scouterna"
                     ],
@@ -1971,8 +1971,8 @@
         "malgrupp":  [
                          "Äventyrare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "I det här märket får du testa att vara offline 48 timmar och reflektera över hur det känns.",
+        "kriterier": ["Under 48 timmar ska du vara utan mobiltelefon och andra tekniska prylar som kan kopplas upp mot internet.","Börja de 48 timmarna med att göra en lista på saker du tror du kommer tycka är bra respektive jobbiga med att inte ha någon uppkoppling. Gör samma sak efter 24 timmar och sen igen efter 48 timmar.","Gör en social uppgift och en kunskapsuppgift under perioden. En social uppgift kan vara att skapa eller hålla kontakt med varandra eller andra utanför gruppen eller förmedla information eller meddelanden. En kunskapsuppgift kan vara att söka svar på frågor eller lösa problem.","I slutet av 48-timmarsperioden ska ni reflektera över vad som hände. Kändes det på olika sätt i början och slutet av perioden? Diskutera fördelar och nackdelar med uppkopplade prylar. Hur påverkar de våra relationer och vår förmåga att hantera och lösa problem. Finns det något som du vill göra annorlunda nu när du testat att inte vara uppkopplad hela tiden?"],
         "program":  [
                         "Scouterna"
                     ],
@@ -1986,8 +1986,8 @@
         "malgrupp":  [
                          "Utmanare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "I märket får du lära dig om människans grundläggande behov för överlevnad och hur du kan uppfylla dem i svåra situationer, såväl hemma som ute i naturen.",
+        "kriterier": ["Förstår människans grundläggande behov av värme, vatten och mat.","Känna till vad du behöver för att kunna klara dig i 72 timmar i en nödsituation.","Kunna orientera/navigera utan karta och kompass.","Skapa en säker övernattningsplats av naturliga medel och övernatta i den en natt.","Ha kännedom vad som är ätbart i svensk natur och identifiera när under året olika födoämnen finns att hitta, som bär, fisk, svamp eller växter."],
         "program":  [
                         "Scouterna"
                     ],
@@ -2001,8 +2001,8 @@
         "malgrupp":  [
                          "Äventyrare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "I det här märket ska du vara vaken i 24 timmar och utforska vad det gör med kropp och knopp.",
+        "kriterier": ["Var vaken 24 timmar i sträck.","Gör en valfri aktivitet eller lek tillsammans med andra varannan timme under dygnet.","Samtala kort om hur det gick efter varje aktivitet. Var det lättare eller svårare än på dagen eller tidigare på kvällen? När var det roligare och när var det tråkigare att göra aktiviteter?","När de 24 timmarna är över ska du reflektera över: Förutom när du vill ta ett märke, finns det andra anledningar till att vilja eller behöva vara vaken 24 timmar i sträck? Hur blir du när du är trött? Finns det saker som blir farliga att göra när man inte sovit tillräckligt?"],
         "program":  [
                         "Scouterna"
                     ],
@@ -2016,8 +2016,8 @@
         "malgrupp":  [
                          "Utmanare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "I det här märket får du sova ute och uppleva naturen under olika årstider.",
+        "kriterier": ["Sov ute minst en natt under var och en av årets 12 månader. Det måste inte vara 12 månader i rad, men alla månader måste gås igenom.","Du får bara använda samma sovplats vid två tillfällen.","Gör en årstidsbaserad aktivitet vid varje tillfälle. Exempelvis hoppa i en lövhög på hösten, bygg en snöskulptur på vintern, ta ett nattligt bad på sommaren och pyssla med naturmaterial på våren.","Dokumentera ditt år genom text och bild och dela med dig till dina scoutkompisar."],
         "program":  [
                         "Scouterna"
                     ],
@@ -2073,8 +2073,8 @@
         "malgrupp":  [
                          "Spårare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Sova borta helg är det första i en märkesstegring om att sova hemifrån. I det här märket ska du sova över i ett scoutsammanhang sammanlagt två nätter.",
+        "kriterier": ["För att få märket Sova borta helg ska du ha klarat att sova på ett scoutläger, hajk, segling, övernattning eller liknande under sammanlagt en helg (2 nätter)."],
         "program":  [
                         "Scouterna"
                     ],
@@ -2088,8 +2088,8 @@
         "malgrupp":  [
                          "Upptäckare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Sova borta vecka är det andra i en märkesstegring om att sova hemifrån. I det här märket ska du sova över i ett scoutsammanhang sammanlagt en vecka.",
+        "kriterier": ["För att få märket Sova borta vecka ska du ha klarat att sova på ett scoutläger, hajk, segling, övernattning eller liknande under sammanlagt en vecka (7 nätter)."],
         "program":  [
                         "Scouterna"
                     ],
@@ -2103,8 +2103,8 @@
         "malgrupp":  [
                          "Äventyrare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Sova borta månad är det tredje i en märkesstegring om att sova hemifrån. I det här märket ska du sova över i ett scoutsammanhang sammanlagt en månad.",
+        "kriterier": ["För att få märket Sova borta månad ska du ha klarat att sova på ett scoutläger, hajk, segling, övernattning eller liknande under sammanlagt en månad (30 nätter)."],
         "program":  [
                         "Scouterna"
                     ],
@@ -2118,8 +2118,8 @@
         "malgrupp":  [
                          "Utmanare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Sova borta 100 är det fjärde i en märkesstegring om att sova hemifrån. I det här märket ska du sova över i ett scoutsammanhang sammanlagt 100 nätter.",
+        "kriterier": ["För att få märket Sova borta 100 ska du ha klarat att sova på ett scoutläger, hajk, segling, övernattning eller liknande under sammanlagt 100 dagar*."],
         "program":  [
                         "Scouterna"
                     ],
@@ -2133,8 +2133,8 @@
         "malgrupp":  [
                          "Rover"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Sova borta år är det femte i en märkesstegring om att sova hemifrån. I det här märket ska du sova över i ett scoutsammanhang sammanlagt ett år.",
+        "kriterier": ["För att få märket Sova borta år ska du ha klarat att sova på ett scoutläger, hajk, segling, övernattning eller liknande under sammanlagt ett år."],
         "program":  [
                         "Scouterna"
                     ],
@@ -2148,8 +2148,8 @@
         "malgrupp":  [
                          "Utmanare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Det här är ett intressemärke som du själv eller patrullen fyller med precis det innehåll som du själv/ni själva vill. I Ditt eget märke kan du förverkliga alla roliga, tokiga, knasiga, vanliga eller unika idéer till ett märke - ingrediensen är din egen fantasi och ramarna bestämmer du.",
+        "kriterier": ["Bestäm vad märket ska fokusera på och vad som är målet med märket.","Bestäm vilka kriterier som ska ingå och hur detta ska genomföras.","Genomför kriterierna.","Berätta för dina patrullkompisar vad du gjort och varför."],
         "program":  [
                         "Scouterna"
                     ],
@@ -2163,8 +2163,8 @@
         "malgrupp":  [
                          "Familjescouter"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Fröet är det första i en märkesstegring om odling. I det här märket får du lära dig vad växter behöver för att leva.",
+        "kriterier": ["Så ett frö, ta hand om det som växer och visa eller berätta vad som hänt med fröet från möte till möte.","Lär dig vad växter behöver för att leva (jord, sol, vatten, luft).","Tillverka någon typ av fågelmat av frön. Vilka frön tycker fåglar om?","Provsmaka olika frön. Vilka frön tycker du om?"],
         "program":  [
                         "Scouterna"
                     ],
@@ -2178,8 +2178,8 @@
         "malgrupp":  [
                          "Spårare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Blomman är det andra i en märkesstegring om odling. I det här märket får du lära dig om olika blommor och hur de sprids.",
+        "kriterier": ["Så eller odla två likadana blommor. Ge dem olika förutsättningar och upptäck hur skillnaden blir. (olika mycket ljus, vatten eller näring osv)","Lär dig om olika typer av blommor som finns i Sverige, till exempel vilka som är invasiva giftiga, fridlysta eller ätbara.","Upptäck pollinatörer! Hitta insekter som hjälper växter att växa och prata om varför de är viktiga.","Gör något för pollinatörerna exempelvis ett bihotell eller blomlåda med nektarväxter."],
         "program":  [
                         "Scouterna"
                     ],
@@ -2193,8 +2193,8 @@
         "malgrupp":  [
                          "Upptäckare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Skörden är det tredje i en märkesstegring om odling. I det här märket får du följa en odlingsprocess.",
+        "kriterier": ["Planera och genomför en egen odling med ätbara växter, t.ex. pallkrage, fönsterodling eller hydroponik.","Kunna berätta om vad de växter du planterat behöver för att trivas.","Delta i en aktivitet där patrullen får hjälpa till att skörda och laga något av skörden.","Diskutera hur odling hänger ihop med hållbarhet, matproduktion och klimat.","Reflektera över hur vi kan bidra till ett mer hållbart samhälle genom våra val av mat och konsumtion."],
         "program":  [
                         "Scouterna"
                     ],
@@ -2208,8 +2208,8 @@
         "malgrupp":  [
                          "Spårare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Experimentettan är det första i en märkesstegring om experiment.",
+        "kriterier": ["Genomför någon form av vetenskapligt experiment under vägledning av ledare.","Testa att genomföra minst två lättare experiment i din patrull.","Lär dig om kemikalier (naturliga och konstruerade) och undersök var man kan hitta dem. Exempel på experiment att testa: o Osynligt bläck o Mjölk och färg-experiment o Växthus-effekten i en burk o Skapa en regnbåge i ett glas o Gör eget slime eller oobleck o Få en växt eller blomma att byta färg"],
         "program":  [
                         "Scouterna"
                     ],
@@ -2223,8 +2223,8 @@
         "malgrupp":  [
                          "Upptäckare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Experimenttvåan är det andra i en märkesstegring om experiment.",
+        "kriterier": ["Genomför experiment för att bestämma brännbarheten, hårdheten och ursprunget för tre material.","Gör en hemmagjord pH-indikator (rödkålsindikator) och kontrollera resultaten med olika vätskor.","Testa två svårare experiment","Förstå grundläggande säkerhet vid genomförande av experiment","Kom på ett eget experiment som ni planerar och genomför i patrullen tillsammans med en ledare. Exempel på experiment att testa: o Testa vattenrening med enkla metoder o Skapa en raket av bakpulver och ättika o Elefanttandkräm o Lava-lampa o Bygga en vulkan o Gör tvål och förklara vad som händer under processen."],
         "program":  [
                         "Scouterna"
                     ],
@@ -2238,8 +2238,8 @@
         "malgrupp":  [
                          "Äventyrare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Experimenttrean är det tredje i en märkesstegring om experiment.",
+        "kriterier": ["Kunna planera experiment säkert och värdera risker innan experiment genomförs.","Planera och genomför komplexa experiment tillsammans med patrullen och ledaren.","Öva på att försöka förutspå experiment. Skapa en hypotes, testa experimentet och reflektera över resultatet.","Lär dig om ett experiment och visa hur det fungerar för andra i avdelningen, eller yngre scouter Exempel på experiment","Gör kaseinplast/mjölkplast. Experimentera med olika temperaturer och typer av mjölk och syra t.ex. vinäger citron, apelsin och jämför resultaten.","Färga kläder genom ex. batiktryck, batikfärgning eller genom att använda växtfärger."],
         "program":  [
                         "Scouterna"
                     ],
@@ -2253,8 +2253,8 @@
         "malgrupp":  [
                          "Spårare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Säker på nätet det första i en serie om teknik och mekanik. I det här märket får du lära dig hur du gör när någon utsätts för något dåligt på nätet, utforska hur du vet vad som är sant och inte sant och hur man själv beter sig på nätet. Märkeskrav • Lär dig hur du håller dig säker och är en bra kompis på nätet. • Lära dig vad som kan hända på nätet och vad du gör om något obehagligt händer eller nån beter sig dåligt. • Förstår att saker både är sant och inte sant på nätet. Går det att veta skillnaden? • Veta när jag inte borde dela vidare något jag sett på nätet. Tekniken Upptäckare Inledning Märket Tekniken är det andra i en serie om teknik och mekanik. I det här märket får du utforska hur en maskin eller ett verktyg fungerar.",
+        "kriterier": ["Plocka isär en trasig hushållsmaskin eller ett verktyg.","Försöka identifiera vilken funktion de olika delarna kan ha","Se om ni kan hitta varför maskinen slutat fungera","Fundera på hur tillverkaren skulle kunna göra maskinen bättre"],
         "program":  [
                         "Scouterna"
                     ],
@@ -2268,8 +2268,8 @@
         "malgrupp":  [
                          "Upptäckare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Tekniken är det andra i en serie om teknik och mekanik. I det här märket får du utforska hur en maskin eller ett verktyg fungerar.",
+        "kriterier": ["Plocka isär en trasig hushållsmaskin eller ett verktyg.","Försöka identifiera vilken funktion de olika delarna kan ha","Se om ni kan hitta varför maskinen slutat fungera","Fundera på hur tillverkaren skulle kunna göra maskinen bättre"],
         "program":  [
                         "Scouterna"
                     ],
@@ -2283,8 +2283,8 @@
         "malgrupp":  [
                          "Äventyrare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Maskinen är det tredje i en serie om teknik och mekanik. I det här märket får du skapa en maskin med hjälp av sol, vind eller vatten.",
+        "kriterier": ["Upplev hur vinden, som nästan alltid blåser, kan användas för att driva en dynamo eller en maskin.","Upplev hur solens strålar kan värma vatten och få en idé om hur de kan användas för att skapa energi.","Upplev hur vatten kan användas för att driva maskiner och få en idé om hur man med vattenkraft kan producera el.","Skapa en maskin av något slag, som kan använda något av det du lärt dig från tidigare punkter.","Fundera över hur maskinen ni skapat kan göras bättre om ni gjorde den igen, med obegränsade förutsättningar."],
         "program":  [
                         "Scouterna"
                     ],
@@ -2298,8 +2298,8 @@
         "malgrupp":  [
                          "Utmanare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Innovationen är det fjärde i en serie om teknik och mekanik. I det här märket får du skapa något digitalt i ett projekt.",
+        "kriterier": ["Med hjälp av en kombination av programmering, digital konst, digitala enheter, elektroniska komponenter och andra lämpliga material ska du skapa något digitalt som kan användas i en scoutaktivitet.","Använd en enkel projektmodell för idéutveckling, planering, genomförande och utvärdering av ett självvalt digitalt projekt.","Genomför ett mindre projekt med utgångspunkt i en projektplan.","Skapa och testa en prototyp av en maskin, eller lösning som patrullen bygger tillsammans.","Avsluta projektet med att fundera över vad ni skulle förändra om ni gjorde en ny version av ert projekt."],
         "program":  [
                         "Scouterna"
                     ],
@@ -2313,8 +2313,8 @@
         "malgrupp":  [
                          "Äventyrare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Spara är det första i en serie om pengar. I det här märket får du hantera dina och patrullens pengar.",
+        "kriterier": ["Samla in pengar tillsammans i patrullen för en aktivitet genom att exempelvis ha en loppis","Planera hur en begränsad summa pengar ska räcka för patrullaktivitet.","Anteckna hur mycket pengar du gör av med mellan två scoutmöten. Testa att minska dina utgifter mellan nästkommande möten."],
         "program":  [
                         "Scouterna"
                     ],
@@ -2328,8 +2328,8 @@
         "malgrupp":  [
                          "Utmanare"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Budgetera är det andra i en serie om pengar. I det här märket får du planera hur du ska spendera patrullens pengar.",
+        "kriterier": ["Planera hur en begränsad summa pengar ska räcka för en längre patrullaktivitet.","Lär dig hur man redovisar utlägg i din kår.","Reflektera tillsammans hur det gick att hålla en budget från en hajk eller övernattning.","Byt till dig en ny sak och uppmuntra cirkulär ekonomi"],
         "program":  [
                         "Scouterna"
                     ],
@@ -2343,8 +2343,8 @@
         "malgrupp":  [
                          "Rover"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Märket Deklarera är det tre i en serie om pengar. I det här märket får du lära dig om hur pengar i samhället fungerar.",
+        "kriterier": ["Lämna in en inkomstdeklaration.","Lär sig om hur lån (till exempel bolån, billån och snabblån), abonnemang, avbetalning, ränta och amortering fungerar.","Sätt dig in i hur föreningsekonomi fungerar, till exempel genom att skugga kårens kassör.","Undersök vad du får för skatten du betalar.","Skapa en månadsbudget med nödvändiga utgifter, till exempel boende, mat, mobil, försäkring och transport. Diskutera även vad som är rimligt att lägga på kläder och underhållning. Fundera på om det är något särskilt du vill spara till, på kort sikt eller på lång sikt."],
         "program":  [
                         "Scouterna"
                     ],
@@ -2358,8 +2358,8 @@
         "malgrupp":  [
                          "Rover"
                      ],
-        "inledning": "",
-        "kriterier": [],
+        "inledning": "Det här märket handlar om att du specialiserar dig inom ett visst område. Välj ett område som du redan är intresserad av och fördjupa dig inom det.",
+        "kriterier": ["Lär sig så mycket du kan om ditt område under en begränsad tidsperiod, till exempel sex månader.","Förbered en presentation på 30 sekunder där du berättar om ditt område och fördjupning."],
         "program":  [
                         "Scouterna"
                     ],
