@@ -1201,9 +1201,9 @@ function addDefaultPlanningForLevel(level) {
 }
 
 document.getElementById("loadDefaultsBtn").addEventListener("click", () => {
-    defaultPlanningLevel.value = document.getElementById("groupLevel").value;
-    defaultPlanningModal.classList.remove("hidden");
-    defaultPlanningLevel.focus();
+    const selectedLevel = document.getElementById("groupLevel").value;
+    addDefaultPlanningForLevel(selectedLevel);
+    groupModal.classList.add("hidden");
 });
 
 document.getElementById("closeDefaultPlanningModal").addEventListener("click", () => {
