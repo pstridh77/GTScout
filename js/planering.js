@@ -434,8 +434,11 @@ function exportPlannings() {
     URL.revokeObjectURL(downloadUrl);
 
     const exportInfoBody = document.getElementById("exportInfoBody");
+    const activityCount = groups.reduce((count, group) =>
+        count + (Array.isArray(group.activities) ? group.activities.length : 0), 0);
     exportInfoBody.innerHTML = `
         <p><strong>Planeringar:</strong> ${groups.length}</p>
+        <p><strong>Aktiviteter:</strong> ${activityCount}</p>
         <p><strong>Info-fält:</strong> ${Object.keys(badgeNotes).length}</p>
         <p><strong>Fil:</strong> gtscout-planeringar-${new Date().toISOString().slice(0, 10)}.json</p>
     `;
@@ -1594,7 +1597,7 @@ function showBadgeDetail(marke, planningId = null) {
             planning.activities = [...new Set(planning.activities)];
             saveGroups();
             renderPlanning();
-            detailPopup.classList.add("hidden");
+            showBadgeDetail(marke, planning.id);
         });
     }
     detailPopup.classList.remove("hidden");

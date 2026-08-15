@@ -24,6 +24,7 @@ if (siteMenuBtn && siteMenuDropdown) {
 
 let allMarken = [];
 let allAktiviteter = [];
+let activePopupBadge = null;
 const PLANNING_STORAGE_KEY = "gtscout_planering";
 const BADGE_NOTES_STORAGE_KEY = "gtscout_badge_notes";
 const CUSTOM_ACTIVITIES_STORAGE_KEY = "gtscout_custom_activities";
@@ -97,6 +98,15 @@ function formatActivityTime(activity) {
 function getActivitiesForBadge(marke) {
     const activityIds = getBadgeActivityIds(marke);
     return activityIds
+        .map(activityId => allAktiviteter.find(activity => activity.id === activityId))
+        .filter(Boolean);
+}
+
+function getPlannedActivitiesForBadge(marke) {
+    const plannedActivityIds = loadPlannings()
+        .filter(planning => Array.isArray(planning.badges) && planning.badges.includes(marke.id))
+        .flatMap(planning => getPlanningActivities(planning));
+    return [...new Set(plannedActivityIds)]
         .map(activityId => allAktiviteter.find(activity => activity.id === activityId))
         .filter(Boolean);
 }
@@ -720,6 +730,7 @@ function getCategoryIconPath(marke) {
 }
 
 function showPopup(marke) {
+    activePopupBadge = marke;
     const body = popup.querySelector(".popup-body");
     const criteriaList = marke.kriterier
         ? marke.kriterier.map(k => `<li>${k}</li>`).join("")
@@ -729,12 +740,15 @@ function showPopup(marke) {
     const badgePlannings = getBadgePlannings(marke.id);
     const badgeNote = loadBadgeNotes()[marke.id] || "";
     const badgeActivities = getActivitiesForBadge(marke);
+    const plannedActivities = getPlannedActivitiesForBadge(marke);
+    const activityIds = new Set(badgeActivities.map(activity => activity.id));
+    const activities = [...badgeActivities, ...plannedActivities.filter(activity => !activityIds.has(activity.id))];
     const activitySection = `
         <div class="detail-activities">
-            <strong>Aktivitetsförslag:</strong>
+            <strong>Aktiviteter:</strong>
             <div class="activity-list">
-                ${badgeActivities.length > 0
-                    ? badgeActivities.map(activity => `
+                ${activities.length > 0
+                    ? activities.map(activity => `
                         <div class="activity-item">
                                 <span class="activity-item-name"><strong>${activity.namn}</strong>${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}</span>
                             <button class="activity-info-button" type="button" data-activity-id="${activity.id}" aria-label="Visa detaljer för ${activity.namn}">i</button>
@@ -821,4 +835,10 @@ function showPopup(marke) {
     });
     popup.classList.remove("hidden");
 }
+
+window.addEventListener("storage", event => {
+    if (event.key === PLANNING_STORAGE_KEY && activePopupBadge && !popup.classList.contains("hidden")) {
+        showPopup(activePopupBadge);
+    }
+});
 
