@@ -1,5 +1,7 @@
 const STORAGE_KEY = "gtscout_planering";
 const BADGE_NOTES_STORAGE_KEY = "gtscout_badge_notes";
+const CUSTOM_ACTIVITIES_STORAGE_KEY = "gtscout_custom_activities";
+const CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY = "gtscout_custom_badge_activities";
 
 const DEFAULT_PLANNINGS_FALLBACK = [
     {
@@ -68,6 +70,32 @@ let groupFilters = { search: "", level: "Alla" };
 let pdfSelectionState = new Set();
 const BADGE_DND_MIME = "text/plain";
 
+function loadCustomActivities() {
+    try {
+        const activities = JSON.parse(localStorage.getItem(CUSTOM_ACTIVITIES_STORAGE_KEY));
+        return Array.isArray(activities) ? activities : [];
+    } catch {
+        return [];
+    }
+}
+
+function loadCustomBadgeActivities() {
+    try {
+        const links = JSON.parse(localStorage.getItem(CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY));
+        return links && typeof links === "object" && !Array.isArray(links) ? links : {};
+    } catch {
+        return {};
+    }
+}
+
+function getBadgeActivityIds(marke) {
+    const links = loadCustomBadgeActivities();
+    return [
+        ...(Array.isArray(marke.aktiviteter) ? marke.aktiviteter : []),
+        ...(Array.isArray(links[marke.id]) ? links[marke.id] : [])
+    ];
+}
+
 // ── Persistence ────────────────────────────────────────────────────────────
 
 function loadGroups() {
@@ -102,7 +130,9 @@ function exportPlannings() {
             badges: Array.isArray(group.badges) ? group.badges : [],
             activities: Array.isArray(group.activities) ? group.activities : []
         })),
-        badgeNotes
+        badgeNotes,
+        customActivities: loadCustomActivities(),
+        customBadgeActivities: loadCustomBadgeActivities()
     };
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
     const downloadUrl = URL.createObjectURL(blob);
@@ -316,6 +346,30 @@ function importPlannings(file) {
             const importedNotes = parsed && !Array.isArray(parsed) && parsed.badgeNotes && typeof parsed.badgeNotes === "object"
                 ? parsed.badgeNotes
                 : {};
+            const importedActivities = parsed && !Array.isArray(parsed) && Array.isArray(parsed.customActivities)
+                ? parsed.customActivities.filter(activity => activity && typeof activity.id === "string" && typeof activity.namn === "string")
+                : [];
+            const importedActivityLinks = parsed && !Array.isArray(parsed) && parsed.customBadgeActivities && typeof parsed.customBadgeActivities === "object"
+                ? parsed.customBadgeActivities
+                : {};
+            const customActivities = loadCustomActivities();
+            const activityIds = new Set(customActivities.map(activity => activity.id));
+            importedActivities.forEach(activity => {
+                if (!activityIds.has(activity.id)) {
+                    customActivities.push(activity);
+                    activityIds.add(activity.id);
+                }
+            });
+            const customBadgeActivities = loadCustomBadgeActivities();
+            Object.entries(importedActivityLinks).forEach(([badgeId, activityIdsForBadge]) => {
+                if (!Array.isArray(activityIdsForBadge)) return;
+                customBadgeActivities[badgeId] = [
+                    ...new Set([
+                        ...(Array.isArray(customBadgeActivities[badgeId]) ? customBadgeActivities[badgeId] : []),
+                        ...activityIdsForBadge.filter(activityId => activityIds.has(activityId))
+                    ])
+                ];
+            });
             const badgeNotes = loadBadgeNotesForTransfer();
             let importedNoteCount = 0;
             Object.entries(importedNotes).forEach(([badgeId, note]) => {
@@ -336,8 +390,14 @@ function importPlannings(file) {
             });
             saveGroups();
             localStorage.setItem(BADGE_NOTES_STORAGE_KEY, JSON.stringify(badgeNotes));
+            localStorage.setItem(CUSTOM_ACTIVITIES_STORAGE_KEY, JSON.stringify(customActivities));
+            localStorage.setItem(CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY, JSON.stringify(customBadgeActivities));
+            allAktiviteter = [
+                ...allAktiviteter.filter(activity => !activity.id.startsWith("egen-")),
+                ...customActivities
+            ];
             renderPlanning();
-            alert(`${validPlannings.length} planeringar och ${importedNoteCount} Info-fält importerades.`);
+            alert(`${validPlannings.length} planeringar, ${importedActivities.length} aktiviteter och ${importedNoteCount} Info-fält importerades.`);
         } catch (error) {
             alert("Kunde inte importera planeringarna. Kontrollera att filen är en giltig JSON-export.");
         }
@@ -355,10 +415,12 @@ async function loadMarken() {
             fetch("data/aktiviteter.json")
         ]);
         if (!markenResponse.ok || !aktiviteterResponse.ok) throw new Error("Datafiler kunde inte laddas");
-        [allMarken, allAktiviteter] = await Promise.all([
+        const [marken, aktiviteter] = await Promise.all([
             markenResponse.json(),
             aktiviteterResponse.json()
         ]);
+        allMarken = marken;
+        allAktiviteter = [...aktiviteter, ...loadCustomActivities()];
     } catch (err) {
         console.error("Kunde inte ladda marken.json", err);
     }
@@ -1073,7 +1135,7 @@ const activityDetailPopup = createActivityDetailPopup();
 
 function showActivityDetail(activity) {
     const linkedBadges = allMarken
-        .filter(marke => Array.isArray(marke.aktiviteter) && marke.aktiviteter.includes(activity.id))
+        .filter(marke => getBadgeActivityIds(marke).includes(activity.id))
         .map(marke => marke.namn)
         .join(", ");
     const material = Array.isArray(activity.material) ? activity.material : [];
@@ -1106,7 +1168,7 @@ function showBadgeDetail(marke, planningId = null) {
         Array.isArray(group.badges) && group.badges.includes(marke.id)
     );
     const planning = planningId ? groups.find(group => group.id === planningId) : null;
-    const activities = (Array.isArray(marke.aktiviteter) ? marke.aktiviteter : [])
+    const activities = getBadgeActivityIds(marke)
         .map(activityId => allAktiviteter.find(activity => activity.id === activityId))
         .filter(Boolean);
     const selectedActivities = new Set(planning && Array.isArray(planning.activities) ? planning.activities : []);

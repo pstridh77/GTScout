@@ -334,9 +334,33 @@ header {
     max-width: 360px;
 }
 
+.custom-activity-popup-content {
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.custom-activity-popup-content .modal-field textarea,
+.custom-activity-popup-content .modal-field input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.custom-activity-popup-content h2 {
+    margin: 0;
+    color: #003660;
+}
+
 .activity-popup-body {
     min-width: 0;
     overflow-wrap: anywhere;
+}
+
+.activity-popup-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 18px;
 }
 
 .detail-category-row {
@@ -1036,13 +1060,26 @@ header {
 }
 
 .modal-field input,
-.modal-field select {
+.modal-field select,
+.modal-field textarea {
     padding: 10px 12px;
     border: 1px solid #d0d7de;
     border-radius: 10px;
     font: inherit;
     color: #003660;
     background: white;
+}
+
+.modal-field textarea {
+    resize: vertical;
+}
+
+.modal-field input:focus,
+.modal-field select:focus,
+.modal-field textarea:focus {
+    outline: 2px solid #93c5fd;
+    outline-offset: 1px;
+    border-color: #2563eb;
 }
 
 .modal-actions { display: flex; justify-content: flex-end; }

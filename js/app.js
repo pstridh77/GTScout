@@ -9,6 +9,8 @@ let allMarken = [];
 let allAktiviteter = [];
 const PLANNING_STORAGE_KEY = "gtscout_planering";
 const BADGE_NOTES_STORAGE_KEY = "gtscout_badge_notes";
+const CUSTOM_ACTIVITIES_STORAGE_KEY = "gtscout_custom_activities";
+const CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY = "gtscout_custom_badge_activities";
 const filters = {
     search: "",
     category: "Alla",
@@ -32,7 +34,7 @@ async function loadMarken() {
             aktiviteterResponse.json()
         ]);
         allMarken = marken;
-        allAktiviteter = aktiviteter;
+        allAktiviteter = [...aktiviteter, ...loadCustomActivities()];
         renderMarken(marken);
     } catch (error) {
         console.error("Failed to load marken.json", error);
@@ -43,15 +45,41 @@ async function loadMarken() {
     }
 }
 
+function loadCustomActivities() {
+    try {
+        const activities = JSON.parse(localStorage.getItem(CUSTOM_ACTIVITIES_STORAGE_KEY));
+        return Array.isArray(activities) ? activities : [];
+    } catch {
+        return [];
+    }
+}
+
+function loadCustomBadgeActivities() {
+    try {
+        const links = JSON.parse(localStorage.getItem(CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY));
+        return links && typeof links === "object" && !Array.isArray(links) ? links : {};
+    } catch {
+        return {};
+    }
+}
+
+function getBadgeActivityIds(marke) {
+    const links = loadCustomBadgeActivities();
+    return [
+        ...(Array.isArray(marke.aktiviteter) ? marke.aktiviteter : []),
+        ...(Array.isArray(links[marke.id]) ? links[marke.id] : [])
+    ];
+}
+
 function getActivitiesForBadge(marke) {
-    const activityIds = Array.isArray(marke.aktiviteter) ? marke.aktiviteter : [];
+    const activityIds = getBadgeActivityIds(marke);
     return activityIds
         .map(activityId => allAktiviteter.find(activity => activity.id === activityId))
         .filter(Boolean);
 }
 
 function getBadgesForActivity(activityId) {
-    return allMarken.filter(marke => Array.isArray(marke.aktiviteter) && marke.aktiviteter.includes(activityId));
+    return allMarken.filter(marke => getBadgeActivityIds(marke).includes(activityId));
 }
 
 function getPlanningActivities(planning) {
@@ -506,6 +534,95 @@ function createActivityPopup() {
 
 const activityPopup = createActivityPopup();
 
+let activeCustomActivityBadge = null;
+let activeCustomActivityId = null;
+let activeActivityBadge = null;
+
+function createCustomActivityPopup() {
+    const popup = document.createElement("div");
+    popup.className = "detail-popup hidden";
+    popup.innerHTML = `
+        <div class="detail-popup-content custom-activity-popup-content">
+            <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2 class="custom-activity-title">Skapa egen aktivitet</h2>
+            <label class="modal-field"><span>Namn</span><input class="custom-activity-name" type="text" required></label>
+            <label class="modal-field"><span>Beskrivning</span><textarea class="custom-activity-description" rows="3"></textarea></label>
+            <label class="modal-field"><span>Tid i minuter</span><input class="custom-activity-time" type="number" min="0" step="5"></label>
+            <label class="modal-field"><span>Material, ett per rad</span><textarea class="custom-activity-material" rows="3"></textarea></label>
+            <label class="modal-field"><span>Genomförande</span><textarea class="custom-activity-instructions" rows="4"></textarea></label>
+            <p class="custom-activity-status detail-planning-status" role="status"></p>
+            <div class="modal-actions"><button class="btn-primary save-custom-activity" type="button">Spara aktivitet</button></div>
+        </div>
+    `;
+    popup.querySelector(".close-popup").addEventListener("click", () => popup.classList.add("hidden"));
+    popup.addEventListener("click", event => {
+        if (event.target === popup) popup.classList.add("hidden");
+    });
+    popup.querySelector(".save-custom-activity").addEventListener("click", () => saveCustomActivity(popup));
+    document.body.appendChild(popup);
+    return popup;
+}
+
+const customActivityPopup = createCustomActivityPopup();
+
+function openCustomActivityPopup(marke, activity = null) {
+    activeCustomActivityBadge = marke;
+    activeCustomActivityId = activity ? activity.id : null;
+    customActivityPopup.querySelector(".custom-activity-title").textContent = activity ? "Redigera aktivitet" : "Skapa egen aktivitet";
+    customActivityPopup.querySelector(".save-custom-activity").textContent = activity ? "Spara ändringar" : "Spara aktivitet";
+    customActivityPopup.querySelector(".custom-activity-name").value = activity?.namn || "";
+    customActivityPopup.querySelector(".custom-activity-description").value = activity?.beskrivning || "";
+    customActivityPopup.querySelector(".custom-activity-time").value = activity?.tid || "";
+    customActivityPopup.querySelector(".custom-activity-material").value = Array.isArray(activity?.material) ? activity.material.join("\n") : "";
+    customActivityPopup.querySelector(".custom-activity-instructions").value = activity?.genomforande || "";
+    customActivityPopup.querySelector(".custom-activity-status").textContent = "";
+    customActivityPopup.classList.remove("hidden");
+    customActivityPopup.querySelector(".custom-activity-name").focus();
+}
+
+function saveCustomActivity(popup) {
+    const nameInput = popup.querySelector(".custom-activity-name");
+    const name = nameInput.value.trim();
+    if (!name || !activeCustomActivityBadge) {
+        nameInput.focus();
+        return;
+    }
+    const activity = {
+        id: activeCustomActivityId || `egen-${crypto.randomUUID()}`,
+        namn: name,
+        beskrivning: popup.querySelector(".custom-activity-description").value.trim(),
+        tid: Number(popup.querySelector(".custom-activity-time").value) || 0,
+        material: popup.querySelector(".custom-activity-material").value
+            .split(/\r?\n/)
+            .map(item => item.trim())
+            .filter(Boolean),
+        genomforande: popup.querySelector(".custom-activity-instructions").value.trim()
+    };
+    const activities = loadCustomActivities();
+    const existingIndex = activities.findIndex(item => item.id === activity.id);
+    if (existingIndex === -1) {
+        activities.push(activity);
+    } else {
+        activities[existingIndex] = activity;
+    }
+    localStorage.setItem(CUSTOM_ACTIVITIES_STORAGE_KEY, JSON.stringify(activities));
+    if (!activeCustomActivityId) {
+        const links = loadCustomBadgeActivities();
+        links[activeCustomActivityBadge.id] = Array.isArray(links[activeCustomActivityBadge.id])
+            ? links[activeCustomActivityBadge.id]
+            : [];
+        if (!links[activeCustomActivityBadge.id].includes(activity.id)) {
+            links[activeCustomActivityBadge.id].push(activity.id);
+        }
+        localStorage.setItem(CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY, JSON.stringify(links));
+    }
+    const activityIndex = allAktiviteter.findIndex(item => item.id === activity.id);
+    if (activityIndex === -1) allAktiviteter.push(activity);
+    else allAktiviteter[activityIndex] = activity;
+    popup.classList.add("hidden");
+    showPopup(activeCustomActivityBadge);
+}
+
 function showActivityPopup(activity) {
     const linkedBadges = getBadgesForActivity(activity.id).map(marke => marke.namn).join(", ");
     const material = Array.isArray(activity.material) ? activity.material : [];
@@ -516,8 +633,50 @@ function showActivityPopup(activity) {
         ${material.length > 0 ? `<div><strong>Material:</strong><ul>${material.map(item => `<li>${item}</li>`).join("")}</ul></div>` : ""}
         ${activity.genomforande ? `<div><strong>Genomförande:</strong><p>${activity.genomforande}</p></div>` : ""}
         ${linkedBadges ? `<p><strong>Kopplad till märken:</strong> ${linkedBadges}</p>` : ""}
+        ${activity.id.startsWith("egen-") ? `
+            <div class="activity-popup-actions">
+                <button class="btn-secondary edit-custom-activity" type="button">Redigera</button>
+                <button class="btn-danger delete-custom-activity" type="button">Radera</button>
+            </div>
+        ` : ""}
     `;
+    const editButton = activityPopup.querySelector(".edit-custom-activity");
+    if (editButton) {
+        editButton.addEventListener("click", () => {
+            const badge = getBadgesForActivity(activity.id)[0];
+            if (badge) {
+                activityPopup.classList.add("hidden");
+                openCustomActivityPopup(badge, activity);
+            }
+        });
+    }
+    const deleteButton = activityPopup.querySelector(".delete-custom-activity");
+    if (deleteButton) deleteButton.addEventListener("click", () => deleteCustomActivity(activity));
     activityPopup.classList.remove("hidden");
+}
+
+function deleteCustomActivity(activity) {
+    if (!confirm(`Radera aktiviteten "${activity.namn}"?`)) return;
+    const activities = loadCustomActivities().filter(item => item.id !== activity.id);
+    localStorage.setItem(CUSTOM_ACTIVITIES_STORAGE_KEY, JSON.stringify(activities));
+    const links = loadCustomBadgeActivities();
+    Object.keys(links).forEach(badgeId => {
+        links[badgeId] = Array.isArray(links[badgeId])
+            ? links[badgeId].filter(activityId => activityId !== activity.id)
+            : [];
+    });
+    localStorage.setItem(CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY, JSON.stringify(links));
+    const plannings = loadPlannings().map(planning => ({
+        ...planning,
+        activities: Array.isArray(planning.activities)
+            ? planning.activities.filter(activityId => activityId !== activity.id)
+            : []
+    }));
+    localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(plannings));
+    allAktiviteter = allAktiviteter.filter(item => item.id !== activity.id);
+    activityPopup.classList.add("hidden");
+    renderMarken(allMarken);
+    if (activeActivityBadge) showPopup(activeActivityBadge);
 }
 
 function getCategoryIconPath(marke) {
@@ -545,23 +704,22 @@ function showPopup(marke) {
     const badgePlannings = getBadgePlannings(marke.id);
     const badgeNote = loadBadgeNotes()[marke.id] || "";
     const badgeActivities = getActivitiesForBadge(marke);
-    const activitySection = badgeActivities.length > 0
-        ? `
-            <div class="detail-activities">
-                <strong>Aktivitetsförslag:</strong>
-                <div class="activity-list">
-                    ${badgeActivities.map(activity => {
-                        return `
-                            <div class="activity-item">
-                                <span class="activity-item-name"><strong>${activity.namn}</strong>${activity.tid ? `<small>${activity.tid} min</small>` : ""}</span>
-                                <button class="activity-info-button" type="button" data-activity-id="${activity.id}" aria-label="Visa detaljer för ${activity.namn}">i</button>
-                            </div>
-                        `;
-                    }).join("")}
-                </div>
+    const activitySection = `
+        <div class="detail-activities">
+            <strong>Aktivitetsförslag:</strong>
+            <div class="activity-list">
+                ${badgeActivities.length > 0
+                    ? badgeActivities.map(activity => `
+                        <div class="activity-item">
+                            <span class="activity-item-name"><strong>${activity.namn}</strong>${activity.tid ? `<small>${activity.tid} min</small>` : ""}</span>
+                            <button class="activity-info-button" type="button" data-activity-id="${activity.id}" aria-label="Visa detaljer för ${activity.namn}">i</button>
+                        </div>
+                    `).join("")
+                    : "<p>Inga aktiviteter kopplade ännu.</p>"}
             </div>
-        `
-        : "";
+            <button id="createCustomActivityBtn" class="btn-secondary" type="button">Skapa egen aktivitet</button>
+        </div>
+    `;
     const planningStatus = badgePlannings.length > 0
         ? `
             <div class="detail-planning-status detail-planning-status--active">
@@ -625,11 +783,15 @@ function showPopup(marke) {
     `;
     if (badgeNote) popup.querySelector("#badgeNoteDisplay").textContent = badgeNote;
     popup.querySelector("#editBadgeNoteBtn").addEventListener("click", () => openNotePopup(marke));
+    popup.querySelector("#createCustomActivityBtn").addEventListener("click", () => openCustomActivityPopup(marke));
     popup.querySelector("#addBadgeToPlanningBtn").addEventListener("click", () => openPlanningPicker(marke));
     popup.querySelectorAll(".activity-info-button").forEach(button => {
         button.addEventListener("click", () => {
             const activity = allAktiviteter.find(item => item.id === button.dataset.activityId);
-            if (activity) showActivityPopup(activity);
+            if (activity) {
+                activeActivityBadge = marke;
+                showActivityPopup(activity);
+            }
         });
     });
     popup.classList.remove("hidden");
