@@ -61,6 +61,7 @@ const DEFAULT_PLANNINGS_FALLBACK = [
 let defaultPlannings = JSON.parse(JSON.stringify(DEFAULT_PLANNINGS_FALLBACK));
 
 let allMarken = [];
+let allAktiviteter = [];
 let groups = loadGroups();
 let activeGroupId = null; // which group is getting badges added
 let groupFilters = { search: "", level: "Alla" };
@@ -98,7 +99,8 @@ function exportPlannings() {
         plannings: groups.map(group => ({
             name: group.name,
             level: group.level,
-            badges: Array.isArray(group.badges) ? group.badges : []
+            badges: Array.isArray(group.badges) ? group.badges : [],
+            activities: Array.isArray(group.activities) ? group.activities : []
         })),
         badgeNotes
     };
@@ -220,6 +222,12 @@ function generatePlanningPdf(selectedIds) {
             </article>
         `;
     };
+    const renderActivity = activityId => {
+        const activity = allAktiviteter.find(item => item.id === activityId);
+        if (!activity) return `<p class="missing-badge">Aktivitet ${escapeHtml(activityId)} kunde inte hittas.</p>`;
+        const material = Array.isArray(activity.material) ? activity.material.join(", ") : "";
+        return `<div class="pdf-activity"><h4>${escapeHtml(activity.namn)}</h4><p>${escapeHtml(activity.beskrivning || "")}</p>${activity.tid ? `<p><strong>Tid:</strong> ${escapeHtml(activity.tid)} min</p>` : ""}${material ? `<p><strong>Material:</strong> ${escapeHtml(material)}</p>` : ""}</div>`;
+    };
     const planningSections = selectedGroups.map(group => {
         const planningIcon = getLevelIcon(group.level);
         const icon = planningIcon
@@ -231,6 +239,9 @@ function generatePlanningPdf(selectedIds) {
             ${Array.isArray(group.badges) && group.badges.length > 0
                 ? group.badges.map(renderBadge).join("")
                 : "<p>Inga märken planerade.</p>"}
+            ${Array.isArray(group.activities) && group.activities.length > 0
+                ? `<div class="pdf-activities"><h3>Aktiviteter</h3>${group.activities.map(renderActivity).join("")}</div>`
+                : ""}
         </section>
         `;
     }).join("");
@@ -319,7 +330,8 @@ function importPlannings(file) {
                     id: crypto.randomUUID(),
                     name: getImportedPlanningName(planning.name.trim(), planning.level),
                     level: planning.level,
-                    badges: Array.isArray(planning.badges) ? [...new Set(planning.badges.filter(Boolean))] : []
+                    badges: Array.isArray(planning.badges) ? [...new Set(planning.badges.filter(Boolean))] : [],
+                    activities: Array.isArray(planning.activities) ? [...new Set(planning.activities.filter(Boolean))] : []
                 });
             });
             saveGroups();
@@ -338,9 +350,15 @@ function importPlannings(file) {
 
 async function loadMarken() {
     try {
-        const response = await fetch("data/marken.json");
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        allMarken = await response.json();
+        const [markenResponse, aktiviteterResponse] = await Promise.all([
+            fetch("data/marken.json"),
+            fetch("data/aktiviteter.json")
+        ]);
+        if (!markenResponse.ok || !aktiviteterResponse.ok) throw new Error("Datafiler kunde inte laddas");
+        [allMarken, allAktiviteter] = await Promise.all([
+            markenResponse.json(),
+            aktiviteterResponse.json()
+        ]);
     } catch (err) {
         console.error("Kunde inte ladda marken.json", err);
     }
@@ -510,7 +528,7 @@ function renderGroupBadges(group) {
         return '<p class="group-empty">Inga märken planerade än.</p>';
     }
 
-    return group.badges.map(badgeId => {
+    const badges = group.badges.map(badgeId => {
         const marke = allMarken.find(m => m.id === badgeId);
         if (!marke) return "";
         return `
@@ -523,12 +541,22 @@ function renderGroupBadges(group) {
             </div>
         `;
     }).join("");
+    const activities = Array.isArray(group.activities) ? group.activities : [];
+    const activityMarkup = activities.length > 0
+        ? `<div class="planned-activities"><strong>Aktiviteter</strong>${activities.map(activityId => {
+            const activity = allAktiviteter.find(item => item.id === activityId);
+            return activity
+                ? `<div class="planned-activity"><span>${activity.namn}</span>${activity.tid ? `<small>${activity.tid} min</small>` : ""}</div>`
+                : "";
+        }).join("")}</div>`
+        : "";
+    return badges + activityMarkup;
 }
 
 // ── Groups CRUD ────────────────────────────────────────────────────────────
 
 function addGroup(name, level) {
-    groups.push({ id: crypto.randomUUID(), name, level, badges: [] });
+    groups.push({ id: crypto.randomUUID(), name, level, badges: [], activities: [] });
     saveGroups();
     renderPlanning();
 }
@@ -750,7 +778,8 @@ function addDefaultPlanningForLevel(level) {
                 id: crypto.randomUUID(),
                 name: plan.name,
                 level,
-                badges: Array.isArray(plan.badges) ? [...new Set(plan.badges)] : []
+                badges: Array.isArray(plan.badges) ? [...new Set(plan.badges)] : [],
+                activities: []
             });
             added += 1;
         }
