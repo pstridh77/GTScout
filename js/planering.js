@@ -225,7 +225,7 @@ function generatePlanningPdf(selectedIds) {
     const badgeNotes = loadBadgeNotesForTransfer();
     const selectedGroups = groups.filter(group => selectedIds.has(group.id));
     const resolveImage = imagePath => imagePath ? new URL(imagePath, window.location.href).href : "";
-    const renderBadge = badgeId => {
+    const renderBadge = (badgeId, group) => {
         const marke = allMarken.find(item => item.id === badgeId);
         if (!marke) return `<p class="missing-badge">Märke ${escapeHtml(badgeId)} kunde inte hittas.</p>`;
 
@@ -234,6 +234,15 @@ function generatePlanningPdf(selectedIds) {
             : "";
         const note = badgeNotes[marke.id]
             ? `<p><strong>Info:</strong> ${escapeHtml(badgeNotes[marke.id]).replace(/\n/g, "<br>")}</p>`
+            : "";
+        const badgeActivityIds = getBadgeActivityIds(marke);
+        const plannedActivityIds = Array.isArray(group.activities) ? group.activities : [];
+        const badgeActivities = badgeActivityIds
+            .filter(activityId => plannedActivityIds.includes(activityId))
+            .map(activityId => allAktiviteter.find(activity => activity.id === activityId))
+            .filter(Boolean);
+        const activities = badgeActivities.length > 0
+            ? `<div class="pdf-badge-activities"><strong>Aktiviteter:</strong>${badgeActivities.map(activityId => renderActivity(activityId.id)).join("")}</div>`
             : "";
         const image = resolveImage(marke.bild);
 
@@ -244,6 +253,7 @@ function generatePlanningPdf(selectedIds) {
                     <h3>${escapeHtml(marke.namn)}</h3>
                     ${marke.inledning ? `<p>${escapeHtml(marke.inledning)}</p>` : ""}
                     ${criteria}
+                    ${activities}
                     ${note}
                     <p class="pdf-category"><strong>Kategori:</strong> ${escapeHtml(marke.kategori || "Övrigt")}</p>
                     <p><strong>Målgrupp:</strong> ${escapeHtml(getTargetGroup(marke))}</p>
@@ -263,14 +273,20 @@ function generatePlanningPdf(selectedIds) {
         const icon = planningIcon
             ? `<img class="pdf-planning-icon" src="${escapeHtml(resolveImage(planningIcon))}" alt="${escapeHtml(group.level)}">`
             : "";
+        const plannedActivityIds = Array.isArray(group.activities) ? group.activities : [];
+        const linkedActivityIds = new Set((Array.isArray(group.badges) ? group.badges : []).flatMap(badgeId => {
+            const marke = allMarken.find(item => item.id === badgeId);
+            return marke ? getBadgeActivityIds(marke) : [];
+        }));
+        const unassignedActivities = plannedActivityIds.filter(activityId => !linkedActivityIds.has(activityId));
         return `
         <section class="pdf-planning">
             <h2 class="pdf-planning-heading">${icon}<span>${escapeHtml(group.name)}</span></h2>
             ${Array.isArray(group.badges) && group.badges.length > 0
-                ? group.badges.map(renderBadge).join("")
+                ? group.badges.map(badgeId => renderBadge(badgeId, group)).join("")
                 : "<p>Inga märken planerade.</p>"}
-            ${Array.isArray(group.activities) && group.activities.length > 0
-                ? `<div class="pdf-activities"><h3>Aktiviteter</h3>${group.activities.map(renderActivity).join("")}</div>`
+            ${unassignedActivities.length > 0
+                ? `<div class="pdf-activities"><h3>Övriga aktiviteter</h3>${unassignedActivities.map(renderActivity).join("")}</div>`
                 : ""}
         </section>
         `;
@@ -304,6 +320,13 @@ function generatePlanningPdf(selectedIds) {
                 .pdf-criteria { margin-top: 14px; }
                 .pdf-criteria ul { margin: 3px 0 0 18px; padding: 0; }
                 .pdf-criteria li { margin: 1px 0; }
+                .pdf-badge-activities { margin-top: 14px; padding: 8px 10px; border-left: 3px solid #2f855a; background: #f0fdf4; break-inside: avoid; }
+                .pdf-activity { margin-top: 6px; padding-top: 6px; border-top: 1px solid #cde8d4; }
+                .pdf-activity:first-of-type { border-top: 0; padding-top: 2px; }
+                .pdf-activity h4 { margin: 0 0 2px; color: #166534; font-size: 11pt; }
+                .pdf-activity p { margin: 2px 0; }
+                .pdf-activities { margin-top: 14px; }
+                .pdf-activities h3 { color: #166534; font-size: 12pt; }
                 .missing-badge { color: #9b1c1c; }
             </style>
         </head>
