@@ -5,6 +5,23 @@ const targetGroupFilter = document.getElementById("targetGroupFilter");
 const typeFilter = document.getElementById("typeFilter");
 const programFilter = document.getElementById("programFilter");
 
+const siteMenuBtn = document.getElementById("siteMenuBtn");
+const siteMenuDropdown = document.getElementById("siteMenuDropdown");
+if (siteMenuBtn && siteMenuDropdown) {
+    siteMenuBtn.addEventListener("click", event => {
+        event.stopPropagation();
+        const isOpen = !siteMenuDropdown.classList.contains("hidden");
+        siteMenuDropdown.classList.toggle("hidden", isOpen);
+        siteMenuBtn.setAttribute("aria-expanded", String(!isOpen));
+    });
+    document.addEventListener("click", event => {
+        if (!siteMenuDropdown.contains(event.target) && event.target !== siteMenuBtn) {
+            siteMenuDropdown.classList.add("hidden");
+            siteMenuBtn.setAttribute("aria-expanded", "false");
+        }
+    });
+}
+
 let allMarken = [];
 let allAktiviteter = [];
 const PLANNING_STORAGE_KEY = "gtscout_planering";

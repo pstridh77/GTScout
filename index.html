@@ -9,15 +9,35 @@
 </head>
 <body>
 
-    <header>
-        <div class="site-brand">
-            <img src="images/icons/GTorp_250px.png" alt="Gullbrandstorps Scoutkår" class="site-brand-logo">
-            <h1>Gullbrandstorps skoutkår</h1>
+    <header class="site-header">
+        <div class="utility-bar">
+            <span class="utility-spacer" aria-hidden="true"></span>
+            <nav class="utility-nav" aria-label="Externa länkar">
+                <a href="https://www.scouterna.se/" target="_blank" rel="noreferrer">Scouterna</a>
+                <a href="https://www.scouterna.se/folkhogskola/" target="_blank" rel="noreferrer">Scouternas folkhögskola</a>
+                <a href="https://www.scoutnet.se/" target="_blank" rel="noreferrer">Scoutnet</a>
+                <a href="https://www.scoutshop.se/" target="_blank" rel="noreferrer">Scoutshop</a>
+            </nav>
         </div>
-        <nav class="main-nav">
+        <div class="header-main">
+            <a class="site-brand" href="index.html" aria-label="Gullbrandstorps scoutkår">
+                <img src="images/icons/GTorp_banner.png" alt="Gullbrandstorps Scoutkår" class="site-brand-banner">
+            </a>
+            <nav class="main-nav" aria-label="Huvudnavigation">
             <a href="index.html" class="nav-link active">Märkesbibliotek</a>
             <a href="planering.html" class="nav-link">Märkesschema</a>
-        </nav>
+            </nav>
+            <div class="site-menu">
+                <button id="siteMenuBtn" class="header-menu-button" type="button" aria-label="Meny" aria-expanded="false" title="Meny">
+                    <span></span><span></span><span></span>
+                </button>
+                <div id="siteMenuDropdown" class="site-menu-dropdown hidden" role="menu">
+                    <div class="planning-menu-section-label">Navigering</div>
+                    <a href="index.html" class="site-menu-item" role="menuitem">Märkesbibliotek</a>
+                    <a href="planering.html" class="site-menu-item" role="menuitem">Märkesschema</a>
+                </div>
+            </div>
+        </div>
     </header>
      
     <div id="details">
