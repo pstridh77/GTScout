@@ -130,8 +130,13 @@ function createStandaloneActivityPopup() {
         const nameInput = document.getElementById("planningActivityName");
         const name = nameInput.value.trim();
         const group = groups.find(item => item.id === groupSelect.value);
-        if (!name || !group) {
+        const status = document.getElementById("createActivityStatus");
+        if (!name) {
             nameInput.focus();
+            return;
+        }
+        if (!group && !editingStandaloneActivityId) {
+            status.textContent = "Välj en planering innan du sparar en ny aktivitet.";
             return;
         }
         const customActivities = loadCustomActivities();
@@ -149,10 +154,14 @@ function createStandaloneActivityPopup() {
         if (existingIndex === -1) customActivities.push(activity);
         else customActivities[existingIndex] = activity;
         localStorage.setItem(CUSTOM_ACTIVITIES_STORAGE_KEY, JSON.stringify(customActivities));
-        group.activities = Array.isArray(group.activities) ? group.activities : [];
-        if (!group.activities.includes(activity.id)) group.activities.push(activity.id);
+        if (group) {
+            group.activities = Array.isArray(group.activities) ? group.activities : [];
+            if (!group.activities.includes(activity.id)) group.activities.push(activity.id);
+        }
         saveGroups();
-        allAktiviteter.push(activity);
+        const activityIndex = allAktiviteter.findIndex(item => item.id === activity.id);
+        if (activityIndex === -1) allAktiviteter.push(activity);
+        else allAktiviteter[activityIndex] = activity;
         modal.classList.add("hidden");
         renderPlanning();
     });
@@ -246,6 +255,67 @@ function createActivityPicker() {
         saveGroups();
         renderPlanning();
         modal.classList.add("hidden");
+    });
+}
+
+function renderEditActivitiesList() {
+    const modal = document.getElementById("editActivitiesModal");
+    const list = document.getElementById("editActivitiesList");
+    const category = document.getElementById("editActivitiesCategory").value;
+    const activities = allAktiviteter.filter(activity =>
+        activity.id.startsWith("egen-") && (category === "Alla" || getActivityCategories(activity).includes(category))
+    );
+    list.innerHTML = activities.length > 0
+        ? activities.map(activity => `
+            <div class="activity-management-item">
+                <div><strong>${activity.namn}</strong><small>${getActivityCategories(activity).join(", ")} · ${formatActivityTime(activity) || "Ingen tidsangivelse"}</small></div>
+                <div class="activity-management-actions">
+                    <button class="btn-secondary edit-managed-activity" type="button" data-activity-id="${activity.id}">Redigera</button>
+                    <button class="btn-danger delete-managed-activity" type="button" data-activity-id="${activity.id}" aria-label="Radera ${activity.namn}">Radera</button>
+                </div>
+            </div>
+        `).join("")
+        : '<p class="no-results">Det finns inga egna aktiviteter ännu.</p>';
+    list.querySelectorAll(".edit-managed-activity").forEach(button => {
+        button.addEventListener("click", () => {
+            const activity = allAktiviteter.find(item => item.id === button.dataset.activityId);
+            if (!activity) return;
+            modal.classList.add("hidden");
+            openStandaloneActivityEditor(activity);
+        });
+    });
+    list.querySelectorAll(".delete-managed-activity").forEach(button => {
+        button.addEventListener("click", () => {
+            const activity = allAktiviteter.find(item => item.id === button.dataset.activityId);
+            if (!activity) return;
+            deleteStandaloneActivity(activity);
+            if (!allAktiviteter.some(item => item.id === activity.id)) renderEditActivitiesList();
+        });
+    });
+}
+
+function openEditActivitiesModal() {
+    const categoryFilter = document.getElementById("editActivitiesCategory");
+    const categories = [...new Set(allAktiviteter
+        .filter(activity => activity.id.startsWith("egen-"))
+        .flatMap(getActivityCategories))]
+        .sort((a, b) => a.localeCompare(b, "sv"));
+    categoryFilter.innerHTML = [
+        '<option value="Alla">Alla kategorier</option>',
+        ...categories.map(category => `<option value="${category}">${category}</option>`)
+    ].join("");
+    categoryFilter.onchange = renderEditActivitiesList;
+    renderEditActivitiesList();
+    const modal = document.getElementById("editActivitiesModal");
+    modal.classList.remove("hidden");
+}
+
+function createEditActivitiesMenuAction() {
+    const modal = document.getElementById("editActivitiesModal");
+    document.getElementById("editActivitiesBtn").addEventListener("click", openEditActivitiesModal);
+    document.getElementById("closeEditActivitiesModal").addEventListener("click", () => modal.classList.add("hidden"));
+    modal.addEventListener("click", event => {
+        if (event.target === modal) modal.classList.add("hidden");
     });
 }
 
@@ -1502,5 +1572,6 @@ function showBadgeDetail(marke, planningId = null) {
 
 createStandaloneActivityPopup();
 createActivityPicker();
+createEditActivitiesMenuAction();
 loadDefaultPlannings();
 loadMarken();

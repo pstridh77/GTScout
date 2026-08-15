@@ -29,6 +29,7 @@
                 <div id="planningActionsDropdown" class="planning-actions-dropdown hidden" role="menu">
                     <button id="exportPlanningBtn" class="planning-menu-item" type="button" role="menuitem">Spara</button>
                     <button id="importPlanningBtn" class="planning-menu-item" type="button" role="menuitem">Öppna...</button>
+                    <button id="editActivitiesBtn" class="planning-menu-item" type="button" role="menuitem">Redigera aktiviteter</button>
                     <button id="exportPlanningPdfBtn" class="planning-menu-item" type="button" role="menuitem">Skriv ut</button>
                 </div>
             </div>
@@ -97,6 +98,15 @@
             </div>
             <div id="selectActivityList" class="activity-picker-list"></div>
             <div class="modal-actions"><button id="saveSelectedActivitiesBtn" class="btn-primary" type="button">Spara val</button></div>
+        </div>
+    </div>
+
+    <div id="editActivitiesModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="editActivitiesTitle">
+        <div class="modal-content modal-content--wide">
+            <button class="close-popup" type="button" id="closeEditActivitiesModal" aria-label="Stäng">&times;</button>
+            <h2 id="editActivitiesTitle">Redigera egna aktiviteter</h2>
+            <select id="editActivitiesCategory" aria-label="Filtrera egna aktiviteter efter kategori"></select>
+            <div id="editActivitiesList" class="activity-management-list"></div>
         </div>
     </div>
 
