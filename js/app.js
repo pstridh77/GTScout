@@ -802,7 +802,7 @@ function showPopup(marke) {
             <div class="detail-category-row">
                 <p><strong>Kategori:</strong> ${marke.kategori}</p>
             </div>
-            ${marke.inledning ? `<p class="detail-introduction">${marke.inledning}</p>` : ""}
+            ${marke.inledning ? `<p class="detail-introduction">${formatCriterion(marke.inledning)}</p>` : ""}
             
             ${criteriaList ? `
                 <div class="detail-criteria">

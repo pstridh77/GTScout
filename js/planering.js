@@ -548,7 +548,7 @@ function generatePlanningPdf(selectedIds) {
                 ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(marke.namn)}">` : ""}
                 <div>
                     <h3>${escapeHtml(marke.namn)}</h3>
-                    ${marke.inledning ? `<p>${escapeHtml(marke.inledning)}</p>` : ""}
+                    ${marke.inledning ? `<p>${formatCriterion(marke.inledning)}</p>` : ""}
                     ${criteria}
                     ${activities}
                     ${note}
