@@ -493,9 +493,11 @@ body {
 
 .custom-activity-popup-content {
     max-width: 420px;
+    max-height: calc(100vh - 40px);
     display: flex;
     flex-direction: column;
     gap: 14px;
+    overflow-y: auto;
 }
 
 .custom-activity-popup-content .modal-field textarea,
@@ -614,6 +616,13 @@ body {
 .activity-popup-body {
     min-width: 0;
     overflow-wrap: anywhere;
+}
+
+.activity-popup-category {
+    margin: 0 0 4px;
+    color: #64748b;
+    font-size: 0.8rem;
+    font-weight: 600;
 }
 
 .activity-popup-actions {

@@ -578,6 +578,8 @@ function createCustomActivityPopup() {
         <div class="detail-popup-content custom-activity-popup-content">
             <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
             <h2 class="custom-activity-title">Skapa egen aktivitet</h2>
+            <label class="modal-field"><span>Kategori</span><input class="custom-activity-category" type="text" list="customActivityCategories" placeholder="Välj eller skriv en kategori"></label>
+            <datalist id="customActivityCategories"></datalist>
             <label class="modal-field"><span>Namn</span><input class="custom-activity-name" type="text" required></label>
             <label class="modal-field"><span>Beskrivning</span><textarea class="custom-activity-description" rows="3"></textarea></label>
             <label class="modal-field"><span>Tid</span><input class="custom-activity-time" type="text" placeholder="t.ex. 20 minuter eller en kväll"></label>
@@ -601,10 +603,18 @@ const customActivityPopup = createCustomActivityPopup();
 function openCustomActivityPopup(marke, activity = null) {
     activeCustomActivityBadge = marke;
     activeCustomActivityId = activity ? activity.id : null;
+    const categories = [...new Set([
+        ...allMarken.map(item => item.kategori),
+        ...allAktiviteter.map(item => item.kategori)
+    ].filter(Boolean))].sort((a, b) => a.localeCompare(b, "sv"));
+    customActivityPopup.querySelector("#customActivityCategories").innerHTML = categories
+        .map(category => `<option value="${category}"></option>`)
+        .join("");
     customActivityPopup.querySelector(".custom-activity-title").textContent = activity ? "Redigera aktivitet" : "Skapa egen aktivitet";
     customActivityPopup.querySelector(".save-custom-activity").textContent = activity ? "Spara ändringar" : "Spara aktivitet";
     customActivityPopup.querySelector(".custom-activity-name").value = activity?.namn || "";
     customActivityPopup.querySelector(".custom-activity-description").value = activity?.beskrivning || "";
+    customActivityPopup.querySelector(".custom-activity-category").value = activity?.kategori || marke?.kategori || "";
     customActivityPopup.querySelector(".custom-activity-time").value = activity?.tid || "";
     customActivityPopup.querySelector(".custom-activity-material").value = Array.isArray(activity?.material) ? activity.material.join("\n") : "";
     customActivityPopup.querySelector(".custom-activity-instructions").value = activity?.genomforande || "";
@@ -616,15 +626,16 @@ function openCustomActivityPopup(marke, activity = null) {
 function saveCustomActivity(popup) {
     const nameInput = popup.querySelector(".custom-activity-name");
     const name = nameInput.value.trim();
-    if (!name || !activeCustomActivityBadge) {
+    if (!name) {
         nameInput.focus();
         return;
     }
     const existingActivity = loadCustomActivities().find(item => item.id === activeCustomActivityId);
+    const category = popup.querySelector(".custom-activity-category").value.trim();
     const activity = {
         id: activeCustomActivityId || `egen-${crypto.randomUUID()}`,
         namn: name,
-        kategori: activeCustomActivityBadge.kategori || existingActivity?.kategori || "Övrigt",
+        kategori: category || existingActivity?.kategori || activeCustomActivityBadge?.kategori || "Övrigt",
         beskrivning: popup.querySelector(".custom-activity-description").value.trim(),
         tid: popup.querySelector(".custom-activity-time").value.trim(),
         material: popup.querySelector(".custom-activity-material").value
@@ -641,7 +652,7 @@ function saveCustomActivity(popup) {
         activities[existingIndex] = activity;
     }
     localStorage.setItem(CUSTOM_ACTIVITIES_STORAGE_KEY, JSON.stringify(activities));
-    if (!activeCustomActivityId) {
+    if (!activeCustomActivityId && activeCustomActivityBadge) {
         const links = loadCustomBadgeActivities();
         links[activeCustomActivityBadge.id] = Array.isArray(links[activeCustomActivityBadge.id])
             ? links[activeCustomActivityBadge.id]
@@ -655,13 +666,14 @@ function saveCustomActivity(popup) {
     if (activityIndex === -1) allAktiviteter.push(activity);
     else allAktiviteter[activityIndex] = activity;
     popup.classList.add("hidden");
-    showPopup(activeCustomActivityBadge);
+    if (activeCustomActivityBadge) showPopup(activeCustomActivityBadge);
 }
 
 function showActivityPopup(activity) {
     const linkedBadges = getBadgesForActivity(activity.id).map(marke => marke.namn).join(", ");
     const material = Array.isArray(activity.material) ? activity.material : [];
     activityPopup.querySelector(".activity-popup-body").innerHTML = `
+        ${activity.kategori ? `<p class="activity-popup-category">${activity.kategori}</p>` : ""}
         <h2>${activity.namn}</h2>
         ${activity.beskrivning ? `<p>${activity.beskrivning}</p>` : ""}
         ${formatActivityTime(activity) ? `<p><strong>Tid:</strong> ${formatActivityTime(activity)}</p>` : ""}

@@ -106,6 +106,20 @@ function formatActivityTime(activity) {
     return /^\d+(?:[.,]\d+)?$/.test(time) ? `${time} min` : time;
 }
 
+function populatePlanningActivityCategories() {
+    const categoryList = document.getElementById("planningActivityCategories");
+    if (!categoryList) return;
+    const categories = [...new Set([
+        ...allMarken.map(item => item.kategori),
+        ...allAktiviteter.map(item => item.kategori)
+    ].filter(Boolean))].sort((a, b) => a.localeCompare(b, "sv"));
+    categoryList.replaceChildren(...categories.map(category => {
+        const option = document.createElement("option");
+        option.value = category;
+        return option;
+    }));
+}
+
 function createStandaloneActivityPopup() {
     const modal = document.getElementById("createActivityModal");
     const reset = () => {
@@ -120,6 +134,7 @@ function createStandaloneActivityPopup() {
     };
     document.getElementById("createActivityBtn").addEventListener("click", () => {
         reset();
+        populatePlanningActivityCategories();
         modal.classList.remove("hidden");
         document.getElementById("planningActivityName").focus();
     });
@@ -140,7 +155,7 @@ function createStandaloneActivityPopup() {
         const activity = {
             id: editingStandaloneActivityId || `egen-${crypto.randomUUID()}`,
             namn: name,
-            kategori: activeStandaloneActivityBadge?.kategori || existingActivity?.kategori || "Egna aktiviteter",
+            kategori: document.getElementById("planningActivityCategory").value.trim() || activeStandaloneActivityBadge?.kategori || existingActivity?.kategori || "Egna aktiviteter",
             beskrivning: document.getElementById("planningActivityDescription").value.trim(),
             tid: document.getElementById("planningActivityTime").value.trim(),
             material: document.getElementById("planningActivityMaterial").value.split(/\r?\n/).map(item => item.trim()).filter(Boolean),
@@ -179,12 +194,29 @@ function createStandaloneActivityPopup() {
 
 function openStandaloneActivityForBadge(marke, planning) {
     const modal = document.getElementById("createActivityModal");
+    populatePlanningActivityCategories();
     activeStandaloneActivityBadge = marke;
     activeStandaloneActivityPlanning = planning;
     editingStandaloneActivityId = null;
     document.getElementById("createActivityTitle").textContent = "Skapa egen aktivitet";
     document.getElementById("savePlanningActivityBtn").textContent = "Spara aktivitet";
     modal.querySelectorAll("input, textarea").forEach(field => field.value = "");
+    document.getElementById("planningActivityCategory").value = marke.kategori || "";
+    document.getElementById("planningActivityMemberships").innerHTML = `<span>${planning.name} (${planning.level})</span>`;
+    document.getElementById("createActivityStatus").textContent = "";
+    modal.classList.remove("hidden");
+    document.getElementById("planningActivityName").focus();
+}
+
+function openStandaloneActivityForPlanning(planning) {
+    const modal = document.getElementById("createActivityModal");
+    activeStandaloneActivityBadge = null;
+    activeStandaloneActivityPlanning = planning;
+    editingStandaloneActivityId = null;
+    document.getElementById("createActivityTitle").textContent = "Skapa aktivitet";
+    document.getElementById("savePlanningActivityBtn").textContent = "Spara aktivitet";
+    modal.querySelectorAll("input, textarea").forEach(field => field.value = "");
+    populatePlanningActivityCategories();
     document.getElementById("planningActivityMemberships").innerHTML = `<span>${planning.name} (${planning.level})</span>`;
     document.getElementById("createActivityStatus").textContent = "";
     modal.classList.remove("hidden");
@@ -238,15 +270,30 @@ function renderActivityPicker() {
         ? activities.map(activity => `
             <label class="activity-picker-item">
                 <input type="checkbox" value="${activity.id}" ${selected.has(activity.id) ? "checked" : ""}>
-                <span><strong>${activity.namn}</strong>${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}</span>
+                <span><small class="activity-picker-category">${getActivityCategories(activity).join(", ")}</small><strong>${activity.namn}</strong>${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}</span>
+                <button class="activity-info-button activity-picker-info-button" type="button" data-activity-id="${activity.id}" title="Visa information" aria-label="Visa information om ${activity.namn}">i</button>
             </label>
         `).join("")
         : '<p class="no-results">Inga aktiviteter matchar.</p>';
+    document.querySelectorAll(".activity-picker-info-button").forEach(button => {
+        button.addEventListener("click", event => {
+            event.preventDefault();
+            event.stopPropagation();
+            const activity = allAktiviteter.find(item => item.id === button.dataset.activityId);
+            if (activity) showActivityDetail(activity);
+        });
+    });
 }
 
 function createActivityPicker() {
     const modal = document.getElementById("selectActivityModal");
     document.getElementById("closeSelectActivityModal").addEventListener("click", () => modal.classList.add("hidden"));
+    document.getElementById("createActivityFromPickerBtn").addEventListener("click", () => {
+        const group = groups.find(item => item.id === activeActivityGroupId);
+        if (!group) return;
+        modal.classList.add("hidden");
+        openStandaloneActivityForPlanning(group);
+    });
     modal.addEventListener("click", event => {
         if (event.target === modal) modal.classList.add("hidden");
     });
@@ -292,8 +339,9 @@ function renderEditActivitiesList() {
     list.innerHTML = activities.length > 0
         ? activities.map(activity => `
             <div class="activity-management-item">
-                <div><strong>${activity.namn}</strong><small>${getActivityCategories(activity).join(", ")} · ${formatActivityTime(activity) || "Ingen tidsangivelse"}</small></div>
+                <div><small class="activity-picker-category">${getActivityCategories(activity).join(", ")}</small><strong>${activity.namn}</strong><small>${formatActivityTime(activity) || "Ingen tidsangivelse"}</small></div>
                 <div class="activity-management-actions">
+                    <button class="activity-info-button" type="button" data-activity-id="${activity.id}" title="Visa information" aria-label="Visa information om ${activity.namn}">i</button>
                     <button class="btn-secondary edit-managed-activity" type="button" data-activity-id="${activity.id}">Redigera</button>
                     <button class="btn-danger delete-managed-activity" type="button" data-activity-id="${activity.id}" aria-label="Radera ${activity.namn}">Radera</button>
                 </div>
@@ -306,6 +354,12 @@ function renderEditActivitiesList() {
             if (!activity) return;
             modal.classList.add("hidden");
             openStandaloneActivityEditor(activity);
+        });
+    });
+    list.querySelectorAll(".activity-info-button").forEach(button => {
+        button.addEventListener("click", () => {
+            const activity = allAktiviteter.find(item => item.id === button.dataset.activityId);
+            if (activity) showActivityDetail(activity);
         });
     });
     list.querySelectorAll(".delete-managed-activity").forEach(button => {
@@ -345,6 +399,7 @@ function createEditActivitiesMenuAction() {
 
 function openStandaloneActivityEditor(activity) {
     const modal = document.getElementById("createActivityModal");
+    populatePlanningActivityCategories();
     activeStandaloneActivityBadge = null;
     activeStandaloneActivityPlanning = null;
     editingStandaloneActivityId = activity.id;
@@ -356,6 +411,7 @@ function openStandaloneActivityEditor(activity) {
         : "Inte tillagd i någon planering.";
     document.getElementById("planningActivityName").value = activity.namn || "";
     document.getElementById("planningActivityDescription").value = activity.beskrivning || "";
+    document.getElementById("planningActivityCategory").value = activity.kategori || "";
     document.getElementById("planningActivityTime").value = activity.tid || "";
     document.getElementById("planningActivityMaterial").value = Array.isArray(activity.material) ? activity.material.join("\n") : "";
     document.getElementById("planningActivityInstructions").value = activity.genomforande || "";
@@ -1464,6 +1520,7 @@ function showActivityDetail(activity) {
         .join(", ");
     const material = Array.isArray(activity.material) ? activity.material : [];
     activityDetailPopup.querySelector(".activity-popup-body").innerHTML = `
+        ${activity.kategori ? `<p class="activity-popup-category">${activity.kategori}</p>` : ""}
         <h2>${activity.namn}</h2>
         ${activity.beskrivning ? `<p>${activity.beskrivning}</p>` : ""}
         ${formatActivityTime(activity) ? `<p><strong>Tid:</strong> ${formatActivityTime(activity)}</p>` : ""}

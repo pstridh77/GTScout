@@ -94,6 +94,8 @@
         <div class="modal-content custom-activity-form-content">
             <button class="close-popup" type="button" id="closeCreateActivityModal" aria-label="Stäng">&times;</button>
             <h2 id="createActivityTitle">Skapa aktivitet</h2>
+            <label class="modal-field"><span>Kategori</span><input id="planningActivityCategory" type="text" list="planningActivityCategories" placeholder="Välj eller skriv en kategori"></label>
+            <datalist id="planningActivityCategories"></datalist>
             <label class="modal-field"><span>Namn</span><input id="planningActivityName" type="text" required></label>
             <label class="modal-field"><span>Beskrivning</span><textarea id="planningActivityDescription" rows="3"></textarea></label>
             <label class="modal-field"><span>Tid</span><input id="planningActivityTime" type="text" placeholder="t.ex. 20 minuter eller en kväll"></label>
@@ -117,7 +119,10 @@
                 <select id="selectActivityCategory" aria-label="Filtrera aktiviteter efter kategori"></select>
             </div>
             <div id="selectActivityList" class="activity-picker-list"></div>
-            <div class="modal-actions"><button id="saveSelectedActivitiesBtn" class="btn-primary" type="button">Uppdatera planering</button></div>
+            <div class="modal-actions">
+                <button id="createActivityFromPickerBtn" class="btn-secondary" type="button">Skapa aktivitet</button>
+                <button id="saveSelectedActivitiesBtn" class="btn-primary" type="button">Uppdatera planering</button>
+            </div>
         </div>
     </div>
 
