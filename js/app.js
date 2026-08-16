@@ -193,11 +193,11 @@ function createNotePopup() {
     notePopup.innerHTML = `
         <div class="detail-popup-content badge-note-popup-content">
             <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
-            <h2>Info</h2>
-            <textarea id="badgeNoteInput" rows="6" placeholder="Skriv egen information..."></textarea>
+            <h2>Anteckning</h2>
+            <textarea id="badgeNoteInput" rows="6" placeholder="Skriv en anteckning..."></textarea>
             <p id="badgeNoteStatus" class="detail-note-status" role="status"></p>
             <div class="modal-actions">
-                <button id="saveBadgeNoteBtn" class="btn-primary" type="button">Spara information</button>
+                <button id="saveBadgeNoteBtn" class="btn-primary" type="button">Spara anteckning</button>
             </div>
         </div>
     `;
@@ -816,12 +816,12 @@ function showPopup(marke) {
             ${planningStatus}
             ${badgeNote ? `
                 <div class="detail-note">
-                    <strong>Info:</strong>
+                    <strong>Anteckning:</strong>
                     <p id="badgeNoteDisplay" class="detail-note-display"></p>
                 </div>
             ` : ""}
             <button id="editBadgeNoteBtn" class="btn-secondary detail-note-button" type="button">
-                ${badgeNote ? "Redigera info" : "Lägg till info"}
+                ${badgeNote ? "Redigera anteckning" : "Lägg till anteckning"}
             </button>
             <div class="detail-planning-actions">
                 <button id="addBadgeToPlanningBtn" class="btn-primary" type="button">Lägg till i planering</button>

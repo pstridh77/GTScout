@@ -439,7 +439,7 @@ function exportPlannings() {
     exportInfoBody.innerHTML = `
         <p><strong>Planeringar:</strong> ${groups.length}</p>
         <p><strong>Aktiviteter:</strong> ${activityCount}</p>
-        <p><strong>Info-fält:</strong> ${Object.keys(badgeNotes).length}</p>
+        <p><strong>Anteckningsfält:</strong> ${Object.keys(badgeNotes).length}</p>
         <p><strong>Fil:</strong> gtscout-planeringar-${new Date().toISOString().slice(0, 10)}.json</p>
     `;
     document.getElementById("exportInfoModal").classList.remove("hidden");
@@ -530,7 +530,7 @@ function generatePlanningPdf(selectedIds) {
             ? `<div class="pdf-criteria"><strong>Kriterier:</strong><ul>${marke.kriterier.map(criterion => `<li>${formatCriterion(criterion)}</li>`).join("")}</ul></div>`
             : "";
         const note = badgeNotes[marke.id]
-            ? `<p><strong>Info:</strong> ${escapeHtml(badgeNotes[marke.id]).replace(/\n/g, "<br>")}</p>`
+            ? `<p><strong>Anteckning:</strong> ${escapeHtml(badgeNotes[marke.id]).replace(/\n/g, "<br>")}</p>`
             : "";
         const badgeActivityIds = getBadgeActivityIds(marke);
         const plannedActivityIds = Array.isArray(group.activities) ? group.activities : [];
@@ -719,7 +719,7 @@ function importPlannings(file) {
                 ...customActivities
             ];
             renderPlanning();
-            alert(`${validPlannings.length} planeringar, ${importedActivities.length} aktiviteter och ${importedNoteCount} Info-fält importerades.`);
+            alert(`${validPlannings.length} planeringar, ${importedActivities.length} aktiviteter och ${importedNoteCount} anteckningsfält importerades.`);
         } catch (error) {
             alert("Kunde inte importera planeringarna. Kontrollera att filen är en giltig JSON-export.");
         }
