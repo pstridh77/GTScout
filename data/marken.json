@@ -2623,6 +2623,26 @@
                     ],
         "Typ":  "Bevismärke"
     },
+     {
+        "id":  "oppet_hav",
+        "namn":  "Öppet Hav",
+        "bild":  "images/marken/simma.png",
+        "kategori":  "Bevismärke",
+        "malgrupp":  [
+                         "Äventyrare"
+                     ],
+        "inledning":"Bevismärke för att visa att scouten kan simma i öppet hav.",
+        "kriterier":  [
+                         "För att få märket ”öppet hav” så ska man simma 200 m med kläder och flytväst i havet."
+                    
+                         
+
+                     ],
+        "program":  [
+                        "Hallands scoutdistrikt"
+                    ],
+        "Typ":  "Bevismärke"
+    },
     {
         "id":  "stormkok",
         "namn":  "Stormkök",
