@@ -38,7 +38,7 @@
                     <div class="planning-menu-section-label">Funktioner</div>
                     <button id="exportPlanningBtn" class="planning-menu-item" type="button" role="menuitem">Spara</button>
                     <button id="importPlanningBtn" class="planning-menu-item" type="button" role="menuitem">Öppna...</button>
-                    <button id="editActivitiesBtn" class="planning-menu-item" type="button" role="menuitem">Redigera aktiviteter</button>
+                    <button id="editActivitiesBtn" class="planning-menu-item" type="button" role="menuitem">Hantera aktiviteter</button>
                     <button id="exportPlanningPdfBtn" class="planning-menu-item" type="button" role="menuitem">Skriv ut</button>
                 </div>
             </div>
@@ -54,7 +54,6 @@
         <div class="toolbar-actions">
             <input id="importPlanningInput" type="file" accept="application/json,.json" hidden>
             <button id="addGroupBtn" class="btn-primary" type="button">+ Lägg till planering</button>
-            <button id="createActivityBtn" class="btn-secondary" type="button">+ Skapa aktivitet</button>
         </div>
     </div>
 
@@ -132,6 +131,7 @@
             <h2 id="editActivitiesTitle">Redigera egna aktiviteter</h2>
             <select id="editActivitiesCategory" aria-label="Filtrera egna aktiviteter efter kategori"></select>
             <div id="editActivitiesList" class="activity-management-list"></div>
+            <div class="modal-actions"><button id="createActivityBtn" class="btn-secondary" type="button">Skapa aktivitet</button></div>
         </div>
     </div>
 

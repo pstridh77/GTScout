@@ -133,6 +133,7 @@ function createStandaloneActivityPopup() {
         document.getElementById("planningActivityMemberships").textContent = "Inte tillagd i någon planering.";
     };
     document.getElementById("createActivityBtn").addEventListener("click", () => {
+        document.getElementById("editActivitiesModal").classList.add("hidden");
         reset();
         populatePlanningActivityCategories();
         modal.classList.remove("hidden");
