@@ -2609,7 +2609,14 @@
         "kriterier":  [
                          "Att du kan simma 200 meter.",
                          "Att du kan dyka eller hoppa i vattnet från en brygga eller bassängkant.",
-                         "Att du känner till och följer de viktigaste badreglerna, se nedan."
+                         "Att du känner till och följer de viktigaste badreglerna.\n\n**Exempel på badregler:**",
+                         "Bada alltid tillsammans med minst en kompis.",
+                         "Knuffa aldrig i någon annan.",
+                         "Dyk aldrig i vattnet om du inte vet hur det ser ut under ytan.",
+                         "Ropa aldrig på hjälp på skoj."
+                    
+                         
+
                      ],
         "program":  [
                         "Scouterna"

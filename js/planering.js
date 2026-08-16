@@ -523,8 +523,11 @@ function generatePlanningPdf(selectedIds) {
         const marke = allMarken.find(item => item.id === badgeId);
         if (!marke) return `<p class="missing-badge">Märke ${escapeHtml(badgeId)} kunde inte hittas.</p>`;
 
+        const formatCriterion = value => escapeHtml(value)
+            .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+            .replace(/\n/g, "<br>");
         const criteria = Array.isArray(marke.kriterier) && marke.kriterier.length > 0
-            ? `<div class="pdf-criteria"><strong>Kriterier:</strong><ul>${marke.kriterier.map(criterion => `<li>${escapeHtml(criterion)}</li>`).join("")}</ul></div>`
+            ? `<div class="pdf-criteria"><strong>Kriterier:</strong><ul>${marke.kriterier.map(criterion => `<li>${formatCriterion(criterion)}</li>`).join("")}</ul></div>`
             : "";
         const note = badgeNotes[marke.id]
             ? `<p><strong>Info:</strong> ${escapeHtml(badgeNotes[marke.id]).replace(/\n/g, "<br>")}</p>`

@@ -732,8 +732,16 @@ function getCategoryIconPath(marke) {
 function showPopup(marke) {
     activePopupBadge = marke;
     const body = popup.querySelector(".popup-body");
+    const formatCriterion = value => String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;")
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\n/g, "<br>");
     const criteriaList = marke.kriterier
-        ? marke.kriterier.map(k => `<li>${k}</li>`).join("")
+        ? marke.kriterier.map(k => `<li>${formatCriterion(k)}</li>`).join("")
         : "";
     const categoryIcon = getCategoryIconPath(marke);
     const targetGroup = getTargetGroup(marke);
