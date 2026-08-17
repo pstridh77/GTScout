@@ -106,6 +106,50 @@ function formatActivityTime(activity) {
     return /^\d+(?:[.,]\d+)?$/.test(time) ? `${time} min` : time;
 }
 
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function normalizeUrl(url) {
+    const trimmedUrl = String(url ?? "").trim().replace(/[.,!?;:]+$/u, "");
+    if (!trimmedUrl) return null;
+    const candidate = /^(?:https?:\/\/)/i.test(trimmedUrl) ? trimmedUrl : `https://${trimmedUrl}`;
+    try {
+        const parsedUrl = new URL(candidate);
+        return ["http:", "https:"].includes(parsedUrl.protocol) ? parsedUrl.href : null;
+    } catch {
+        return null;
+    }
+}
+
+function renderLinkedText(value) {
+    const lines = String(value ?? "").split("\n");
+    return lines.map(line => {
+        const segments = [];
+        const urlPattern = /((?:https?:\/\/|www\.)[^\s<]+)/gi;
+        let lastIndex = 0;
+        let match;
+        while ((match = urlPattern.exec(line)) !== null) {
+            const [rawMatch] = match;
+            const normalizedUrl = normalizeUrl(rawMatch);
+            if (!normalizedUrl) continue;
+            const matchedText = rawMatch.replace(/[.,!?;:]+$/u, "");
+            const trailingText = rawMatch.slice(matchedText.length);
+            segments.push(escapeHtml(line.slice(lastIndex, match.index)));
+            segments.push(`<a href="${escapeHtml(normalizedUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(matchedText)}</a>`);
+            segments.push(escapeHtml(trailingText));
+            lastIndex = match.index + rawMatch.length;
+        }
+        segments.push(escapeHtml(line.slice(lastIndex)));
+        return segments.join("");
+    }).join("<br>");
+}
+
 function populatePlanningActivityCategories() {
     const categoryList = document.getElementById("planningActivityCategories");
     if (!categoryList) return;
@@ -567,12 +611,6 @@ function generatePlanningPdf(selectedIds) {
         return;
     }
 
-    const escapeHtml = value => String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
     const badgeNotes = loadBadgeNotesForTransfer();
     const selectedGroups = groups.filter(group => selectedIds.has(group.id));
     const resolveImage = imagePath => imagePath ? new URL(imagePath, window.location.href).href : "";
@@ -587,7 +625,7 @@ function generatePlanningPdf(selectedIds) {
             ? `<div class="pdf-criteria"><strong>Kriterier:</strong><ul>${marke.kriterier.map(criterion => `<li>${formatCriterion(criterion)}</li>`).join("")}</ul></div>`
             : "";
         const note = badgeNotes[marke.id]
-            ? `<p><strong>Anteckning:</strong> ${escapeHtml(badgeNotes[marke.id]).replace(/\n/g, "<br>")}</p>`
+            ? `<p><strong>Anteckning:</strong> ${renderLinkedText(badgeNotes[marke.id])}</p>`
             : "";
         const badgeActivityIds = getBadgeActivityIds(marke);
         const plannedActivityIds = Array.isArray(group.activities) ? group.activities : [];
@@ -620,7 +658,7 @@ function generatePlanningPdf(selectedIds) {
         const activity = allAktiviteter.find(item => item.id === activityId);
         if (!activity) return `<p class="missing-badge">Aktivitet ${escapeHtml(activityId)} kunde inte hittas.</p>`;
         const material = Array.isArray(activity.material) ? activity.material.join(", ") : "";
-        return `<div class="pdf-activity"><h4>${escapeHtml(activity.namn)}</h4><p>${escapeHtml(activity.beskrivning || "")}</p>${formatActivityTime(activity) ? `<p><strong>Tid:</strong> ${escapeHtml(formatActivityTime(activity))}</p>` : ""}${material ? `<p><strong>Material:</strong> ${escapeHtml(material)}</p>` : ""}</div>`;
+        return `<div class="pdf-activity"><h4>${escapeHtml(activity.namn)}</h4><p>${renderLinkedText(activity.beskrivning || "")}</p>${formatActivityTime(activity) ? `<p><strong>Tid:</strong> ${escapeHtml(formatActivityTime(activity))}</p>` : ""}${material ? `<p><strong>Material:</strong> ${escapeHtml(material)}</p>` : ""}</div>`;
     };
     const planningSections = selectedGroups.map(group => {
         const planningIcon = getLevelIcon(group.level);
@@ -1523,7 +1561,7 @@ function showActivityDetail(activity) {
     activityDetailPopup.querySelector(".activity-popup-body").innerHTML = `
         ${activity.kategori ? `<p class="activity-popup-category">${activity.kategori}</p>` : ""}
         <h2>${activity.namn}</h2>
-        ${activity.beskrivning ? `<p>${activity.beskrivning}</p>` : ""}
+        ${activity.beskrivning ? `<p>${renderLinkedText(activity.beskrivning)}</p>` : ""}
         ${formatActivityTime(activity) ? `<p><strong>Tid:</strong> ${formatActivityTime(activity)}</p>` : ""}
         ${material.length > 0 ? `<div><strong>Material:</strong><ul>${material.map(item => `<li>${item}</li>`).join("")}</ul></div>` : ""}
         ${activity.genomforande ? `<div><strong>Genomförande:</strong><p>${activity.genomforande}</p></div>` : ""}
@@ -1630,7 +1668,7 @@ function showBadgeDetail(marke, planningId = null) {
             planningList.appendChild(item);
         });
     }
-    if (badgeNote) body.querySelector(".detail-note-display").textContent = badgeNote;
+    if (badgeNote) body.querySelector(".detail-note-display").innerHTML = renderLinkedText(badgeNote);
     body.querySelectorAll(".activity-info-button").forEach(button => {
         button.addEventListener("click", () => {
             const activity = allAktiviteter.find(item => item.id === button.dataset.activityId);

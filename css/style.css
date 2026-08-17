@@ -736,6 +736,7 @@ body {
     margin: 0;
     white-space: pre-wrap;
     line-height: 1.5;
+    overflow-wrap: anywhere;
 }
 
 .badge-note-popup-content {
