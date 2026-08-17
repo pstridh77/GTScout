@@ -95,6 +95,50 @@ function formatActivityTime(activity) {
     return /^\d+(?:[.,]\d+)?$/.test(time) ? `${time} min` : time;
 }
 
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function normalizeUrl(url) {
+    const trimmedUrl = String(url ?? "").trim().replace(/[.,!?;:]+$/u, "");
+    if (!trimmedUrl) return null;
+    const candidate = /^(?:https?:\/\/)/i.test(trimmedUrl) ? trimmedUrl : `https://${trimmedUrl}`;
+    try {
+        const parsedUrl = new URL(candidate);
+        return ["http:", "https:"].includes(parsedUrl.protocol) ? parsedUrl.href : null;
+    } catch {
+        return null;
+    }
+}
+
+function renderLinkedText(value) {
+    const lines = String(value ?? "").split("\n");
+    return lines.map(line => {
+        const segments = [];
+        const urlPattern = /((?:https?:\/\/|www\.)[^\s<]+)/gi;
+        let lastIndex = 0;
+        let match;
+        while ((match = urlPattern.exec(line)) !== null) {
+            const [rawMatch] = match;
+            const normalizedUrl = normalizeUrl(rawMatch);
+            if (!normalizedUrl) continue;
+            const matchedText = rawMatch.replace(/[.,!?;:]+$/u, "");
+            const trailingText = rawMatch.slice(matchedText.length);
+            segments.push(escapeHtml(line.slice(lastIndex, match.index)));
+            segments.push(`<a href="${escapeHtml(normalizedUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(matchedText)}</a>`);
+            segments.push(escapeHtml(trailingText));
+            lastIndex = match.index + rawMatch.length;
+        }
+        segments.push(escapeHtml(line.slice(lastIndex)));
+        return segments.join("");
+    }).join("<br>");
+}
+
 function getActivitiesForBadge(marke) {
     const activityIds = getBadgeActivityIds(marke);
     return activityIds
@@ -675,7 +719,7 @@ function showActivityPopup(activity) {
     activityPopup.querySelector(".activity-popup-body").innerHTML = `
         ${activity.kategori ? `<p class="activity-popup-category">${activity.kategori}</p>` : ""}
         <h2>${activity.namn}</h2>
-        ${activity.beskrivning ? `<p>${activity.beskrivning}</p>` : ""}
+        ${activity.beskrivning ? `<p>${renderLinkedText(activity.beskrivning)}</p>` : ""}
         ${formatActivityTime(activity) ? `<p><strong>Tid:</strong> ${formatActivityTime(activity)}</p>` : ""}
         ${material.length > 0 ? `<div><strong>Material:</strong><ul>${material.map(item => `<li>${item}</li>`).join("")}</ul></div>` : ""}
         ${activity.genomforande ? `<div><strong>Genomförande:</strong><p>${activity.genomforande}</p></div>` : ""}
@@ -840,7 +884,7 @@ function showPopup(marke) {
             </div>
         </div>
     `;
-    if (badgeNote) popup.querySelector("#badgeNoteDisplay").textContent = badgeNote;
+    if (badgeNote) popup.querySelector("#badgeNoteDisplay").innerHTML = renderLinkedText(badgeNote);
     popup.querySelector("#editBadgeNoteBtn").addEventListener("click", () => openNotePopup(marke));
     popup.querySelector("#createCustomActivityBtn").addEventListener("click", () => openCustomActivityPopup(marke));
     popup.querySelector("#addBadgeToPlanningBtn").addEventListener("click", () => openPlanningPicker(marke));
@@ -861,4 +905,3 @@ window.addEventListener("storage", event => {
         showPopup(activePopupBadge);
     }
 });
-
