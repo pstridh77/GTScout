@@ -60,5 +60,25 @@
             "Ved"
         ],
         "genomforande": "Planera maten, fördela uppgifter, laga maten över elden och avsluta med att släcka och städa eldplatsen."
+    },
+    {
+        "id": "Hajk-02",
+        "namn": "Hajk",
+        "beskrivning": "",
+        "tid": "2 övernattningar" ,
+        "material": [
+            
+        ],
+        "genomforande": 
+    },
+    {
+        "id": "Hajk-01",
+        "namn": "Hajk",
+        "beskrivning": "",
+        "tid": "1 övernattning" ,
+        "material": [
+            
+        ],
+        "genomforande": 
     }
 ]
