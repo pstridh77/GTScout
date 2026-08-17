@@ -4,11 +4,19 @@
     "plans": [
       {
         "name": "År 1 HT",
-        "badges": [ "smaka","varme"]
+        "badges": [ "smaka"]
       },
       {
         "name": "År 2 VT",
-        "badges": ["ny_i_naturen","aj"]
+        "badges": ["varme"]
+      },
+      {
+        "name": "År 2 HT",
+        "badges": ["aj"]
+      },
+      {
+        "name": "År 3 VT",
+        "badges": ["utforska"]
       }
     ]
   },
@@ -17,7 +25,7 @@
     "plans": [
       {
         "name": "År 1 HT",
-        "badges": [ "matettan", "skapa", "tidsspar"]
+        "badges": [ "matettan", "stormkok", "100_scout","tidsspar"]
       },
       {
         "name": "År 2 VT",
@@ -25,7 +33,7 @@
       },
       {
         "name": "År 2 HT",
-        "badges": ["plastra", "sortera_och_atervinn", "djurspar"]
+        "badges": ["plastra", "klura","100_scout", "djurspar"]
       },
       {
         "name": "År 3 VT",
@@ -38,27 +46,27 @@
     "plans": [
       {
         "name": "År 1 HT",
-        "badges": ["mattvaan", "brinna", "kniv","berattelsen"]
+        "badges": ["mattvaan",  "kniv","berattelsen", "100_scout"]
       },
       {
         "name": "År 2 VT",
-        "badges": ["hjalpa","naturligt","simma","fjarran"]
+        "badges": ["andra_repmarket","simma","fjarran"]
       },
       {
         "name": "År 2 HT",
-        "badges": ["klura", "sortera_och_atervinn", "kniv","horisonten"]
+        "badges": ["hjalpa",  "kniv","horisonten","100_scout"]
       },
       {
         "name": "År 3 VT",
-        "badges": ["yxa_och_sag","manniskan"]
+        "badges": ["brinna","yxa_och_sag"]
       },
       {
         "name": "År 3 HT",
-        "badges": ["yxa_och_sag", "nara"]
+        "badges": ["losa","yxa_och_sag", "nara","100_scout"]
       },
       {
         "name": "År 4 VT",
-        "badges": ["vagen"]
+        "badges": ["karta","simma","vagen"]
       }
     ]
   },
@@ -67,27 +75,27 @@
     "plans": [
       {
         "name": "År 1 HT",
-        "badges": ["elda", "mattrean", "navigera"]
+        "badges": [ "mattrean"]
       },
       {
         "name": "År 2 VT",
-        "badges": ["surra", "klattring", "paddla"]
+        "badges": ["trredje_repmarket","100_scout"]
       },
       {
         "name": "År 2 HT",
-        "badges": ["demokrati", "offline", "spara"]
+        "badges": ["radda","12_12"]
       },
       {
         "name": "År 3 VT",
-        "badges": ["klimat", "vara_ute_skogen", "sjovett"]
+        "badges": ["elda","12_12","100_scout"]
       },
       {
         "name": "År 3 HT",
-        "badges": ["radda", "kroppslig_halsa", "genus_hbtqplus"]
+        "badges": ["surra","100_scout"]
       },
       {
         "name": "År 4 VT",
-        "badges": ["experimenttrean", "superpatrullen", "varldens_utmaning"]
+        "badges": ["navigera"]
       }
     ]
   },
@@ -96,20 +104,13 @@
     "plans": [
       {
         "name": "År 1 HT",
-        "badges": ["ta_fyr", "mat_avancerat", "overlevnad"]
+        "badges": ["forebild"]
       },
       {
         "name": "År 2 VT",
-        "badges": ["bygga_avancerat", "budgetera", "upptack_varlden"]
-      },
-      {
-        "name": "År 2 HT",
-        "badges": ["paddla_vanern", "klattra_kebnekaise", "vara_ute_sjalv"]
-      },
-      {
-        "name": "År 3 VT",
-        "badges": ["innovationen", "reparera", "psykisk_halsa"]
+        "badges": []
       }
+      
     ]
   },
   {
@@ -117,11 +118,11 @@
     "plans": [
       {
         "name": "År 1 VT",
-        "badges": ["skogsgourmet", "vandra_sjalv", "varldsmedborgare"]
+        "badges": []
       },
       {
         "name": "År 1 HT",
-        "badges": ["bygga_permanent", "paddla_gotland", "skogsrejv"]
+        "badges": []
       }
     ]
   }

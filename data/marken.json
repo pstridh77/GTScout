@@ -2684,6 +2684,24 @@
                         "Scouterna"
                     ],
         "Typ":  "Bevismärke"
+    },
+    {
+        "id":  "12_12",
+        "namn":  "12/12 Sova Ute",
+        "bild":  "",
+        "kategori":  "Sova borta",
+        "malgrupp":  [
+                      "Äventyrare"   
+                     ],
+        "inledning":"...",
+        "kriterier":  [
+                         
+                         "..."
+                     ],
+        "program":  [
+                        "GTorp"
+                    ],
+        "Typ":  "Intressemärke"
     }
     
 ]
