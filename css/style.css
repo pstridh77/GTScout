@@ -1397,6 +1397,12 @@ body {
     gap: 16px;
 }
 
+.custom-activity-form-content {
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
 .modal-content--wide {
     max-width: 700px;
     max-height: calc(100vh - 40px);
