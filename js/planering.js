@@ -702,7 +702,7 @@ function generatePlanningPdf(selectedIds, meetingsOnly = false) {
             .filter(activityId => plannedActivityIds.includes(activityId))
             .map(activityId => allAktiviteter.find(activity => activity.id === activityId))
             .filter(Boolean);
-        const activities = badgeActivities.length > 0
+        const activities = showPlanningActivities && badgeActivities.length > 0
             ? `<div class="pdf-badge-activities"><strong>Aktiviteter:</strong>${badgeActivities.map(activityId => renderActivity(activityId.id)).join("")}</div>`
             : "";
         const image = resolveImage(marke.bild);
@@ -760,14 +760,14 @@ function generatePlanningPdf(selectedIds, meetingsOnly = false) {
         return `
         <section class="pdf-planning">
             <h2 class="pdf-planning-heading">${icon}<span>${escapeHtml(group.name)} - ${escapeHtml(group.level)}</span></h2>
-            <p class="pdf-planning-intro">${meetingsOnly ? "Följande möten är planerade:" : "Följande märken och aktiviteter är planerade:"}</p>
+            <p class="pdf-planning-intro">${meetingsOnly ? "Följande möten är planerade:" : "Följande märken är planerade:"}</p>
             ${!meetingsOnly && Array.isArray(group.badges) && group.badges.length > 0
                 ? group.badges.map(badgeId => renderBadge(badgeId, group)).join("")
                 : !meetingsOnly ? "<p>Inga märken planerade.</p>" : ""}
-            ${!meetingsOnly && unassignedActivities.length > 0
+            ${!meetingsOnly && showPlanningActivities && unassignedActivities.length > 0
                 ? `<div class="pdf-activities"><h3>Övriga aktiviteter</h3>${unassignedActivities.map(renderActivity).join("")}</div>`
                 : ""}
-            ${meetings.length > 0
+            ${showPlanningMeetings && meetings.length > 0
                 ? `<div class="pdf-meetings"><h3>Möten</h3>${meetings.map(renderMeeting).join("")}</div>`
                 : ""}
         </section>
