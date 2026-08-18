@@ -1365,7 +1365,7 @@ function addDefaultPlanningForLevel(level) {
                 name: plan.name,
                 level,
                 badges: Array.isArray(plan.badges) ? [...new Set(plan.badges)] : [],
-                activities: []
+                activities: Array.isArray(plan.activities) ? [...new Set(plan.activities)] : []
             });
             added += 1;
         }

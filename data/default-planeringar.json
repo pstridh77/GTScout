@@ -4,19 +4,23 @@
     "plans": [
       {
         "name": "Läsår 1 HT",
-        "badges": [ "smaka"]
+        "badges": ["smaka"],
+        "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 1 VT",
-        "badges": ["varme"]
+        "badges": ["varme"],
+        "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 2 HT",
-        "badges": ["aj"]
+        "badges": ["aj"],
+        "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 2 VT",
-        "badges": ["utforska"]
+        "badges": ["utforska"],
+        "activities": ["terminsuppstart","terminsavslutning"]
       }
     ]
   },
@@ -25,19 +29,23 @@
     "plans": [
       {
         "name": "Läsår 1 HT",
-        "badges": [ "matettan", "stormkok", "100_scout","tidsspar"]
+        "badges": [ "matettan", "stormkok", "100_scout","tidsspar"],
+        "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 1  VT",
-        "badges": ["forsta_repmarket", "ljusspar"]
+        "badges": ["forsta_repmarket", "ljusspar"],
+        "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 2 HT",
-        "badges": ["plastra", "klura","100_scout", "djurspar"]
+        "badges": ["plastra", "klura","100_scout", "djurspar"],
+        "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 2 VT",
-        "badges": [ "tanda", "hitta", "fotspar"]
+        "badges": [ "tanda", "hitta", "fotspar"],
+        "activities": ["terminsuppstart","terminsavslutning"]
       }
     ]
   },
@@ -46,27 +54,33 @@
     "plans": [
       {
         "name": "Läsår 1 HT",
-        "badges": ["mattvaan",  "kniv","berattelsen", "100_scout"]
+        "badges": ["mattvaan",  "kniv","berattelsen", "100_scout"],
+        "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 1 VT",
-        "badges": ["andra_repmarket","simma","fjarran"]
+        "badges": ["andra_repmarket","simma","fjarran"],
+        "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 2 HT",
-        "badges": ["hjalpa",  "kniv","horisonten","100_scout"]
+        "badges": ["hjalpa",  "kniv","horisonten","100_scout"],
+        "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 2 VT",
-        "badges": ["brinna","yxa_och_sag","manniskan"]
+        "badges": ["brinna","yxa_och_sag","manniskan"],
+        "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 3 HT",
-        "badges": ["losa","yxa_och_sag", "nara","100_scout"]
+        "badges": ["losa","yxa_och_sag", "nara","100_scout"],
+        "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 3 VT",
-        "badges": ["karta","simma","vagen"]
+        "badges": ["karta","simma","vagen"],
+        "activities": ["terminsuppstart","terminsavslutning"]
       }
     ]
   },
@@ -75,27 +89,33 @@
     "plans": [
       {
         "name": "Läsår 1 HT",
-        "badges": [ "mattrean"]
+        "badges": [ "mattrean"],
+        "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 1 VT",
-        "badges": ["tredje_repmarket"]
+        "badges": ["tredje_repmarket"],
+        "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 2 HT",
-        "badges": ["radda","12_12","100_scout"]
+        "badges": ["radda","12_12","100_scout"],
+        "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 2 VT",
-        "badges": ["elda","12_12"]
+        "badges": ["elda","12_12"],
+        "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 2 HT",
-        "badges": ["surra","100_scout"]
+        "badges": ["surra","100_scout"],
+        "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 2 VT",
-        "badges": ["navigera"]
+        "badges": ["navigera"],
+        "activities": ["terminsuppstart","terminsavslutning"]
       }
     ]
   },
@@ -104,11 +124,14 @@
     "plans": [
       {
         "name": "Läsår 1 HT",
-        "badges": ["forebild"]
+        "badges": ["forebild"],
+        "activities": ["terminsuppstart","terminsavslutning"]
+
       },
       {
         "name": "Läsår 1 VT",
-        "badges": []
+        "badges": [],
+        "activities": ["terminsuppstart","terminsavslutning"]
       }
       
     ]
@@ -118,11 +141,13 @@
     "plans": [
       {
         "name": "Läsår 1 HT",
-        "badges": []
+        "badges": [],
+        "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 1 VT",
-        "badges": []
+        "badges": [],
+        "activities": ["terminsuppstart","terminsavslutning"] 
       }
     ]
   }
