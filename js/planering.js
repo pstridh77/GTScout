@@ -1025,6 +1025,17 @@ function populateGroupFilterOptions() {
 }
 
 function renderPlanning(openActivityGroupIds = new Set()) {
+    const preservedOpenActivityGroupIds = new Set(
+        [...document.querySelectorAll("#planningGrid .planned-activities[open]")]
+            .map(details => details.closest(".group-badges")?.dataset.groupId)
+            .filter(Boolean)
+    );
+    const preservedOpenMeetingGroupIds = new Set(
+        [...document.querySelectorAll("#planningGrid .planned-meetings[open]")]
+            .map(details => details.closest(".group-badges")?.dataset.groupId)
+            .filter(Boolean)
+    );
+    const activeOpenActivityGroupIds = new Set([...preservedOpenActivityGroupIds, ...openActivityGroupIds]);
     populateGroupFilterOptions();
     const grid = document.getElementById("planningGrid");
     grid.innerHTML = "";
@@ -1101,7 +1112,7 @@ function renderPlanning(openActivityGroupIds = new Set()) {
                     </div>
                 </div>
                 <div class="group-badges" data-group-id="${group.id}">
-                    ${renderGroupBadges(group, openActivityGroupIds)}
+                    ${renderGroupBadges(group, activeOpenActivityGroupIds, preservedOpenMeetingGroupIds)}
                 </div>
             `;
             card.querySelector(".edit-group-btn").addEventListener("click", () => openGroupEditor(group.id));
@@ -1164,7 +1175,7 @@ function renderPlanning(openActivityGroupIds = new Set()) {
     bindActivityDragAndDrop();
 }
 
-function renderGroupBadges(group, openActivityGroupIds = new Set()) {
+function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingGroupIds = new Set()) {
     const activities = Array.isArray(group.activities) ? group.activities : [];
     const meetings = normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : []);
     if ((!group.badges || group.badges.length === 0) && activities.length === 0 && meetings.length === 0) {
@@ -1198,7 +1209,7 @@ function renderGroupBadges(group, openActivityGroupIds = new Set()) {
             }).join("")}</div></details>`
         : "";
     const meetingsMarkup = meetings.length > 0
-        ? `<div class="planned-meetings"><h4>Möten</h4>${meetings.map(meeting => {
+        ? `<details class="planned-meetings"${openMeetingGroupIds.has(group.id) ? " open" : ""}><summary>Möten <span>${meetings.length}</span></summary><div class="planned-meetings-list">${meetings.map(meeting => {
             const selectedActivities = (meeting.activities || []).map(activityId => allAktiviteter.find(item => item.id === activityId)).filter(Boolean);
             const badge = allMarken.find(item => item.id === meeting.badgeId);
             return `<div class="planned-meeting" data-group-id="${group.id}" data-meeting-id="${meeting.id}">
@@ -1210,12 +1221,12 @@ function renderGroupBadges(group, openActivityGroupIds = new Set()) {
                         </div>
                     </div>
                     ${meeting.date ? `<small>${escapeHtml(meeting.date)}</small>` : ""}
-                    ${meeting.notes ? `<p><strong>Anteckningar:</strong> ${escapeHtml(meeting.notes)}</p>` : ""}
-                    ${badge ? `<div><strong>Märke:</strong> ${escapeHtml(badge.namn)}</div>` : ""}
+                    ${meeting.notes ? `<p>${escapeHtml(meeting.notes)}</p>` : ""}
+                    ${badge ? `<div class="planned-meeting-badge" title="${escapeHtml(badge.namn)}"><img src="${escapeHtml(badge.bild)}" alt="${escapeHtml(badge.namn)}"></div>` : ""}
                     ${selectedActivities.length > 0 ? `<div class="planned-meeting-activity-list"><strong>Aktiviteter:</strong> ${escapeHtml(selectedActivities.map(activity => activity.namn).join(", "))}</div>` : ""}
                     ${meeting.responsible ? `<div><strong>Ansvarig:</strong> ${escapeHtml(meeting.responsible)}</div>` : ""}
                 </div>`;
-        }).join("")}</div>`
+        }).join("")}</div></details>`
         : "";
     return badges + activityMarkup + meetingsMarkup;
 }
@@ -1572,6 +1583,7 @@ function openMeetingModal(groupId, meetingId = null) {
     const group = groups.find(item => item.id === groupId);
     if (!group) return;
 
+    document.getElementById("meetingModalTitle").textContent = `${group.level || "Målgrupp"} – ${group.name} – Möte`;
     const meeting = meetingId ? normalizeMeetingList(group.meetings || []).find(item => item.id === meetingId) : null;
     const activityList = document.getElementById("meetingActivityList");
     const selectedIds = new Set((meeting && Array.isArray(meeting.activities) ? meeting.activities : []));

@@ -1282,7 +1282,8 @@ body {
     color: #003660;
 }
 
-.planned-activities summary {
+.planned-activities summary,
+.planned-meetings summary {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1292,11 +1293,13 @@ body {
     list-style: none;
 }
 
-.planned-activities summary::-webkit-details-marker {
+.planned-activities summary::-webkit-details-marker,
+.planned-meetings summary::-webkit-details-marker {
     display: none;
 }
 
-.planned-activities summary::after {
+.planned-activities summary::after,
+.planned-meetings summary::after {
     content: "+";
     margin-left: 8px;
     font-size: 1.15rem;
@@ -1384,6 +1387,7 @@ body {
 }
 
 .planned-meetings {
+    flex: 1 1 100%;
     display: grid;
     gap: 8px;
     margin-top: 10px;
@@ -1391,10 +1395,33 @@ body {
     border-top: 1px solid #e5e7eb;
 }
 
-.planned-meetings h4 {
-    margin: 0;
-    color: #003660;
-    font-size: 0.9rem;
+.planned-meetings[open] summary::after {
+    content: "-";
+}
+
+.planned-activities summary span,
+.planned-meetings summary span {
+    margin-left: auto;
+    color: #536477;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.planned-meetings-list {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.planned-meeting-badge {
+    display: flex;
+    align-items: center;
+}
+
+.planned-meeting-badge img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
 }
 
 .planned-meeting {
