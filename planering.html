@@ -225,6 +225,75 @@
         </div>
     </div>
 
+    <div id="meetingModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="meetingModalTitle">
+        <div class="modal-content modal-content--wide">
+            <button class="close-popup" type="button" id="closeMeetingModal" aria-label="Stäng">&times;</button>
+            <h2 id="meetingModalTitle">Möte</h2>
+
+            <div class="meeting-form-grid">
+                <label class="modal-field">
+                    <span>Vecka</span>
+                    <input id="meetingWeek" type="text" placeholder="t.ex. 1, HT1">
+                </label>
+                <label class="modal-field">
+                    <span>Datum</span>
+                    <input id="meetingDate" type="date">
+                </label>
+            </div>
+
+            <label class="modal-field">
+                <span>Anteckningar</span>
+                <textarea id="meetingNotes" rows="3" placeholder="Anteckningar för mötet..."></textarea>
+            </label>
+
+            <label class="modal-field">
+                <span>Märke</span>
+                <input id="meetingBadge" type="hidden" value="">
+                <div id="meetingBadgePicker" class="meeting-badge-picker" role="group" aria-label="Välj märke"></div>
+            </label>
+
+            <label class="modal-field">
+                <span>Aktiviteter</span>
+                <div id="meetingActivityList" class="meeting-activity-list"></div>
+            </label>
+
+            <label class="modal-field">
+                <span>Ansvarig</span>
+                <input id="meetingResponsible" type="text" placeholder="Namn på ansvarig">
+            </label>
+
+            <div class="modal-actions modal-actions--split">
+                <button id="generateMeetingSeriesBtn" class="btn-secondary meeting-series-open-btn" type="button">Generera mötesserie</button>
+                <button id="saveMeetingBtn" class="btn-primary" type="button">Spara möte</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="meetingSeriesModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="meetingSeriesModalTitle">
+        <div class="modal-content modal-content--wide">
+            <button class="close-popup" type="button" id="closeMeetingSeriesModal" aria-label="Stäng">&times;</button>
+            <h2 id="meetingSeriesModalTitle">Generera mötesserie</h2>
+            <div class="meeting-form-grid">
+                <label class="modal-field">
+                    <span>Antal möten</span>
+                    <input id="meetingSeriesCount" type="number" min="1" max="52" value="10">
+                </label>
+                <label class="modal-field">
+                    <span>Startvecka</span>
+                    <input id="meetingSeriesStartWeek" type="number" min="1" max="52" value="1">
+                </label>
+                <label class="modal-field" style="grid-column: 1 / -1;">
+                    <span>Startdatum</span>
+                    <input id="meetingSeriesStartDate" type="date">
+                </label>
+            </div>
+            <div class="modal-actions modal-actions--split">
+                <button id="closeMeetingSeriesBtn" class="btn-secondary" type="button">Avbryt</button>
+                <button id="confirmMeetingSeriesBtn" class="btn-primary" type="button">Generera serie</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal: Välj märken -->
     <div id="badgePickerModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="pickerTitle">
         <div class="modal-content modal-content--wide">

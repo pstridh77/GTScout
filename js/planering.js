@@ -542,6 +542,9 @@ function loadGroups() {
                 const { year, term } = parsePlanningYearAndTerm(group);
                 group.year = Number.isFinite(year) ? year : "";
                 group.term = normalizePlanningTerm(term);
+                group.activities = Array.isArray(group.activities) ? group.activities : [];
+                group.badges = Array.isArray(group.badges) ? group.badges : [];
+                group.meetings = normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : []);
                 return group;
             }).filter(Boolean)
             : [];
@@ -553,6 +556,9 @@ function loadGroups() {
 function saveGroups() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(groups.map(group => ({
         ...group,
+        badges: Array.isArray(group.badges) ? group.badges : [],
+        activities: Array.isArray(group.activities) ? group.activities : [],
+        meetings: normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : []),
         year: Number.isFinite(getGroupYearValue(group)) ? getGroupYearValue(group) : "",
         term: getGroupTermValue(group)
     }))));
@@ -578,7 +584,8 @@ function exportPlannings() {
             year: Number.isFinite(getGroupYearValue(group)) ? getGroupYearValue(group) : "",
             term: getGroupTermValue(group),
             badges: Array.isArray(group.badges) ? group.badges : [],
-            activities: Array.isArray(group.activities) ? group.activities : []
+            activities: Array.isArray(group.activities) ? group.activities : [],
+            meetings: normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : [])
         })),
         badgeNotes,
         customActivities: loadCustomActivities(),
@@ -1089,6 +1096,7 @@ function renderPlanning(openActivityGroupIds = new Set()) {
                         <button class="btn-secondary edit-group-btn" type="button" data-group-id="${group.id}" title="Redigera planering">Redigera</button>
                         <button class="btn-secondary add-badge-btn" type="button" data-group-id="${group.id}">+ Märke</button>
                         <button class="btn-secondary add-activity-btn" type="button" data-group-id="${group.id}">+ Aktivitet</button>
+                        <button class="btn-secondary add-meeting-btn" type="button" data-group-id="${group.id}">+ Möte</button>
                         <button class="btn-danger remove-group-btn" type="button" data-group-id="${group.id}" title="Ta bort planering">&times;</button>
                     </div>
                 </div>
@@ -1099,6 +1107,7 @@ function renderPlanning(openActivityGroupIds = new Set()) {
             card.querySelector(".edit-group-btn").addEventListener("click", () => openGroupEditor(group.id));
             card.querySelector(".add-badge-btn").addEventListener("click", () => openBadgePicker(group.id));
             card.querySelector(".add-activity-btn").addEventListener("click", () => openActivityPicker(group.id));
+            card.querySelector(".add-meeting-btn").addEventListener("click", () => openMeetingModal(group.id));
             card.querySelector(".remove-group-btn").addEventListener("click", () => removeGroup(group.id));
             cardsRow.appendChild(card);
         });
@@ -1119,6 +1128,20 @@ function renderPlanning(openActivityGroupIds = new Set()) {
         btn.addEventListener("click", e => {
             e.stopPropagation();
             removeActivityFromGroup(btn.dataset.groupId, btn.dataset.activityId);
+        });
+    });
+
+    document.querySelectorAll(".edit-meeting-btn").forEach(btn => {
+        btn.addEventListener("click", e => {
+            e.stopPropagation();
+            openMeetingModal(btn.dataset.groupId, btn.dataset.meetingId);
+        });
+    });
+
+    document.querySelectorAll(".remove-meeting-btn").forEach(btn => {
+        btn.addEventListener("click", e => {
+            e.stopPropagation();
+            removeMeetingFromGroup(btn.dataset.groupId, btn.dataset.meetingId);
         });
     });
 
@@ -1143,7 +1166,8 @@ function renderPlanning(openActivityGroupIds = new Set()) {
 
 function renderGroupBadges(group, openActivityGroupIds = new Set()) {
     const activities = Array.isArray(group.activities) ? group.activities : [];
-    if ((!group.badges || group.badges.length === 0) && activities.length === 0) {
+    const meetings = normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : []);
+    if ((!group.badges || group.badges.length === 0) && activities.length === 0 && meetings.length === 0) {
         return '<p class="group-empty">Inga märken planerade än.</p>';
     }
 
@@ -1173,7 +1197,27 @@ function renderGroupBadges(group, openActivityGroupIds = new Set()) {
                 : "";
             }).join("")}</div></details>`
         : "";
-    return badges + activityMarkup;
+    const meetingsMarkup = meetings.length > 0
+        ? `<div class="planned-meetings"><h4>Möten</h4>${meetings.map(meeting => {
+            const selectedActivities = (meeting.activities || []).map(activityId => allAktiviteter.find(item => item.id === activityId)).filter(Boolean);
+            const badge = allMarken.find(item => item.id === meeting.badgeId);
+            return `<div class="planned-meeting" data-group-id="${group.id}" data-meeting-id="${meeting.id}">
+                    <div class="planned-meeting-header">
+                        <strong>Vecka ${escapeHtml(meeting.week || "-")}</strong>
+                        <div class="planned-meeting-tools">
+                            <button class="edit-meeting-btn" type="button" data-group-id="${group.id}" data-meeting-id="${meeting.id}">Redigera</button>
+                            <button class="remove-meeting-btn" type="button" data-group-id="${group.id}" data-meeting-id="${meeting.id}" aria-label="Ta bort möte">&times;</button>
+                        </div>
+                    </div>
+                    ${meeting.date ? `<small>${escapeHtml(meeting.date)}</small>` : ""}
+                    ${meeting.notes ? `<p><strong>Anteckningar:</strong> ${escapeHtml(meeting.notes)}</p>` : ""}
+                    ${badge ? `<div><strong>Märke:</strong> ${escapeHtml(badge.namn)}</div>` : ""}
+                    ${selectedActivities.length > 0 ? `<div class="planned-meeting-activity-list"><strong>Aktiviteter:</strong> ${escapeHtml(selectedActivities.map(activity => activity.namn).join(", "))}</div>` : ""}
+                    ${meeting.responsible ? `<div><strong>Ansvarig:</strong> ${escapeHtml(meeting.responsible)}</div>` : ""}
+                </div>`;
+        }).join("")}</div>`
+        : "";
+    return badges + activityMarkup + meetingsMarkup;
 }
 
 // ── Groups CRUD ────────────────────────────────────────────────────────────
@@ -1189,7 +1233,8 @@ function addGroup(name, level, year = "", term = "") {
         year: Number.isFinite(normalizedYear) ? normalizedYear : "",
         term: normalizedTerm,
         badges: [],
-        activities: []
+        activities: [],
+        meetings: []
     });
     saveGroups();
     renderPlanning();
@@ -1495,6 +1540,269 @@ function removeActivityFromGroup(groupId, activityId) {
     const group = groups.find(g => g.id === groupId);
     if (!group || !Array.isArray(group.activities)) return;
     group.activities = group.activities.filter(id => id !== activityId);
+    group.meetings = normalizeMeetingList((group.meetings || []).map(meeting => ({
+        ...meeting,
+        activities: (meeting.activities || []).filter(id => id !== activityId)
+    })));
+    saveGroups();
+    renderPlanning();
+}
+
+function normalizeMeetingList(meetings) {
+    if (!Array.isArray(meetings)) return [];
+    return meetings
+        .map(meeting => {
+            if (!meeting || typeof meeting !== "object") return null;
+            const weekValue = String(meeting.week ?? "").trim();
+            return {
+                id: typeof meeting.id === "string" && meeting.id.trim() ? meeting.id.trim() : crypto.randomUUID(),
+                week: weekValue || (typeof meeting.vecka === "number" ? String(meeting.vecka) : ""),
+                date: String(meeting.date ?? ""),
+                responsible: String(meeting.responsible ?? meeting.ansvarig ?? "").trim(),
+                badgeId: String(meeting.badgeId ?? meeting.markeId ?? "").trim(),
+                activities: Array.isArray(meeting.activities) ? [...new Set(meeting.activities.filter(Boolean))] : [],
+                notes: String(meeting.notes ?? meeting.note ?? "").trim()
+            };
+        })
+        .filter(Boolean);
+}
+
+function openMeetingModal(groupId, meetingId = null) {
+    const modal = document.getElementById("meetingModal");
+    const group = groups.find(item => item.id === groupId);
+    if (!group) return;
+
+    const meeting = meetingId ? normalizeMeetingList(group.meetings || []).find(item => item.id === meetingId) : null;
+    const activityList = document.getElementById("meetingActivityList");
+    const selectedIds = new Set((meeting && Array.isArray(meeting.activities) ? meeting.activities : []));
+    const badgeList = (Array.isArray(group.badges) ? group.badges : [])
+        .map(badgeId => allMarken.find(item => item.id === badgeId))
+        .filter(Boolean)
+        .sort((a, b) => a.namn.localeCompare(b.namn, "sv"));
+    const availableActivities = (Array.isArray(group.activities) ? group.activities : [])
+        .map(activityId => allAktiviteter.find(item => item.id === activityId))
+        .filter(Boolean);
+
+    modal.dataset.groupId = groupId;
+    modal.dataset.meetingId = meetingId || "";
+    document.getElementById("meetingWeek").value = meeting ? (meeting.week || "") : "";
+    document.getElementById("meetingDate").value = meeting ? (meeting.date || "") : "";
+    document.getElementById("meetingResponsible").value = meeting ? (meeting.responsible || "") : "";
+    const meetingBadge = document.getElementById("meetingBadge");
+    const meetingBadgePicker = document.getElementById("meetingBadgePicker");
+    meetingBadge.value = meeting?.badgeId || "";
+    meetingBadgePicker.innerHTML = [
+        `<button class="meeting-badge-option${meetingBadge.value ? "" : " meeting-badge-option--selected"}" type="button" data-badge-id="" aria-pressed="${meetingBadge.value ? "false" : "true"}">Inget märke</button>`,
+        ...badgeList.map(badge => `<button class="meeting-badge-option${meetingBadge.value === badge.id ? " meeting-badge-option--selected" : ""}" type="button" data-badge-id="${escapeHtml(badge.id)}" aria-pressed="${meetingBadge.value === badge.id ? "true" : "false"}"><img src="${escapeHtml(badge.bild)}" alt=""><span>${escapeHtml(badge.namn)}</span></button>`)
+    ].join("");
+    meetingBadgePicker.querySelectorAll(".meeting-badge-option").forEach(option => {
+        option.addEventListener("click", () => {
+            meetingBadge.value = option.dataset.badgeId || "";
+            meetingBadgePicker.querySelectorAll(".meeting-badge-option").forEach(item => {
+                const selected = item === option;
+                item.classList.toggle("meeting-badge-option--selected", selected);
+                item.setAttribute("aria-pressed", String(selected));
+            });
+        });
+    });
+    document.getElementById("meetingNotes").value = meeting ? (meeting.notes || "") : "";
+    document.getElementById("meetingSeriesCount").value = "10";
+    document.getElementById("meetingSeriesStartWeek").value = "1";
+    document.getElementById("meetingSeriesStartDate").value = "";
+    activityList.innerHTML = availableActivities.length > 0
+        ? availableActivities.map(activity => `
+            <label class="meeting-activity-option">
+                <input type="checkbox" value="${activity.id}" ${selectedIds.has(activity.id) ? "checked" : ""}>
+                <span>${escapeHtml(activity.namn)}</span>
+            </label>`).join("")
+        : "<p class='group-empty'>Det finns inga aktiva aktiviteter i denna planering ännu.</p>";
+
+    modal.classList.remove("hidden");
+    document.getElementById("meetingWeek").focus();
+}
+
+function saveMeetingFromModal() {
+    const modal = document.getElementById("meetingModal");
+    const groupId = modal.dataset.groupId;
+    const group = groups.find(item => item.id === groupId);
+    if (!group) return;
+
+    const week = document.getElementById("meetingWeek").value.trim();
+    const date = document.getElementById("meetingDate").value;
+    const responsible = document.getElementById("meetingResponsible").value.trim();
+    const badgeId = document.getElementById("meetingBadge").value;
+    const notes = document.getElementById("meetingNotes").value.trim();
+    const selectedActivities = [...document.querySelectorAll("#meetingActivityList input:checked")].map(input => input.value);
+    if (!week && !date) {
+        document.getElementById("meetingWeek").focus();
+        return;
+    }
+
+    const payload = {
+        week,
+        date,
+        responsible,
+        badgeId,
+        activities: [...new Set(selectedActivities.filter(Boolean))],
+        notes
+    };
+
+    if (modal.dataset.meetingId) {
+        updateMeetingForGroup(groupId, modal.dataset.meetingId, payload);
+    } else {
+        createMeetingForGroup(groupId, payload);
+    }
+    modal.classList.add("hidden");
+}
+
+function generateMeetingSeries(groupId, count, startWeek, startDate, activities = [], badgeId = "", responsible = "", notes = "") {
+    const group = groups.find(item => item.id === groupId);
+    if (!group) return;
+
+    const meetingCount = Math.max(1, Number.parseInt(count, 10) || 1);
+    const firstWeek = Math.max(1, Number.parseInt(startWeek, 10) || 1);
+    const baseDate = startDate ? new Date(`${startDate}T12:00:00`) : new Date();
+    const generatedMeetings = [];
+
+    for (let index = 0; index < meetingCount; index += 1) {
+        const nextDate = new Date(baseDate);
+        nextDate.setDate(baseDate.getDate() + (index * 7));
+        generatedMeetings.push({
+            id: crypto.randomUUID(),
+            week: String(firstWeek + index),
+            date: nextDate.toISOString().slice(0, 10),
+            responsible,
+            badgeId,
+            activities: [...new Set(activities.filter(Boolean))],
+            notes
+        });
+    }
+
+    group.meetings = normalizeMeetingList([...(Array.isArray(group.meetings) ? group.meetings : []), ...generatedMeetings]);
+    saveGroups();
+    renderPlanning();
+}
+
+function bindMeetingModalActions() {
+    const modal = document.getElementById("meetingModal");
+    const seriesModal = document.getElementById("meetingSeriesModal");
+    document.getElementById("closeMeetingModal").addEventListener("click", () => modal.classList.add("hidden"));
+    modal.addEventListener("click", event => {
+        if (event.target === modal) modal.classList.add("hidden");
+    });
+    document.getElementById("generateMeetingSeriesBtn").addEventListener("click", () => {
+        const groupId = modal.dataset.groupId;
+        if (!groupId) return;
+        seriesModal.dataset.groupId = groupId;
+        seriesModal.classList.remove("hidden");
+        document.getElementById("meetingSeriesCount").focus();
+    });
+    const closeSeriesModal = () => seriesModal.classList.add("hidden");
+    document.getElementById("closeMeetingSeriesModal").addEventListener("click", closeSeriesModal);
+    document.getElementById("closeMeetingSeriesBtn").addEventListener("click", closeSeriesModal);
+    seriesModal.addEventListener("click", event => {
+        if (event.target === seriesModal) closeSeriesModal();
+    });
+    document.getElementById("confirmMeetingSeriesBtn").addEventListener("click", () => {
+        const groupId = seriesModal.dataset.groupId;
+        if (!groupId) return;
+        const selectedActivities = [...document.querySelectorAll("#meetingActivityList input:checked")]
+            .map(input => input.value);
+        generateMeetingSeries(
+            groupId,
+            document.getElementById("meetingSeriesCount").value,
+            document.getElementById("meetingSeriesStartWeek").value,
+            document.getElementById("meetingSeriesStartDate").value,
+            selectedActivities,
+            document.getElementById("meetingBadge").value,
+            document.getElementById("meetingResponsible").value.trim(),
+            document.getElementById("meetingNotes").value.trim()
+        );
+        closeSeriesModal();
+        modal.classList.add("hidden");
+    });
+    document.getElementById("saveMeetingBtn").addEventListener("click", saveMeetingFromModal);
+}
+
+bindMeetingModalActions();
+
+function createMeetingForGroup(groupId, meetingInput = {}) {
+    const group = groups.find(item => item.id === groupId);
+    if (!group) return null;
+    const meeting = {
+        id: typeof meetingInput.id === "string" && meetingInput.id.trim() ? meetingInput.id.trim() : crypto.randomUUID(),
+        week: String(meetingInput.week ?? "").trim(),
+        date: String(meetingInput.date ?? ""),
+        responsible: String(meetingInput.responsible ?? meetingInput.ansvarig ?? "").trim(),
+        badgeId: String(meetingInput.badgeId ?? meetingInput.markeId ?? "").trim(),
+        activities: Array.isArray(meetingInput.activities) ? [...new Set(meetingInput.activities.filter(Boolean))] : [],
+        notes: String(meetingInput.notes ?? meetingInput.note ?? "").trim()
+    };
+    group.meetings = normalizeMeetingList([...(Array.isArray(group.meetings) ? group.meetings : []), meeting]);
+    saveGroups();
+    renderPlanning();
+    return meeting;
+}
+
+function updateMeetingForGroup(groupId, meetingId, meetingInput = {}) {
+    const group = groups.find(item => item.id === groupId);
+    if (!group) return null;
+    group.meetings = normalizeMeetingList((group.meetings || []).map(meeting => {
+        if (meeting.id !== meetingId) return meeting;
+        return {
+            ...meeting,
+            week: String(meetingInput.week ?? meeting.week ?? "").trim(),
+            date: String(meetingInput.date ?? meeting.date ?? ""),
+            responsible: String(meetingInput.responsible ?? meetingInput.ansvarig ?? meeting.responsible ?? "").trim(),
+            badgeId: String(meetingInput.badgeId ?? meetingInput.markeId ?? meeting.badgeId ?? "").trim(),
+            activities: Array.isArray(meetingInput.activities)
+                ? [...new Set(meetingInput.activities.filter(Boolean))]
+                : [...(meeting.activities || [])],
+            notes: String(meetingInput.notes ?? meetingInput.note ?? meeting.notes ?? "").trim()
+        };
+    }));
+    saveGroups();
+    renderPlanning();
+    return group.meetings.find(meeting => meeting.id === meetingId) || null;
+}
+
+function removeMeetingFromGroup(groupId, meetingId) {
+    const group = groups.find(item => item.id === groupId);
+    if (!group) return;
+    group.meetings = normalizeMeetingList((group.meetings || []).filter(meeting => meeting.id !== meetingId));
+    saveGroups();
+    renderPlanning();
+}
+
+function getMeetingsForGroup(groupId) {
+    const group = groups.find(item => item.id === groupId);
+    if (!group) return [];
+    return normalizeMeetingList(group.meetings || []);
+}
+
+function generateMeetingSeries(groupId, count, startWeek, startDate, activities = [], badgeId = "", responsible = "", notes = "") {
+    const group = groups.find(item => item.id === groupId);
+    if (!group) return;
+    const meetingCount = Math.max(1, Number.parseInt(count, 10) || 1);
+    const firstWeek = Math.max(1, Number.parseInt(startWeek, 10) || 1);
+    const baseDate = startDate ? new Date(`${startDate}T12:00:00`) : new Date();
+    const meetingsToAdd = [];
+
+    for (let index = 0; index < meetingCount; index += 1) {
+        const date = new Date(baseDate);
+        date.setDate(baseDate.getDate() + (index * 7));
+        meetingsToAdd.push({
+            id: crypto.randomUUID(),
+            week: String(firstWeek + index),
+            date: date.toISOString().slice(0, 10),
+            badgeId,
+            activities: [...new Set(activities.filter(Boolean))],
+            responsible,
+            notes
+        });
+    }
+
+    group.meetings = normalizeMeetingList([...(Array.isArray(group.meetings) ? group.meetings : []), ...meetingsToAdd]);
     saveGroups();
     renderPlanning();
 }
