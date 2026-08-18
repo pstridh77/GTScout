@@ -2670,7 +2670,7 @@
     {
         "id":  "100_scout",
         "namn":  "100% Scout",
-        "bild":  "",
+        "bild":  "images/marken/100_scout.png",
         "kategori":  "Övriga",
         "malgrupp":  [
                       "Spårare"   
