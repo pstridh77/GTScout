@@ -3,19 +3,19 @@
     "level": "Familjescouting",
     "plans": [
       {
-        "name": "År 1 HT",
+        "name": "Läsår 1 HT",
         "badges": [ "smaka"]
       },
       {
-        "name": "År 2 VT",
+        "name": "Läsår 1 VT",
         "badges": ["varme"]
       },
       {
-        "name": "År 2 HT",
+        "name": "Läsår 2 HT",
         "badges": ["aj"]
       },
       {
-        "name": "År 3 VT",
+        "name": "Läsår 2 VT",
         "badges": ["utforska"]
       }
     ]
@@ -24,19 +24,19 @@
     "level": "Spårare",
     "plans": [
       {
-        "name": "År 1 HT",
+        "name": "Läsår 1 HT",
         "badges": [ "matettan", "stormkok", "100_scout","tidsspar"]
       },
       {
-        "name": "År 2 VT",
+        "name": "Läsår 1  VT",
         "badges": ["forsta_repmarket", "ljusspar"]
       },
       {
-        "name": "År 2 HT",
+        "name": "Läsår 2 HT",
         "badges": ["plastra", "klura","100_scout", "djurspar"]
       },
       {
-        "name": "År 3 VT",
+        "name": "Läsår 2 VT",
         "badges": [ "tanda", "hitta", "fotspar"]
       }
     ]
@@ -45,27 +45,27 @@
     "level": "Upptäckare",
     "plans": [
       {
-        "name": "År 1 HT",
+        "name": "Läsår 1 HT",
         "badges": ["mattvaan",  "kniv","berattelsen", "100_scout"]
       },
       {
-        "name": "År 2 VT",
+        "name": "Läsår 1 VT",
         "badges": ["andra_repmarket","simma","fjarran"]
       },
       {
-        "name": "År 2 HT",
+        "name": "Läsår 2 HT",
         "badges": ["hjalpa",  "kniv","horisonten","100_scout"]
       },
       {
-        "name": "År 3 VT",
+        "name": "Läsår 2 VT",
         "badges": ["brinna","yxa_och_sag","manniskan"]
       },
       {
-        "name": "År 3 HT",
+        "name": "Läsår 3 HT",
         "badges": ["losa","yxa_och_sag", "nara","100_scout"]
       },
       {
-        "name": "År 4 VT",
+        "name": "Läsår 3 VT",
         "badges": ["karta","simma","vagen"]
       }
     ]
@@ -74,27 +74,27 @@
     "level": "Äventyrare",
     "plans": [
       {
-        "name": "År 1 HT",
+        "name": "Läsår 1 HT",
         "badges": [ "mattrean"]
       },
       {
-        "name": "År 2 VT",
+        "name": "Läsår 1 VT",
         "badges": ["tredje_repmarket"]
       },
       {
-        "name": "År 2 HT",
+        "name": "Läsår 2 HT",
         "badges": ["radda","12_12","100_scout"]
       },
       {
-        "name": "År 3 VT",
+        "name": "Läsår 2 VT",
         "badges": ["elda","12_12"]
       },
       {
-        "name": "År 3 HT",
+        "name": "Läsår 2 HT",
         "badges": ["surra","100_scout"]
       },
       {
-        "name": "År 4 VT",
+        "name": "Läsår 2 VT",
         "badges": ["navigera"]
       }
     ]
@@ -103,11 +103,11 @@
     "level": "Utmanare",
     "plans": [
       {
-        "name": "År 1 HT",
+        "name": "Läsår 1 HT",
         "badges": ["forebild"]
       },
       {
-        "name": "År 2 VT",
+        "name": "Läsår 1 VT",
         "badges": []
       }
       
@@ -117,11 +117,11 @@
     "level": "Rover",
     "plans": [
       {
-        "name": "År 1 VT",
+        "name": "Läsår 1 HT",
         "badges": []
       },
       {
-        "name": "År 1 HT",
+        "name": "Läsår 1 VT",
         "badges": []
       }
     ]

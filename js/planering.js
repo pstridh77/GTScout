@@ -1378,10 +1378,11 @@ function addDefaultPlanningForLevel(level) {
     return added;
 }
 
-document.getElementById("loadDefaultsBtn").addEventListener("click", () => {
-    const selectedLevel = document.getElementById("groupLevel").value;
-    addDefaultPlanningForLevel(selectedLevel);
-    groupModal.classList.add("hidden");
+document.getElementById("openDefaultPlanningBtn").addEventListener("click", () => {
+    const selectedLevel = document.getElementById("groupLevel").value || "Familjescouting";
+    document.getElementById("defaultPlanningLevel").value = selectedLevel;
+    defaultPlanningModal.classList.remove("hidden");
+    document.getElementById("defaultPlanningLevel").focus();
 });
 
 document.getElementById("closeDefaultPlanningModal").addEventListener("click", () => {
