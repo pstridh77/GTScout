@@ -669,7 +669,7 @@ function openPdfSelection() {
     document.getElementById("pdfSelectionModal").classList.remove("hidden");
 }
 
-function generatePlanningPdf(selectedIds) {
+function generatePlanningPdf(selectedIds, meetingsOnly = false) {
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
         alert("Kunde inte öppna PDF-vyn. Tillåt popupfönster för den här sidan.");
@@ -725,6 +725,22 @@ function generatePlanningPdf(selectedIds) {
         const material = Array.isArray(activity.material) ? activity.material.join(", ") : "";
         return `<div class="pdf-activity"><h4>${escapeHtml(activity.namn)}</h4><p>${renderLinkedText(activity.beskrivning || "")}</p>${formatActivityTime(activity) ? `<p><strong>Tid:</strong> ${escapeHtml(formatActivityTime(activity))}</p>` : ""}${material ? `<p><strong>Material:</strong> ${escapeHtml(material)}</p>` : ""}</div>`;
     };
+    const renderMeeting = meeting => {
+        const badge = allMarken.find(item => item.id === meeting.badgeId);
+        const selectedActivities = (meeting.activities || [])
+            .map(activityId => allAktiviteter.find(item => item.id === activityId))
+            .filter(Boolean);
+        const badgeImage = badge?.bild
+            ? `<img class="pdf-meeting-badge" src="${escapeHtml(resolveImage(badge.bild))}" alt="${escapeHtml(badge.namn)}" title="${escapeHtml(badge.namn)}">`
+            : "";
+        return `<article class="pdf-meeting">
+            <h3>Vecka ${escapeHtml(meeting.week || "-")}${meeting.date ? ` <span>(${escapeHtml(meeting.date)})</span>` : ""}</h3>
+            ${badgeImage}
+            ${meeting.notes ? `<p class="pdf-meeting-notes">${escapeHtml(meeting.notes)}</p>` : ""}
+            ${selectedActivities.length > 0 ? `<p><strong>Aktiviteter:</strong> ${escapeHtml(selectedActivities.map(activity => activity.namn).join(", "))}</p>` : ""}
+            ${meeting.responsible ? `<p><strong>Ansvarig:</strong> ${escapeHtml(meeting.responsible)}</p>` : ""}
+        </article>`;
+    };
     const planningSections = selectedGroups.map(group => {
         const planningIcon = getLevelIcon(group.level);
         const icon = planningIcon
@@ -736,15 +752,19 @@ function generatePlanningPdf(selectedIds) {
             return marke ? getBadgeActivityIds(marke) : [];
         }));
         const unassignedActivities = plannedActivityIds.filter(activityId => !linkedActivityIds.has(activityId));
+        const meetings = normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : []);
         return `
         <section class="pdf-planning">
             <h2 class="pdf-planning-heading">${icon}<span>${escapeHtml(group.name)} - ${escapeHtml(group.level)}</span></h2>
-            <p class="pdf-planning-intro">Följande märken och aktiviteter är planerade:</p>
-            ${Array.isArray(group.badges) && group.badges.length > 0
+            <p class="pdf-planning-intro">${meetingsOnly ? "Följande möten är planerade:" : "Följande märken och aktiviteter är planerade:"}</p>
+            ${!meetingsOnly && Array.isArray(group.badges) && group.badges.length > 0
                 ? group.badges.map(badgeId => renderBadge(badgeId, group)).join("")
-                : "<p>Inga märken planerade.</p>"}
-            ${unassignedActivities.length > 0
+                : !meetingsOnly ? "<p>Inga märken planerade.</p>" : ""}
+            ${!meetingsOnly && unassignedActivities.length > 0
                 ? `<div class="pdf-activities"><h3>Övriga aktiviteter</h3>${unassignedActivities.map(renderActivity).join("")}</div>`
+                : ""}
+            ${meetings.length > 0
+                ? `<div class="pdf-meetings"><h3>Möten</h3>${meetings.map(renderMeeting).join("")}</div>`
                 : ""}
         </section>
         `;
@@ -786,13 +806,21 @@ function generatePlanningPdf(selectedIds) {
                 .pdf-activity p { margin: 2px 0; }
                 .pdf-activities { margin-top: 14px; }
                 .pdf-activities h3 { color: #166534; font-size: 12pt; }
+                .pdf-meetings { margin-top: 18px; break-inside: avoid; }
+                .pdf-meetings > h3 { margin: 0 0 8px; color: #003660; font-size: 12pt; }
+                .pdf-meeting { position: relative; margin: 0 0 8px; padding: 8px 10px; border: 1px solid #d0d7de; border-radius: 6px; break-inside: avoid; }
+                .pdf-meeting h3 { margin: 0 0 4px; color: #003660; font-size: 11pt; }
+                .pdf-meeting h3 span { color: #536477; font-weight: normal; }
+                .pdf-meeting p { margin: 2px 0; }
+                .pdf-meeting-notes { white-space: pre-wrap; }
+                .pdf-meeting-badge { width: 32px; height: 32px; object-fit: contain; float: right; }
                 .missing-badge { color: #9b1c1c; }
             </style>
         </head>
         <body>
             <header class="pdf-document-header">
                 <img class="pdf-document-logo" src="${escapeHtml(resolveImage("./images/icons/GTorp_250px.png"))}" alt="Gullbrandstorps Scoutkår">
-                <h1>Gullbrandstorps Scoutkårs Märkesschema</h1>
+                <h1>${meetingsOnly ? "Gullbrandstorps Scoutkårs Mötesplanering" : "Gullbrandstorps Scoutkårs Märkesschema"}</h1>
             </header>
             ${planningSections || "<p>Inga planeringar valdes.</p>"}
             <p class="created">Exporterad ${escapeHtml(new Date().toLocaleDateString("sv-SE"))}</p>
@@ -1149,6 +1177,13 @@ function renderPlanning(openActivityGroupIds = new Set()) {
         });
     });
 
+    document.querySelectorAll(".print-meetings-btn").forEach(btn => {
+        btn.addEventListener("click", e => {
+            e.stopPropagation();
+            generatePlanningPdf(new Set([btn.dataset.groupId]), true);
+        });
+    });
+
     document.querySelectorAll(".remove-meeting-btn").forEach(btn => {
         btn.addEventListener("click", e => {
             e.stopPropagation();
@@ -1209,7 +1244,7 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
             }).join("")}</div></details>`
         : "";
     const meetingsMarkup = meetings.length > 0
-        ? `<details class="planned-meetings"${openMeetingGroupIds.has(group.id) ? " open" : ""}><summary>Möten <span>${meetings.length}</span></summary><div class="planned-meetings-list">${meetings.map(meeting => {
+        ? `<details class="planned-meetings"${openMeetingGroupIds.has(group.id) ? " open" : ""}><summary>Möten <span>${meetings.length}</span></summary><div class="planned-meetings-list"><div class="planned-meetings-actions"><button class="btn-secondary print-meetings-btn" type="button" data-group-id="${group.id}">Skriv ut möten</button></div>${meetings.map(meeting => {
             const selectedActivities = (meeting.activities || []).map(activityId => allAktiviteter.find(item => item.id === activityId)).filter(Boolean);
             const badge = allMarken.find(item => item.id === meeting.badgeId);
             return `<div class="planned-meeting" data-group-id="${group.id}" data-meeting-id="${meeting.id}">

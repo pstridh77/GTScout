@@ -1413,6 +1413,11 @@ body {
     margin-top: 10px;
 }
 
+.planned-meetings-actions {
+    display: flex;
+    justify-content: flex-start;
+}
+
 .planned-meeting-badge {
     display: flex;
     align-items: center;
