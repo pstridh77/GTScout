@@ -64,6 +64,7 @@
     {
         "id": "Hajk-02",
         "namn": "Hajk",
+        "kategori": "Sova borta",
         "beskrivning": "",
         "tid": "2 övernattningar" ,
         "material": [
@@ -74,11 +75,56 @@
     {
         "id": "Hajk-01",
         "namn": "Hajk",
+        "kategori": "Sova borta",
         "beskrivning": "",
         "tid": "1 övernattning" ,
         "material": [
             
         ],
         "genomforande": ""
+    },
+    {
+        "id": "demokratimote",
+        "namn": "Demokratimöte",
+        "kategori": "Demokrati",
+        "beskrivning": "Genomför demokratimöte för patrullen. Låt alla i patrullen vara med och bestämma vad som ska göras." ,
+        "tid": "1 träff" ,
+        "material": [
+            
+        ],
+        "genomforande": "Genomför mötet enligt mallar och instruktioner."
+    },
+    {
+        "id": "arsstämma",
+        "namn": "Årsstämma",
+        "kategori": "Demokrati",
+        "beskrivning": "Deltag på årsstämma och var med och påverka föreningens framtid." ,
+        "tid": "1 träff" ,
+        "material": [
+            
+        ],
+        "genomforande": "Enligt kallelse och stadgar."
+    },
+    {
+        "id": "terminsavslutning",
+        "namn": "Terminsavslutning",
+        "kategori": "Övrigt",
+        "beskrivning": "Genomför terminsavslutning för avdelningen" ,
+        "tid": "1 träff" ,
+        "material": [
+            
+        ],
+        "genomforande": "Märkesutdelning, fika och gemenskap. Avsluta terminen med en rolig aktivitet."
+    },
+    {
+        "id": "terminsuppstart",
+        "namn": "Terminsuppstart",
+        "kategori": "Övrigt",
+        "beskrivning": "Genomför terminsuppstart för avdelningen." ,
+        "tid": "1 träff" ,
+        "material": [
+            
+        ],
+        "genomforande": "Planera aktiviteter, informera medlemmar och genomför terminsuppstarten. Välkomna nya medlemmar."
     }
 ]
