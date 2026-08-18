@@ -2,6 +2,8 @@ const STORAGE_KEY = "gtscout_planering";
 const BADGE_NOTES_STORAGE_KEY = "gtscout_badge_notes";
 const CUSTOM_ACTIVITIES_STORAGE_KEY = "gtscout_custom_activities";
 const CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY = "gtscout_custom_badge_activities";
+const SHOW_ACTIVITIES_STORAGE_KEY = "gtscout_show_activities";
+const SHOW_MEETINGS_STORAGE_KEY = "gtscout_show_meetings";
 
 const DEFAULT_PLANNINGS_FALLBACK = [
     {
@@ -68,6 +70,8 @@ let groups = loadGroups();
 let activeGroupId = null; // which group is getting badges added
 let groupFilters = { search: "", level: "Alla", year: "Alla", term: "Alla" };
 let pdfSelectionState = new Set();
+let showPlanningActivities = localStorage.getItem(SHOW_ACTIVITIES_STORAGE_KEY) !== "false";
+let showPlanningMeetings = localStorage.getItem(SHOW_MEETINGS_STORAGE_KEY) !== "false";
 const BADGE_DND_MIME = "text/plain";
 const ACTIVITY_DND_MIME = "application/x-gtscout-activity";
 let activeDraggedActivity = null;
@@ -1135,7 +1139,6 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                     ${metaParts.length > 0 ? `<div class="group-meta">${metaParts.join(" • ")}</div>` : ""}
                     <div class="group-card-actions">
                         <button class="btn-secondary edit-group-btn" type="button" data-group-id="${group.id}" title="Redigera planering">Redigera</button>
-                        <button class="btn-danger remove-group-btn" type="button" data-group-id="${group.id}" title="Ta bort planering">&times;</button>
                     </div>
                 </div>
                 <div class="group-badges" data-group-id="${group.id}">
@@ -1147,15 +1150,20 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                 event.stopPropagation();
                 openBadgePicker(group.id);
             });
-            card.querySelector(".add-activity-btn").addEventListener("click", event => {
-                event.stopPropagation();
-                openActivityPicker(group.id);
-            });
-            card.querySelector(".add-meeting-btn").addEventListener("click", event => {
-                event.stopPropagation();
-                openMeetingModal(group.id);
-            });
-            card.querySelector(".remove-group-btn").addEventListener("click", () => removeGroup(group.id));
+            const addActivityButton = card.querySelector(".add-activity-btn");
+            if (addActivityButton) {
+                addActivityButton.addEventListener("click", event => {
+                    event.stopPropagation();
+                    openActivityPicker(group.id);
+                });
+            }
+            const addMeetingButton = card.querySelector(".add-meeting-btn");
+            if (addMeetingButton) {
+                addMeetingButton.addEventListener("click", event => {
+                    event.stopPropagation();
+                    openMeetingModal(group.id);
+                });
+            }
             cardsRow.appendChild(card);
         });
 
@@ -1235,7 +1243,8 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
             </div>
         `;
     }).join("");
-    const activityMarkup = `<details class="planned-activities"${openActivityGroupIds.has(group.id) ? " open" : ""}><summary><span>Aktiviteter</span><button class="btn-secondary add-activity-btn" type="button" data-group-id="${group.id}">+ Aktivitet</button></summary><div class="planned-activities-list">${activities.map(activityId => {
+    let activityMarkup = "";
+    if (showPlanningActivities) activityMarkup = `<details class="planned-activities"${openActivityGroupIds.has(group.id) ? " open" : ""}><summary><span>Aktiviteter</span><button class="btn-secondary add-activity-btn" type="button" data-group-id="${group.id}">+ Aktivitet</button></summary><div class="planned-activities-list">${activities.map(activityId => {
             const activity = allAktiviteter.find(item => item.id === activityId);
             return activity
                 ? `<div class="planned-activity" data-group-id="${group.id}" data-activity-id="${activity.id}" draggable="true" title="Dra för att ändra ordning">
@@ -1245,8 +1254,8 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
                         <button class="remove-activity-btn" type="button" data-group-id="${group.id}" data-activity-id="${activity.id}" title="Ta bort ${activity.namn} från planeringen" aria-label="Ta bort ${activity.namn}">&times;</button>
                    </div>`
                 : "";
-            }).join("")}</div></details>`;
-        const meetingsMarkup = `<details class="planned-meetings"${openMeetingGroupIds.has(group.id) ? " open" : ""}><summary><span>Möten</span><button class="btn-secondary add-meeting-btn" type="button" data-group-id="${group.id}">+ Möte</button></summary><div class="planned-meetings-list"><div class="planned-meetings-actions"><button class="btn-secondary print-meetings-btn" type="button" data-group-id="${group.id}">Skriv ut möten</button></div>${meetings.map(meeting => {
+                }).join("")}</div></details>`;
+            const meetingsMarkup = showPlanningMeetings ? `<details class="planned-meetings"${openMeetingGroupIds.has(group.id) ? " open" : ""}><summary><span>Möten</span><button class="btn-secondary add-meeting-btn" type="button" data-group-id="${group.id}">+ Möte</button></summary><div class="planned-meetings-list"><div class="planned-meetings-actions"><button class="btn-secondary print-meetings-btn" type="button" data-group-id="${group.id}">Skriv ut möten</button></div>${meetings.map(meeting => {
             const selectedActivities = (meeting.activities || []).map(activityId => allAktiviteter.find(item => item.id === activityId)).filter(Boolean);
             const badge = allMarken.find(item => item.id === meeting.badgeId);
             return `<div class="planned-meeting" data-group-id="${group.id}" data-meeting-id="${meeting.id}">
@@ -1263,7 +1272,7 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
                     ${selectedActivities.length > 0 ? `<div class="planned-meeting-activity-list"><strong>Aktiviteter:</strong> ${escapeHtml(selectedActivities.map(activity => activity.namn).join(", "))}</div>` : ""}
                     ${meeting.responsible ? `<div><strong>Ansvarig:</strong> ${escapeHtml(meeting.responsible)}</div>` : ""}
                 </div>`;
-        }).join("")}</div></details>`;
+        }).join("")}</div></details>` : "";
     return `${badges}<div class="group-badges-actions"><button class="btn-secondary add-badge-btn" type="button" data-group-id="${group.id}">+ Märke</button></div>${activityMarkup}${meetingsMarkup}`;
 }
 
@@ -1314,6 +1323,7 @@ function openGroupEditor(groupId) {
     document.getElementById("groupYear").value = Number.isFinite(getGroupYearValue(group)) ? getGroupYearValue(group) : "";
     document.getElementById("groupTerm").value = getGroupTermValue(group) || "";
     document.getElementById("groupLevel").value = group.level || "Familjescouting";
+    document.getElementById("removeGroupBtn").classList.remove("hidden");
     groupModal.classList.remove("hidden");
     document.getElementById("groupName").focus();
 }
@@ -1322,6 +1332,7 @@ function resetGroupModalState() {
     groupModal.dataset.editingGroupId = "";
     document.getElementById("groupModalTitle").textContent = "Ny plannering";
     document.getElementById("saveGroupBtn").textContent = "Spara";
+    document.getElementById("removeGroupBtn").classList.add("hidden");
 }
 
 function renameGroup(id) {
@@ -1988,6 +1999,27 @@ document.getElementById("generatePdfBtn").addEventListener("click", () => {
 const importPlanningInput = document.getElementById("importPlanningInput");
 const planningActionsBtn = document.getElementById("planningActionsBtn");
 const planningActionsDropdown = document.getElementById("planningActionsDropdown");
+const togglePlanningActivitiesBtn = document.getElementById("togglePlanningActivitiesBtn");
+const togglePlanningMeetingsBtn = document.getElementById("togglePlanningMeetingsBtn");
+const updatePlanningDetailsToggles = () => {
+    togglePlanningActivitiesBtn.textContent = `Visa aktiviteter: ${showPlanningActivities ? "På" : "Av"}`;
+    togglePlanningActivitiesBtn.setAttribute("aria-pressed", String(showPlanningActivities));
+    togglePlanningMeetingsBtn.textContent = `Visa möten: ${showPlanningMeetings ? "På" : "Av"}`;
+    togglePlanningMeetingsBtn.setAttribute("aria-pressed", String(showPlanningMeetings));
+};
+updatePlanningDetailsToggles();
+togglePlanningActivitiesBtn.addEventListener("click", () => {
+    showPlanningActivities = !showPlanningActivities;
+    localStorage.setItem(SHOW_ACTIVITIES_STORAGE_KEY, String(showPlanningActivities));
+    updatePlanningDetailsToggles();
+    renderPlanning();
+});
+togglePlanningMeetingsBtn.addEventListener("click", () => {
+    showPlanningMeetings = !showPlanningMeetings;
+    localStorage.setItem(SHOW_MEETINGS_STORAGE_KEY, String(showPlanningMeetings));
+    updatePlanningDetailsToggles();
+    renderPlanning();
+});
 planningActionsBtn.addEventListener("click", event => {
     event.stopPropagation();
     const isOpen = !planningActionsDropdown.classList.contains("hidden");
@@ -2025,6 +2057,14 @@ document.getElementById("closeGroupModal").addEventListener("click", () => {
     resetGroupModalState();
 });
 groupModal.addEventListener("click", e => { if (e.target === groupModal) { groupModal.classList.add("hidden"); resetGroupModalState(); } });
+
+document.getElementById("removeGroupBtn").addEventListener("click", () => {
+    const editingGroupId = groupModal.dataset.editingGroupId;
+    if (!editingGroupId) return;
+    removeGroup(editingGroupId);
+    groupModal.classList.add("hidden");
+    resetGroupModalState();
+});
 
 document.getElementById("saveGroupBtn").addEventListener("click", () => {
     const name = document.getElementById("groupName").value.trim();
