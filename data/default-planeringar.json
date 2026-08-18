@@ -30,22 +30,22 @@
       {
         "name": "Läsår 1 HT",
         "badges": [ "matettan", "stormkok", "100_scout","tidsspar"],
-        "activities": ["terminsuppstart","terminsavslutning","Hajk-01"]
+        "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 1  VT",
         "badges": ["forsta_repmarket","HYX", "ljusspar"],
-        "activities": ["terminsuppstart","terminsavslutning","Hajk-01"]
+        "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 2 HT",
         "badges": ["plastra", "klura","100_scout", "djurspar"],
-        "activities": ["terminsuppstart","terminsavslutning","Hajk-01"]
+        "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 2 VT",
         "badges": [ "tanda", "hitta","HYX", "fotspar"],
-        "activities": ["terminsuppstart","terminsavslutning","Hajk-01"]
+        "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       }
     ]
   },
@@ -55,12 +55,12 @@
       {
         "name": "Läsår 1 HT",
         "badges": ["mattvaan",  "kniv","berattelsen", "100_scout"],
-        "activities": ["terminsuppstart","terminsavslutning","Hajk-01"]
+        "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 1 VT",
         "badges": ["andra_repmarket","simma","HYX","fjarran"],
-        "activities": ["terminsuppstart","terminsavslutning","Hajk-02"]
+        "activities": ["terminsuppstart","Hajk-02","terminsavslutning"]
       },
       {
         "name": "Läsår 2 HT",
@@ -90,7 +90,7 @@
       {
         "name": "Läsår 1 HT",
         "badges": [ "mattrean","100_scout"],
-        "activities": ["terminsuppstart","terminsavslutning","Hajk-01"]
+        "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 1 VT",
@@ -100,7 +100,7 @@
       {
         "name": "Läsår 2 HT",
         "badges": ["radda","12_12","100_scout"],
-        "activities": ["terminsuppstart","terminsavslutning","Hajk-01"]
+        "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 2 VT",
@@ -110,7 +110,7 @@
       {
         "name": "Läsår 2 HT",
         "badges": ["surra","100_scout"],
-        "activities": ["terminsuppstart","terminsavslutning","Hajk-01"]
+        "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 2 VT",
@@ -125,7 +125,7 @@
       {
         "name": "Läsår 1 HT",
         "badges": ["forebild"],
-        "activities": ["terminsuppstart","terminsavslutning","Hajk-01"]
+        "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
 
       },
       {
