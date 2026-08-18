@@ -162,6 +162,18 @@
                 <input id="groupName" type="text" placeholder="t.ex. År 1 - HT">
             </label>
             <label class="modal-field">
+                <span>År</span>
+                <input id="groupYear" type="number" min="2020" max="2100" step="1" placeholder="2026">
+            </label>
+            <label class="modal-field">
+                <span>Termin</span>
+                <input id="groupTerm" type="text" list="groupTermOptions" placeholder="HT, VT eller annan text" value="HT">
+                <datalist id="groupTermOptions">
+                    <option value="HT"></option>
+                    <option value="VT"></option>
+                </datalist>
+            </label>
+            <label class="modal-field">
                 <span>Målgrupp</span>
                 <select id="groupLevel">
                     <option value="Familjescouting">Familjescouting</option>

@@ -74,6 +74,47 @@ let activeActivityGroupId = null;
 let activeStandaloneActivityBadge = null;
 let activeStandaloneActivityPlanning = null;
 
+function normalizePlanningTerm(value) {
+    const normalized = String(value ?? "").trim();
+    if (!normalized) return "";
+    return /^(ht|vt)$/i.test(normalized) ? normalized.toUpperCase() : normalized;
+}
+
+function stripPlanningYearPrefix(value) {
+    return String(value ?? "").replace(/^\s*År\s+/i, "").trim();
+}
+
+function parsePlanningYearAndTerm(group) {
+    const name = stripPlanningYearPrefix(String(group?.name ?? ""));
+    const explicitYear = Number.parseInt(String(group?.year ?? ""), 10);
+    const year = Number.isFinite(explicitYear) ? explicitYear : (() => {
+        const match = name.match(/\d+/);
+        return match ? Number.parseInt(match[0], 10) : null;
+    })();
+    const explicitTerm = normalizePlanningTerm(group?.term);
+    const term = explicitTerm || (() => {
+        const match = name.match(/\b(?:HT|VT)\b/i);
+        return match ? match[0].toUpperCase() : "";
+    })();
+    return { year, term };
+}
+
+function getGroupYearValue(group) {
+    const parsed = parsePlanningYearAndTerm(group);
+    return Number.isFinite(parsed.year) ? parsed.year : null;
+}
+
+function getGroupTermValue(group) {
+    return normalizePlanningTerm(parsePlanningYearAndTerm(group).term);
+}
+
+function getGroupSortValue(group) {
+    const year = getGroupYearValue(group);
+    const term = getGroupTermValue(group);
+    const termOrder = /^VT$/i.test(term) ? 0 : /^\bHT\b$/i.test(term) ? 1 : 2;
+    return { year: Number.isFinite(year) ? year : 0, term: termOrder };
+}
+
 function loadCustomActivities() {
     try {
         const activities = JSON.parse(localStorage.getItem(CUSTOM_ACTIVITIES_STORAGE_KEY));
@@ -492,14 +533,27 @@ function deleteStandaloneActivity(activity) {
 
 function loadGroups() {
     try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        const storedGroups = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        return Array.isArray(storedGroups)
+            ? storedGroups.map(group => {
+                if (!group || typeof group !== "object") return group;
+                const { year, term } = parsePlanningYearAndTerm(group);
+                group.year = Number.isFinite(year) ? year : "";
+                group.term = normalizePlanningTerm(term);
+                return group;
+            }).filter(Boolean)
+            : [];
     } catch {
         return [];
     }
 }
 
 function saveGroups() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(groups.map(group => ({
+        ...group,
+        year: Number.isFinite(getGroupYearValue(group)) ? getGroupYearValue(group) : "",
+        term: getGroupTermValue(group)
+    }))));
 }
 
 function loadBadgeNotesForTransfer() {
@@ -519,6 +573,8 @@ function exportPlannings() {
         plannings: groups.map(group => ({
             name: group.name,
             level: group.level,
+            year: Number.isFinite(getGroupYearValue(group)) ? getGroupYearValue(group) : "",
+            term: getGroupTermValue(group),
             badges: Array.isArray(group.badges) ? group.badges : [],
             activities: Array.isArray(group.activities) ? group.activities : []
         })),
@@ -797,10 +853,17 @@ function importPlannings(file) {
             });
 
             validPlannings.forEach(planning => {
+                const importedYear = Number.parseInt(String(planning.year ?? ""), 10);
+                const importedTerm = normalizePlanningTerm(planning.term);
                 groups.push({
                     id: crypto.randomUUID(),
                     name: getImportedPlanningName(planning.name.trim(), planning.level),
                     level: planning.level,
+                    year: Number.isFinite(importedYear) ? importedYear : "",
+                    term: importedTerm || (() => {
+                        const fallback = String(planning.name ?? "").match(/\b(?:HT|VT)\b/i);
+                        return fallback ? fallback[0].toUpperCase() : "";
+                    })(),
                     badges: Array.isArray(planning.badges) ? [...new Set(planning.badges.filter(Boolean))] : [],
                     activities: Array.isArray(planning.activities) ? [...new Set(planning.activities.filter(Boolean))] : []
                 });
@@ -931,12 +994,8 @@ function renderPlanning() {
 
         // Sort by year number, then VT before HT
         levelGroups.sort((a, b) => {
-            const parse = name => {
-                const year = parseInt(name.match(/\d+/) || [0], 10);
-                const term = /\bVT\b/i.test(name) ? 0 : /\bHT\b/i.test(name) ? 1 : 2;
-                return { year, term };
-            };
-            const pa = parse(a.name), pb = parse(b.name);
+            const pa = getGroupSortValue(a);
+            const pb = getGroupSortValue(b);
             return pa.year !== pb.year ? pa.year - pb.year : pa.term - pb.term;
         });
 
@@ -962,10 +1021,15 @@ function renderPlanning() {
         levelGroups.forEach(group => {
             const card = document.createElement("div");
             card.className = "group-card";
+            const metaParts = [];
+            if (Number.isFinite(getGroupYearValue(group))) metaParts.push(String(getGroupYearValue(group)));
+            if (getGroupTermValue(group)) metaParts.push(getGroupTermValue(group));
             card.innerHTML = `
                 <div class="group-card-header">
-                    <h3 class="group-name" title="Dubbelklicka för att byta namn">${group.name}</h3>
+                    <h3 class="group-name" title="Planeringens namn">${group.name}</h3>
+                    ${metaParts.length > 0 ? `<div class="group-meta">${metaParts.join(" • ")}</div>` : ""}
                     <div class="group-card-actions">
+                        <button class="btn-secondary edit-group-btn" type="button" data-group-id="${group.id}" title="Redigera planering">Redigera</button>
                         <button class="btn-secondary add-badge-btn" type="button" data-group-id="${group.id}">+ Märke</button>
                         <button class="btn-secondary add-activity-btn" type="button" data-group-id="${group.id}">+ Aktivitet</button>
                         <button class="btn-danger remove-group-btn" type="button" data-group-id="${group.id}" title="Ta bort planering">&times;</button>
@@ -975,7 +1039,7 @@ function renderPlanning() {
                     ${renderGroupBadges(group)}
                 </div>
             `;
-            card.querySelector(".group-name").addEventListener("dblclick", () => renameGroup(group.id));
+            card.querySelector(".edit-group-btn").addEventListener("click", () => openGroupEditor(group.id));
             card.querySelector(".add-badge-btn").addEventListener("click", () => openBadgePicker(group.id));
             card.querySelector(".add-activity-btn").addEventListener("click", () => openActivityPicker(group.id));
             card.querySelector(".remove-group-btn").addEventListener("click", () => removeGroup(group.id));
@@ -1056,8 +1120,19 @@ function renderGroupBadges(group) {
 
 // ── Groups CRUD ────────────────────────────────────────────────────────────
 
-function addGroup(name, level) {
-    groups.push({ id: crypto.randomUUID(), name, level, badges: [], activities: [] });
+function addGroup(name, level, year = "", term = "") {
+    const trimmedName = String(name || "").trim();
+    const normalizedYear = Number.parseInt(String(year ?? ""), 10);
+    const normalizedTerm = normalizePlanningTerm(term);
+    groups.push({
+        id: crypto.randomUUID(),
+        name: trimmedName || [Number.isFinite(normalizedYear) ? `${normalizedYear}` : "", normalizedTerm].filter(Boolean).join(" "),
+        level,
+        year: Number.isFinite(normalizedYear) ? normalizedYear : "",
+        term: normalizedTerm,
+        badges: [],
+        activities: []
+    });
     saveGroups();
     renderPlanning();
 }
@@ -1078,27 +1153,29 @@ function removeLevelGroups(level) {
     renderPlanning();
 }
 
-function renameGroup(id) {
-    const group = groups.find(g => g.id === id);
+function openGroupEditor(groupId) {
+    const group = groups.find(g => g.id === groupId);
     if (!group) return;
 
-    const nextName = prompt("Nytt namn på planering:", group.name);
-    if (nextName === null) return;
+    groupModal.dataset.editingGroupId = groupId;
+    document.getElementById("groupModalTitle").textContent = "Redigera planering";
+    document.getElementById("saveGroupBtn").textContent = "Uppdatera";
+    document.getElementById("groupName").value = stripPlanningYearPrefix(group.name || "");
+    document.getElementById("groupYear").value = Number.isFinite(getGroupYearValue(group)) ? getGroupYearValue(group) : "";
+    document.getElementById("groupTerm").value = getGroupTermValue(group) || "";
+    document.getElementById("groupLevel").value = group.level || "Familjescouting";
+    groupModal.classList.remove("hidden");
+    document.getElementById("groupName").focus();
+}
 
-    const trimmedName = nextName.trim();
-    if (!trimmedName) {
-        alert("Namnet kan inte vara tomt.");
-        return;
-    }
+function resetGroupModalState() {
+    groupModal.dataset.editingGroupId = "";
+    document.getElementById("groupModalTitle").textContent = "Ny plannering";
+    document.getElementById("saveGroupBtn").textContent = "Spara";
+}
 
-    if (groups.some(g => g.id !== id && g.level === group.level && g.name === trimmedName)) {
-        alert("Det finns redan en planering med det namnet i samma målgrupp.");
-        return;
-    }
-
-    group.name = trimmedName;
-    saveGroups();
-    renderPlanning();
+function renameGroup(id) {
+    openGroupEditor(id);
 }
 
 function moveBadgeBetweenGroups(sourceGroupId, targetGroupId, badgeId, targetIndex = null) {
@@ -1392,22 +1469,50 @@ importPlanningInput.addEventListener("change", event => {
 });
 
 document.getElementById("addGroupBtn").addEventListener("click", () => {
+    resetGroupModalState();
     document.getElementById("groupName").value = "";
+    document.getElementById("groupYear").value = new Date().getFullYear();
+    document.getElementById("groupTerm").value = "HT";
     groupModal.classList.remove("hidden");
     document.getElementById("groupName").focus();
 });
-document.getElementById("closeGroupModal").addEventListener("click", () => groupModal.classList.add("hidden"));
-groupModal.addEventListener("click", e => { if (e.target === groupModal) groupModal.classList.add("hidden"); });
+document.getElementById("closeGroupModal").addEventListener("click", () => {
+    groupModal.classList.add("hidden");
+    resetGroupModalState();
+});
+groupModal.addEventListener("click", e => { if (e.target === groupModal) { groupModal.classList.add("hidden"); resetGroupModalState(); } });
 
 document.getElementById("saveGroupBtn").addEventListener("click", () => {
     const name = document.getElementById("groupName").value.trim();
-    if (!name) {
+    const yearValue = document.getElementById("groupYear").value.trim();
+    const termValue = normalizePlanningTerm(document.getElementById("groupTerm").value);
+    const resolvedName = name || [
+        Number.isFinite(Number.parseInt(yearValue, 10)) ? `${Number.parseInt(yearValue, 10)}` : "",
+        termValue
+    ].filter(Boolean).join(" ");
+    if (!resolvedName) {
         document.getElementById("groupName").focus();
         return;
     }
     const level = document.getElementById("groupLevel").value;
-    addGroup(name, level);
+    const editingGroupId = groupModal.dataset.editingGroupId;
+
+    if (editingGroupId) {
+        const group = groups.find(g => g.id === editingGroupId);
+        if (!group) return;
+        group.name = resolvedName;
+        group.level = level;
+        const parsedYear = Number.parseInt(yearValue, 10);
+        group.year = Number.isFinite(parsedYear) ? parsedYear : "";
+        group.term = termValue;
+        saveGroups();
+        renderPlanning();
+    } else {
+        addGroup(resolvedName, level, yearValue, termValue);
+    }
+
     groupModal.classList.add("hidden");
+    resetGroupModalState();
 });
 
 document.getElementById("groupName").addEventListener("keydown", e => {

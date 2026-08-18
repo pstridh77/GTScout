@@ -1193,16 +1193,17 @@ body {
     margin: 0 0 2px;
     font-size: 1.05rem;
     color: #003660;
-    cursor: text;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    padding: 5px 10px;
-    background: #f8fafc;
+    cursor: default;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
+    font-weight: 700;
 }
 
 .group-name:hover {
-    border-color: #94a3b8;
-    background: #f1f5f9;
+    border-color: transparent;
+    background: transparent;
 }
 
 .group-level-label {
