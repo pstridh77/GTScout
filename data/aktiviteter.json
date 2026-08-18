@@ -139,4 +139,16 @@
         ],
         "genomforande": "Beskriv momenten"
     }
+    ,
+    {
+        "id": "HYX_genomforande",
+        "namn": "Genomför Hallandsyxan",
+        "kategori": "Scouting",
+        "beskrivning": "Delta på Hallandsyxan." ,
+        "tid": "1 dag" ,
+        "material": [
+            
+        ],
+        "genomforande": "Genomför momenten enligt instruktioner"
+    }
 ]
