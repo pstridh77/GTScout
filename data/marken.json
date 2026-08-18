@@ -2554,6 +2554,159 @@
         "Typ":  "Deltagandemärke"
     },
     {
+        "id":  "bygget",
+        "namn":  "Bygget",
+        "bild":  "images/marken/bygget.png",
+        "kategori":  "Deltagandemärke",
+        "malgrupp":  [
+                         "Äventyrare"
+                     ],
+        "inledning":"Deltagandemärke Äventyrare",
+        "kriterier":  [
+                         "Skapa något till er utrustning, patrullya, båt eller scoutlokal."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Deltagandemärke"
+    },
+    {
+        "id":  "forebilden",
+        "namn":  "Förebilden",
+        "bild":  "images/marken/forebilden.png",
+        "kategori":  "Deltagandemärke",
+        "malgrupp":  [
+                         "Äventyrare"
+                     ],
+        "inledning":"Deltagandemärke Äventyrare",
+        "kriterier":  [
+                         "Skapa heldagsaktivitet för yngre scouter i kåren."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Deltagandemärke"
+    },
+    {
+        "id":  "hajken",
+        "namn":  "Hajken",
+        "bild":  "images/marken/hajken.png",
+        "kategori":  "Deltagandemärke",
+        "malgrupp":  [
+                         "Äventyrare"
+                     ],
+        "inledning":"Deltagandemärke Äventyrare",
+        "kriterier":  [
+                         "Planera och genomför en hajk i kåren."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Deltagandemärke"
+    },
+    {
+        "id":  "hajken",
+        "namn":  "Hajken",
+        "bild":  "images/marken/hajken.png",
+        "kategori":  "Deltagandemärke",
+        "malgrupp":  [
+                         "Äventyrare"
+                     ],
+        "inledning":"Deltagandemärke Äventyrare",
+        "kriterier":  [
+                         "Planera och genomför en hajk i kåren."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Deltagandemärke"
+    },
+    {
+        "id":  "miljon",
+        "namn":  "Miljön",
+        "bild":  "images/marken/miljon.png",
+        "kategori":  "Deltagandemärke",
+        "malgrupp":  [
+                         "Äventyrare"
+                     ],
+        "inledning":"Deltagandemärke Äventyrare",
+        "kriterier":  [
+                         "Gör något för miljön."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Deltagandemärke"
+    },
+    {
+        "id":  "motet",
+        "namn":  "Mötet",
+        "bild":  "images/marken/motet.png",
+        "kategori":  "Deltagandemärke",
+        "malgrupp":  [
+                         "Äventyrare"
+                     ],
+        "inledning":"Deltagandemärke Äventyrare",
+        "kriterier":  [
+                         "Träffa en annan ungdomsgrupp med annan inriktning än ni, fundera om ni har olika livsåskådning."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Deltagandemärke"
+    },
+    {
+        "id":  "rosten",
+        "namn":  "Rösten",
+        "bild":  "images/marken/rosten.png",
+        "kategori":  "Deltagandemärke",
+        "malgrupp":  [
+                         "Äventyrare"
+                     ],
+        "inledning":"Deltagandemärke Äventyrare",
+        "kriterier":  [
+                         "Gör något för att påverka utanför scouterna, tex skicka brev till makthavare."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Deltagandemärke"
+    },
+    {
+        "id":  "scenen",
+        "namn":  "Scenen",
+        "bild":  "images/marken/scenen.png",
+        "kategori":  "Deltagandemärke",
+        "malgrupp":  [
+                         "Äventyrare"
+                     ],
+        "inledning":"Deltagandemärke Äventyrare",
+        "kriterier":  [
+                         "Gör en teaterföreställning som handlar om vad patrullmedlemmarna tror på och står för."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Deltagandemärke"
+    },
+    {
+        "id":  "varlden",
+        "namn":  "Världen",
+        "bild":  "images/marken/varlden.png",
+        "kategori":  "Deltagandemärke",
+        "malgrupp":  [
+                         "Äventyrare"
+                     ],
+        "inledning":"Deltagandemärke Äventyrare",
+        "kriterier":  [
+                         "Knyt kontakter med scouter i ett annat land och lär er om hur deras liv ser ut."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Deltagandemärke"
+    },
+    {
         "id":  "kniv",
         "namn":  "Kniv",
         "bild":  "images/marken/kniv.png",
