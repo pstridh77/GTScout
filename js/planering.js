@@ -1144,7 +1144,7 @@ function renderGroupBadges(group) {
         `;
     }).join("");
     const activityMarkup = activities.length > 0
-        ? `<div class="planned-activities"><strong>Aktiviteter</strong>${activities.map(activityId => {
+        ? `<details class="planned-activities"><summary>Aktiviteter <span>${activities.length}</span></summary><div class="planned-activities-list">${activities.map(activityId => {
             const activity = allAktiviteter.find(item => item.id === activityId);
             return activity
                 ? `<div class="planned-activity">
@@ -1154,7 +1154,7 @@ function renderGroupBadges(group) {
                         <button class="remove-activity-btn" type="button" data-group-id="${group.id}" data-activity-id="${activity.id}" title="Ta bort ${activity.namn} från planeringen" aria-label="Ta bort ${activity.namn}">&times;</button>
                    </div>`
                 : "";
-        }).join("")}</div>`
+            }).join("")}</div></details>`
         : "";
     return badges + activityMarkup;
 }

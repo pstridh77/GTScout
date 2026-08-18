@@ -1244,12 +1244,48 @@ body {
 
 .planned-activities {
     flex: 1 1 100%;
-    display: grid;
-    gap: 6px;
     margin-top: 6px;
     padding-top: 10px;
     border-top: 1px solid #e5e7eb;
     color: #003660;
+}
+
+.planned-activities summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 700;
+    list-style: none;
+}
+
+.planned-activities summary::-webkit-details-marker {
+    display: none;
+}
+
+.planned-activities summary::after {
+    content: "+";
+    margin-left: 8px;
+    font-size: 1.15rem;
+    font-weight: 400;
+}
+
+.planned-activities[open] summary::after {
+    content: "-";
+}
+
+.planned-activities summary span {
+    margin-left: auto;
+    color: #536477;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.planned-activities-list {
+    display: grid;
+    gap: 6px;
+    margin-top: 10px;
 }
 
 .planned-activity {
