@@ -697,6 +697,7 @@ body {
 }
 
 .detail-introduction {
+     width: 100%;
     margin: 0 0 14px;
     line-height: 1.6;
     
@@ -1267,6 +1268,12 @@ body {
     background: #eff6ff;
 }
 
+.group-badges-actions {
+    display: flex;
+    align-items: flex-start;
+    margin-left: auto;
+}
+
 .group-empty {
     color: #9ca3af;
     font-size: 0.9rem;
@@ -1286,10 +1293,11 @@ body {
 .planned-meetings summary {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 700;
+    width: 100%;
+    color: #536477;
+    font-size: 0.85rem;
+    font-weight: 600;
     list-style: none;
 }
 
@@ -1298,23 +1306,23 @@ body {
     display: none;
 }
 
-.planned-activities summary::after,
-.planned-meetings summary::after {
-    content: "+";
-    margin-left: 8px;
-    font-size: 1.15rem;
-    font-weight: 400;
+.planned-activities summary::before,
+.planned-meetings summary::before {
+    content: "▶";
+    color: #003660;
+    font-size: 0.85rem;
+    margin-right: 8px;
+    transition: transform 0.15s;
 }
 
-.planned-activities[open] summary::after {
-    content: "-";
+.planned-activities[open] summary::before,
+.planned-meetings[open] summary::before {
+    transform: rotate(90deg);
 }
 
-.planned-activities summary span {
+.planned-activities summary button,
+.planned-meetings summary button {
     margin-left: auto;
-    color: #536477;
-    font-size: 0.82rem;
-    font-weight: 600;
 }
 
 .planned-activities-list {
@@ -1393,18 +1401,6 @@ body {
     margin-top: 10px;
     padding-top: 10px;
     border-top: 1px solid #e5e7eb;
-}
-
-.planned-meetings[open] summary::after {
-    content: "-";
-}
-
-.planned-activities summary span,
-.planned-meetings summary span {
-    margin-left: auto;
-    color: #536477;
-    font-size: 0.82rem;
-    font-weight: 600;
 }
 
 .planned-meetings-list {
