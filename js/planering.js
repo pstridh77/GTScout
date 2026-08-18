@@ -69,6 +69,8 @@ let activeGroupId = null; // which group is getting badges added
 let groupFilters = { search: "", level: "Alla", year: "Alla", term: "Alla" };
 let pdfSelectionState = new Set();
 const BADGE_DND_MIME = "text/plain";
+const ACTIVITY_DND_MIME = "application/x-gtscout-activity";
+let activeDraggedActivity = null;
 let editingStandaloneActivityId = null;
 let activeActivityGroupId = null;
 let activeStandaloneActivityBadge = null;
@@ -1015,7 +1017,7 @@ function populateGroupFilterOptions() {
     termFilter.value = groupFilters.term;
 }
 
-function renderPlanning() {
+function renderPlanning(openActivityGroupIds = new Set()) {
     populateGroupFilterOptions();
     const grid = document.getElementById("planningGrid");
     grid.innerHTML = "";
@@ -1091,7 +1093,7 @@ function renderPlanning() {
                     </div>
                 </div>
                 <div class="group-badges" data-group-id="${group.id}">
-                    ${renderGroupBadges(group)}
+                    ${renderGroupBadges(group, openActivityGroupIds)}
                 </div>
             `;
             card.querySelector(".edit-group-btn").addEventListener("click", () => openGroupEditor(group.id));
@@ -1136,9 +1138,10 @@ function renderPlanning() {
     });
 
     bindBadgeDragAndDrop();
+    bindActivityDragAndDrop();
 }
 
-function renderGroupBadges(group) {
+function renderGroupBadges(group, openActivityGroupIds = new Set()) {
     const activities = Array.isArray(group.activities) ? group.activities : [];
     if ((!group.badges || group.badges.length === 0) && activities.length === 0) {
         return '<p class="group-empty">Inga märken planerade än.</p>';
@@ -1158,10 +1161,10 @@ function renderGroupBadges(group) {
         `;
     }).join("");
     const activityMarkup = activities.length > 0
-        ? `<details class="planned-activities"><summary>Aktiviteter <span>${activities.length}</span></summary><div class="planned-activities-list">${activities.map(activityId => {
+        ? `<details class="planned-activities"${openActivityGroupIds.has(group.id) ? " open" : ""}><summary>Aktiviteter <span>${activities.length}</span></summary><div class="planned-activities-list">${activities.map(activityId => {
             const activity = allAktiviteter.find(item => item.id === activityId);
             return activity
-                ? `<div class="planned-activity">
+                ? `<div class="planned-activity" data-group-id="${group.id}" data-activity-id="${activity.id}" draggable="true" title="Dra för att ändra ordning">
                         <span>${activity.namn}</span>
                         ${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}
                         <button class="activity-info-button planned-activity-info-btn" type="button" data-activity-id="${activity.id}" title="Visa detaljer för ${activity.namn}" aria-label="Visa detaljer för ${activity.namn}">i</button>
@@ -1357,6 +1360,125 @@ function bindBadgeDragAndDrop() {
             if (!dragged) return;
 
             moveBadgeBetweenGroups(dragged.sourceGroupId, zone.dataset.groupId, dragged.badgeId, null);
+        });
+    });
+}
+
+function moveActivityWithinGroup(sourceGroupId, targetGroupId, activityId, targetIndex) {
+    if (!sourceGroupId || sourceGroupId !== targetGroupId) return false;
+    const group = groups.find(item => item.id === sourceGroupId);
+    if (!group || !Array.isArray(group.activities)) return false;
+
+    const fromIndex = group.activities.indexOf(activityId);
+    if (fromIndex === -1) return false;
+
+    const boundedTargetIndex = Math.max(0, Math.min(targetIndex, group.activities.length));
+    if (fromIndex === boundedTargetIndex || fromIndex + 1 === boundedTargetIndex) return false;
+
+    const [movedActivityId] = group.activities.splice(fromIndex, 1);
+    group.activities.splice(boundedTargetIndex > fromIndex ? boundedTargetIndex - 1 : boundedTargetIndex, 0, movedActivityId);
+    saveGroups();
+    const openActivityGroupIds = new Set(
+        [...document.querySelectorAll(".planned-activities[open]")]
+            .map(details => details.closest(".group-badges")?.dataset.groupId)
+            .filter(Boolean)
+    );
+    openActivityGroupIds.add(sourceGroupId);
+    renderPlanning(openActivityGroupIds);
+    return true;
+}
+
+function parseDraggedActivity(event) {
+    try {
+        const raw = event.dataTransfer.getData(ACTIVITY_DND_MIME);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : null;
+    } catch {
+        return null;
+    }
+}
+
+function getDraggedActivity(event) {
+    return parseDraggedActivity(event) || activeDraggedActivity;
+}
+
+function bindActivityDragAndDrop() {
+    const clearDragMarkers = () => {
+        document.querySelectorAll(".planned-activity--dragging").forEach(item => item.classList.remove("planned-activity--dragging"));
+        document.querySelectorAll(".planned-activity--insert-before, .planned-activity--insert-after").forEach(item => {
+            item.classList.remove("planned-activity--insert-before", "planned-activity--insert-after");
+        });
+        document.querySelectorAll(".planned-activities-list--dragover").forEach(list => list.classList.remove("planned-activities-list--dragover"));
+    };
+
+    document.querySelectorAll(".planned-activity").forEach(item => {
+        item.addEventListener("dragstart", event => {
+            const { activityId, groupId } = item.dataset;
+            if (!activityId || !groupId) return;
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData(ACTIVITY_DND_MIME, JSON.stringify({ activityId, groupId }));
+            activeDraggedActivity = { activityId, groupId };
+            item.classList.add("planned-activity--dragging");
+        });
+
+        item.addEventListener("dragend", () => {
+            activeDraggedActivity = null;
+            clearDragMarkers();
+        });
+
+        item.addEventListener("dragover", event => {
+            const dragged = getDraggedActivity(event);
+            if (!dragged || dragged.groupId !== item.dataset.groupId) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+            document.querySelectorAll(".planned-activity--insert-before, .planned-activity--insert-after").forEach(target => {
+                target.classList.remove("planned-activity--insert-before", "planned-activity--insert-after");
+            });
+            const insertAfter = event.clientY >= item.getBoundingClientRect().top + item.offsetHeight / 2;
+            item.classList.add(insertAfter ? "planned-activity--insert-after" : "planned-activity--insert-before");
+        });
+
+        item.addEventListener("dragleave", event => {
+            if (!item.contains(event.relatedTarget)) item.classList.remove("planned-activity--insert-before", "planned-activity--insert-after");
+        });
+
+        item.addEventListener("drop", event => {
+            const dragged = getDraggedActivity(event);
+            if (!dragged || dragged.groupId !== item.dataset.groupId) return;
+            event.preventDefault();
+            event.stopPropagation();
+            const insertAfter = item.classList.contains("planned-activity--insert-after");
+            clearDragMarkers();
+            const group = groups.find(item => item.id === dragged.groupId);
+            if (!group) return;
+            const targetIndex = group.activities.indexOf(item.dataset.activityId)
+                + (insertAfter ? 1 : 0);
+            moveActivityWithinGroup(dragged.groupId, item.dataset.groupId, dragged.activityId, targetIndex);
+        });
+    });
+
+    document.querySelectorAll(".planned-activities-list").forEach(list => {
+        list.addEventListener("dragover", event => {
+            const dragged = getDraggedActivity(event);
+            if (!dragged || dragged.groupId !== list.closest(".group-badges")?.dataset.groupId) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+            list.classList.add("planned-activities-list--dragover");
+        });
+
+        list.addEventListener("dragleave", event => {
+            if (!list.contains(event.relatedTarget)) list.classList.remove("planned-activities-list--dragover");
+        });
+
+        list.addEventListener("drop", event => {
+            const dragged = getDraggedActivity(event);
+            const groupId = list.closest(".group-badges")?.dataset.groupId;
+            if (!dragged || dragged.groupId !== groupId) return;
+            event.preventDefault();
+            clearDragMarkers();
+            const group = groups.find(item => item.id === groupId);
+            if (group) moveActivityWithinGroup(dragged.groupId, groupId, dragged.activityId, group.activities.length);
         });
     });
 }

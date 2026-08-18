@@ -1286,9 +1286,16 @@ body {
     display: grid;
     gap: 6px;
     margin-top: 10px;
+    border-radius: 6px;
+    transition: background 0.15s;
+}
+
+.planned-activities-list--dragover {
+    background: #eff6ff;
 }
 
 .planned-activity {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1298,6 +1305,32 @@ body {
     border-radius: 6px;
     background: #f1f5f9;
     font-size: 0.85rem;
+    cursor: grab;
+}
+
+.planned-activity:active {
+    cursor: grabbing;
+}
+
+.planned-activity--dragging {
+    opacity: 0.45;
+}
+
+.planned-activity--insert-before::before,
+.planned-activity--insert-after::after {
+    position: absolute;
+    right: 0;
+    left: 0;
+    border-top: 2px dashed #60a5fa;
+    content: "";
+}
+
+.planned-activity--insert-before::before {
+    top: -5px;
+}
+
+.planned-activity--insert-after::after {
+    bottom: -5px;
 }
 
 .planned-activity small {
