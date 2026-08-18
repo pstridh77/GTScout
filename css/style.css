@@ -240,6 +240,34 @@ body {
         width: 96px;
         height: 96px;
     }
+
+    .level-row {
+        min-width: 0;
+    }
+
+    .group-card {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .group-card-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .group-name {
+        overflow-wrap: anywhere;
+    }
+
+    .group-card-actions {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .group-card-actions button {
+        padding: 7px 8px;
+        font-size: 0.82rem;
+    }
 }
 
 .target-group-slot {
