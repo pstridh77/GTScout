@@ -163,8 +163,8 @@ function getPlanningActivities(planning) {
     return Array.isArray(planning.activities) ? planning.activities : [];
 }
 
-function getTargetGroup(marke) {
-    const rawGroup = (marke.grupp || marke.malgrupp || marke.målgrupp || "Ingen målgrupp").toString().trim();
+function normalizeTargetGroup(group) {
+    const rawGroup = String(group ?? "").trim();
     const normalizedGroup = rawGroup.toLowerCase();
     const targetGroupMap = {
         "familjescouting": "Familjescouting",
@@ -179,7 +179,21 @@ function getTargetGroup(marke) {
         "roverscouter": "Rover"
     };
 
-    return targetGroupMap[normalizedGroup] || rawGroup || "Ingen målgrupp";
+    return targetGroupMap[normalizedGroup] || rawGroup;
+}
+
+function getTargetGroups(marke) {
+    const rawGroups = marke.grupp ?? marke.malgrupp ?? marke.målgrupp ?? [];
+    const groups = Array.isArray(rawGroups) ? rawGroups : [rawGroups];
+    return [...new Set(groups.map(normalizeTargetGroup).filter(Boolean))];
+}
+
+function getPrimaryTargetGroup(marke) {
+    return getTargetGroups(marke)[0] || "Ingen målgrupp";
+}
+
+function formatTargetGroups(marke) {
+    return getTargetGroups(marke).join(", ") || "Ingen målgrupp";
 }
 
 function loadPlannings() {
@@ -272,7 +286,7 @@ notePopup.querySelector("#saveBadgeNoteBtn").addEventListener("click", () => {
 
 function populateFilters(marken) {
     const categories = [...new Set(marken.map(marke => marke.kategori || "Övrigt"))].sort();
-    const targetGroups = [...new Set(marken.map(getTargetGroup))];
+    const targetGroups = [...new Set(marken.flatMap(getTargetGroups))];
     const targetGroupOrder = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
     const orderedTargetGroups = targetGroups.sort((a, b) => {
         const indexA = targetGroupOrder.indexOf(a);
@@ -321,7 +335,7 @@ function getFilteredMarken() {
 
     return allMarken.filter(marke => {
         const matchesCategory = filters.category === "Alla" || (marke.kategori || "Övrigt") === filters.category;
-        const matchesTargetGroup = filters.targetGroup === "Alla" || getTargetGroup(marke) === filters.targetGroup;
+        const matchesTargetGroup = filters.targetGroup === "Alla" || getTargetGroups(marke).includes(filters.targetGroup);
         const badgePrograms = Array.isArray(marke.program) ? marke.program : [marke.program || "Båda"];
         const matchesProgram = filters.program === "Alla" || badgePrograms.includes(filters.program);
         const markeType = (marke.Typ || marke.typ || "Intressemärke").toString();
@@ -384,7 +398,9 @@ function renderMarken(marken) {
         badgeRow.className = "category-badges";
 
         const groupedByTargetGroup = categories[category].reduce((acc, marke) => {
-            const targetGroup = getTargetGroup(marke);
+            const targetGroup = filters.targetGroup !== "Alla" && getTargetGroups(marke).includes(filters.targetGroup)
+                ? filters.targetGroup
+                : getPrimaryTargetGroup(marke);
             if (!acc[targetGroup]) {
                 acc[targetGroup] = [];
             }
@@ -417,7 +433,7 @@ function renderMarken(marken) {
                 card.innerHTML = `
                     <img src="${marke.bild}" alt="${marke.namn}">
                     <h3>${marke.namn}</h3>
-                    <p>${getTargetGroup(marke)}</p>
+                    <p>${formatTargetGroups(marke)}</p>
                     ${planningIcons ? `<div class="badge-planning-icons" title="Finns i: ${badgePlannings.map(planning => planning.name).join(", ")}">${planningIcons}</div>` : ""}
                 `;
                 card.addEventListener("click", () => showPopup(marke));
@@ -532,7 +548,7 @@ function openPlanningPicker(marke) {
         '<option value="Alla">Alla målgrupper</option>',
         ...targetGroups.map(group => `<option value="${group}">${group}</option>`)
     ].join("");
-    targetFilter.value = targetGroups.includes(getTargetGroup(marke)) ? getTargetGroup(marke) : "Alla";
+    targetFilter.value = targetGroups.find(group => getTargetGroups(marke).includes(group)) || "Alla";
 
     const renderPlanningOptions = () => {
         const selectedTargetGroup = targetFilter.value;
@@ -573,7 +589,17 @@ function createPlanningFromBadge(picker) {
     if (!activePlanningBadge) return;
     const name = prompt("Namn på den nya planeringen:");
     if (!name || !name.trim()) return;
-    const level = getTargetGroup(activePlanningBadge);
+    const badgeTargetGroups = getTargetGroups(activePlanningBadge);
+    let level = badgeTargetGroups[0] || "Ingen målgrupp";
+    if (badgeTargetGroups.length > 1) {
+        const selectedLevel = prompt(`Välj målgrupp (${badgeTargetGroups.join(", ")}):`, level);
+        if (selectedLevel === null) return;
+        if (!badgeTargetGroups.includes(selectedLevel.trim())) {
+            alert("Välj en av märkets målgrupper.");
+            return;
+        }
+        level = selectedLevel.trim();
+    }
     const plannings = loadPlannings();
     if (plannings.some(planning => planning.name === name.trim() && planning.level === level)) {
         alert("Det finns redan en planering med det namnet i samma målgrupp.");
@@ -771,7 +797,7 @@ function deleteCustomActivity(activity) {
 }
 
 function getCategoryIconPath(marke) {
-    const targetGroup = getTargetGroup(marke);
+    const targetGroup = getPrimaryTargetGroup(marke);
     const normalizedTargetGroup = targetGroup.toLowerCase();
     const iconMap = {
         "familjescouting": "./images/icons/familjescout.png",
@@ -800,7 +826,7 @@ function showPopup(marke) {
         ? marke.kriterier.map(k => `<li>${formatCriterion(k)}</li>`).join("")
         : "";
     const categoryIcon = getCategoryIconPath(marke);
-    const targetGroup = getTargetGroup(marke);
+    const targetGroups = formatTargetGroups(marke);
     const badgePlannings = getBadgePlannings(marke.id);
     const badgeNote = loadBadgeNotes()[marke.id] || "";
     const badgeActivities = getActivitiesForBadge(marke);
@@ -845,7 +871,7 @@ function showPopup(marke) {
     body.innerHTML = `
         <div class="detail-popup-header">
             <h2>${marke.namn}</h2>
-            ${categoryIcon ? `<img src="${categoryIcon}" alt="${targetGroup}" class="detail-category-icon">` : ""}
+            ${categoryIcon ? `<img src="${categoryIcon}" alt="${targetGroups}" class="detail-category-icon">` : ""}
         </div>
         <div class="detail-image-row">
             <img
@@ -867,7 +893,7 @@ function showPopup(marke) {
                 </div>
             ` : ""}
             ${activitySection}
-            <p><strong>Målgrupp:</strong> ${targetGroup}</p>
+            <p><strong>Målgrupp:</strong> ${targetGroups}</p>
             <p><strong>Program:</strong> ${(Array.isArray(marke.program) ? marke.program : [marke.program || "Båda"]).join(", ")}</p>
             ${planningStatus}
             ${badgeNote ? `

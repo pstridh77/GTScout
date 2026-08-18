@@ -2691,9 +2691,9 @@
         "id":  "100_scout",
         "namn":  "100% Scout",
         "bild":  "images/marken/100_scout.png",
-        "kategori":  "Övriga",
+        "kategori":  "Scouting",
         "malgrupp":  [
-                      "Spårare"   
+                      "Familjescouting","Spårare","Upptäckare","Äventyrare","Utmanare","Rover"
                      ],
         "inledning":"På Scouternas fredsdag, 21 september, har scouterna här i Sverige en kampanj som kallas 100% scout. Kampanjen går ut på att visa att man är scout i skolan, på jobbet eller på andra platser.",
         "kriterier":  [
@@ -2729,7 +2729,7 @@
         "bild":  "images/marken/hyx.png",
         "kategori":  "Scouting",
         "malgrupp":  [
-                      "Alla"   
+                      "Familjescouting","Spårare","Upptäckare","Äventyrare","Utmanare","Rover"
                      ],
         "inledning":"Scouttävling som genomförs varje år av Hallands scoutdistrikt. Tävlingen är öppen för alla scouter i distriktet och genomförs vanligtvis i maj.",
         "kriterier":  [

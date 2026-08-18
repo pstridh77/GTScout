@@ -704,7 +704,7 @@ function generatePlanningPdf(selectedIds) {
                     ${activities}
                     ${note}
                     <p class="pdf-category"><strong>Kategori:</strong> ${escapeHtml(marke.kategori || "Övrigt")}</p>
-                    <p><strong>Målgrupp:</strong> ${escapeHtml(getTargetGroup(marke))}</p>
+                    <p><strong>Målgrupp:</strong> ${escapeHtml(formatTargetGroups(marke))}</p>
                     
                 </div>
             </article>
@@ -923,8 +923,8 @@ async function loadDefaultPlannings() {
 
 // ── Target-group helper (matches app.js) ───────────────────────────────────
 
-function getTargetGroup(marke) {
-    const rawGroup = (marke.grupp || marke.malgrupp || marke.målgrupp || "Ingen målgrupp").toString().trim();
+function normalizeTargetGroup(group) {
+    const rawGroup = String(group ?? "").trim();
     const map = {
         "familjescouting": "Familjescouting",
         "spårare": "Spårare",
@@ -935,7 +935,21 @@ function getTargetGroup(marke) {
         "utmanare": "Utmanare",
         "rover": "Rover"
     };
-    return map[rawGroup.toLowerCase()] || rawGroup || "Ingen målgrupp";
+    return map[rawGroup.toLowerCase()] || rawGroup;
+}
+
+function getTargetGroups(marke) {
+    const rawGroups = marke.grupp ?? marke.malgrupp ?? marke.målgrupp ?? [];
+    const groups = Array.isArray(rawGroups) ? rawGroups : [rawGroups];
+    return [...new Set(groups.map(normalizeTargetGroup).filter(Boolean))];
+}
+
+function getPrimaryTargetGroup(marke) {
+    return getTargetGroups(marke)[0] || "Ingen målgrupp";
+}
+
+function formatTargetGroups(marke) {
+    return getTargetGroups(marke).join(", ") || "Ingen målgrupp";
 }
 
 function getBadgeNote(badgeId) {
@@ -1602,7 +1616,7 @@ function openBadgePicker(groupId) {
 
 function populatePickerFilters() {
     const targetGroupOrder = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
-    const targetGroups = [...new Set(allMarken.map(getTargetGroup))]
+    const targetGroups = [...new Set(allMarken.flatMap(getTargetGroups))]
         .sort((a, b) => {
             const ia = targetGroupOrder.indexOf(a);
             const ib = targetGroupOrder.indexOf(b);
@@ -1633,7 +1647,7 @@ function renderPickerGrid() {
     const categoryValue = pickerCategoryFilter.value;
 
     const filtered = allMarken.filter(marke => {
-        const matchesTargetGroup = targetGroupValue === "Alla" || getTargetGroup(marke) === targetGroupValue;
+        const matchesTargetGroup = targetGroupValue === "Alla" || getTargetGroups(marke).includes(targetGroupValue);
         if (!matchesTargetGroup) return false;
         const matchesCategory = categoryValue === "Alla" || (marke.kategori || "Övrigt") === categoryValue;
         if (!matchesCategory) return false;
@@ -1752,8 +1766,9 @@ function showBadgeDetail(marke, planningId = null) {
         "Utmanare": "./images/icons/utmanare.png",
         "Rover": "./images/icons/rover.png"
     };
-    const targetGroup = getTargetGroup(marke);
-    const categoryIcon = iconMap[targetGroup] || "";
+    const primaryTargetGroup = getPrimaryTargetGroup(marke);
+    const targetGroups = formatTargetGroups(marke);
+    const categoryIcon = iconMap[primaryTargetGroup] || "";
     const criteriaList = marke.kriterier ? marke.kriterier.map(k => `<li>${k}</li>`).join("") : "";
     const badgeNote = getBadgeNote(marke.id);
     const badgePlannings = groups.filter(group =>
@@ -1784,7 +1799,7 @@ function showBadgeDetail(marke, planningId = null) {
     body.innerHTML = `
         <div class="detail-popup-header">
             <h2>${marke.namn}</h2>
-            ${categoryIcon ? `<img src="${categoryIcon}" alt="${targetGroup}" class="detail-category-icon">` : ""}
+            ${categoryIcon ? `<img src="${categoryIcon}" alt="${targetGroups}" class="detail-category-icon">` : ""}
         </div>
         <div class="detail-image-row">
             <img src="${marke.bild}" alt="${marke.namn}" class="detail-image">
@@ -1796,7 +1811,7 @@ function showBadgeDetail(marke, planningId = null) {
             ${marke.inledning ? `<p class="detail-introduction">${marke.inledning}</p>` : ""}
             ${criteriaList ? `<div class="detail-criteria"><strong>Kriterier:</strong><ul>${criteriaList}</ul></div>` : ""}
             ${activitySection}
-            <p><strong>M\u00e5lgrupp:</strong> ${targetGroup}</p>
+            <p><strong>M\u00e5lgrupp:</strong> ${targetGroups}</p>
             <p><strong>Program:</strong> ${(Array.isArray(marke.program) ? marke.program : [marke.program || "B\u00e5da"]).join(", ")}</p>
             ${badgePlannings.length > 0 ? `
                 <div class="detail-planning-status detail-planning-status--active">
