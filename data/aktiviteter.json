@@ -127,4 +127,16 @@
         ],
         "genomforande": "Planera aktiviteter, informera medlemmar och genomför terminsuppstarten. Välkomna nya medlemmar."
     }
+    ,
+    {
+        "id": "HYX_traning",
+        "namn": "Träna inför Hallandsyxan",
+        "kategori": "Scouting",
+        "beskrivning": "Träna på de olika momenten i Hallandsyxan." ,
+        "tid": "" ,
+        "material": [
+            
+        ],
+        "genomforande": "Beskriv momenten"
+    }
 ]

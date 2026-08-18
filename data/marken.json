@@ -2702,6 +2702,25 @@
                         "GTorp"
                     ],
         "Typ":  "Intressemärke"
+    },
+    {
+        "id":  "HYX",
+        "namn":  "Hallandsyxan",
+        "bild":  "images/marken/hyx.png",
+        "kategori":  "Scouting",
+        "malgrupp":  [
+                      "Alla"   
+                     ],
+        "inledning":"Scouttävling som genomförs varje år av Hallands scoutdistrikt. Tävlingen är öppen för alla scouter i distriktet och genomförs vanligtvis i maj.",
+        "kriterier":  [
+                         
+                         "..."
+                     ],
+        "aktiviteter":["HYX_traning"],
+        "program":  [
+                        "Hallands scoutdistrikt"
+                    ],
+        "Typ":  "Deltagandemärke"
     }
     
 ]
