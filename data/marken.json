@@ -2668,6 +2668,26 @@
         "Typ":  "Bevismärke"
     },
     {
+        "id":  "hlr",
+        "namn":  "HLR",
+        "bild":  "images/marken/hlr.png",
+        "kategori":  "Bevismärke",
+        "malgrupp":  [
+                         "Utmanare"
+                     ],
+        "inledning":"Bevismärke för att visa att scouten kan hantera HLR.",
+        "kriterier":  [
+                         "Ha genomgått HLR-utbildning av en certifierad instruktör och blivit godkänd.",
+                         "Lärt dig att göra korrekt utförda kompressioner och inblåsningar på en övningsdocka.",
+                         "Ha grundläggande kunskap om hur en hjärtstartare fungerar.",
+                         "Ha grundläggande kunskap om luftvägsstopp."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Bevismärke"
+    },
+    {
         "id":  "100_scout",
         "namn":  "100% Scout",
         "bild":  "images/marken/100_scout.png",

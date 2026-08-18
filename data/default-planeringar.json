@@ -130,7 +130,7 @@
       },
       {
         "name": "Läsår 1 VT",
-        "badges": ["HYX"],
+        "badges": ["hlr","HYX"],
         "activities": ["terminsuppstart","demokratimote","arsstämma","Hajk-02","terminsavslutning"]
       }
       
