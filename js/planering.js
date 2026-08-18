@@ -66,7 +66,7 @@ let allMarken = [];
 let allAktiviteter = [];
 let groups = loadGroups();
 let activeGroupId = null; // which group is getting badges added
-let groupFilters = { search: "", level: "Alla" };
+let groupFilters = { search: "", level: "Alla", year: "Alla", term: "Alla" };
 let pdfSelectionState = new Set();
 const BADGE_DND_MIME = "text/plain";
 let editingStandaloneActivityId = null;
@@ -963,15 +963,56 @@ function getLevelIcon(level) {
 
 const TARGET_GROUP_ORDER = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
 
+function populateGroupFilterOptions() {
+    const yearFilter = document.getElementById("groupYearFilter");
+    const termFilter = document.getElementById("groupTermFilter");
+    if (!yearFilter || !termFilter) return;
+
+    const years = [...new Set(groups
+        .map(getGroupYearValue)
+        .filter(year => Number.isFinite(year)))].sort((a, b) => a - b);
+    const terms = [...new Set(groups
+        .map(getGroupTermValue)
+        .filter(Boolean))]
+        .sort((a, b) => {
+            const order = { HT: 0, VT: 1 };
+            const left = order[a] ?? 2;
+            const right = order[b] ?? 2;
+            return left !== right ? left - right : a.localeCompare(b, "sv");
+        });
+
+    yearFilter.innerHTML = [
+        '<option value="Alla">Alla år</option>',
+        ...years.map(year => `<option value="${year}">${year}</option>`)
+    ].join("");
+    termFilter.innerHTML = [
+        '<option value="Alla">Alla terminer</option>',
+        ...terms.map(term => `<option value="${term}">${term}</option>`)
+    ].join("");
+
+    if (!years.some(year => String(year) === String(groupFilters.year))) {
+        groupFilters.year = "Alla";
+    }
+    if (!terms.some(term => term === groupFilters.term)) {
+        groupFilters.term = "Alla";
+    }
+
+    yearFilter.value = groupFilters.year;
+    termFilter.value = groupFilters.term;
+}
+
 function renderPlanning() {
+    populateGroupFilterOptions();
     const grid = document.getElementById("planningGrid");
     grid.innerHTML = "";
 
     const searchTerm = groupFilters.search.trim().toLowerCase();
     const visibleGroups = groups.filter(g => {
         const matchesLevel = groupFilters.level === "Alla" || g.level === groupFilters.level;
+        const matchesYear = groupFilters.year === "Alla" || String(getGroupYearValue(g) ?? "") === String(groupFilters.year);
+        const matchesTerm = groupFilters.term === "Alla" || getGroupTermValue(g) === groupFilters.term;
         const matchesSearch = !searchTerm || g.name.toLowerCase().includes(searchTerm);
-        return matchesLevel && matchesSearch;
+        return matchesLevel && matchesYear && matchesTerm && matchesSearch;
     });
 
     if (groups.length === 0) {
@@ -1347,6 +1388,16 @@ document.getElementById("groupLevelFilter").addEventListener("change", e => {
     groupFilters.level = e.target.value;
     renderPlanning();
 });
+
+document.getElementById("groupYearFilter").addEventListener("change", e => {
+    groupFilters.year = e.target.value;
+    renderPlanning();
+});
+
+document.getElementById("groupTermFilter").addEventListener("change", e => {
+    groupFilters.term = e.target.value;
+    renderPlanning();
+});
 // ── Group modal ────────────────────────────────────────────────────────────
 
 const defaultPlanningModal = document.getElementById("defaultPlanningModal");
@@ -1394,7 +1445,7 @@ defaultPlanningModal.addEventListener("click", e => {
 });
 
 document.getElementById("saveDefaultPlanningBtn").addEventListener("click", () => {
-    const selectedLevel = document.getElementById("groupLevel").value;
+    const selectedLevel = defaultPlanningLevel.value || "Familjescouting";
     addDefaultPlanningForLevel(selectedLevel);
     defaultPlanningModal.classList.add("hidden");
     groupModal.classList.add("hidden");
