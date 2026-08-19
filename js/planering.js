@@ -782,8 +782,10 @@ function generatePlanningPdf(selectedIds, meetingsOnly = false, selectedMeetingI
             ? `<img class="pdf-meeting-badge" src="${escapeHtml(resolveImage(badge.bild))}" alt="${escapeHtml(badge.namn)}" title="${escapeHtml(badge.namn)}">`
             : "";
         return `<article class="pdf-meeting">
-            <h3>Träff ${escapeHtml(meeting.week || "-")}${meeting.date ? ` <span>(${escapeHtml(meeting.date)})</span>` : ""}</h3>
-            ${badgeImage}
+            <div class="pdf-meeting-header">
+                ${badgeImage}
+                <h3>Träff ${escapeHtml(meeting.week || "-")}${meeting.date ? ` <span>(${escapeHtml(meeting.date)})</span>` : ""}</h3>
+            </div>
             ${meeting.notes ? `<p class="pdf-meeting-notes">${escapeHtml(meeting.notes)}</p>` : ""}
             ${selectedActivities.length > 0 ? `<p><strong>Aktiviteter:</strong> ${escapeHtml(selectedActivities.map(activity => activity.namn).join(", "))}</p>` : ""}
             ${meeting.responsible ? `<p><strong>Ansvarig:</strong> ${escapeHtml(meeting.responsible)}</p>` : ""}
@@ -858,11 +860,12 @@ function generatePlanningPdf(selectedIds, meetingsOnly = false, selectedMeetingI
                 .pdf-meetings { margin-top: 18px; break-inside: avoid; }
                 .pdf-meetings > h3 { margin: 0 0 8px; color: #003660; font-size: 12pt; }
                 .pdf-meeting { position: relative; margin: 0 0 8px; padding: 8px 10px; border: 1px solid #d0d7de; border-radius: 6px; break-inside: avoid; }
-                .pdf-meeting h3 { margin: 0 0 4px; color: #003660; font-size: 11pt; }
+                .pdf-meeting-header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+                .pdf-meeting-header h3 { margin: 0; color: #003660; font-size: 11pt; }
                 .pdf-meeting h3 span { color: #536477; font-weight: normal; }
                 .pdf-meeting p { margin: 2px 0; }
                 .pdf-meeting-notes { white-space: pre-wrap; }
-                .pdf-meeting-badge { width: 32px; height: 32px; object-fit: contain; float: right; }
+                .pdf-meeting-badge { width: 38px; height: 38px; object-fit: contain; flex: 0 0 38px; }
                 .missing-badge { color: #9b1c1c; }
             </style>
         </head>
