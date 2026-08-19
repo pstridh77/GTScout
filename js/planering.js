@@ -1296,8 +1296,11 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
             const activity = allAktiviteter.find(item => item.id === activityId);
             return activity
                 ? `<div class="planned-activity" data-group-id="${group.id}" data-activity-id="${activity.id}" draggable="true" title="Dra för att ändra ordning">
-                        <span>${activity.namn}</span>
-                        ${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}
+                        <span class="planned-activity-details">
+                            <span>${escapeHtml(activity.namn)}</span>
+                            ${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}
+                            ${renderMeetingLabels(group, activity.id)}
+                        </span>
                         <button class="activity-info-button planned-activity-info-btn" type="button" data-activity-id="${activity.id}" title="Visa detaljer för ${activity.namn}" aria-label="Visa detaljer för ${activity.namn}">i</button>
                         <button class="remove-activity-btn" type="button" data-group-id="${group.id}" data-activity-id="${activity.id}" title="Ta bort ${activity.namn} från planeringen" aria-label="Ta bort ${activity.namn}">&times;</button>
                    </div>`
@@ -1678,6 +1681,19 @@ function normalizeMeetingList(meetings) {
         });
 }
 
+function getMeetingLabelsForActivity(group, activityId) {
+    return normalizeMeetingList(group?.meetings || [])
+        .filter(meeting => meeting.activities.includes(activityId))
+        .map(meeting => `Träff ${meeting.week || "-"}`);
+}
+
+function renderMeetingLabels(group, activityId) {
+    const labels = getMeetingLabelsForActivity(group, activityId);
+    return labels.length > 0
+        ? `<span class="activity-meeting-links">Utlagd på: ${escapeHtml(labels.join(", "))}</span>`
+        : `<span class="activity-meeting-links activity-meeting-links--empty">Inte utlagd på någon träff</span>`;
+}
+
 function openMeetingModal(groupId, meetingId = null) {
     const modal = document.getElementById("meetingModal");
     const group = groups.find(item => item.id === groupId);
@@ -1726,7 +1742,10 @@ function openMeetingModal(groupId, meetingId = null) {
         ? availableActivities.map(activity => `
             <label class="meeting-activity-option">
                 <input type="checkbox" value="${activity.id}" ${selectedIds.has(activity.id) ? "checked" : ""}>
-                <span>${escapeHtml(activity.namn)}</span>
+                <span class="meeting-activity-details">
+                    <span>${escapeHtml(activity.namn)}</span>
+                    ${renderMeetingLabels(group, activity.id)}
+                </span>
             </label>`).join("")
         : "<p class='group-empty'>Det finns inga aktiva aktiviteter i denna planering ännu.</p>";
 

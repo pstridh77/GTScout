@@ -1376,6 +1376,31 @@ body {
     cursor: grab;
 }
 
+.planned-activity-details,
+.meeting-activity-details {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+
+.planned-activity-details > span:first-child,
+.meeting-activity-details > span:first-child {
+    overflow-wrap: anywhere;
+}
+
+.activity-meeting-links {
+    color: #0f766e;
+    font-size: 0.72rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.activity-meeting-links--empty {
+    color: #64748b;
+    font-weight: 400;
+}
+
 .planned-activity:active {
     cursor: grabbing;
 }
@@ -1404,12 +1429,6 @@ body {
 .planned-activity small {
     color: #536477;
     white-space: nowrap;
-}
-
-.planned-activity > span {
-    min-width: 0;
-    flex: 1;
-    overflow-wrap: anywhere;
 }
 
 .planned-activity .activity-info-button {
@@ -1723,6 +1742,10 @@ body {
     background: white;
     color: #003660;
     cursor: pointer;
+}
+
+.meeting-activity-details {
+    flex: 1;
 }
 
 .meeting-activity-option input {
