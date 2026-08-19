@@ -70,6 +70,8 @@ let groups = loadGroups();
 let activeGroupId = null; // which group is getting badges added
 let groupFilters = { search: "", level: "Alla", year: "Alla", term: "Alla" };
 let pdfSelectionState = new Set();
+let meetingSelectionGroupId = null;
+let meetingSelectionState = new Set();
 let showPlanningActivities = localStorage.getItem(SHOW_ACTIVITIES_STORAGE_KEY) !== "false";
 let showPlanningMeetings = localStorage.getItem(SHOW_MEETINGS_STORAGE_KEY) !== "false";
 const BADGE_DND_MIME = "text/plain";
@@ -673,7 +675,49 @@ function openPdfSelection() {
     document.getElementById("pdfSelectionModal").classList.remove("hidden");
 }
 
-function generatePlanningPdf(selectedIds, meetingsOnly = false) {
+function renderMeetingSelectionList() {
+    const list = document.getElementById("meetingSelectionList");
+    const group = groups.find(item => item.id === meetingSelectionGroupId);
+    const meetings = group ? normalizeMeetingList(group.meetings || []) : [];
+    list.replaceChildren();
+    if (meetings.length === 0) {
+        list.innerHTML = "<p>Det finns inga möten att skriva ut.</p>";
+        return;
+    }
+    meetings.forEach(meeting => {
+        const label = document.createElement("label");
+        label.className = "pdf-selection-option";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = meeting.id;
+        checkbox.checked = meetingSelectionState.has(meeting.id);
+        checkbox.addEventListener("change", () => {
+            if (checkbox.checked) meetingSelectionState.add(meeting.id);
+            else meetingSelectionState.delete(meeting.id);
+        });
+        const text = document.createElement("span");
+        const name = document.createElement("strong");
+        name.textContent = `Träff ${meeting.week || "-"}`;
+        const details = document.createElement("small");
+        details.textContent = meeting.date || "";
+        text.append(name, details);
+        label.append(checkbox, text);
+        list.appendChild(label);
+    });
+}
+
+function openMeetingSelection(groupId) {
+    const group = groups.find(item => item.id === groupId);
+    if (!group) return;
+    meetingSelectionGroupId = groupId;
+    const meetings = normalizeMeetingList(group.meetings || []);
+    meetingSelectionState = new Set(meetings.map(meeting => meeting.id));
+    document.getElementById("meetingSelectionTitle").textContent = `Välj möten till PDF – ${group.name}`;
+    renderMeetingSelectionList();
+    document.getElementById("meetingSelectionModal").classList.remove("hidden");
+}
+
+function generatePlanningPdf(selectedIds, meetingsOnly = false, selectedMeetingIds = null) {
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
         alert("Kunde inte öppna PDF-vyn. Tillåt popupfönster för den här sidan.");
@@ -756,7 +800,8 @@ function generatePlanningPdf(selectedIds, meetingsOnly = false) {
             return marke ? getBadgeActivityIds(marke) : [];
         }));
         const unassignedActivities = plannedActivityIds.filter(activityId => !linkedActivityIds.has(activityId));
-        const meetings = normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : []);
+        const meetings = normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : [])
+            .filter(meeting => !selectedMeetingIds || selectedMeetingIds.has(meeting.id));
         return `
         <section class="pdf-planning">
             <h2 class="pdf-planning-heading">${icon}<span>${escapeHtml(group.name)} - ${escapeHtml(group.level)}</span></h2>
@@ -1196,7 +1241,7 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
     document.querySelectorAll(".print-meetings-btn").forEach(btn => {
         btn.addEventListener("click", e => {
             e.stopPropagation();
-            generatePlanningPdf(new Set([btn.dataset.groupId]), true);
+            openMeetingSelection(btn.dataset.groupId);
         });
     });
 
@@ -1965,6 +2010,7 @@ const exportInfoModal = document.getElementById("exportInfoModal");
 const pdfSelectionModal = document.getElementById("pdfSelectionModal");
 const pdfSelectionList = document.getElementById("pdfSelectionList");
 const pdfPlanningFilter = document.getElementById("pdfPlanningFilter");
+const meetingSelectionModal = document.getElementById("meetingSelectionModal");
 document.getElementById("closeExportInfoModal").addEventListener("click", () => exportInfoModal.classList.add("hidden"));
 document.getElementById("closeExportInfoBtn").addEventListener("click", () => exportInfoModal.classList.add("hidden"));
 exportInfoModal.addEventListener("click", event => {
@@ -2000,6 +2046,27 @@ document.getElementById("generatePdfBtn").addEventListener("click", () => {
     }
     pdfSelectionModal.classList.add("hidden");
     generatePlanningPdf(selectedIds);
+});
+document.getElementById("closeMeetingSelectionModal").addEventListener("click", () => meetingSelectionModal.classList.add("hidden"));
+meetingSelectionModal.addEventListener("click", event => {
+    if (event.target === meetingSelectionModal) meetingSelectionModal.classList.add("hidden");
+});
+document.getElementById("selectAllMeetingsBtn").addEventListener("click", () => {
+    const group = groups.find(item => item.id === meetingSelectionGroupId);
+    meetingSelectionState = new Set(normalizeMeetingList(group?.meetings || []).map(meeting => meeting.id));
+    renderMeetingSelectionList();
+});
+document.getElementById("clearMeetingsBtn").addEventListener("click", () => {
+    meetingSelectionState.clear();
+    renderMeetingSelectionList();
+});
+document.getElementById("generateMeetingsPdfBtn").addEventListener("click", () => {
+    if (meetingSelectionState.size === 0) {
+        alert("Välj minst ett möte.");
+        return;
+    }
+    meetingSelectionModal.classList.add("hidden");
+    generatePlanningPdf(new Set([meetingSelectionGroupId]), true, meetingSelectionState);
 });
 
 const importPlanningInput = document.getElementById("importPlanningInput");
