@@ -2078,9 +2078,11 @@ const planningActionsDropdown = document.getElementById("planningActionsDropdown
 const togglePlanningActivitiesBtn = document.getElementById("togglePlanningActivitiesBtn");
 const togglePlanningMeetingsBtn = document.getElementById("togglePlanningMeetingsBtn");
 const updatePlanningDetailsToggles = () => {
-    togglePlanningActivitiesBtn.textContent = `Visa aktiviteter: ${showPlanningActivities ? "På" : "Av"}`;
+    togglePlanningActivitiesBtn.querySelector(".planning-toggle-status").textContent = showPlanningActivities ? "✓" : "–";
+    togglePlanningActivitiesBtn.classList.toggle("planning-toggle-item--off", !showPlanningActivities);
     togglePlanningActivitiesBtn.setAttribute("aria-pressed", String(showPlanningActivities));
-    togglePlanningMeetingsBtn.textContent = `Visa möten: ${showPlanningMeetings ? "På" : "Av"}`;
+    togglePlanningMeetingsBtn.querySelector(".planning-toggle-status").textContent = showPlanningMeetings ? "✓" : "–";
+    togglePlanningMeetingsBtn.classList.toggle("planning-toggle-item--off", !showPlanningMeetings);
     togglePlanningMeetingsBtn.setAttribute("aria-pressed", String(showPlanningMeetings));
 };
 updatePlanningDetailsToggles();

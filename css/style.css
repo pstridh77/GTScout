@@ -1104,6 +1104,31 @@ body {
     cursor: pointer;
 }
 
+.planning-toggle-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.planning-toggle-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #dcfce7;
+    color: #166534;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.planning-toggle-item--off .planning-toggle-status {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
 .planning-menu-item:hover,
 .planning-menu-item:focus-visible {
     background: #e8f0fe;
