@@ -35,7 +35,7 @@
       {
         "name": "Läsår 1  VT",
         "badges": ["forsta_repmarket","HYX", "ljusspar"],
-        "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
+        "activities": ["terminsuppstart","demokratimote","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 2 HT",
@@ -45,7 +45,7 @@
       {
         "name": "Läsår 2 VT",
         "badges": [ "tanda", "hitta","HYX", "fotspar"],
-        "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
+        "activities": ["terminsuppstart","demokratimote","Hajk-01","terminsavslutning"]
       }
     ]
   },
@@ -60,7 +60,7 @@
       {
         "name": "Läsår 1 VT",
         "badges": ["andra_repmarket","simma","HYX","fjarran"],
-        "activities": ["terminsuppstart","Hajk-02","terminsavslutning"]
+        "activities": ["terminsuppstart","demokratimote","Hajk-02","terminsavslutning"]
       },
       {
         "name": "Läsår 2 HT",
@@ -70,7 +70,7 @@
       {
         "name": "Läsår 2 VT",
         "badges": ["brinna","yxa_och_sag","HYX","manniskan"],
-        "activities": ["terminsuppstart","Hajk-02","terminsavslutning"]
+        "activities": ["terminsuppstart","demokratimote","Hajk-02","terminsavslutning"]
       },
       {
         "name": "Läsår 3 HT",
@@ -80,7 +80,7 @@
       {
         "name": "Läsår 3 VT",
         "badges": ["karta","simma","HYX","vagen"],
-        "activities": ["terminsuppstart","Hajk-02","terminsavslutning"]
+        "activities": ["terminsuppstart","demokratimote","Hajk-02","terminsavslutning"]
       }
     ]
   },
