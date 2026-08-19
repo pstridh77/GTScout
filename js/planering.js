@@ -1622,7 +1622,12 @@ function normalizeMeetingList(meetings) {
                 notes: String(meeting.notes ?? meeting.note ?? "").trim()
             };
         })
-        .filter(Boolean);
+        .filter(Boolean)
+        .sort((left, right) => {
+            const leftDate = /^\d{4}-\d{2}-\d{2}$/.test(left.date) ? left.date : "9999-99-99";
+            const rightDate = /^\d{4}-\d{2}-\d{2}$/.test(right.date) ? right.date : "9999-99-99";
+            return leftDate.localeCompare(rightDate);
+        });
 }
 
 function openMeetingModal(groupId, meetingId = null) {
