@@ -738,7 +738,7 @@ function generatePlanningPdf(selectedIds, meetingsOnly = false) {
             ? `<img class="pdf-meeting-badge" src="${escapeHtml(resolveImage(badge.bild))}" alt="${escapeHtml(badge.namn)}" title="${escapeHtml(badge.namn)}">`
             : "";
         return `<article class="pdf-meeting">
-            <h3>Vecka ${escapeHtml(meeting.week || "-")}${meeting.date ? ` <span>(${escapeHtml(meeting.date)})</span>` : ""}</h3>
+            <h3>Träff ${escapeHtml(meeting.week || "-")}${meeting.date ? ` <span>(${escapeHtml(meeting.date)})</span>` : ""}</h3>
             ${badgeImage}
             ${meeting.notes ? `<p class="pdf-meeting-notes">${escapeHtml(meeting.notes)}</p>` : ""}
             ${selectedActivities.length > 0 ? `<p><strong>Aktiviteter:</strong> ${escapeHtml(selectedActivities.map(activity => activity.namn).join(", "))}</p>` : ""}
@@ -1260,7 +1260,7 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
             const badge = allMarken.find(item => item.id === meeting.badgeId);
             return `<div class="planned-meeting" data-group-id="${group.id}" data-meeting-id="${meeting.id}">
                     <div class="planned-meeting-header">
-                        <strong>Vecka ${escapeHtml(meeting.week || "-")}</strong>
+                        <strong>Träff ${escapeHtml(meeting.week || "-")}</strong>
                         <div class="planned-meeting-tools">
                             <button class="edit-meeting-btn" type="button" data-group-id="${group.id}" data-meeting-id="${meeting.id}">Redigera</button>
                             <button class="remove-meeting-btn" type="button" data-group-id="${group.id}" data-meeting-id="${meeting.id}" aria-label="Ta bort möte">&times;</button>
@@ -1635,8 +1635,9 @@ function openMeetingModal(groupId, meetingId = null) {
     const group = groups.find(item => item.id === groupId);
     if (!group) return;
 
-    document.getElementById("meetingModalTitle").textContent = `${group.level || "Målgrupp"} – ${group.name} – Möte`;
     const meeting = meetingId ? normalizeMeetingList(group.meetings || []).find(item => item.id === meetingId) : null;
+    const meetingName = meeting?.week ? `Träff ${meeting.week}` : "Träff";
+    document.getElementById("meetingModalTitle").textContent = `${group.level || "Målgrupp"} – ${group.name} – ${meetingName}`;
     const activityList = document.getElementById("meetingActivityList");
     const selectedIds = new Set((meeting && Array.isArray(meeting.activities) ? meeting.activities : []));
     const badgeList = (Array.isArray(group.badges) ? group.badges : [])
