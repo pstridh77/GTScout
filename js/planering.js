@@ -808,9 +808,15 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             .map(activityId => allAktiviteter.find(item => item.id === activityId))
             .filter(Boolean);
         const badgeInfo = badge
-            ? `<div class="pdf-meeting-detail-card"><h4>Märke</h4><div class="pdf-meeting-detail-badge"><img src="${escapeHtml(resolveImage(badge.bild))}" alt="${escapeHtml(badge.namn)}"><span>${escapeHtml(badge.namn)}</span></div></div>`
-            : "";
-        const notesContent = `<h4>Anteckningar</h4>${meeting.notes ? `<p>${renderLinkedText(meeting.notes)}</p>` : ""}<div class="pdf-handwriting-space" aria-label="Skrivyta för mötesanteckningar"><span></span><span></span><span></span><span></span></div>`;
+            ? `<div class="pdf-meeting-detail-summary"><div class="pdf-meeting-detail-badge"><img src="${escapeHtml(resolveImage(badge.bild))}" alt="${escapeHtml(badge.namn)}"><span>${escapeHtml(badge.namn)}</span></div></div>`
+            : `<div class="pdf-meeting-detail-summary"><p><strong>Märke:</strong> -</p></div>`;
+        const dateInfo = meeting.date
+            ? escapeHtml(meeting.date)
+            : '<span class="pdf-meeting-detail-date-write-in" aria-label="Skriv datum här"></span>';
+        const responsibleInfo = meeting.responsible
+            ? escapeHtml(meeting.responsible)
+            : '<span class="pdf-meeting-detail-responsible-write-in" aria-label="Skriv ansvarig här"></span>';
+        const notesContent = `<h4>Anteckningar</h4>${meeting.notes ? `<p>${renderLinkedText(meeting.notes)}</p>` : ""}<div class="pdf-handwriting-space" aria-label="Skrivyta för mötesanteckningar"><span></span><span></span></div>`;
         const templateSections = [
             {
                 title: "Inledningscermoni",
@@ -848,6 +854,10 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
         `).join("");
         return `
             <section class="pdf-meeting-detail-page">
+                <header class="pdf-meeting-detail-document-header">
+                    <img src="${escapeHtml(resolveImage("./images/icons/GTorp_250px.png"))}" alt="Gullbrandstorps Scoutkår">
+                    <span>Gullbrandstorps Scoutkår</span>
+                </header>
                 <div class="pdf-meeting-detail-header">
                     <h2 class="pdf-meeting-detail-meta">
                         <span class="pdf-meeting-detail-meta-row">
@@ -856,14 +866,13 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                             <span>${escapeHtml(planningTerm || "Termin -")}</span>
                             <span>${escapeHtml(group.level || "Målgrupp -")}</span>
                         </span>
-                        <span class="pdf-meeting-detail-meeting-row">Träff ${escapeHtml(meeting.week || "-")}${meeting.date ? `, (${escapeHtml(meeting.date)})` : ""}</span>
+                        <span class="pdf-meeting-detail-meeting-row">Träff ${escapeHtml(meeting.week || "-")} &middot; Datum: ${dateInfo} &middot; Ansvarig: ${responsibleInfo}</span>
                     </h2>
                 </div>
                 <div class="pdf-meeting-detail-info">
-                    ${badgeInfo}
                     <div class="pdf-meeting-detail-card">
-                        ${meeting.responsible ? `<p><strong>Ansvarig:</strong> ${escapeHtml(meeting.responsible)}</p>` : ""}
                         ${notesContent}
+                        ${badgeInfo}
                     </div>
                 </div>
                 <div class="pdf-meeting-detail-sections">
@@ -924,7 +933,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             <meta charset="UTF-8">
             <title>${escapeHtml(printTitle)}</title>
             <style>
-                @page { size: A4; margin: 14mm; }
+                @page { size: A4; margin: 10mm; }
                 * { box-sizing: border-box; }
                 body { margin: 0; color: #172b4d; font: 11pt Arial, sans-serif; line-height: 1.45; }
                 .pdf-document-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
@@ -962,37 +971,42 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 .pdf-meeting p { margin: 2px 0; }
                 .pdf-meeting-notes { white-space: pre-wrap; }
                 .pdf-meeting-badge { width: 38px; height: 38px; object-fit: contain; flex: 0 0 38px; }
-                .pdf-meeting-detail-page { page-break-before: always; margin: 0 0 24px; padding-top: 12px; }
+                .pdf-meeting-detail-page { page-break-before: always; margin: 0 0 12px; padding-top: 4px; }
                 .pdf-meeting-detail-page:first-of-type { page-break-before: auto; }
-                .pdf-meeting-detail-header { margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #003660; }
+                .pdf-meeting-detail-document-header { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; color: #003660; font-size: 15pt; font-weight: bold; }
+                .pdf-meeting-detail-document-header img { width: 18mm; height: 18mm; object-fit: contain; }
+                .pdf-meeting-detail-header { margin-bottom: 8px; padding-bottom: 5px; border-bottom: 2px solid #003660; }
                 .pdf-meeting-detail-header h2 { margin: 0 0 6px; color: #003660; font-size: 18pt; }
                 .pdf-meeting-detail-header h3 { margin: 0; color: #254b66; font-size: 14pt; }
                 .pdf-meeting-detail-header h2.pdf-meeting-detail-meta { display: block; font-size: 15pt; }
                 .pdf-meeting-detail-meta-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
                 .pdf-meeting-detail-meta-row img { width: 30px; height: 30px; object-fit: contain; }
-                .pdf-meeting-detail-meeting-row { display: block; margin-top: 6px; color: #254b66; font-size: 13pt; }
-                .pdf-meeting-detail-info { display: grid; grid-template-columns: 1fr; gap: 16px; margin: 16px 0; }
+                .pdf-meeting-detail-meeting-row { display: block; margin-top: 4px; color: #254b66; font-size: 13pt; }
+                .pdf-meeting-detail-date-write-in { display: inline-block; width: 35mm; border-bottom: 1px solid #9aa9b8; vertical-align: baseline; }
+                .pdf-meeting-detail-responsible-write-in { display: inline-block; width: 45mm; border-bottom: 1px solid #9aa9b8; vertical-align: baseline; }
+                .pdf-meeting-detail-info { display: grid; grid-template-columns: 1fr; gap: 8px; margin: 8px 0; }
                 .pdf-meeting-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
-                .pdf-meeting-detail-card { padding: 12px 14px; border: 1px solid #d0d7de; border-radius: 8px; background: #f8fafc; }
-                .pdf-meeting-detail-card h4 { margin: 0 0 8px; color: #003660; font-size: 11pt; }
-                .pdf-meeting-detail-card p, .pdf-meeting-detail-card ul { margin: 6px 0; }
+                .pdf-meeting-detail-card { padding: 8px 10px; border: 1px solid #d0d7de; border-radius: 8px; background: #f8fafc; }
+                .pdf-meeting-detail-card h4 { margin: 0 0 5px; color: #003660; font-size: 11pt; }
+                .pdf-meeting-detail-card p, .pdf-meeting-detail-card ul { margin: 4px 0; }
+                .pdf-meeting-detail-summary { margin: 9px 0 4px; }
                 .pdf-meeting-detail-badge { display: flex; align-items: center; gap: 12px; }
                 .pdf-meeting-detail-badge img { width: 52px; height: 52px; object-fit: contain; }
-                .pdf-meeting-detail-sections { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 16px; }
-                .pdf-meeting-detail-section { min-height: 90px; padding: 10px 12px; border: 1px solid #d0d7de; border-radius: 8px; background: #f8fafc; }
-                .pdf-meeting-detail-section h4 { margin: 0 0 8px; color: #003660; font-size: 11pt; }
-                .pdf-meeting-detail-section-content { min-height: 44px; border-top: 1px dashed #c7d2e2; padding-top: 8px; }
-                .pdf-meeting-detail-section-content p { margin: 0; line-height: 1.5; }
-                .pdf-handwriting-space { margin-top: 14px; }
-                .pdf-handwriting-space span { display: block; height: 25px; border-bottom: 1px solid #9aa9b8; }
+                .pdf-meeting-detail-sections { display: grid; grid-template-columns: 1fr; gap: 7px; margin-top: 8px; }
+                .pdf-meeting-detail-section { min-height: 0; padding: 7px 10px; border: 1px solid #d0d7de; border-radius: 8px; background: #f8fafc; }
+                .pdf-meeting-detail-section h4 { margin: 0 0 4px; color: #003660; font-size: 11pt; }
+                .pdf-meeting-detail-section-content { min-height: 0; border-top: 1px dashed #c7d2e2; padding-top: 5px; }
+                .pdf-meeting-detail-section-content p { margin: 0; line-height: 1.3; }
+                .pdf-handwriting-space { margin-top: 7px; }
+                .pdf-handwriting-space span { display: block; height: 18px; border-bottom: 1px solid #9aa9b8; }
                 .missing-badge { color: #9b1c1c; }
             </style>
         </head>
         <body>
-            <header class="pdf-document-header">
+            ${isMeetingDetailPrint ? "" : `<header class="pdf-document-header">
                 <img class="pdf-document-logo" src="${escapeHtml(resolveImage("./images/icons/GTorp_250px.png"))}" alt="Gullbrandstorps Scoutkår">
                 <h1>${escapeHtml(printTitle)}</h1>
-            </header>
+            </header>`}
             ${planningSections || "<p>Inga planeringar valdes.</p>"}
             <p class="created">Exporterad ${escapeHtml(new Date().toLocaleDateString("sv-SE"))}</p>
         </body>
