@@ -777,7 +777,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
         if (!activity) return `<p class="missing-badge">Aktivitet ${escapeHtml(activityId)} kunde inte hittas.</p>`;
         const material = Array.isArray(activity.material) ? activity.material.join(", ") : "";
         const handwritingSpace = includeHandwritingSpace
-            ? `<div class="pdf-handwriting-space" aria-label="Skrivyta för egna aktivitetsanteckningar"><span></span><span></span><span></span></div>`
+            ? `<div class="pdf-handwriting-space" aria-label="Skrivyta för egna aktivitetsanteckningar"><span></span><span></span></div>`
             : "";
         return `<div class="pdf-activity"><h4>${escapeHtml(activity.namn)}</h4>${activity.kategori ? `<p><strong>Kategori:</strong> ${escapeHtml(activity.kategori)}</p>` : ""}${activity.beskrivning ? `<p><strong>Beskrivning:</strong> ${renderLinkedText(activity.beskrivning)}</p>` : ""}${formatActivityTime(activity) ? `<p><strong>Tid:</strong> ${escapeHtml(formatActivityTime(activity))}</p>` : ""}${material ? `<p><strong>Material:</strong> ${escapeHtml(material)}</p>` : ""}${activity.genomforande ? `<p><strong>Genomförande:</strong> ${renderLinkedText(activity.genomforande)}</p>` : ""}${handwritingSpace}</div>`;
     };
@@ -837,8 +837,8 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 <h4>${escapeHtml(section.title)}</h4>
                 <div class="pdf-meeting-detail-section-content">
                     <p>${escapeHtml(section.text)}</p>
-                    ${section.title === "Aktivitet" && selectedActivities.length > 0
-                        ? selectedActivities.map(activity => renderActivity(activity.id, true)).join("")
+                    ${section.title === "Aktivitet"
+                        ? `<div class="pdf-handwriting-space" aria-label="Skrivyta för aktiviteter"><span></span><span></span></div>${selectedActivities.length > 0 ? selectedActivities.map(activity => renderActivity(activity.id, true)).join("") : ""}`
                         : ""}
                     ${section.title === "Lek"
                         ? `<div class="pdf-handwriting-space" aria-label="Skrivyta för egna anteckningar"><span></span><span></span></div>`
