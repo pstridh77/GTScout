@@ -923,7 +923,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
         ? "Gullbrandstorps Scoutkårs Mötesöversikt"
         : isMeetingDetailPrint
             ? "Gullbrandstorps Scoutkårs Mötesplanering"
-            : "Gullbrandstorps Scoutkårs Märkesschema";
+            : "Gullbrandstorps Scoutkårs Planeringsöversikt";
 
     printWindow.addEventListener("load", () => printWindow.print(), { once: true });
     printWindow.document.open();
