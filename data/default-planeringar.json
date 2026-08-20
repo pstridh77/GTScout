@@ -4,13 +4,13 @@
     "plans": [
       {
         "name": "Läsår 1 HT",
-        "note": "Start av läsåret med fokus på...",
+        "note": "",
         "badges": ["smaka"],
         "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 1 VT",
-        "note": "Vårterminen mål ...",
+        "note": "",
         "badges": ["varme"],
         "activities": ["terminsuppstart","terminsavslutning"]
       },
