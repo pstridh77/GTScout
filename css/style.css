@@ -1471,9 +1471,17 @@ body {
     justify-content: flex-start;
 }
 
+.planned-meeting-badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
 .planned-meeting-badge {
     display: flex;
     align-items: center;
+    flex: 0 0 auto;
 }
 
 .planned-meeting-badge img {

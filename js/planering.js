@@ -782,16 +782,21 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
         return `<div class="pdf-activity"><h4>${escapeHtml(activity.namn)}</h4>${activity.kategori ? `<p><strong>Kategori:</strong> ${escapeHtml(activity.kategori)}</p>` : ""}${activity.beskrivning ? `<p><strong>Beskrivning:</strong> ${renderLinkedText(activity.beskrivning)}</p>` : ""}${formatActivityTime(activity) ? `<p><strong>Tid:</strong> ${escapeHtml(formatActivityTime(activity))}</p>` : ""}${material ? `<p><strong>Material:</strong> ${escapeHtml(material)}</p>` : ""}${activity.genomforande ? `<p><strong>Genomförande:</strong> ${renderLinkedText(activity.genomforande)}</p>` : ""}${handwritingSpace}</div>`;
     };
     const renderMeeting = meeting => {
-        const badge = allMarken.find(item => item.id === meeting.badgeId);
+        const meetingBadges = sortBadgesForDisplay(
+            getMeetingBadgeIds(meeting)
+                .map(badgeId => allMarken.find(item => item.id === badgeId))
+                .filter(Boolean),
+            Array.isArray(group.badges) ? group.badges : []
+        );
         const selectedActivities = (meeting.activities || [])
             .map(activityId => allAktiviteter.find(item => item.id === activityId))
             .filter(Boolean);
-        const badgeImage = badge?.bild
-            ? `<img class="pdf-meeting-badge" src="${escapeHtml(resolveImage(badge.bild))}" alt="${escapeHtml(badge.namn)}" title="${escapeHtml(badge.namn)}">`
+        const badgeImages = meetingBadges.length > 0
+            ? meetingBadges.map(badge => `<img class="pdf-meeting-badge" src="${escapeHtml(resolveImage(badge.bild))}" alt="${escapeHtml(badge.namn)}" title="${escapeHtml(badge.namn)}">`).join("")
             : "";
         return `<article class="pdf-meeting">
             <div class="pdf-meeting-header">
-                ${badgeImage}
+                ${badgeImages}
                 <h3>Träff ${escapeHtml(meeting.week || "-")}${meeting.date ? ` <span>(${escapeHtml(meeting.date)})</span>` : ""}</h3>
             </div>
             ${meeting.notes ? `<p class="pdf-meeting-notes">${escapeHtml(meeting.notes)}</p>` : ""}
@@ -800,16 +805,18 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
         </article>`;
     };
     const renderMeetingDetailPage = (group, meeting) => {
-        const badge = meeting.badgeId ? allMarken.find(item => item.id === meeting.badgeId) : null;
+        const badges = getMeetingBadgeIds(meeting)
+            .map(badgeId => allMarken.find(item => item.id === badgeId))
+            .filter(Boolean);
         const levelIcon = getLevelIcon(group.level);
         const planningYear = getGroupYearValue(group);
         const planningTerm = getGroupTermValue(group);
         const selectedActivities = (meeting.activities || [])
             .map(activityId => allAktiviteter.find(item => item.id === activityId))
             .filter(Boolean);
-        const badgeInfo = badge
-            ? `<div class="pdf-meeting-detail-summary"><div class="pdf-meeting-detail-badge"><img src="${escapeHtml(resolveImage(badge.bild))}" alt="${escapeHtml(badge.namn)}"><span>${escapeHtml(badge.namn)}</span></div></div>`
-            : `<div class="pdf-meeting-detail-summary"><p><strong>Märke:</strong> -</p></div>`;
+        const badgeInfo = badges.length > 0
+            ? `<div class="pdf-meeting-detail-summary">${badges.map(badge => `<div class="pdf-meeting-detail-badge"><img src="${escapeHtml(resolveImage(badge.bild))}" alt="${escapeHtml(badge.namn)}"><span>${escapeHtml(badge.namn)}</span></div>`).join("")}</div>`
+            : `<div class="pdf-meeting-detail-summary"><p><strong>Märken:</strong> -</p></div>`;
         const dateInfo = meeting.date
             ? escapeHtml(meeting.date)
             : '<span class="pdf-meeting-detail-date-write-in" aria-label="Skriv datum här"></span>';
@@ -974,6 +981,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 .pdf-meeting p { margin: 2px 0; }
                 .pdf-meeting-notes { white-space: pre-wrap; }
                 .pdf-meeting-badge { width: 38px; height: 38px; object-fit: contain; flex: 0 0 38px; }
+                .pdf-meeting-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
                 .pdf-meeting-detail-page { page-break-before: always; margin: 0 0 12px; padding-top: 4px; }
                 .pdf-meeting-detail-page:first-of-type { page-break-before: auto; }
                 .pdf-meeting-detail-document-header { display: flex; align-items: flex-start; gap: 7px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 2px solid #003660; color: #003660; font-size: 15pt; font-weight: bold; }
@@ -994,7 +1002,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 .pdf-meeting-detail-card { padding: 8px 10px; border: 1px solid #d0d7de; border-radius: 8px; background: #f8fafc; }
                 .pdf-meeting-detail-card h4 { margin: 0 0 5px; color: #003660; font-size: 11pt; }
                 .pdf-meeting-detail-card p, .pdf-meeting-detail-card ul { margin: 4px 0; }
-                .pdf-meeting-detail-summary { margin: 9px 0 4px; }
+                .pdf-meeting-detail-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 9px 0 4px; }
                 .pdf-meeting-detail-badge { display: flex; align-items: center; gap: 12px; }
                 .pdf-meeting-detail-badge img { width: 52px; height: 52px; object-fit: contain; }
                 .pdf-meeting-detail-sections { display: grid; grid-template-columns: 1fr; gap: 7px; margin-top: 8px; }
@@ -1452,7 +1460,12 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
                 }).join("")}</div></details>`;
             const meetingsMarkup = showPlanningMeetings ? `<details class="planned-meetings"${openMeetingGroupIds.has(group.id) ? " open" : ""}><summary><span>Möten${meetings.length > 0 ? ` (${meetings.length})` : ""}</span><button class="btn-secondary add-meeting-btn" type="button" data-group-id="${group.id}">+ Möte</button></summary><div class="planned-meetings-list"><div class="planned-meetings-actions"><button class="btn-secondary print-meetings-btn" type="button" data-group-id="${group.id}">Skriv ut möten</button></div>${meetings.map(meeting => {
             const selectedActivities = (meeting.activities || []).map(activityId => allAktiviteter.find(item => item.id === activityId)).filter(Boolean);
-            const badge = allMarken.find(item => item.id === meeting.badgeId);
+            const meetingBadges = sortBadgesForDisplay(
+                getMeetingBadgeIds(meeting)
+                    .map(badgeId => allMarken.find(item => item.id === badgeId))
+                    .filter(Boolean),
+                Array.isArray(group.badges) ? group.badges : []
+            );
             return `<div class="planned-meeting" data-group-id="${group.id}" data-meeting-id="${meeting.id}">
                     <div class="planned-meeting-header">
                         <strong>Träff ${escapeHtml(meeting.week || "-")}</strong>
@@ -1463,7 +1476,7 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
                     </div>
                     ${meeting.date ? `<small>${escapeHtml(meeting.date)}</small>` : ""}
                     ${meeting.notes ? `<p>${escapeHtml(meeting.notes)}</p>` : ""}
-                    ${badge ? `<div class="planned-meeting-badge" title="${escapeHtml(badge.namn)}"><img src="${escapeHtml(badge.bild)}" alt="${escapeHtml(badge.namn)}"></div>` : ""}
+                    ${meetingBadges.length > 0 ? `<div class="planned-meeting-badges">${meetingBadges.map(badge => `<div class="planned-meeting-badge" title="${escapeHtml(badge.namn)}"><img src="${escapeHtml(badge.bild)}" alt="${escapeHtml(badge.namn)}"></div>`).join("")}</div>` : ""}
                     ${selectedActivities.length > 0 ? `<div class="planned-meeting-activity-list"><strong>Aktiviteter:</strong> ${escapeHtml(selectedActivities.map(activity => activity.namn).join(", "))}</div>` : ""}
                     ${meeting.responsible ? `<div><strong>Ansvarig:</strong> ${escapeHtml(meeting.responsible)}</div>` : ""}
                 </div>`;
@@ -1804,18 +1817,68 @@ function removeActivityFromGroup(groupId, activityId) {
     renderPlanning();
 }
 
+function normalizeMeetingBadgeIds(value) {
+    if (Array.isArray(value)) {
+        return [...new Set(value
+            .flatMap(item => String(item ?? "").split(","))
+            .map(item => item.trim())
+            .filter(Boolean))];
+    }
+    if (typeof value === "string") {
+        return [...new Set(value
+            .split(",")
+            .map(item => item.trim())
+            .filter(Boolean))];
+    }
+    return [];
+}
+
+function sortBadgesForDisplay(badges, preferredOrder = []) {
+    const preferredIndex = new Map(preferredOrder.map((badgeId, index) => [badgeId, index]));
+    const targetGroupOrder = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
+    return [...badges].sort((left, right) => {
+        const leftPriority = preferredIndex.has(left.id) ? preferredIndex.get(left.id) : Number.MAX_SAFE_INTEGER;
+        const rightPriority = preferredIndex.has(right.id) ? preferredIndex.get(right.id) : Number.MAX_SAFE_INTEGER;
+        if (leftPriority !== rightPriority) return leftPriority - rightPriority;
+
+        const leftGroupIndex = getTargetGroups(left)
+            .map(group => targetGroupOrder.indexOf(group))
+            .filter(index => index !== -1)
+            .sort((a, b) => a - b)[0] ?? Number.MAX_SAFE_INTEGER;
+        const rightGroupIndex = getTargetGroups(right)
+            .map(group => targetGroupOrder.indexOf(group))
+            .filter(index => index !== -1)
+            .sort((a, b) => a - b)[0] ?? Number.MAX_SAFE_INTEGER;
+        if (leftGroupIndex !== rightGroupIndex) return leftGroupIndex - rightGroupIndex;
+
+        return left.namn.localeCompare(right.namn, "sv");
+    });
+}
+
+function getMeetingBadgeIds(meeting) {
+    const badgeIds = normalizeMeetingBadgeIds([
+        ...(Array.isArray(meeting?.badgeIds) ? meeting.badgeIds : []),
+        ...(Array.isArray(meeting?.markeIds) ? meeting.markeIds : []),
+        ...(typeof meeting?.badgeId === "string" ? [meeting.badgeId] : []),
+        ...(typeof meeting?.markeId === "string" ? [meeting.markeId] : [])
+    ]);
+    return badgeIds;
+}
+
 function normalizeMeetingList(meetings) {
     if (!Array.isArray(meetings)) return [];
     return meetings
         .map(meeting => {
             if (!meeting || typeof meeting !== "object") return null;
             const weekValue = String(meeting.week ?? "").trim();
+            const badgeIds = getMeetingBadgeIds(meeting);
             return {
                 id: typeof meeting.id === "string" && meeting.id.trim() ? meeting.id.trim() : crypto.randomUUID(),
                 week: weekValue || (typeof meeting.vecka === "number" ? String(meeting.vecka) : ""),
                 date: String(meeting.date ?? ""),
                 responsible: String(meeting.responsible ?? meeting.ansvarig ?? "").trim(),
-                badgeId: String(meeting.badgeId ?? meeting.markeId ?? "").trim(),
+                badgeIds,
+                badgeId: badgeIds[0] || "",
                 activities: Array.isArray(meeting.activities) ? [...new Set(meeting.activities.filter(Boolean))] : [],
                 notes: String(meeting.notes ?? meeting.note ?? "").trim()
             };
@@ -1851,10 +1914,13 @@ function openMeetingModal(groupId, meetingId = null) {
     document.getElementById("meetingModalTitle").textContent = `${group.level || "Målgrupp"} – ${group.name} – ${meetingName}`;
     const activityList = document.getElementById("meetingActivityList");
     const selectedIds = new Set((meeting && Array.isArray(meeting.activities) ? meeting.activities : []));
-    const badgeList = (Array.isArray(group.badges) ? group.badges : [])
-        .map(badgeId => allMarken.find(item => item.id === badgeId))
-        .filter(Boolean)
-        .sort((a, b) => a.namn.localeCompare(b.namn, "sv"));
+    const selectedBadgeIds = new Set(getMeetingBadgeIds(meeting));
+    const badgeList = sortBadgesForDisplay(
+        (Array.isArray(group.badges) ? group.badges : [])
+            .map(badgeId => allMarken.find(item => item.id === badgeId))
+            .filter(Boolean),
+        Array.isArray(group.badges) ? group.badges : []
+    );
     const availableActivities = (Array.isArray(group.activities) ? group.activities : [])
         .map(activityId => allAktiviteter.find(item => item.id === activityId))
         .filter(Boolean);
@@ -1866,18 +1932,39 @@ function openMeetingModal(groupId, meetingId = null) {
     document.getElementById("meetingResponsible").value = meeting ? (meeting.responsible || "") : "";
     const meetingBadge = document.getElementById("meetingBadge");
     const meetingBadgePicker = document.getElementById("meetingBadgePicker");
-    meetingBadge.value = meeting?.badgeId || "";
+    meetingBadge.value = [...selectedBadgeIds].join(",");
     meetingBadgePicker.innerHTML = [
-        `<button class="meeting-badge-option${meetingBadge.value ? "" : " meeting-badge-option--selected"}" type="button" data-badge-id="" aria-pressed="${meetingBadge.value ? "false" : "true"}">Inget märke</button>`,
-        ...badgeList.map(badge => `<button class="meeting-badge-option${meetingBadge.value === badge.id ? " meeting-badge-option--selected" : ""}" type="button" data-badge-id="${escapeHtml(badge.id)}" aria-pressed="${meetingBadge.value === badge.id ? "true" : "false"}"><img src="${escapeHtml(badge.bild)}" alt=""><span>${escapeHtml(badge.namn)}</span></button>`)
+        `<button class="meeting-badge-option${selectedBadgeIds.size === 0 ? " meeting-badge-option--selected" : ""}" type="button" data-badge-id="" aria-pressed="${selectedBadgeIds.size === 0 ? "true" : "false"}">Inget märke</button>`,
+        ...badgeList.map(badge => `<button class="meeting-badge-option${selectedBadgeIds.has(badge.id) ? " meeting-badge-option--selected" : ""}" type="button" data-badge-id="${escapeHtml(badge.id)}" aria-pressed="${selectedBadgeIds.has(badge.id) ? "true" : "false"}"><img src="${escapeHtml(badge.bild)}" alt=""><span>${escapeHtml(badge.namn)}</span></button>`)
     ].join("");
     meetingBadgePicker.querySelectorAll(".meeting-badge-option").forEach(option => {
         option.addEventListener("click", () => {
-            meetingBadge.value = option.dataset.badgeId || "";
+            const nextSelectedBadgeIds = new Set(normalizeMeetingBadgeIds(meetingBadge.value));
+            const badgeId = option.dataset.badgeId || "";
+            if (!badgeId) {
+                if (nextSelectedBadgeIds.size === 0) return;
+                nextSelectedBadgeIds.clear();
+            } else if (nextSelectedBadgeIds.has(badgeId)) {
+                nextSelectedBadgeIds.delete(badgeId);
+                if (nextSelectedBadgeIds.size === 0) {
+                    meetingBadge.value = "";
+                    meetingBadgePicker.querySelectorAll(".meeting-badge-option").forEach(item => {
+                        const isSelected = (item.dataset.badgeId || "") === "" && nextSelectedBadgeIds.size === 0;
+                        item.classList.toggle("meeting-badge-option--selected", isSelected);
+                        item.setAttribute("aria-pressed", String(isSelected));
+                    });
+                    return;
+                }
+            } else {
+                nextSelectedBadgeIds.add(badgeId);
+            }
+            meetingBadge.value = [...nextSelectedBadgeIds].join(",");
             meetingBadgePicker.querySelectorAll(".meeting-badge-option").forEach(item => {
-                const selected = item === option;
-                item.classList.toggle("meeting-badge-option--selected", selected);
-                item.setAttribute("aria-pressed", String(selected));
+                const isSelected = (item.dataset.badgeId || "") === ""
+                    ? nextSelectedBadgeIds.size === 0
+                    : nextSelectedBadgeIds.has(item.dataset.badgeId || "");
+                item.classList.toggle("meeting-badge-option--selected", isSelected);
+                item.setAttribute("aria-pressed", String(isSelected));
             });
         });
     });
@@ -1909,7 +1996,7 @@ function saveMeetingFromModal() {
     const week = document.getElementById("meetingWeek").value.trim();
     const date = document.getElementById("meetingDate").value;
     const responsible = document.getElementById("meetingResponsible").value.trim();
-    const badgeId = document.getElementById("meetingBadge").value;
+    const badgeIds = normalizeMeetingBadgeIds(document.getElementById("meetingBadge").value);
     const notes = document.getElementById("meetingNotes").value.trim();
     const selectedActivities = [...document.querySelectorAll("#meetingActivityList input:checked")].map(input => input.value);
     if (!week && !date) {
@@ -1921,7 +2008,8 @@ function saveMeetingFromModal() {
         week,
         date,
         responsible,
-        badgeId,
+        badgeIds,
+        badgeId: badgeIds[0] || "",
         activities: [...new Set(selectedActivities.filter(Boolean))],
         notes
     };
@@ -1942,6 +2030,7 @@ function generateMeetingSeries(groupId, count, startWeek, startDate, activities 
     const firstWeek = Math.max(1, Number.parseInt(startWeek, 10) || 1);
     const baseDate = startDate ? new Date(`${startDate}T12:00:00`) : new Date();
     const generatedMeetings = [];
+    const badgeIds = normalizeMeetingBadgeIds(badgeId);
 
     for (let index = 0; index < meetingCount; index += 1) {
         const nextDate = new Date(baseDate);
@@ -1951,7 +2040,8 @@ function generateMeetingSeries(groupId, count, startWeek, startDate, activities 
             week: String(firstWeek + index),
             date: nextDate.toISOString().slice(0, 10),
             responsible,
-            badgeId,
+            badgeIds,
+            badgeId: badgeIds[0] || "",
             activities: [...new Set(activities.filter(Boolean))],
             notes
         });
@@ -2008,12 +2098,19 @@ bindMeetingModalActions();
 function createMeetingForGroup(groupId, meetingInput = {}) {
     const group = groups.find(item => item.id === groupId);
     if (!group) return null;
+    const badgeIds = normalizeMeetingBadgeIds([
+        meetingInput.badgeIds,
+        meetingInput.badgeId,
+        meetingInput.markeIds,
+        meetingInput.markeId
+    ]);
     const meeting = {
         id: typeof meetingInput.id === "string" && meetingInput.id.trim() ? meetingInput.id.trim() : crypto.randomUUID(),
         week: String(meetingInput.week ?? "").trim(),
         date: String(meetingInput.date ?? ""),
         responsible: String(meetingInput.responsible ?? meetingInput.ansvarig ?? "").trim(),
-        badgeId: String(meetingInput.badgeId ?? meetingInput.markeId ?? "").trim(),
+        badgeIds,
+        badgeId: badgeIds[0] || "",
         activities: Array.isArray(meetingInput.activities) ? [...new Set(meetingInput.activities.filter(Boolean))] : [],
         notes: String(meetingInput.notes ?? meetingInput.note ?? "").trim()
     };
@@ -2028,12 +2125,21 @@ function updateMeetingForGroup(groupId, meetingId, meetingInput = {}) {
     if (!group) return null;
     group.meetings = normalizeMeetingList((group.meetings || []).map(meeting => {
         if (meeting.id !== meetingId) return meeting;
+        const nextBadgeIds = normalizeMeetingBadgeIds([
+            meetingInput.badgeIds,
+            meetingInput.badgeId,
+            meetingInput.markeIds,
+            meetingInput.markeId,
+            meeting.badgeIds,
+            meeting.badgeId
+        ]);
         return {
             ...meeting,
             week: String(meetingInput.week ?? meeting.week ?? "").trim(),
             date: String(meetingInput.date ?? meeting.date ?? ""),
             responsible: String(meetingInput.responsible ?? meetingInput.ansvarig ?? meeting.responsible ?? "").trim(),
-            badgeId: String(meetingInput.badgeId ?? meetingInput.markeId ?? meeting.badgeId ?? "").trim(),
+            badgeIds: nextBadgeIds,
+            badgeId: nextBadgeIds[0] || "",
             activities: Array.isArray(meetingInput.activities)
                 ? [...new Set(meetingInput.activities.filter(Boolean))]
                 : [...(meeting.activities || [])],
