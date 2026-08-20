@@ -175,6 +175,17 @@
             <button class="close-popup" type="button" id="closeMeetingSelectionModal" aria-label="Stäng">&times;</button>
             <h2 id="meetingSelectionTitle">Välj möten till PDF</h2>
             <p class="pdf-selection-intro">Markera de möten som ska skrivas ut.</p>
+            <fieldset class="meeting-print-mode">
+                <legend>Utskriftsläge</legend>
+                <label class="meeting-print-mode-option">
+                    <input type="radio" name="meetingPrintMode" value="overview" checked>
+                    <span>Grovplanering</span>
+                </label>
+                <label class="meeting-print-mode-option">
+                    <input type="radio" name="meetingPrintMode" value="detailed">
+                    <span>Mötesplanering</span>
+                </label>
+            </fieldset>
             <div id="meetingSelectionList" class="pdf-selection-list"></div>
             <div class="modal-actions pdf-selection-actions">
                 <button id="selectAllMeetingsBtn" class="btn-secondary" type="button">Markera alla</button>
