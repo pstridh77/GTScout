@@ -4,25 +4,25 @@
     "plans": [
       {
         "name": "Läsår 1 HT",
-        "note": "Start av läsåret med fokus på gemenskap, trygghet och första möten i gruppen.",
+        "note": "Start av läsåret med fokus på...",
         "badges": ["smaka"],
         "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 1 VT",
-        "note": "Planering för vårterminen med lekfulla upplevelser och enkel naturkänsla.",
+        "note": "Vårterminen mål ...",
         "badges": ["varme"],
         "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 2 HT",
-        "note": "Höstterminen bygger vidare på trygghet, samarbete och små utmaningar i gruppen.",
+        "note": "",
         "badges": ["aj"],
         "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 2 VT",
-        "note": "Vårterminen fokuserar på utforskande, aktivitet och att testa nya saker tillsammans.",
+        "note": "",
         "badges": ["utforska"],
         "activities": ["terminsuppstart","terminsavslutning"]
       }
@@ -33,25 +33,26 @@
     "plans": [
       {
         "name": "Läsår 1 HT",
-        "note": "Mål för hösten: skapa rutiner, träna i grupp och jobba med grundläggande scoutfärdigheter.",
+        "note": "",
         "badges": [ "matettan", "stormkok", "100_scout","tidsspar"],
-        "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
+        "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]  
+        
       },
       {
         "name": "Läsår 1  VT",
-        "note": "Vårterminen fokuserar på att bygga självständighet och praktisk kunskap i naturen.",
+        "note": "",
         "badges": ["forsta_repmarket","HYX", "ljusspar"],
         "activities": ["terminsuppstart","demokratimote","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 2 HT",
-        "note": "Höstterminens tema är att stärka samarbete, praktiska färdigheter och ansvar.",
+        "note": "",
         "badges": ["plastra", "klura","100_scout", "djurspar"],
         "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 2 VT",
-        "note": "Vårterminen har fokus på att utveckla teknik, trygghet och observanthet i naturen.",
+        "note": "",
         "badges": [ "tanda", "hitta","HYX", "fotspar"],
         "activities": ["terminsuppstart","demokratimote","Hajk-01","terminsavslutning"]
       }
@@ -62,37 +63,37 @@
     "plans": [
       {
         "name": "Läsår 1 HT",
-        "note": "Inledning till året med fokus på grunder, ansvar och att lära känna varandra i gruppen.",
+        "note": "",
         "badges": ["mattvaan",  "kniv","berattelsen", "100_scout"],
         "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 1 VT",
-        "note": "Vårterminen ger plats för nya utmaningar, vattenaktiviteter och gemensamma projekt.",
+        "note": "",
         "badges": ["andra_repmarket","simma","HYX","fjarran"],
         "activities": ["terminsuppstart","demokratimote","Hajk-02","terminsavslutning"]
       },
       {
         "name": "Läsår 2 HT",
-        "note": "Höstterminen fokuserar på praktisk kunskap, trygghet och att utveckla färdigheter i ledarskap.",
+        "note": "",
         "badges": ["hjalpa",  "kniv","horisonten","100_scout"],
         "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 2 VT",
-        "note": "Våren innehåller samarbete, utmaningar i naturen och utveckling av självständighet.",
+        "note": "",
         "badges": ["brinna","yxa_och_sag","HYX","manniskan"],
         "activities": ["terminsuppstart","demokratimote","Hajk-02","terminsavslutning"]
       },
       {
         "name": "Läsår 3 HT",
-        "note": "Här läggs extra vikt vid att kombinera kunskap, ansvar och att leda andra i aktiviteter.",
+        "note": "",
         "badges": ["losa","yxa_och_sag", "nara","100_scout"],
         "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 3 VT",
-        "note": "Vårterminen bygger upp övningar i orientering, simning och självständigt arbete i gruppen.",
+        "note": "",
         "badges": ["karta","simma","HYX","vagen"],
         "activities": ["terminsuppstart","demokratimote","Hajk-02","terminsavslutning"]
       }
@@ -103,37 +104,37 @@
     "plans": [
       {
         "name": "Läsår 1 HT",
-        "note": "Hösten ger grund för säkrare arbetsmetoder, självständighet och större ansvar i tältlivet.",
+        "note": "",
         "badges": [ "mattrean","100_scout"],
         "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 1 VT",
-        "note": "Vårterminen fokuserar på reparationskunskap, samarbete och att ta ansvar i gruppen.",
+        "note": "",
         "badges": ["tredje_repmarket","HYX"],
         "activities": ["terminsuppstart","demokratimote","arsstämma","Hajk-02","terminsavslutning"]
       },
       {
         "name": "Läsår 2 HT",
-        "note": "Höstterminens planering stärker rörelse, säkerhet och väldefinierade ledaroller.",
+        "note": "",
         "badges": ["radda","12_12","100_scout"],
         "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 2 VT",
-        "note": "Våren fokuserar på att öva på ledarskap, säkerhet och att samarbeta i varierande situationer.",
+        "note": "",
         "badges": ["elda","12_12","HYX"],
         "activities": ["terminsuppstart","demokratimote","arsstämma","Hajk-02","terminsavslutning"]
       },
       {
         "name": "Läsår 2 HT",
-        "note": "En andra höstplanering för att kunna anpassa innehåll och nivå efter gruppens behov.",
+        "note": "",
         "badges": ["surra","100_scout"],
         "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 2 VT",
-        "note": "Vårens avslutande fokus ligger på avvägning, säkra beslut och praktisk problemlösning.",
+        "note": "",
         "badges": ["navigera","HYX"],
         "activities": ["terminsuppstart","demokratimote","arsstämma","Hajk-02","terminsavslutning"]
       }
@@ -144,14 +145,14 @@
     "plans": [
       {
         "name": "Läsår 1 HT",
-        "note": "Hösten inleds med utbildning, förebilder och en tydlig struktur för gruppens fokus.",
+        "note": "",
         "badges": ["forebild"],
         "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
 
       },
       {
         "name": "Läsår 1 VT",
-        "note": "Vårterminen stärker ledarskap, ansvarstagande och samfundskunskap i praktiken.",
+        "note": "",
         "badges": ["hlr","HYX"],
         "activities": ["terminsuppstart","demokratimote","arsstämma","Hajk-02","terminsavslutning"]
       }
@@ -163,13 +164,13 @@
     "plans": [
       {
         "name": "Läsår 1 HT",
-        "note": "Roverplanering för ett hösttermins fokus på reflektion, projekt och ansvar i gruppen.",
+        "note": "",
         "badges": [],
         "activities": []
       },
       {
         "name": "Läsår 1 VT",
-        "note": "Vårterminen bygger vidare på projektarbete, samverkan och tydliga mål för gruppen.",
+        "note": "",
         "badges": [],
         "activities": [] 
       }
