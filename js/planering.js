@@ -777,7 +777,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
         if (!activity) return `<p class="missing-badge">Aktivitet ${escapeHtml(activityId)} kunde inte hittas.</p>`;
         const material = Array.isArray(activity.material) ? activity.material.join(", ") : "";
         const handwritingSpace = includeHandwritingSpace
-            ? `<div class="pdf-handwriting-space" aria-label="Skrivyta för egna aktivitetsanteckningar"><span></span><span></span></div>`
+            ? `<div class="pdf-handwriting-space" aria-label="Skrivyta för egna aktivitetsanteckningar"><span></span><span></span><span></span></div>`
             : "";
         return `<div class="pdf-activity"><h4>${escapeHtml(activity.namn)}</h4>${activity.kategori ? `<p><strong>Kategori:</strong> ${escapeHtml(activity.kategori)}</p>` : ""}${activity.beskrivning ? `<p><strong>Beskrivning:</strong> ${renderLinkedText(activity.beskrivning)}</p>` : ""}${formatActivityTime(activity) ? `<p><strong>Tid:</strong> ${escapeHtml(formatActivityTime(activity))}</p>` : ""}${material ? `<p><strong>Material:</strong> ${escapeHtml(material)}</p>` : ""}${activity.genomforande ? `<p><strong>Genomförande:</strong> ${renderLinkedText(activity.genomforande)}</p>` : ""}${handwritingSpace}</div>`;
     };
@@ -816,7 +816,8 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
         const responsibleInfo = meeting.responsible
             ? escapeHtml(meeting.responsible)
             : '<span class="pdf-meeting-detail-responsible-write-in" aria-label="Skriv ansvarig här"></span>';
-        const notesContent = `<h4>Anteckningar</h4>${meeting.notes ? `<p>${renderLinkedText(meeting.notes)}</p>` : ""}<div class="pdf-handwriting-space" aria-label="Skrivyta för mötesanteckningar"><span></span><span></span></div>`;
+        const notesContent = `<h4>Anteckningar</h4>${meeting.notes ? `<p>${renderLinkedText(meeting.notes)}</p>` : ""}<div class="pdf-handwriting-space" aria-label="Skrivyta för mötesanteckningar"><span></span><span></span><span></span></div>`;
+        const preparationsContent = `<div class="pdf-meeting-detail-preparations-grid"><div><h4>Förberedelser</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för förberedelser"><span></span><span></span><span></span><span></span></div></div><div><h4>Ansvarig</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för ansvarig"><span></span><span></span><span></span><span></span></div></div></div>`;
         const templateSections = [
             {
                 title: "Inledningscermoni",
@@ -844,7 +845,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 <div class="pdf-meeting-detail-section-content">
                     <p>${escapeHtml(section.text)}</p>
                     ${section.title === "Aktivitet"
-                        ? `<div class="pdf-handwriting-space" aria-label="Skrivyta för aktiviteter"><span></span><span></span></div>${selectedActivities.length > 0 ? selectedActivities.map(activity => renderActivity(activity.id, true)).join("") : ""}`
+                        ? `<div class="pdf-handwriting-space" aria-label="Skrivyta för aktiviteter"><span></span><span></span><span></span></div>${selectedActivities.length > 0 ? selectedActivities.map(activity => renderActivity(activity.id, true)).join("") : ""}`
                         : ""}
                     ${section.title === "Lek"
                         ? `<div class="pdf-handwriting-space" aria-label="Skrivyta för egna anteckningar"><span></span><span></span></div>`
@@ -877,6 +878,9 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 </div>
                 <div class="pdf-meeting-detail-sections">
                     ${templateSections}
+                </div>
+                <div class="pdf-meeting-detail-card pdf-meeting-detail-preparations">
+                    ${preparationsContent}
                 </div>
             </section>
         `;
@@ -933,7 +937,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             <meta charset="UTF-8">
             <title>${escapeHtml(printTitle)}</title>
             <style>
-                @page { size: A4; margin: 10mm; }
+                @page { size: A4; margin: 10mm 12mm 10mm 10mm; }
                 * { box-sizing: border-box; }
                 body { margin: 0; color: #172b4d; font: 11pt Arial, sans-serif; line-height: 1.45; }
                 .pdf-document-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
@@ -997,8 +1001,10 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 .pdf-meeting-detail-section h4 { margin: 0 0 4px; color: #003660; font-size: 11pt; }
                 .pdf-meeting-detail-section-content { min-height: 0; border-top: 1px dashed #c7d2e2; padding-top: 5px; }
                 .pdf-meeting-detail-section-content p { margin: 0; line-height: 1.3; }
+                .pdf-meeting-detail-preparations { margin-top: 20px; break-inside: avoid; }
+                .pdf-meeting-detail-preparations-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
                 .pdf-handwriting-space { margin-top: 7px; }
-                .pdf-handwriting-space span { display: block; height: 18px; border-bottom: 1px solid #9aa9b8; }
+                .pdf-handwriting-space span { display: block; height: 24px; border-bottom: 1px solid #9aa9b8; }
                 .missing-badge { color: #9b1c1c; }
             </style>
         </head>
