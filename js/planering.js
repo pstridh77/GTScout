@@ -841,7 +841,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                         ? selectedActivities.map(activity => renderActivity(activity.id, true)).join("")
                         : ""}
                     ${section.title === "Lek"
-                        ? `<div class="pdf-handwriting-space" aria-label="Skrivyta för egna anteckningar"><span></span><span></span><span></span><span></span></div>`
+                        ? `<div class="pdf-handwriting-space" aria-label="Skrivyta för egna anteckningar"><span></span><span></span></div>`
                         : ""}
                 </div>
             </div>
