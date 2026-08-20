@@ -4,21 +4,25 @@
     "plans": [
       {
         "name": "Läsår 1 HT",
+        "note": "",
         "badges": ["smaka"],
         "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 1 VT",
+        "note": "",
         "badges": ["varme"],
         "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 2 HT",
+        "note": "",
         "badges": ["aj"],
         "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
         "name": "Läsår 2 VT",
+        "note": "",
         "badges": ["utforska"],
         "activities": ["terminsuppstart","terminsavslutning"]
       }
@@ -29,23 +33,28 @@
     "plans": [
       {
         "name": "Läsår 1 HT",
+        "note": "",
         "badges": [ "matettan", "stormkok", "100_scout","tidsspar"],
-        "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
+        "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]  
+        
       },
       {
         "name": "Läsår 1  VT",
+        "note": "",
         "badges": ["forsta_repmarket","HYX", "ljusspar"],
-        "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
+        "activities": ["terminsuppstart","demokratimote","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 2 HT",
+        "note": "",
         "badges": ["plastra", "klura","100_scout", "djurspar"],
         "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 2 VT",
+        "note": "",
         "badges": [ "tanda", "hitta","HYX", "fotspar"],
-        "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
+        "activities": ["terminsuppstart","demokratimote","Hajk-01","terminsavslutning"]
       }
     ]
   },
@@ -54,33 +63,39 @@
     "plans": [
       {
         "name": "Läsår 1 HT",
+        "note": "",
         "badges": ["mattvaan",  "kniv","berattelsen", "100_scout"],
         "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 1 VT",
+        "note": "",
         "badges": ["andra_repmarket","simma","HYX","fjarran"],
-        "activities": ["terminsuppstart","Hajk-02","terminsavslutning"]
+        "activities": ["terminsuppstart","demokratimote","Hajk-02","terminsavslutning"]
       },
       {
         "name": "Läsår 2 HT",
+        "note": "",
         "badges": ["hjalpa",  "kniv","horisonten","100_scout"],
         "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 2 VT",
+        "note": "",
         "badges": ["brinna","yxa_och_sag","HYX","manniskan"],
-        "activities": ["terminsuppstart","Hajk-02","terminsavslutning"]
+        "activities": ["terminsuppstart","demokratimote","Hajk-02","terminsavslutning"]
       },
       {
         "name": "Läsår 3 HT",
+        "note": "",
         "badges": ["losa","yxa_och_sag", "nara","100_scout"],
         "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 3 VT",
+        "note": "",
         "badges": ["karta","simma","HYX","vagen"],
-        "activities": ["terminsuppstart","Hajk-02","terminsavslutning"]
+        "activities": ["terminsuppstart","demokratimote","Hajk-02","terminsavslutning"]
       }
     ]
   },
@@ -89,31 +104,37 @@
     "plans": [
       {
         "name": "Läsår 1 HT",
+        "note": "",
         "badges": [ "mattrean","100_scout"],
         "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 1 VT",
+        "note": "",
         "badges": ["tredje_repmarket","HYX"],
         "activities": ["terminsuppstart","demokratimote","arsstämma","Hajk-02","terminsavslutning"]
       },
       {
         "name": "Läsår 2 HT",
+        "note": "",
         "badges": ["radda","12_12","100_scout"],
         "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 2 VT",
+        "note": "",
         "badges": ["elda","12_12","HYX"],
         "activities": ["terminsuppstart","demokratimote","arsstämma","Hajk-02","terminsavslutning"]
       },
       {
         "name": "Läsår 2 HT",
+        "note": "",
         "badges": ["surra","100_scout"],
         "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 2 VT",
+        "note": "",
         "badges": ["navigera","HYX"],
         "activities": ["terminsuppstart","demokratimote","arsstämma","Hajk-02","terminsavslutning"]
       }
@@ -124,12 +145,14 @@
     "plans": [
       {
         "name": "Läsår 1 HT",
+        "note": "",
         "badges": ["forebild"],
         "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
 
       },
       {
         "name": "Läsår 1 VT",
+        "note": "",
         "badges": ["hlr","HYX"],
         "activities": ["terminsuppstart","demokratimote","arsstämma","Hajk-02","terminsavslutning"]
       }
@@ -141,11 +164,13 @@
     "plans": [
       {
         "name": "Läsår 1 HT",
+        "note": "",
         "badges": [],
         "activities": []
       },
       {
         "name": "Läsår 1 VT",
+        "note": "",
         "badges": [],
         "activities": [] 
       }

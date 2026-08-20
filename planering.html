@@ -35,10 +35,15 @@
                     <a href="planering.html" class="site-menu-item" role="menuitem">Märkesschema</a>
                     <div class="planning-menu-divider" role="separator"></div>
                     <div class="planning-menu-section-label">Funktioner</div>
-                    <button id="exportPlanningBtn" class="planning-menu-item" type="button" role="menuitem">Spara</button>
-                    <button id="importPlanningBtn" class="planning-menu-item" type="button" role="menuitem">Öppna...</button>
                     <button id="editActivitiesBtn" class="planning-menu-item" type="button" role="menuitem">Hantera aktiviteter</button>
-                    <button id="exportPlanningPdfBtn" class="planning-menu-item" type="button" role="menuitem">Skriv ut</button>
+                    <div class="planning-menu-divider" role="separator"></div>
+                    <button id="togglePlanningActivitiesBtn" class="planning-menu-item planning-toggle-item" type="button" role="menuitem" aria-pressed="true"><span>Visa aktiviteter</span><span class="planning-toggle-status" aria-hidden="true">✓</span></button>
+                    <button id="togglePlanningMeetingsBtn" class="planning-menu-item planning-toggle-item" type="button" role="menuitem" aria-pressed="true"><span>Visa möten</span><span class="planning-toggle-status" aria-hidden="true">✓</span></button>
+                    <div class="planning-menu-divider" role="separator"></div>
+                    <button id="exportPlanningBtn" class="planning-menu-item" type="button" role="menuitem">Exportera</button>
+                    <button id="importPlanningBtn" class="planning-menu-item" type="button" role="menuitem">Importera...</button>
+                    <div class="planning-menu-divider" role="separator"></div>
+                    <button id="exportPlanningPdfBtn" class="planning-menu-item" type="button" role="menuitem">Skriv ut Planering...</button>
                 </div>
             </div>
         </div>
@@ -165,6 +170,31 @@
         </div>
     </div>
 
+    <div id="meetingSelectionModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="meetingSelectionTitle">
+        <div class="modal-content pdf-selection-content">
+            <button class="close-popup" type="button" id="closeMeetingSelectionModal" aria-label="Stäng">&times;</button>
+            <h2 id="meetingSelectionTitle">Välj möten till PDF</h2>
+            <p class="pdf-selection-intro">Markera de möten som ska skrivas ut.</p>
+            <fieldset class="meeting-print-mode">
+                <legend>Utskriftsläge</legend>
+                <label class="meeting-print-mode-option">
+                    <input type="radio" name="meetingPrintMode" value="overview" checked>
+                    <span>Grovplanering</span>
+                </label>
+                <label class="meeting-print-mode-option">
+                    <input type="radio" name="meetingPrintMode" value="detailed">
+                    <span>Mötesplanering</span>
+                </label>
+            </fieldset>
+            <div id="meetingSelectionList" class="pdf-selection-list"></div>
+            <div class="modal-actions pdf-selection-actions">
+                <button id="selectAllMeetingsBtn" class="btn-secondary" type="button">Markera alla</button>
+                <button id="clearMeetingsBtn" class="btn-secondary" type="button">Rensa</button>
+                <button id="generateMeetingsPdfBtn" class="btn-primary" type="button">Skriv ut</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal: Lägg till planering -->
     <div id="groupModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="groupModalTitle">
         <div class="modal-content">
@@ -197,7 +227,12 @@
                     <option value="Rover">Rover</option>
                 </select>
             </label>
-            <div class="modal-actions">
+            <label class="modal-field">
+                <span>Anteckning</span>
+                <textarea id="groupNote" rows="4" placeholder="Information om planeringen..."></textarea>
+            </label>
+            <div class="modal-actions modal-actions--split">
+                <button id="removeGroupBtn" class="btn-danger hidden" type="button">Ta bort planering</button>
                 <button id="saveGroupBtn" class="btn-primary" type="button">Spara</button>
             </div>
         </div>
@@ -221,6 +256,75 @@
             </label>
             <div class="modal-actions">
                 <button id="saveDefaultPlanningBtn" class="btn-primary" type="button">Lägg till</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="meetingModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="meetingModalTitle">
+        <div class="modal-content modal-content--wide">
+            <button class="close-popup" type="button" id="closeMeetingModal" aria-label="Stäng">&times;</button>
+            <h2 id="meetingModalTitle">Träff</h2>
+
+            <div class="meeting-form-grid">
+                <label class="modal-field">
+                    <span>Träff</span>
+                    <input id="meetingWeek" type="text" placeholder="t.ex. 1, HT1">
+                </label>
+                <label class="modal-field">
+                    <span>Datum</span>
+                    <input id="meetingDate" type="date">
+                </label>
+            </div>
+
+            <label class="modal-field">
+                <span>Anteckningar</span>
+                <textarea id="meetingNotes" rows="3" placeholder="Anteckningar för mötet..."></textarea>
+            </label>
+
+            <label class="modal-field">
+                <span>Märke</span>
+                <input id="meetingBadge" type="hidden" value="">
+                <div id="meetingBadgePicker" class="meeting-badge-picker" role="group" aria-label="Välj märke"></div>
+            </label>
+
+            <label class="modal-field">
+                <span>Aktiviteter</span>
+                <div id="meetingActivityList" class="meeting-activity-list"></div>
+            </label>
+
+            <label class="modal-field">
+                <span>Ansvarig</span>
+                <input id="meetingResponsible" type="text" placeholder="Namn på ansvarig">
+            </label>
+
+            <div class="modal-actions modal-actions--split">
+                <button id="generateMeetingSeriesBtn" class="btn-secondary meeting-series-open-btn" type="button">Generera mötesserie</button>
+                <button id="saveMeetingBtn" class="btn-primary" type="button">Spara möte</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="meetingSeriesModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="meetingSeriesModalTitle">
+        <div class="modal-content modal-content--wide">
+            <button class="close-popup" type="button" id="closeMeetingSeriesModal" aria-label="Stäng">&times;</button>
+            <h2 id="meetingSeriesModalTitle">Generera mötesserie</h2>
+            <div class="meeting-form-grid">
+                <label class="modal-field">
+                    <span>Antal möten</span>
+                    <input id="meetingSeriesCount" type="number" min="1" max="52" value="10">
+                </label>
+                <label class="modal-field">
+                    <span>Startträff</span>
+                    <input id="meetingSeriesStartWeek" type="number" min="1" max="52" value="1">
+                </label>
+                <label class="modal-field" style="grid-column: 1 / -1;">
+                    <span>Startdatum</span>
+                    <input id="meetingSeriesStartDate" type="date">
+                </label>
+            </div>
+            <div class="modal-actions modal-actions--split">
+                <button id="closeMeetingSeriesBtn" class="btn-secondary" type="button">Avbryt</button>
+                <button id="confirmMeetingSeriesBtn" class="btn-primary" type="button">Generera serie</button>
             </div>
         </div>
     </div>

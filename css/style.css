@@ -697,6 +697,7 @@ body {
 }
 
 .detail-introduction {
+     width: 100%;
     margin: 0 0 14px;
     line-height: 1.6;
     
@@ -964,6 +965,10 @@ body {
 
 .btn-secondary:hover { background: #c5d8f6; }
 
+.meeting-series-open-btn {
+    align-self: flex-start;
+}
+
 .btn-danger {
     background: transparent;
     color: #b91c1c;
@@ -1097,6 +1102,31 @@ body {
     font: inherit;
     text-align: left;
     cursor: pointer;
+}
+
+.planning-toggle-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.planning-toggle-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #dcfce7;
+    color: #166534;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.planning-toggle-item--off .planning-toggle-status {
+    background: #f1f5f9;
+    color: #64748b;
 }
 
 .planning-menu-item:hover,
@@ -1247,6 +1277,19 @@ body {
     flex-shrink: 0;
 }
 
+.group-note {
+    padding: 12px 16px 12px;
+    border-bottom: 1px solid #e5e7eb;
+    color: #254b66;
+    font-size: 0.92rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+}
+
+.group-note strong {
+    color: #003660;
+}
+
 .group-badges {
     display: flex;
     flex-wrap: wrap;
@@ -1261,6 +1304,12 @@ body {
 .group-badges--dragover {
     border-color: #60a5fa;
     background: #eff6ff;
+}
+
+.group-badges-actions {
+    display: flex;
+    align-items: flex-start;
+    margin-left: auto;
 }
 
 .group-empty {
@@ -1278,36 +1327,40 @@ body {
     color: #003660;
 }
 
-.planned-activities summary {
+.planned-activities summary,
+.planned-meetings summary {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 700;
+    width: 100%;
+    color: #536477;
+    font-size: 0.85rem;
+    font-weight: 600;
     list-style: none;
 }
 
-.planned-activities summary::-webkit-details-marker {
+.planned-activities summary::-webkit-details-marker,
+.planned-meetings summary::-webkit-details-marker {
     display: none;
 }
 
-.planned-activities summary::after {
-    content: "+";
-    margin-left: 8px;
-    font-size: 1.15rem;
-    font-weight: 400;
+.planned-activities summary::before,
+.planned-meetings summary::before {
+    content: "▶";
+    color: #003660;
+    font-size: 0.85rem;
+    margin-right: 8px;
+    transition: transform 0.15s;
 }
 
-.planned-activities[open] summary::after {
-    content: "-";
+.planned-activities[open] summary::before,
+.planned-meetings[open] summary::before {
+    transform: rotate(90deg);
 }
 
-.planned-activities summary span {
+.planned-activities summary button,
+.planned-meetings summary button {
     margin-left: auto;
-    color: #536477;
-    font-size: 0.82rem;
-    font-weight: 600;
 }
 
 .planned-activities-list {
@@ -1334,6 +1387,31 @@ body {
     background: #f1f5f9;
     font-size: 0.85rem;
     cursor: grab;
+}
+
+.planned-activity-details,
+.meeting-activity-details {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+
+.planned-activity-details > span:first-child,
+.meeting-activity-details > span:first-child {
+    overflow-wrap: anywhere;
+}
+
+.activity-meeting-links {
+    color: #0f766e;
+    font-size: 0.72rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.activity-meeting-links--empty {
+    color: #64748b;
+    font-weight: 400;
 }
 
 .planned-activity:active {
@@ -1366,17 +1444,103 @@ body {
     white-space: nowrap;
 }
 
-.planned-activity > span {
-    min-width: 0;
-    flex: 1;
-    overflow-wrap: anywhere;
-}
-
 .planned-activity .activity-info-button {
     width: 22px;
     height: 22px;
     flex-basis: 22px;
     font-size: 0.85rem;
+}
+
+.planned-meetings {
+    flex: 1 1 100%;
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.planned-meetings-list {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.planned-meetings-actions {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.planned-meeting-badge {
+    display: flex;
+    align-items: center;
+}
+
+.planned-meeting-badge img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+
+.planned-meeting {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 420px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #f1f5f9;
+    color: #003660;
+}
+
+.planned-meeting-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.planned-meeting-tools {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.edit-meeting-btn,
+.remove-meeting-btn {
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.edit-meeting-btn {
+    padding: 5px 8px;
+    background: #e0f2fe;
+    color: #075985;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.remove-meeting-btn {
+    width: 22px;
+    height: 22px;
+    background: transparent;
+    color: #b91c1c;
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.planned-meeting small,
+.planned-meeting-activity-list,
+.planned-meeting p,
+.planned-meeting > div:not(.planned-meeting-header) {
+    color: #536477;
+    font-size: 0.8rem;
+}
+
+.planned-meeting p {
+    margin: 0;
+    overflow-wrap: anywhere;
 }
 
 .remove-activity-btn {
@@ -1502,9 +1666,10 @@ body {
 }
 
 .modal-content--wide {
+    box-sizing: border-box;
     max-width: 700px;
     max-height: calc(100vh - 40px);
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 .modal-content h2 { margin: 0; font-size: 1.2rem; color: #003660; }
@@ -1542,6 +1707,95 @@ body {
 
 .modal-actions { display: flex; justify-content: flex-end; }
 .modal-actions--split { justify-content: space-between; }
+
+.meeting-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.meeting-series-block {
+    display: grid;
+    gap: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.meeting-series-block--top {
+    padding-bottom: 12px;
+    padding-top: 0;
+    border-bottom: 1px solid #e5e7eb;
+    border-top: 0;
+}
+
+.meeting-series-block h3 {
+    margin: 0;
+    color: #003660;
+    font-size: 1rem;
+}
+
+.meeting-activity-list {
+    display: grid;
+    gap: 8px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 6px;
+    border: 1px solid #d0d7de;
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+.meeting-activity-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: white;
+    color: #003660;
+    cursor: pointer;
+}
+
+.meeting-activity-details {
+    flex: 1;
+}
+
+.meeting-activity-option input {
+    accent-color: #003660;
+}
+
+.meeting-badge-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.meeting-badge-option {
+    align-items: center;
+    background: #fff;
+    border: 2px solid #d7dee8;
+    border-radius: 8px;
+    color: #003660;
+    cursor: pointer;
+    display: inline-flex;
+    gap: 8px;
+    min-height: 52px;
+    padding: 6px 10px;
+}
+
+.meeting-badge-option:hover,
+.meeting-badge-option--selected {
+    background: #eef5ff;
+    border-color: #003660;
+}
+
+.meeting-badge-option img {
+    height: 38px;
+    object-fit: contain;
+    width: 38px;
+}
 
 .pdf-selection-content {
     max-width: 520px;
