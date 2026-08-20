@@ -548,6 +548,7 @@ function loadGroups() {
                 const { year, term } = parsePlanningYearAndTerm(group);
                 group.year = Number.isFinite(year) ? year : "";
                 group.term = normalizePlanningTerm(term);
+                group.note = typeof group.note === "string" ? group.note : "";
                 group.activities = Array.isArray(group.activities) ? group.activities : [];
                 group.badges = Array.isArray(group.badges) ? group.badges : [];
                 group.meetings = normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : []);
@@ -565,6 +566,7 @@ function saveGroups() {
         badges: Array.isArray(group.badges) ? group.badges : [],
         activities: Array.isArray(group.activities) ? group.activities : [],
         meetings: normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : []),
+        note: typeof group.note === "string" ? group.note : "",
         year: Number.isFinite(getGroupYearValue(group)) ? getGroupYearValue(group) : "",
         term: getGroupTermValue(group)
     }))));
@@ -589,6 +591,7 @@ function exportPlannings() {
             level: group.level,
             year: Number.isFinite(getGroupYearValue(group)) ? getGroupYearValue(group) : "",
             term: getGroupTermValue(group),
+            note: typeof group.note === "string" ? group.note : "",
             badges: Array.isArray(group.badges) ? group.badges : [],
             activities: Array.isArray(group.activities) ? group.activities : [],
             meetings: normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : [])
@@ -796,6 +799,7 @@ function generatePlanningPdf(selectedIds, meetingsOnly = false, selectedMeetingI
         const icon = planningIcon
             ? `<img class="pdf-planning-icon" src="${escapeHtml(resolveImage(planningIcon))}" alt="${escapeHtml(group.level)}">`
             : "";
+        const noteText = String(group.note ?? "").trim();
         const plannedActivityIds = Array.isArray(group.activities) ? group.activities : [];
         const linkedActivityIds = new Set((Array.isArray(group.badges) ? group.badges : []).flatMap(badgeId => {
             const marke = allMarken.find(item => item.id === badgeId);
@@ -807,6 +811,7 @@ function generatePlanningPdf(selectedIds, meetingsOnly = false, selectedMeetingI
         return `
         <section class="pdf-planning">
             <h2 class="pdf-planning-heading">${icon}<span>${escapeHtml(group.name)} - ${escapeHtml(group.level)}</span></h2>
+            ${noteText ? `<p class="pdf-planning-note">${renderLinkedText(noteText)}</p>` : ""}
             <p class="pdf-planning-intro">${meetingsOnly ? "Följande möten är planerade:" : "Följande märken är planerade:"}</p>
             ${!meetingsOnly && Array.isArray(group.badges) && group.badges.length > 0
                 ? group.badges.map(badgeId => renderBadge(badgeId, group)).join("")
@@ -840,6 +845,7 @@ function generatePlanningPdf(selectedIds, meetingsOnly = false, selectedMeetingI
                 .pdf-planning:first-of-type { page-break-before: auto; }
                 .pdf-planning-heading { display: flex; align-items: center; gap: 10px; margin: 0; padding-bottom: 4px; border-bottom: 2px solid #003660; color: #003660; font-size: 17pt; }
                 .pdf-planning-intro { margin: 8px 0 14px; color: #003660; font-size: 12pt; font-weight: 600; }
+                .pdf-planning-note { margin: 8px 0 14px; color: #254b66; font-size: 11pt; line-height: 1.45; white-space: pre-wrap; }
                 .pdf-planning-icon { width: 34px; height: 34px; object-fit: contain; }
                 .pdf-level { margin: 6px 0 14px; font-weight: bold; }
                 .pdf-badge { display: flex; gap: 14px; margin: 0 0 16px; padding: 10px 0; border-bottom: 1px solid #d0d7de; break-inside: avoid; }
@@ -953,6 +959,7 @@ function importPlannings(file) {
                         const fallback = String(planning.name ?? "").match(/\b(?:HT|VT)\b/i);
                         return fallback ? fallback[0].toUpperCase() : "";
                     })(),
+                    note: typeof planning.note === "string" ? planning.note.trim() : "",
                     badges: Array.isArray(planning.badges) ? [...new Set(planning.badges.filter(Boolean))] : [],
                     activities: Array.isArray(planning.activities) ? [...new Set(planning.activities.filter(Boolean))] : [],
                     meetings: normalizeMeetingList(Array.isArray(planning.meetings) ? planning.meetings : [])
@@ -1181,6 +1188,7 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
             const metaParts = [];
             if (Number.isFinite(getGroupYearValue(group))) metaParts.push(String(getGroupYearValue(group)));
             if (getGroupTermValue(group)) metaParts.push(getGroupTermValue(group));
+            const noteText = String(group.note ?? "").trim();
             card.innerHTML = `
                 <div class="group-card-header">
                     <h3 class="group-name" title="Planeringens namn">${group.name}</h3>
@@ -1189,6 +1197,7 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                         <button class="btn-secondary edit-group-btn" type="button" data-group-id="${group.id}" title="Redigera planering">Redigera</button>
                     </div>
                 </div>
+                ${noteText ? `<div class="group-note">${renderLinkedText(noteText)}</div>` : ""}
                 <div class="group-badges" data-group-id="${group.id}">
                     ${renderGroupBadges(group, activeOpenActivityGroupIds, activeOpenMeetingGroupIds)}
                 </div>
@@ -1212,6 +1221,11 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                     openMeetingModal(group.id);
                 });
             }
+            card.addEventListener("dblclick", event => {
+                const upperContentArea = event.target.closest(".group-card-header, .group-note");
+                if (!upperContentArea) return;
+                openGroupEditor(group.id);
+            });
             cardsRow.appendChild(card);
         });
 
@@ -1329,7 +1343,7 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
 
 // ── Groups CRUD ────────────────────────────────────────────────────────────
 
-function addGroup(name, level, year = "", term = "") {
+function addGroup(name, level, year = "", term = "", note = "") {
     const trimmedName = String(name || "").trim();
     const normalizedYear = Number.parseInt(String(year ?? ""), 10);
     const normalizedTerm = normalizePlanningTerm(term);
@@ -1339,6 +1353,7 @@ function addGroup(name, level, year = "", term = "") {
         level,
         year: Number.isFinite(normalizedYear) ? normalizedYear : "",
         term: normalizedTerm,
+        note: typeof note === "string" ? note.trim() : "",
         badges: [],
         activities: [],
         meetings: []
@@ -1373,6 +1388,7 @@ function openGroupEditor(groupId) {
     document.getElementById("groupName").value = stripPlanningYearPrefix(group.name || "");
     document.getElementById("groupYear").value = Number.isFinite(getGroupYearValue(group)) ? getGroupYearValue(group) : "";
     document.getElementById("groupTerm").value = getGroupTermValue(group) || "";
+    document.getElementById("groupNote").value = typeof group.note === "string" ? group.note : "";
     document.getElementById("groupLevel").value = group.level || "Familjescouting";
     document.getElementById("removeGroupBtn").classList.remove("hidden");
     groupModal.classList.remove("hidden");
@@ -1383,6 +1399,7 @@ function resetGroupModalState() {
     groupModal.dataset.editingGroupId = "";
     document.getElementById("groupModalTitle").textContent = "Ny plannering";
     document.getElementById("saveGroupBtn").textContent = "Spara";
+    document.getElementById("groupNote").value = "";
     document.getElementById("removeGroupBtn").classList.add("hidden");
 }
 
@@ -1991,6 +2008,7 @@ function addDefaultPlanningForLevel(level) {
                 id: crypto.randomUUID(),
                 name: plan.name,
                 level,
+                note: typeof plan.note === "string" ? plan.note.trim() : "",
                 badges: Array.isArray(plan.badges) ? [...new Set(plan.badges)] : [],
                 activities: Array.isArray(plan.activities) ? [...new Set(plan.activities)] : []
             });
@@ -2146,6 +2164,7 @@ document.getElementById("addGroupBtn").addEventListener("click", () => {
     document.getElementById("groupName").value = "";
     document.getElementById("groupYear").value = new Date().getFullYear();
     document.getElementById("groupTerm").value = "HT";
+    document.getElementById("groupNote").value = "";
     groupModal.classList.remove("hidden");
     document.getElementById("groupName").focus();
 });
@@ -2167,6 +2186,7 @@ document.getElementById("saveGroupBtn").addEventListener("click", () => {
     const name = document.getElementById("groupName").value.trim();
     const yearValue = document.getElementById("groupYear").value.trim();
     const termValue = normalizePlanningTerm(document.getElementById("groupTerm").value);
+    const noteValue = document.getElementById("groupNote").value.trim();
     const resolvedName = name || [
         Number.isFinite(Number.parseInt(yearValue, 10)) ? `${Number.parseInt(yearValue, 10)}` : "",
         termValue
@@ -2186,10 +2206,11 @@ document.getElementById("saveGroupBtn").addEventListener("click", () => {
         const parsedYear = Number.parseInt(yearValue, 10);
         group.year = Number.isFinite(parsedYear) ? parsedYear : "";
         group.term = termValue;
+        group.note = noteValue;
         saveGroups();
         renderPlanning();
     } else {
-        addGroup(resolvedName, level, yearValue, termValue);
+        addGroup(resolvedName, level, yearValue, termValue, noteValue);
     }
 
     groupModal.classList.add("hidden");
