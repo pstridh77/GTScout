@@ -777,7 +777,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
         if (!activity) return `<p class="missing-badge">Aktivitet ${escapeHtml(activityId)} kunde inte hittas.</p>`;
         const material = Array.isArray(activity.material) ? activity.material.join(", ") : "";
         const handwritingSpace = includeHandwritingSpace
-            ? `<div class="pdf-handwriting-space" aria-label="Skrivyta för egna aktivitetsanteckningar"><span></span><span></span><span></span></div>`
+            ? `<div class="pdf-meeting-detail-preparations-grid"><div><h4>Anteckningar</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för egna aktivitetsanteckningar"><span></span><span></span><span></span></div></div><div><h4>Ansvarig</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för aktivitetens ansvarig"><span></span><span></span><span></span></div></div></div>`
             : "";
         return `<div class="pdf-activity"><h4>${escapeHtml(activity.namn)}</h4>${activity.kategori ? `<p><strong>Kategori:</strong> ${escapeHtml(activity.kategori)}</p>` : ""}${activity.beskrivning ? `<p><strong>Beskrivning:</strong> ${renderLinkedText(activity.beskrivning)}</p>` : ""}${formatActivityTime(activity) ? `<p><strong>Tid:</strong> ${escapeHtml(formatActivityTime(activity))}</p>` : ""}${material ? `<p><strong>Material:</strong> ${escapeHtml(material)}</p>` : ""}${activity.genomforande ? `<p><strong>Genomförande:</strong> ${renderLinkedText(activity.genomforande)}</p>` : ""}${handwritingSpace}</div>`;
     };
@@ -817,11 +817,11 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             ? escapeHtml(meeting.responsible)
             : '<span class="pdf-meeting-detail-responsible-write-in" aria-label="Skriv ansvarig här"></span>';
         const notesContent = `<h4>Anteckningar</h4>${meeting.notes ? `<p>${renderLinkedText(meeting.notes)}</p>` : ""}<div class="pdf-handwriting-space" aria-label="Skrivyta för mötesanteckningar"><span></span><span></span><span></span></div>`;
-        const preparationsContent = `<div class="pdf-meeting-detail-preparations-grid"><div><h4>Förberedelser</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för förberedelser"><span></span><span></span><span></span><span></span></div></div><div><h4>Ansvarig</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för ansvarig"><span></span><span></span><span></span><span></span></div></div></div>`;
+        const preparationsContent = `<div class="pdf-meeting-detail-preparations-grid"><div><h4>Förberedelser</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för förberedelser"><span></span><span></span><span></span><span></span><span></span></div></div><div><h4>Ansvarig</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för ansvarig"><span></span><span></span><span></span><span></span><span></span></div></div></div>`;
         const templateSections = [
             {
                 title: "Inledningscermoni",
-                text: "Mötet inleds med en ceremoni. Syftet är att varje scout ska bli sedd och välkomnad samt att skapa tydlig start på mötet. Att samla scouterna i en ring och skicka runt något är ganska vanligt."
+                text: "Mötet inleds med en ceremoni. Syftet är att varje scout ska bli sedd och välkomnad samt att skapa tydlig start på mötet. Att samla scouterna i en ring och hissa flaggan eller skicka runt något är vanligt."
             },
             {
                 title: "Lek",
@@ -833,7 +833,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             },
             {
                 title: "Reflektion",
-                text: "Efter programpasset samlas vi för reflektion i patrull eller i stor grupp beroende på scouternas behov och ledartillgång."
+                text: "Efter aktiviteten samlas vi för reflektion i patrull eller i stor grupp beroende på scouternas behov och ledartillgång."
             },
             {
                 title: "Avslutningscermoni",
@@ -845,10 +845,10 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 <div class="pdf-meeting-detail-section-content">
                     <p>${escapeHtml(section.text)}</p>
                     ${section.title === "Aktivitet"
-                        ? `<div class="pdf-handwriting-space" aria-label="Skrivyta för aktiviteter"><span></span><span></span><span></span></div>${selectedActivities.length > 0 ? selectedActivities.map(activity => renderActivity(activity.id, true)).join("") : ""}`
+                        ? `<div class="pdf-meeting-detail-preparations-grid"><div><h4>Aktivitet</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för aktiviteter"><span></span><span></span><span></span></div></div><div><h4>Ansvarig</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för aktivitetens ansvarig"><span></span><span></span><span></span></div></div></div>${selectedActivities.length > 0 ? selectedActivities.map(activity => renderActivity(activity.id, true)).join("") : ""}`
                         : ""}
                     ${section.title === "Lek"
-                        ? `<div class="pdf-handwriting-space" aria-label="Skrivyta för egna anteckningar"><span></span><span></span></div>`
+                        ? `<div class="pdf-meeting-detail-preparations-grid"><div><h4>Lek</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för egna anteckningar"><span></span></div></div><div><h4>Ansvarig</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för lekens ansvarig"><span></span></div></div></div>`
                         : ""}
                 </div>
             </div>
@@ -1002,7 +1002,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 .pdf-meeting-detail-section-content { min-height: 0; border-top: 1px dashed #c7d2e2; padding-top: 5px; }
                 .pdf-meeting-detail-section-content p { margin: 0; line-height: 1.3; }
                 .pdf-meeting-detail-preparations { margin-top: 20px; break-inside: avoid; }
-                .pdf-meeting-detail-preparations-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+                .pdf-meeting-detail-preparations-grid { display: grid; grid-template-columns: 3fr 1fr; gap: 16px; }
                 .pdf-handwriting-space { margin-top: 7px; }
                 .pdf-handwriting-space span { display: block; height: 24px; border-bottom: 1px solid #9aa9b8; }
                 .missing-badge { color: #9b1c1c; }
