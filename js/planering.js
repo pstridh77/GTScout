@@ -598,6 +598,19 @@ function loadBadgeNotesForTransfer() {
     }
 }
 
+function showTransferInfoModal(title, rows) {
+    const titleEl = document.getElementById("exportInfoTitle");
+    const bodyEl = document.getElementById("exportInfoBody");
+    const modalEl = document.getElementById("exportInfoModal");
+    if (!titleEl || !bodyEl || !modalEl) return;
+
+    titleEl.textContent = title;
+    bodyEl.innerHTML = rows
+        .map(row => `<p><strong>${escapeHtml(row.label)}:</strong> ${escapeHtml(row.value)}</p>`)
+        .join("");
+    modalEl.classList.remove("hidden");
+}
+
 function exportPlannings() {
     const badgeNotes = loadBadgeNotesForTransfer();
     const exportData = {
@@ -625,16 +638,15 @@ function exportPlannings() {
     link.click();
     URL.revokeObjectURL(downloadUrl);
 
-    const exportInfoBody = document.getElementById("exportInfoBody");
     const activityCount = groups.reduce((count, group) =>
         count + (Array.isArray(group.activities) ? group.activities.length : 0), 0);
-    exportInfoBody.innerHTML = `
-        <p><strong>Planeringar:</strong> ${groups.length}</p>
-        <p><strong>Aktiviteter:</strong> ${activityCount}</p>
-        <p><strong>Anteckningsfält:</strong> ${Object.keys(badgeNotes).length}</p>
-        <p><strong>Fil:</strong> gtscout-planeringar-${new Date().toISOString().slice(0, 10)}.json</p>
-    `;
-    document.getElementById("exportInfoModal").classList.remove("hidden");
+    const exportFileName = `gtscout-planeringar-${new Date().toISOString().slice(0, 10)}.json`;
+    showTransferInfoModal("Export klar", [
+        { label: "Planeringar", value: String(groups.length) },
+        { label: "Aktiviteter", value: String(activityCount) },
+        { label: "Anteckningsfält", value: String(Object.keys(badgeNotes).length) },
+        { label: "Fil", value: exportFileName }
+    ]);
 }
 
 function renderPdfSelectionList() {
@@ -1133,7 +1145,12 @@ function importPlannings(file) {
                 ...customActivities
             ];
             renderPlanning();
-            alert(`${validPlannings.length} planeringar, ${importedActivities.length} aktiviteter och ${importedNoteCount} anteckningsfält importerades.`);
+            showTransferInfoModal("Import klar", [
+                { label: "Planeringar", value: String(validPlannings.length) },
+                { label: "Aktiviteter", value: String(importedActivities.length) },
+                { label: "Anteckningsfält", value: String(importedNoteCount) },
+                { label: "Fil", value: String(file?.name || "okänd fil") }
+            ]);
         } catch (error) {
             alert("Kunde inte importera planeringarna. Kontrollera att filen är en giltig JSON-export.");
         }
