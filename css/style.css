@@ -684,6 +684,78 @@ body {
     margin-top: 18px;
 }
 
+.activity-linked-badges {
+    margin-top: 12px;
+}
+
+.activity-linked-badges p {
+    margin-bottom: 8px;
+}
+
+.activity-linked-badge-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.activity-linked-badge-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid #d0d7de;
+    background: white;
+    object-fit: contain;
+    padding: 2px;
+}
+
+.activity-management-badge-list {
+    margin: 2px 0;
+}
+
+.activity-management-item .activity-management-badge-list {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.activity-management-badge-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.activity-management-dot {
+    color: #7b8ca0;
+    font-size: 0.95rem;
+    line-height: 1;
+}
+
+.activity-management-badge-item:not(:first-child) .activity-management-dot {
+    display: none;
+}
+
+.activity-management-item .activity-management-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.activity-management-item .activity-management-time-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.activity-management-badge-list .activity-linked-badge-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    padding: 1px;
+}
+
 .detail-category-row {
     display: flex;
     align-items: center;

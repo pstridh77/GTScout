@@ -824,7 +824,18 @@ function renderEditActivitiesList() {
     list.innerHTML = activities.length > 0
         ? activities.map(activity => `
             <div class="activity-management-item">
-                <div><small class="activity-picker-category">${getActivityCategories(activity).join(", ")}</small><strong>${activity.namn}</strong><small>${formatActivityTime(activity) || "Ingen tidsangivelse"}</small></div>
+                <div>
+                    <small class="activity-picker-category">${getActivityCategories(activity).join(", ")}</small>
+                    <strong>${activity.namn}</strong>
+                    <div class="activity-management-time-row">
+                        <small>${formatActivityTime(activity) || "Ingen tidsangivelse"}</small>
+                        <div class="activity-linked-badge-list activity-management-badge-list" aria-label="Märken kopplade till aktiviteten">
+                            ${getBadgesForActivity(activity.id)
+                                .map(marke => `<span class="activity-management-badge-item"><span class="activity-management-dot" aria-hidden="true">·</span><img src="${escapeHtml(marke.bild)}" alt="${escapeHtml(marke.namn)}" title="${escapeHtml(marke.namn)}" class="activity-linked-badge-icon"></span>`)
+                                .join("")}
+                        </div>
+                    </div>
+                </div>
                 <div class="activity-management-actions">
                     <button class="activity-info-button" type="button" data-activity-id="${activity.id}" title="Visa information" aria-label="Visa information om ${activity.namn}">i</button>
                     ${activity.id.startsWith("egen-")
@@ -986,7 +997,8 @@ function saveCustomActivity(popup) {
 }
 
 function showActivityPopup(activity) {
-    const linkedBadges = getBadgesForActivity(activity.id).map(marke => marke.namn).join(", ");
+    const linkedBadges = getBadgesForActivity(activity.id);
+    const linkedBadgeNames = linkedBadges.map(marke => marke.namn).join(", ");
     const material = Array.isArray(activity.material) ? activity.material : [];
     activityPopup.querySelector(".activity-popup-body").innerHTML = `
         ${activity.kategori ? `<p class="activity-popup-category">${activity.kategori}</p>` : ""}
@@ -995,7 +1007,14 @@ function showActivityPopup(activity) {
         ${formatActivityTime(activity) ? `<p><strong>Tid:</strong> ${formatActivityTime(activity)}</p>` : ""}
         ${material.length > 0 ? `<div><strong>Material:</strong><ul>${material.map(item => `<li>${item}</li>`).join("")}</ul></div>` : ""}
         ${activity.genomforande ? `<div><strong>Genomförande:</strong><p>${renderLinkedText(activity.genomforande)}</p></div>` : ""}
-        ${linkedBadges ? `<p><strong>Kopplad till märken:</strong> ${linkedBadges}</p>` : ""}
+        ${linkedBadges.length > 0 ? `
+            <div class="activity-linked-badges">
+                <p><strong>Kopplad till märken:</strong> ${escapeHtml(linkedBadgeNames)}</p>
+                <div class="activity-linked-badge-list" aria-label="Märken kopplade till aktiviteten">
+                    ${linkedBadges.map(marke => `<img src="${escapeHtml(marke.bild)}" alt="${escapeHtml(marke.namn)}" title="${escapeHtml(marke.namn)}" class="activity-linked-badge-icon">`).join("")}
+                </div>
+            </div>
+        ` : ""}
         ${activity.id.startsWith("egen-") ? `
             <div class="activity-popup-actions">
                 <button class="btn-secondary edit-custom-activity" type="button">Redigera</button>
