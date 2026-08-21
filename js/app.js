@@ -738,6 +738,7 @@ function createActivityPopup() {
     const activityPopup = document.createElement("div");
     activityPopup.id = "activityPopup";
     activityPopup.className = "detail-popup hidden";
+    activityPopup.style.zIndex = "1300";
     activityPopup.innerHTML = `
         <div class="detail-popup-content activity-popup-content">
             <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
@@ -768,8 +769,8 @@ function createEditActivitiesPopup() {
     modal.innerHTML = `
         <div class="modal-content modal-content--wide">
             <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
-            <h2 id="editActivitiesTitle">Redigera egna aktiviteter</h2>
-            <select id="editActivitiesCategory" aria-label="Filtrera egna aktiviteter efter kategori"></select>
+            <h2 id="editActivitiesTitle">Hantera aktiviteter</h2>
+            <select id="editActivitiesCategory" aria-label="Filtrera aktiviteter efter kategori"></select>
             <div id="editActivitiesList" class="activity-management-list"></div>
             <div class="modal-actions"><button id="createActivityBtn" class="btn-secondary" type="button">Skapa aktivitet</button></div>
         </div>
@@ -797,7 +798,6 @@ function populateEditActivitiesCategories() {
     if (!select) return;
     const previousValue = select.value || "Alla";
     const categories = [...new Set(allAktiviteter
-        .filter(activity => activity.id.startsWith("egen-"))
         .flatMap(getActivityCategories))]
         .sort((a, b) => a.localeCompare(b, "sv"));
 
@@ -814,8 +814,12 @@ function renderEditActivitiesList() {
     if (!list) return;
 
     const activities = allAktiviteter
-        .filter(activity => activity.id.startsWith("egen-"))
-        .filter(activity => selectedCategory === "Alla" || getActivityCategories(activity).includes(selectedCategory));
+        .filter(activity => selectedCategory === "Alla" || getActivityCategories(activity).includes(selectedCategory))
+        .sort((a, b) => {
+            const categoryA = getActivityCategories(a).join(", ");
+            const categoryB = getActivityCategories(b).join(", ");
+            return categoryA.localeCompare(categoryB, "sv") || a.namn.localeCompare(b.namn, "sv");
+        });
 
     list.innerHTML = activities.length > 0
         ? activities.map(activity => `
@@ -823,17 +827,20 @@ function renderEditActivitiesList() {
                 <div><small class="activity-picker-category">${getActivityCategories(activity).join(", ")}</small><strong>${activity.namn}</strong><small>${formatActivityTime(activity) || "Ingen tidsangivelse"}</small></div>
                 <div class="activity-management-actions">
                     <button class="activity-info-button" type="button" data-activity-id="${activity.id}" title="Visa information" aria-label="Visa information om ${activity.namn}">i</button>
-                    <button class="btn-secondary edit-managed-activity" type="button" data-activity-id="${activity.id}">Redigera</button>
-                    <button class="btn-danger delete-managed-activity" type="button" data-activity-id="${activity.id}" aria-label="Radera ${activity.namn}">Radera</button>
+                    ${activity.id.startsWith("egen-")
+                        ? `<button class="btn-secondary edit-managed-activity" type="button" data-activity-id="${activity.id}">Redigera</button>
+                    <button class="btn-danger delete-managed-activity" type="button" data-activity-id="${activity.id}" aria-label="Radera ${activity.namn}">Radera</button>`
+                        : "<small>Fast aktivitet</small>"}
                 </div>
             </div>
         `).join("")
-        : '<p class="no-results">Det finns inga egna aktiviteter ännu.</p>';
+        : '<p class="no-results">Inga aktiviteter matchar filtret.</p>';
 
     list.querySelectorAll(".activity-info-button").forEach(button => {
         button.addEventListener("click", () => {
             const activity = allAktiviteter.find(item => item.id === button.dataset.activityId);
-            if (activity) showActivityPopup(activity);
+            if (!activity) return;
+            showActivityPopup(activity);
         });
     });
 

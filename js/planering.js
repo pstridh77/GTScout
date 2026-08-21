@@ -427,21 +427,27 @@ function renderEditActivitiesList() {
     const modal = document.getElementById("editActivitiesModal");
     const list = document.getElementById("editActivitiesList");
     const category = document.getElementById("editActivitiesCategory").value;
-    const activities = allAktiviteter.filter(activity =>
-        activity.id.startsWith("egen-") && (category === "Alla" || getActivityCategories(activity).includes(category))
-    );
+    const activities = allAktiviteter
+        .filter(activity => category === "Alla" || getActivityCategories(activity).includes(category))
+        .sort((a, b) => {
+            const categoryA = getActivityCategories(a).join(", ");
+            const categoryB = getActivityCategories(b).join(", ");
+            return categoryA.localeCompare(categoryB, "sv") || a.namn.localeCompare(b.namn, "sv");
+        });
     list.innerHTML = activities.length > 0
         ? activities.map(activity => `
             <div class="activity-management-item">
                 <div><small class="activity-picker-category">${getActivityCategories(activity).join(", ")}</small><strong>${activity.namn}</strong><small>${formatActivityTime(activity) || "Ingen tidsangivelse"}</small></div>
                 <div class="activity-management-actions">
                     <button class="activity-info-button" type="button" data-activity-id="${activity.id}" title="Visa information" aria-label="Visa information om ${activity.namn}">i</button>
-                    <button class="btn-secondary edit-managed-activity" type="button" data-activity-id="${activity.id}">Redigera</button>
-                    <button class="btn-danger delete-managed-activity" type="button" data-activity-id="${activity.id}" aria-label="Radera ${activity.namn}">Radera</button>
+                    ${activity.id.startsWith("egen-")
+                        ? `<button class="btn-secondary edit-managed-activity" type="button" data-activity-id="${activity.id}">Redigera</button>
+                    <button class="btn-danger delete-managed-activity" type="button" data-activity-id="${activity.id}" aria-label="Radera ${activity.namn}">Radera</button>`
+                        : "<small>Fast aktivitet</small>"}
                 </div>
             </div>
         `).join("")
-        : '<p class="no-results">Det finns inga egna aktiviteter ännu.</p>';
+        : '<p class="no-results">Inga aktiviteter matchar filtret.</p>';
     list.querySelectorAll(".edit-managed-activity").forEach(button => {
         button.addEventListener("click", () => {
             const activity = allAktiviteter.find(item => item.id === button.dataset.activityId);
@@ -469,7 +475,6 @@ function renderEditActivitiesList() {
 function openEditActivitiesModal() {
     const categoryFilter = document.getElementById("editActivitiesCategory");
     const categories = [...new Set(allAktiviteter
-        .filter(activity => activity.id.startsWith("egen-"))
         .flatMap(getActivityCategories))]
         .sort((a, b) => a.localeCompare(b, "sv"));
     categoryFilter.innerHTML = [
@@ -2643,6 +2648,7 @@ const detailPopup = createDetailPopup();
 function createActivityDetailPopup() {
     const popup = document.createElement("div");
     popup.className = "detail-popup hidden";
+    popup.style.zIndex = "1300";
     popup.innerHTML = `
         <div class="detail-popup-content activity-popup-content">
             <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
