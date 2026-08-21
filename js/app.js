@@ -146,21 +146,8 @@ function getActivitiesForBadge(marke) {
         .filter(Boolean);
 }
 
-function getPlannedActivitiesForBadge(marke) {
-    const plannedActivityIds = loadPlannings()
-        .filter(planning => Array.isArray(planning.badges) && planning.badges.includes(marke.id))
-        .flatMap(planning => getPlanningActivities(planning));
-    return [...new Set(plannedActivityIds)]
-        .map(activityId => allAktiviteter.find(activity => activity.id === activityId))
-        .filter(Boolean);
-}
-
 function getBadgesForActivity(activityId) {
     return allMarken.filter(marke => getBadgeActivityIds(marke).includes(activityId));
-}
-
-function getPlanningActivities(planning) {
-    return Array.isArray(planning.activities) ? planning.activities : [];
 }
 
 function normalizeTargetGroup(group) {
@@ -829,10 +816,7 @@ function showPopup(marke) {
     const targetGroups = formatTargetGroups(marke);
     const badgePlannings = getBadgePlannings(marke.id);
     const badgeNote = loadBadgeNotes()[marke.id] || "";
-    const badgeActivities = getActivitiesForBadge(marke);
-    const plannedActivities = getPlannedActivitiesForBadge(marke);
-    const activityIds = new Set(badgeActivities.map(activity => activity.id));
-    const activities = [...badgeActivities, ...plannedActivities.filter(activity => !activityIds.has(activity.id))];
+    const activities = getActivitiesForBadge(marke);
     const activitySection = `
         <div class="detail-activities">
             <strong>Aktiviteter:</strong>
