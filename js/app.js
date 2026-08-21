@@ -758,6 +758,124 @@ let activeCustomActivityBadge = null;
 let activeCustomActivityId = null;
 let activeActivityBadge = null;
 
+function createEditActivitiesPopup() {
+    const modal = document.createElement("div");
+    modal.id = "editActivitiesModal";
+    modal.className = "modal hidden";
+    modal.setAttribute("role", "dialog");
+    modal.setAttribute("aria-modal", "true");
+    modal.setAttribute("aria-labelledby", "editActivitiesTitle");
+    modal.innerHTML = `
+        <div class="modal-content modal-content--wide">
+            <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2 id="editActivitiesTitle">Redigera egna aktiviteter</h2>
+            <select id="editActivitiesCategory" aria-label="Filtrera egna aktiviteter efter kategori"></select>
+            <div id="editActivitiesList" class="activity-management-list"></div>
+            <div class="modal-actions"><button id="createActivityBtn" class="btn-secondary" type="button">Skapa aktivitet</button></div>
+        </div>
+    `;
+    modal.querySelector(".close-popup").addEventListener("click", () => modal.classList.add("hidden"));
+    modal.addEventListener("click", event => {
+        if (event.target === modal) modal.classList.add("hidden");
+    });
+    document.body.appendChild(modal);
+    return modal;
+}
+
+const editActivitiesModal = createEditActivitiesPopup();
+
+function getActivityCategories(activity) {
+    if (activity.kategori) return [activity.kategori];
+    const categories = allMarken
+        .filter(marke => getBadgeActivityIds(marke).includes(activity.id))
+        .map(marke => marke.kategori || "Övrigt");
+    return categories.length > 0 ? [...new Set(categories)] : ["Övrigt"];
+}
+
+function populateEditActivitiesCategories() {
+    const select = editActivitiesModal.querySelector("#editActivitiesCategory");
+    if (!select) return;
+    const previousValue = select.value || "Alla";
+    const categories = [...new Set(allAktiviteter
+        .filter(activity => activity.id.startsWith("egen-"))
+        .flatMap(getActivityCategories))]
+        .sort((a, b) => a.localeCompare(b, "sv"));
+
+    select.innerHTML = [
+        '<option value="Alla">Alla kategorier</option>',
+        ...categories.map(category => `<option value="${category}">${category}</option>`)
+    ].join("");
+    select.value = categories.includes(previousValue) ? previousValue : "Alla";
+}
+
+function renderEditActivitiesList() {
+    const selectedCategory = editActivitiesModal.querySelector("#editActivitiesCategory")?.value || "Alla";
+    const list = editActivitiesModal.querySelector("#editActivitiesList");
+    if (!list) return;
+
+    const activities = allAktiviteter
+        .filter(activity => activity.id.startsWith("egen-"))
+        .filter(activity => selectedCategory === "Alla" || getActivityCategories(activity).includes(selectedCategory));
+
+    list.innerHTML = activities.length > 0
+        ? activities.map(activity => `
+            <div class="activity-management-item">
+                <div><small class="activity-picker-category">${getActivityCategories(activity).join(", ")}</small><strong>${activity.namn}</strong><small>${formatActivityTime(activity) || "Ingen tidsangivelse"}</small></div>
+                <div class="activity-management-actions">
+                    <button class="activity-info-button" type="button" data-activity-id="${activity.id}" title="Visa information" aria-label="Visa information om ${activity.namn}">i</button>
+                    <button class="btn-secondary edit-managed-activity" type="button" data-activity-id="${activity.id}">Redigera</button>
+                    <button class="btn-danger delete-managed-activity" type="button" data-activity-id="${activity.id}" aria-label="Radera ${activity.namn}">Radera</button>
+                </div>
+            </div>
+        `).join("")
+        : '<p class="no-results">Det finns inga egna aktiviteter ännu.</p>';
+
+    list.querySelectorAll(".activity-info-button").forEach(button => {
+        button.addEventListener("click", () => {
+            const activity = allAktiviteter.find(item => item.id === button.dataset.activityId);
+            if (activity) showActivityPopup(activity);
+        });
+    });
+
+    list.querySelectorAll(".edit-managed-activity").forEach(button => {
+        button.addEventListener("click", () => {
+            const activity = allAktiviteter.find(item => item.id === button.dataset.activityId);
+            if (!activity) return;
+            editActivitiesModal.classList.add("hidden");
+            openCustomActivityPopup(null, activity);
+        });
+    });
+
+    list.querySelectorAll(".delete-managed-activity").forEach(button => {
+        button.addEventListener("click", () => {
+            const activity = allAktiviteter.find(item => item.id === button.dataset.activityId);
+            if (!activity) return;
+            deleteCustomActivity(activity);
+            populateEditActivitiesCategories();
+            renderEditActivitiesList();
+        });
+    });
+}
+
+function createEditActivitiesMenuAction() {
+    const actionButton = document.getElementById("editActivitiesBtn");
+    if (!actionButton) return;
+
+    actionButton.addEventListener("click", () => {
+        siteMenuDropdown?.classList.add("hidden");
+        siteMenuBtn?.setAttribute("aria-expanded", "false");
+        populateEditActivitiesCategories();
+        renderEditActivitiesList();
+        editActivitiesModal.classList.remove("hidden");
+    });
+
+    editActivitiesModal.querySelector("#editActivitiesCategory")?.addEventListener("change", renderEditActivitiesList);
+    editActivitiesModal.querySelector("#createActivityBtn")?.addEventListener("click", () => {
+        editActivitiesModal.classList.add("hidden");
+        openCustomActivityPopup(null);
+    });
+}
+
 function createCustomActivityPopup() {
     const popup = document.createElement("div");
     popup.className = "detail-popup hidden";
@@ -853,6 +971,10 @@ function saveCustomActivity(popup) {
     if (activityIndex === -1) allAktiviteter.push(activity);
     else allAktiviteter[activityIndex] = activity;
     popup.classList.add("hidden");
+    if (!editActivitiesModal.classList.contains("hidden")) {
+        populateEditActivitiesCategories();
+        renderEditActivitiesList();
+    }
     if (activeCustomActivityBadge) showPopup(activeCustomActivityBadge);
 }
 
@@ -1053,3 +1175,5 @@ window.addEventListener("storage", event => {
         showPopup(activePopupBadge);
     }
 });
+
+createEditActivitiesMenuAction();
