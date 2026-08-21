@@ -534,11 +534,12 @@ body {
     background: #e8f1f8;
 }
 
-.activity-popup-content {
+.detail-popup-content.activity-popup-content {
     max-width: 360px;
+    overflow-y: auto;
 }
 
-.custom-activity-popup-content {
+.detail-popup-content.custom-activity-popup-content {
     max-width: 420px;
     max-height: calc(100vh - 40px);
     display: flex;
