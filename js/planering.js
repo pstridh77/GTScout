@@ -2231,13 +2231,62 @@ document.getElementById("groupTermFilter").addEventListener("change", e => {
 
 const defaultPlanningModal = document.getElementById("defaultPlanningModal");
 const defaultPlanningLevel = document.getElementById("defaultPlanningLevel");
+const defaultPlanningYearCount = document.getElementById("defaultPlanningYearCount");
 
-function addDefaultPlanningForLevel(level) {
+function getDefaultPlanningYear(plan) {
+    if (!plan || typeof plan !== "object") return null;
+    const explicitYear = Number.parseInt(String(plan.year ?? "").trim(), 10);
+    if (Number.isFinite(explicitYear)) return explicitYear;
+    const name = String(plan.name ?? "");
+    const match = name.match(/\b(\d+)\b/u);
+    if (!match) return null;
+    const parsed = Number.parseInt(match[1], 10);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getAvailableDefaultYears(level) {
+    const template = defaultPlannings.find(p => p.level === level);
+    if (!template) return [];
+    const years = [...new Set((template.plans || [])
+        .map(getDefaultPlanningYear)
+        .filter(year => Number.isFinite(year)))].sort((a, b) => a - b);
+    return years;
+}
+
+function updateDefaultPlanningYearOptions(level) {
+    if (!defaultPlanningYearCount) return;
+    const template = defaultPlannings.find(p => p.level === level);
+    const plans = Array.isArray(template?.plans) ? template.plans : [];
+    const availableYears = getAvailableDefaultYears(level);
+    const yearOptions = availableYears.length > 0 ? availableYears : [1];
+    const perYearOptions = yearOptions.map(year => {
+        const firstTerm = (year * 2) - 1;
+        const lastTerm = year * 2;
+        return `<option value="${year}">År ${year} (termin ${firstTerm}-${lastTerm})</option>`;
+    });
+    defaultPlanningYearCount.innerHTML = [
+        ...perYearOptions,
+        `<option value="alla">Alla (alla terminer)</option>`
+    ].join("");
+    defaultPlanningYearCount.value = "alla";
+}
+
+function addDefaultPlanningForLevel(level, yearCount) {
     const template = defaultPlannings.find(p => p.level === level);
     if (!template) return 0;
 
     let added = 0;
-    const plans = (template.plans || []).filter(p => p && typeof p.name === "string");
+    const selectedYear = String(yearCount ?? "alla").trim().toLowerCase();
+    const parsedYear = Number.parseInt(selectedYear, 10);
+    const isAllYears = selectedYear === "alla" || !Number.isFinite(parsedYear);
+
+    const plans = (template.plans || [])
+        .filter(p => p && typeof p.name === "string")
+        .filter(plan => {
+            if (isAllYears) return true;
+            const planYear = getDefaultPlanningYear(plan);
+            return Number.isFinite(planYear) && planYear === parsedYear;
+        });
     plans.forEach(plan => {
         if (!groups.some(g => g.level === level && g.name === plan.name)) {
             groups.push({
@@ -2262,6 +2311,7 @@ function addDefaultPlanningForLevel(level) {
 document.getElementById("openDefaultPlanningBtn").addEventListener("click", () => {
     const selectedLevel = document.getElementById("groupLevel").value || "Familjescouting";
     document.getElementById("defaultPlanningLevel").value = selectedLevel;
+    updateDefaultPlanningYearOptions(selectedLevel);
     defaultPlanningModal.classList.remove("hidden");
     document.getElementById("defaultPlanningLevel").focus();
 });
@@ -2276,9 +2326,14 @@ defaultPlanningModal.addEventListener("click", e => {
 
 document.getElementById("saveDefaultPlanningBtn").addEventListener("click", () => {
     const selectedLevel = defaultPlanningLevel.value || "Familjescouting";
-    addDefaultPlanningForLevel(selectedLevel);
+    const selectedYearCount = defaultPlanningYearCount?.value;
+    addDefaultPlanningForLevel(selectedLevel, selectedYearCount);
     defaultPlanningModal.classList.add("hidden");
     groupModal.classList.add("hidden");
+});
+
+defaultPlanningLevel.addEventListener("change", () => {
+    updateDefaultPlanningYearOptions(defaultPlanningLevel.value || "Familjescouting");
 });
 
 const groupModal = document.getElementById("groupModal");
@@ -2463,6 +2518,10 @@ document.getElementById("groupName").addEventListener("keydown", e => {
 });
 
 defaultPlanningLevel.addEventListener("keydown", e => {
+    if (e.key === "Enter") document.getElementById("saveDefaultPlanningBtn").click();
+});
+
+defaultPlanningYearCount?.addEventListener("keydown", e => {
     if (e.key === "Enter") document.getElementById("saveDefaultPlanningBtn").click();
 });
 
