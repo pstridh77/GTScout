@@ -510,6 +510,136 @@ function createPlanningPickerPopup() {
 
 const planningPickerPopup = createPlanningPickerPopup();
 
+let activeActivityPickerBadge = null;
+
+function createActivityPickerPopup() {
+    const picker = document.createElement("div");
+    picker.className = "detail-popup hidden";
+    picker.innerHTML = `
+        <div class="detail-popup-content activity-picker-content">
+            <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2>Välj aktiviteter</h2>
+            <div class="picker-filters">
+                <input type="search" class="activity-picker-search picker-search-input" placeholder="Sök aktivitet...">
+                <select class="activity-picker-category" aria-label="Filtrera aktiviteter efter kategori"></select>
+            </div>
+            <div class="activity-picker-list"></div>
+            <div class="modal-actions modal-actions--split">
+                <button class="btn-secondary activity-picker-create" type="button">Skapa aktivitet</button>
+                <button class="btn-primary activity-picker-save" type="button">Uppdatera märke</button>
+            </div>
+            <p class="detail-planning-status activity-picker-status" role="status"></p>
+        </div>
+    `;
+    picker.querySelector(".close-popup").addEventListener("click", () => picker.classList.add("hidden"));
+    picker.addEventListener("click", event => {
+        if (event.target === picker) picker.classList.add("hidden");
+    });
+    picker.querySelector(".activity-picker-search").addEventListener("input", () => renderActivityPickerList(picker));
+    picker.querySelector(".activity-picker-category").addEventListener("change", () => renderActivityPickerList(picker));
+    picker.querySelector(".activity-picker-create").addEventListener("click", () => {
+        if (!activeActivityPickerBadge) return;
+        picker.classList.add("hidden");
+        openCustomActivityPopup(activeActivityPickerBadge);
+    });
+    picker.querySelector(".activity-picker-save").addEventListener("click", () => {
+        if (!activeActivityPickerBadge) return;
+        const searchTerm = picker.querySelector(".activity-picker-search").value.trim().toLowerCase();
+        const selectedCategory = picker.querySelector(".activity-picker-category").value || "Alla";
+        const staticActivityIds = new Set(Array.isArray(activeActivityPickerBadge.aktiviteter) ? activeActivityPickerBadge.aktiviteter : []);
+        const visibleActivityIds = new Set(allAktiviteter
+            .filter(activity => selectedCategory === "Alla" || activity.kategori === selectedCategory)
+            .filter(activity => !searchTerm || `${activity.namn} ${activity.kategori || ""}`.toLowerCase().includes(searchTerm))
+            .map(activity => activity.id));
+        const checkedIds = new Set([...picker.querySelectorAll(".activity-picker-list input:checked")].map(input => input.value));
+        visibleActivityIds.forEach(activityId => {
+            if (staticActivityIds.has(activityId)) return;
+            if (checkedIds.has(activityId)) addActivityToBadge(activeActivityPickerBadge, activityId);
+            else removeActivityFromBadge(activeActivityPickerBadge, activityId);
+        });
+        picker.classList.add("hidden");
+        showPopup(activeActivityPickerBadge);
+    });
+    document.body.appendChild(picker);
+    return picker;
+}
+
+const activityPickerPopup = createActivityPickerPopup();
+
+function addActivityToBadge(marke, activityId) {
+    const links = loadCustomBadgeActivities();
+    links[marke.id] = Array.isArray(links[marke.id]) ? links[marke.id] : [];
+    if (getBadgeActivityIds(marke).includes(activityId)) return false;
+    links[marke.id].push(activityId);
+    localStorage.setItem(CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY, JSON.stringify(links));
+    return true;
+}
+
+function removeActivityFromBadge(marke, activityId) {
+    const links = loadCustomBadgeActivities();
+    if (!Array.isArray(links[marke.id])) return false;
+    const index = links[marke.id].indexOf(activityId);
+    if (index === -1) return false;
+    links[marke.id].splice(index, 1);
+    localStorage.setItem(CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY, JSON.stringify(links));
+    return true;
+}
+
+function populateActivityPickerCategories(picker) {
+    const categorySelect = picker.querySelector(".activity-picker-category");
+    const previousValue = categorySelect.value || "Alla";
+    const categories = [...new Set(allAktiviteter.map(activity => activity.kategori).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b, "sv"));
+    categorySelect.innerHTML = [
+        '<option value="Alla">Alla kategorier</option>',
+        ...categories.map(category => `<option value="${category}">${category}</option>`)
+    ].join("");
+    categorySelect.value = categories.includes(previousValue) ? previousValue : "Alla";
+}
+
+function renderActivityPickerList(picker) {
+    if (!activeActivityPickerBadge) return;
+    const searchTerm = picker.querySelector(".activity-picker-search").value.trim().toLowerCase();
+    const selectedCategory = picker.querySelector(".activity-picker-category").value || "Alla";
+    const staticActivityIds = new Set(Array.isArray(activeActivityPickerBadge.aktiviteter) ? activeActivityPickerBadge.aktiviteter : []);
+    const linkedActivityIds = new Set(getBadgeActivityIds(activeActivityPickerBadge));
+    const list = picker.querySelector(".activity-picker-list");
+    const visibleActivities = allAktiviteter
+        .filter(activity => selectedCategory === "Alla" || activity.kategori === selectedCategory)
+        .filter(activity => !searchTerm || `${activity.namn} ${activity.kategori || ""}`.toLowerCase().includes(searchTerm))
+        .sort((a, b) => (a.kategori || "").localeCompare(b.kategori || "", "sv") || a.namn.localeCompare(b.namn, "sv"));
+    list.innerHTML = visibleActivities.length > 0
+        ? visibleActivities.map(activity => {
+            const isStatic = staticActivityIds.has(activity.id);
+            const isChecked = linkedActivityIds.has(activity.id);
+            return `
+            <label class="activity-picker-item">
+                <input type="checkbox" value="${activity.id}" ${isChecked ? "checked" : ""} ${isStatic ? "disabled" : ""}>
+                <span>${activity.kategori ? `<small class="activity-picker-category">${activity.kategori}</small>` : ""}<strong>${activity.namn}</strong>${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}${isStatic ? `<small>Fast kopplad</small>` : ""}</span>
+                <button class="activity-info-button" type="button" data-activity-id="${activity.id}" title="Visa information" aria-label="Visa detaljer för ${activity.namn}">i</button>
+            </label>
+        `;
+        }).join("")
+        : '<p class="no-results">Inga aktiviteter matchar.</p>';
+    list.querySelectorAll(".activity-info-button").forEach(button => {
+        button.addEventListener("click", event => {
+            event.preventDefault();
+            event.stopPropagation();
+            const activity = allAktiviteter.find(item => item.id === button.dataset.activityId);
+            if (activity) showActivityPopup(activity);
+        });
+    });
+}
+
+function openActivityPicker(marke) {
+    activeActivityPickerBadge = marke;
+    activityPickerPopup.querySelector(".activity-picker-search").value = "";
+    activityPickerPopup.querySelector(".activity-picker-status").textContent = "";
+    populateActivityPickerCategories(activityPickerPopup);
+    renderActivityPickerList(activityPickerPopup);
+    activityPickerPopup.classList.remove("hidden");
+}
+
 function addBadgeToPlanning(planning, badge) {
     planning.badges = Array.isArray(planning.badges) ? planning.badges : [];
     if (planning.badges.includes(badge.id)) return false;
@@ -817,6 +947,7 @@ function showPopup(marke) {
     const badgePlannings = getBadgePlannings(marke.id);
     const badgeNote = loadBadgeNotes()[marke.id] || "";
     const activities = getActivitiesForBadge(marke);
+    const staticActivityIds = new Set(Array.isArray(marke.aktiviteter) ? marke.aktiviteter : []);
     const activitySection = `
         <div class="detail-activities">
             <strong>Aktiviteter:</strong>
@@ -826,11 +957,12 @@ function showPopup(marke) {
                         <div class="activity-item">
                                 <span class="activity-item-name"><strong>${activity.namn}</strong>${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}</span>
                             <button class="activity-info-button" type="button" data-activity-id="${activity.id}" aria-label="Visa detaljer för ${activity.namn}">i</button>
+                            ${!staticActivityIds.has(activity.id) ? `<button class="remove-activity-btn" type="button" data-activity-id="${activity.id}" title="Ta bort ${activity.namn}" aria-label="Ta bort ${activity.namn}">&times;</button>` : ""}
                         </div>
                     `).join("")
                     : "<p>Inga aktiviteter kopplade ännu.</p>"}
             </div>
-            <button id="createCustomActivityBtn" class="btn-secondary" type="button">Skapa egen aktivitet</button>
+            <button id="addExistingActivityBtn" class="btn-secondary" type="button">Aktivitet</button>
         </div>
     `;
     const planningStatus = badgePlannings.length > 0
@@ -896,8 +1028,14 @@ function showPopup(marke) {
     `;
     if (badgeNote) popup.querySelector("#badgeNoteDisplay").innerHTML = renderLinkedText(badgeNote);
     popup.querySelector("#editBadgeNoteBtn").addEventListener("click", () => openNotePopup(marke));
-    popup.querySelector("#createCustomActivityBtn").addEventListener("click", () => openCustomActivityPopup(marke));
+    popup.querySelector("#addExistingActivityBtn").addEventListener("click", () => openActivityPicker(marke));
     popup.querySelector("#addBadgeToPlanningBtn").addEventListener("click", () => openPlanningPicker(marke));
+    popup.querySelectorAll(".remove-activity-btn").forEach(button => {
+        button.addEventListener("click", () => {
+            removeActivityFromBadge(marke, button.dataset.activityId);
+            showPopup(marke);
+        });
+    });
     popup.querySelectorAll(".activity-info-button").forEach(button => {
         button.addEventListener("click", () => {
             const activity = allAktiviteter.find(item => item.id === button.dataset.activityId);

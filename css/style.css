@@ -582,6 +582,11 @@ body {
     color: #536477;
 }
 
+.activity-picker-item:has(input:disabled) {
+    opacity: 0.7;
+    cursor: default;
+}
+
 .activity-management-list {
     display: grid;
     gap: 8px;
@@ -850,6 +855,35 @@ body {
 .planning-picker-create {
     width: 100%;
     margin-top: 14px;
+}
+
+.detail-popup-content.activity-picker-content {
+    max-width: 560px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+}
+
+.activity-picker-content h2 {
+    margin: 0 0 16px;
+    color: #003660;
+}
+
+.activity-picker-content .picker-filters {
+    margin-bottom: 14px;
+}
+
+.activity-picker-content select.activity-picker-category {
+    flex: 1 1 180px;
+    padding: 10px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 10px;
+    font: inherit;
+    color: #003660;
+    background: white;
+}
+
+.activity-picker-content .activity-picker-list {
+    max-height: 50vh;
 }
 
 .detail-popup {
