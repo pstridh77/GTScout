@@ -656,6 +656,25 @@ body {
     border-top: 1px solid #d0d7de;
 }
 
+.badge-activity-kar-filter {
+    display: block;
+    width: 100%;
+    max-width: 260px;
+    margin: 8px 0;
+    padding: 10px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 10px;
+    font: inherit;
+    color: #003660;
+    background: white;
+}
+
+.badge-activity-kar-filter:focus {
+    outline: 2px solid #93c5fd;
+    outline-offset: 1px;
+    border-color: #2563eb;
+}
+
 .activity-list {
     display: grid;
     gap: 8px;
@@ -722,12 +741,6 @@ body {
     background: #e2e8f0;
     color: #334155;
     border: 1px solid #cbd5e1;
-}
-
-.activity-owner-badge--json {
-    background: #dbeafe;
-    color: #1d4ed8;
-    border: 1px solid #93c5fd;
 }
 
 .activity-info-button {

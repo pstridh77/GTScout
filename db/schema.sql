@@ -179,7 +179,9 @@ create trigger aktiviteter_touch_updated_at
     before update on public.aktiviteter
     for each row execute function public.touch_updated_at();
 
--- Kårspecifika kopplingar mellan märken och aktiviteter.
+-- Kårspecifika kopplingar mellan märken och aktiviteter. Aktiviteten kan ägas
+-- av vilken kår som helst (delad aktivitetsbank) – behörigheten för länken
+-- avgörs av länkens egen kar_id, se RLS-policyn nedan.
 create table if not exists public.badge_activities (
     kar_id uuid not null references public.kar(id) on delete cascade,
     badge_id text not null,
@@ -343,29 +345,19 @@ create policy "aktiviteter_write_kar_leader" on public.aktiviteter
         and kar_id = public.current_user_kar_id()
     );
 
--- Endast ledare/admin i kåren får hantera kårens märkeskopplingar.
+-- Endast ledare/admin i kåren får hantera kårens märkeskopplingar. Aktiviteten
+-- som länkas behöver inte ägas av den egna kåren (t.ex. statiska json-aktiviteter
+-- eller andra kårers delade aktiviteter) – behörigheten avgörs av kopplingens egen kar_id.
 drop policy if exists "badge_activities_write_kar_leader" on public.badge_activities;
 create policy "badge_activities_write_kar_leader" on public.badge_activities
     for all to authenticated
     using (
         public.current_user_is_leader()
         and kar_id = public.current_user_kar_id()
-        and exists (
-            select 1
-            from public.aktiviteter a
-            where a.id = activity_id
-              and a.kar_id = public.current_user_kar_id()
-        )
     )
     with check (
         public.current_user_is_leader()
         and kar_id = public.current_user_kar_id()
-        and exists (
-            select 1
-            from public.aktiviteter a
-            where a.id = activity_id
-              and a.kar_id = public.current_user_kar_id()
-        )
     );
 
 -- ── Kom igång ────────────────────────────────────────────────────────────────-- 1. insert into public.kar (namn, ort) values ('Gullbrandstorps Scoutkår', 'Halmstad');

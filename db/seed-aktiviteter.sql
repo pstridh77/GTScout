@@ -24,19 +24,20 @@ select
 from selected_kar
 cross join (
     values
-        ('elda-01', 'Tanda eld med tandstickor', 'Scouting', 'Ova pa att tanda en liten och saker eld med tandstickor.', '20', array['Tandstickor', 'Ved', 'Vatten eller slackutrustning'], 'Ga igenom eldplatsen och sakerheten. Lat scouterna bygga en liten brasa, tanda den och slacka den under ledarens uppsikt.'),
-        ('elda-02', 'Eldtriangeln', 'Scouting', 'Undersok vad som behovs for att en eld ska brinna och vad som hander nar en del saknas.', '25', array['Ljus', 'Tandstickor', 'Lock eller annan kvavningsyta'], 'Prata om syre, varme och bransle. Testa forsiktigt hur lagan paverkas nar en del av eldtriangeln tas bort.'),
-        ('elda-03', 'Saker eldplats', 'Scouting', 'Planera, bygg och kontrollera en saker eldplats.', '30', array['Stenar', 'Ved', 'Vatten', 'Spade'], 'Valj plats, avgransa elden, forbered slackning och kontrollera tillsammans att eldplatsen inte kan sprida brand.'),
-        ('sakerhet-01', 'Eld och sakerhet', 'Scouting', 'Ova pa risker med eld och vad man gor vid en mindre brannskada.', '20', array['Forsta hjalpen-material', 'Vatten', 'Bilder eller scenariekort'], 'Arbeta med korta scenarier om eld, klader som brinner och brannskador. Avsluta med att visa hur man kyler en skada och larmar en ledare.'),
-        ('mat-eld-01', 'Laga mat over eld', 'Scouting', 'Anvand en saker eld for att tillaga en enkel maltid.', '60', array['Matvaror', 'Gryta eller stekpanna', 'Grytlappar', 'Ved'], 'Planera maten, fordela uppgifter, laga maten over elden och avsluta med att slacka och stada eldplatsen.'),
+        ('elda-01', 'Tända eld med tändstickor', 'Scouting', 'öva på att tända en liten och säker eld med tändstickor.', '20', array['Tandstickor', 'Ved', 'Vatten eller slackutrustning'], 'Gå igenom eldplatsen och säkerheten. Låt scouterna bygga en liten brasa, tända den och släcka den under ledarens uppsikt.'),
+        ('elda-02', 'Eldtriangeln', 'Scouting', 'Undersök vad som behövs för att en eld ska brinna och vad som händer när en del saknas.', '25', array['Ljus', 'Tändstickor', 'Lock eller annan kvävningsyta'], 'Prata om syre, värme och bränsle. Testa försiktigt hur lågan påverkas när en del av eldtriangeln tas bort.'),
+        ('elda-03', 'Säker eldplats', 'Scouting', 'Planera, bygg och kontrollera en säker eldplats.', '30', array['Stenar', 'Ved', 'Vatten', 'Spade'], 'Välj plats, avgränsa elden, förbered släckning och kontrollera tillsammans att eldplatsen inte kan sprida brand.'),
+        ('sakerhet-01', 'Eld och säkerhet', 'Scouting', 'Öva på risker med eld och vad man gör vid en mindre brännskada.', '20', array['Första hjälpen-material', 'Vatten', 'Bilder eller scenariekort'], 'Arbeta med korta scenarier om eld, kläder som brinner och brännskador. Avsluta med att visa hur man kyler en skada och larmar en ledare.'),
+        ('mat-eld-01', 'Laga mat över eld', 'Scouting', 'Använd en säker eld för att tillaga en enkel måltid.', '60', array['Matvaror', 'Gryta eller stekpanna', 'Grytlappar', 'Ved'], 'Planera maten, fördela uppgifter, laga maten över elden och avsluta med att släcka och städa eldplatsen.'),
         ('Hajk-02', 'Hajk', 'Sova borta', '', '2 overnattningar', array[]::text[], ''),
         ('Hajk-01', 'Hajk', 'Sova borta', '', '1 overnattning', array[]::text[], ''),
-        ('demokratimote', 'Demokratimote', 'Demokrati', 'Genomfor demokratimote for patrullen. Lat alla i patrullen vara med och bestamma vad som ska goras.', '1 traff', array[]::text[], 'Genomfor motet enligt mallar och instruktioner.'),
-        ('arsstamma', 'Arsstamma', 'Demokrati', 'Deltag pa arsstamma och var med och paverka foreningens framtid.', '1 traff', array[]::text[], 'Enligt kallelse och stadgar.'),
-        ('terminsavslutning', 'Terminsavslutning', 'Ovrigt', 'Genomfor terminsavslutning for avdelningen', '1 traff', array[]::text[], 'Markesutdelning, fika och gemenskap. Avsluta terminen med en rolig aktivitet.'),
-        ('terminsuppstart', 'Terminsuppstart', 'Ovrigt', 'Genomfor terminsuppstart for avdelningen.', '1 traff', array[]::text[], 'Planera aktiviteter, informera medlemmar och genomfor terminsuppstarten. Valkomna nya medlemmar.'),
-        ('HYX_traning', 'Trana infor Hallandsyxan', 'Scouting', 'Trana pa de olika momenten i Hallandsyxan.', '', array[]::text[], 'Beskriv momenten'),
-        ('HYX_genomforande', 'Genomfor Hallandsyxan', 'Scouting', 'Delta pa Hallandsyxan.', '1 dag', array[]::text[], 'Genomfor momenten enligt instruktioner')
+        ('demokratimote', 'Demokratimote', 'Demokrati', 'Genomför demokratimöte för patrullen. åt alla i patrullen vara med och bestämma vad som ska göras.', '1 träff', array[]::text[], 'Genomför mötet enligt mallar och instruktioner.'),
+        ('arsstamma', 'Årsstämma', 'Demokrati', 'Deltag på årsstämma och var med och påverka föreningens framtid.', '1 träff', array[]::text[], 'Enligt kallelse och stadgar.'),
+        ('terminsavslutning', 'Terminsavslutning', 'Övrigt', 'Genomför terminsavslutning för avdelningen', '1 träff', array[]::text[], 'Märkesutdelning, fika och gemenskap. Avsluta terminen med en rolig aktivitet.'),
+        ('terminsuppstart', 'Terminsuppstart', 'Övrigt', 'Genomför terminsuppstart för avdelningen.', '1 träff', array[]::text[], 'Planera aktiviteter, informera medlemmar och genomför terminsuppstarten. älkomna nya medlemmar.'),
+        ('HYX_traning', 'Träna inför Hallandsyxan', 'Scouting', 'Träna på de olika momenten i Hallandsyxan.', '', array[]::text[], 'Beskriv momenten'),
+        ('HYX_genomforande', 'Genomför Hallandsyxan', 'Scouting', 'Delta på Hallandsyxan.', '1 dag', array[]::text[], 'Genomför momenten enligt instruktioner'),
+        ('aktivitetsbanken_baka_brod', 'Baka bröd över öppen eld', 'Matlagning', 'För att scouterna ska få testa på saker i en ny miljö. Det finns många enkla sätt att baka, även utan ugn.', '', array[]::text[], 'Genomför momenten enligt instruktioner. https://www.aktivitetsbanken.se/baka-brod-over-oppen-eld')
 ) as data(id, namn, kategori, beskrivning, tid, material, genomforande)
 on conflict (id) do update
 set

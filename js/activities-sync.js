@@ -309,8 +309,6 @@
 
     async function addBadgeActivityLink(badgeId, activityId) {
         if (!canWrite()) return false;
-        const activity = activities.find(item => item.id === activityId);
-        if (!activity || !canEditActivity(activity)) return false;
 
         const row = normalizeBadgeLink({
             kar_id: getKarId(),
