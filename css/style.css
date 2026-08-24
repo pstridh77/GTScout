@@ -102,6 +102,26 @@ body {
     color: #b42318;
 }
 
+.auth-link-button {
+    padding: 0;
+    border: none;
+    background: none;
+    color: #2563eb;
+    font: inherit;
+    font-size: 0.85rem;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.modal-field.hidden,
+.modal-actions .btn-secondary.hidden {
+    display: none;
+}
+
+.modal-actions--split #authSubmitBtn {
+    margin-left: auto;
+}
+
 /* ── Adminvy ─────────────────────────────────────────────────────────────── */
 
 .planning-menu-item.hidden {
@@ -163,10 +183,18 @@ body {
     font-weight: 400;
 }
 
+.admin-user-name .admin-user-request {
+    color: #92400e;
+}
+
 .admin-add-row {
     display: grid;
     grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
     gap: 8px;
+}
+
+.admin-add-row.hidden {
+    display: none;
 }
 
 .admin-add-row input {

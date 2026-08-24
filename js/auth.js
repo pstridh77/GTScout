@@ -14,6 +14,7 @@
     let session = null;
     let profile = null;
     let karName = "";
+    let mode = "login";
     const listeners = new Set();
 
     function config() {
@@ -115,6 +116,45 @@
         if (error) throw error;
     }
 
+    async function signUp(email, password, fullName, requestedKarId) {
+        if (!client) throw new Error("Databaskoppling saknas.");
+        const { data, error } = await client.auth.signUp({
+            email: email.trim(),
+            password,
+            options: {
+                data: {
+                    full_name: fullName.trim(),
+                    requested_kar_id: requestedKarId || null
+                },
+                emailRedirectTo: window.location.origin + window.location.pathname
+            }
+        });
+        if (error) throw error;
+        return Boolean(data.session);
+    }
+
+    async function loadKarOptions() {
+        const select = document.getElementById("authKar");
+        if (!client || !select || select.dataset.loaded === "true") return;
+        const { data, error } = await client.from("kar").select("id, namn").order("namn");
+        if (error) {
+            console.error("Kunde inte hämta kårer", error);
+            setMessage("Kårlistan kunde inte hämtas: " + (error.message || "okänt fel"), true);
+            return;
+        }
+        if (!data?.length) {
+            setMessage("Inga kårer finns upplagda ännu – välj \"Ingen kår\" så tilldelar en admin dig senare.", false);
+            return;
+        }
+        select.dataset.loaded = "true";
+        data.forEach(kar => {
+            const option = document.createElement("option");
+            option.value = kar.id;
+            option.textContent = kar.namn;
+            select.appendChild(option);
+        });
+    }
+
     /* ── Gränssnitt ──────────────────────────────────────────────────────── */
 
     function buildUi() {
@@ -134,6 +174,16 @@
             <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
                 <h2 id="authModalTitle">Logga in</h2>
                 <p class="auth-note">Du kan använda Märkesbiblioteket utan att logga in – då sparas allt lokalt i webbläsaren.</p>
+                <label class="modal-field hidden" id="authNameField">
+                    <span>Namn</span>
+                    <input id="authName" type="text" autocomplete="name" placeholder="För- och efternamn">
+                </label>
+                <label class="modal-field hidden" id="authKarField">
+                    <span>Kår</span>
+                    <select id="authKar">
+                        <option value="">Ingen kår</option>
+                    </select>
+                </label>
                 <label class="modal-field">
                     <span>E-postadress</span>
                     <input id="authEmail" type="email" autocomplete="username" placeholder="namn@kar.se">
@@ -147,7 +197,8 @@
                     <button id="authResetBtn" class="btn-secondary" type="button">Glömt lösenord</button>
                     <button id="authSubmitBtn" class="btn-primary" type="button">Logga in</button>
                 </div>
-                <div class="modal-actions">
+                <div class="modal-actions modal-actions--split">
+                    <button id="authToggleModeBtn" class="auth-link-button" type="button">Skapa nytt konto</button>
                     <button id="authCancelBtn" class="btn-secondary" type="button">Avbryt</button>
                 </div>
             </div>
@@ -158,10 +209,11 @@
             if (event.target === modal) closeModal();
         });
         document.getElementById("authCancelBtn").addEventListener("click", closeModal);
-        document.getElementById("authSubmitBtn").addEventListener("click", submitLogin);
+        document.getElementById("authSubmitBtn").addEventListener("click", submit);
         document.getElementById("authResetBtn").addEventListener("click", submitReset);
+        document.getElementById("authToggleModeBtn").addEventListener("click", () => setMode(mode === "login" ? "signup" : "login"));
         document.getElementById("authPassword").addEventListener("keydown", event => {
-            if (event.key === "Enter") submitLogin();
+            if (event.key === "Enter") submit();
         });
         document.getElementById("authActionBtn").addEventListener("click", () => {
             if (session?.user) {
@@ -190,30 +242,61 @@
         setMessage("", false);
         const modal = document.getElementById("authModal");
         if (!modal) return;
+        setMode("login");
         modal.classList.remove("hidden");
         document.getElementById("authPassword").value = "";
         document.getElementById("authEmail").focus();
+    }
+
+    function setMode(nextMode) {
+        mode = nextMode;
+        const isSignup = mode === "signup";
+        document.getElementById("authModalTitle").textContent = isSignup ? "Skapa konto" : "Logga in";
+        document.getElementById("authNameField").classList.toggle("hidden", !isSignup);
+        document.getElementById("authKarField").classList.toggle("hidden", !isSignup);
+        document.getElementById("authResetBtn").classList.toggle("hidden", isSignup);
+        document.getElementById("authSubmitBtn").textContent = isSignup ? "Skapa konto" : "Logga in";
+        document.getElementById("authToggleModeBtn").textContent = isSignup ? "Tillbaka till inloggning" : "Skapa nytt konto";
+        document.getElementById("authPassword").setAttribute("autocomplete", isSignup ? "new-password" : "current-password");
+        setMessage(isSignup ? "Nya konton får rollen Gäst. En admin i kåren godkänner ditt kårval och sätter din roll." : "", false);
+        if (isSignup) loadKarOptions();
     }
 
     function closeModal() {
         document.getElementById("authModal")?.classList.add("hidden");
     }
 
-    async function submitLogin() {
+    async function submit() {
         const email = document.getElementById("authEmail").value;
         const password = document.getElementById("authPassword").value;
         if (!email || !password) {
             setMessage("Fyll i både e-postadress och lösenord.", true);
             return;
         }
+        const isSignup = mode === "signup";
         const button = document.getElementById("authSubmitBtn");
         button.disabled = true;
-        setMessage("Loggar in...", false);
+        setMessage(isSignup ? "Skapar konto..." : "Loggar in...", false);
         try {
-            await signIn(email, password);
-            closeModal();
+            if (isSignup) {
+                const signedIn = await signUp(
+                    email,
+                    password,
+                    document.getElementById("authName").value,
+                    document.getElementById("authKar").value
+                );
+                if (signedIn) {
+                    closeModal();
+                } else {
+                    setMode("login");
+                    setMessage("Kontot är skapat. Bekräfta din e-postadress via mailet och logga sedan in.", false);
+                }
+            } else {
+                await signIn(email, password);
+                closeModal();
+            }
         } catch (error) {
-            setMessage(error.message || "Inloggningen misslyckades.", true);
+            setMessage(error.message || (isSignup ? "Kontot kunde inte skapas." : "Inloggningen misslyckades."), true);
         } finally {
             button.disabled = false;
         }
@@ -311,6 +394,7 @@
         isLeader: () => [ROLES.LEADER, ROLES.ADMIN].includes(getRole()),
         isAdmin: () => getRole() === ROLES.ADMIN,
         signIn,
+        signUp,
         signOut,
         openLogin: openModal,
         onChange(listener) {

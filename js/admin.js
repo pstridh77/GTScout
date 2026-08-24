@@ -43,8 +43,9 @@
 
                 <section class="admin-section">
                     <h3>Kårer</h3>
+                    <p class="auth-note">En admin utan egen kårtillhörighet är systemadmin och hanterar alla kårer. Övriga admins hanterar bara sin egen kår.</p>
                     <div id="adminKarList" class="admin-list"></div>
-                    <div class="admin-add-row">
+                    <div class="admin-add-row" id="adminAddKarRow">
                         <input id="adminNewKarNamn" type="text" placeholder="Kårens namn">
                         <input id="adminNewKarOrt" type="text" placeholder="Ort">
                         <button id="adminAddKarBtn" class="btn-secondary" type="button">Lägg till kår</button>
@@ -83,7 +84,7 @@
 
         const [karResult, profileResult] = await Promise.all([
             db.from("kar").select("id, namn, ort").order("namn"),
-            db.from("profiles").select("id, email, full_name, role, kar_id").order("email")
+            db.from("profiles").select("id, email, full_name, role, kar_id, requested_kar_id").order("email")
         ]);
 
         if (karResult.error) throw karResult.error;
@@ -152,7 +153,7 @@
 
         const { error } = await client()
             .from("profiles")
-            .update({ role, kar_id: karValue || null })
+            .update({ role, kar_id: karValue || null, requested_kar_id: null })
             .eq("id", id);
         if (error) {
             setMessage(error.message, true);
@@ -163,20 +164,34 @@
 
     /* ── Rendering ───────────────────────────────────────────────────────── */
 
+    // Admin utan egen kår är systemadmin och hanterar alla kårer.
+    function isSystemAdmin() {
+        return !auth().getState().karId;
+    }
+
     function renderKarer() {
         const list = document.getElementById("adminKarList");
+        const canManageAll = isSystemAdmin();
+        document.getElementById("adminAddKarRow").classList.toggle("hidden", !canManageAll);
         if (!karer.length) {
             list.innerHTML = `<p class="admin-empty">Inga kårer upplagda ännu.</p>`;
             return;
         }
-        list.innerHTML = karer.map(kar => `
+        const ownKarId = auth().getState().karId;
+        list.innerHTML = karer
+            .filter(kar => canManageAll || kar.id === ownKarId)
+            .map(kar => `
             <div class="admin-row" data-kar-row="${escapeHtml(kar.id)}">
                 <input type="text" data-field="namn" value="${escapeHtml(kar.namn)}" aria-label="Kårens namn">
                 <input type="text" data-field="ort" value="${escapeHtml(kar.ort || "")}" placeholder="Ort" aria-label="Ort">
                 <button class="btn-secondary" type="button" data-action="save-kar" data-id="${escapeHtml(kar.id)}">Spara</button>
-                <button class="btn-danger" type="button" data-action="delete-kar" data-id="${escapeHtml(kar.id)}">Ta bort</button>
+                ${canManageAll ? `<button class="btn-danger" type="button" data-action="delete-kar" data-id="${escapeHtml(kar.id)}">Ta bort</button>` : ""}
             </div>
         `).join("");
+    }
+
+    function karName(id) {
+        return karer.find(kar => kar.id === id)?.namn || "okänd kår";
     }
 
     function renderUsers() {
@@ -186,13 +201,16 @@
             return;
         }
         const ownKarId = auth().getState().karId;
-        const karOptions = karer.filter(kar => kar.id === ownKarId);
+        const karOptions = isSystemAdmin() ? karer : karer.filter(kar => kar.id === ownKarId);
 
         list.innerHTML = profiles.map(profile => `
             <div class="admin-row admin-row--user" data-profile-row="${escapeHtml(profile.id)}">
                 <span class="admin-user-name">
                     ${escapeHtml(profile.email)}
                     ${profile.full_name ? `<small>${escapeHtml(profile.full_name)}</small>` : ""}
+                    ${!profile.kar_id && profile.requested_kar_id
+                        ? `<small class="admin-user-request">Ansöker om ${escapeHtml(karName(profile.requested_kar_id))}</small>`
+                        : ""}
                 </span>
                 <select data-field="role" aria-label="Roll">
                     ${ROLE_OPTIONS.map(option => `
