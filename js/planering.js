@@ -556,29 +556,32 @@ function deleteStandaloneActivity(activity) {
 
 // ── Persistence ────────────────────────────────────────────────────────────
 
+function normalizeGroupList(list) {
+    return Array.isArray(list)
+        ? list.map(group => {
+            if (!group || typeof group !== "object") return group;
+            const { year, term } = parsePlanningYearAndTerm(group);
+            group.year = Number.isFinite(year) ? year : "";
+            group.term = normalizePlanningTerm(term);
+            group.note = typeof group.note === "string" ? group.note : "";
+            group.activities = Array.isArray(group.activities) ? group.activities : [];
+            group.badges = Array.isArray(group.badges) ? group.badges : [];
+            group.meetings = normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : []);
+            return group;
+        }).filter(Boolean)
+        : [];
+}
+
 function loadGroups() {
     try {
-        const storedGroups = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-        return Array.isArray(storedGroups)
-            ? storedGroups.map(group => {
-                if (!group || typeof group !== "object") return group;
-                const { year, term } = parsePlanningYearAndTerm(group);
-                group.year = Number.isFinite(year) ? year : "";
-                group.term = normalizePlanningTerm(term);
-                group.note = typeof group.note === "string" ? group.note : "";
-                group.activities = Array.isArray(group.activities) ? group.activities : [];
-                group.badges = Array.isArray(group.badges) ? group.badges : [];
-                group.meetings = normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : []);
-                return group;
-            }).filter(Boolean)
-            : [];
+        return normalizeGroupList(JSON.parse(localStorage.getItem(STORAGE_KEY)) || []);
     } catch {
         return [];
     }
 }
 
 function saveGroups() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(groups.map(group => ({
+    const payload = groups.map(group => ({
         ...group,
         badges: Array.isArray(group.badges) ? group.badges : [],
         activities: Array.isArray(group.activities) ? group.activities : [],
@@ -586,8 +589,11 @@ function saveGroups() {
         note: typeof group.note === "string" ? group.note : "",
         year: Number.isFinite(getGroupYearValue(group)) ? getGroupYearValue(group) : "",
         term: getGroupTermValue(group)
-    }))));
+    }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    window.GTScoutPlanningSync?.scheduleSave(payload);
 }
+
 
 function loadBadgeNotesForTransfer() {
     try {
@@ -2858,3 +2864,13 @@ createActivityPicker();
 createEditActivitiesMenuAction();
 loadDefaultPlannings();
 loadMarken();
+
+window.GTScoutPlanningSync?.init({
+    getGroups: () => groups,
+    applyGroups: remoteGroups => {
+        groups = normalizeGroupList(remoteGroups);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
+        renderPlanning();
+    }
+});
+

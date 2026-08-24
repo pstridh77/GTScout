@@ -87,9 +87,43 @@ as $$
     select kar_id from public.profiles where id = auth.uid();
 $$;
 
+create or replace function public.current_user_is_leader()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+    select public.current_user_role() in ('ledare', 'admin');
+$$;
+
+-- ── Planeringar ──────────────────────────────────────────────────────────────
+-- Varje planering sparas som ett JSON-dokument så att klientens datamodell kan
+-- utvecklas utan schemaändringar. Kolumnerna utanför data är till för filtrering.
+create table if not exists public.planeringar (
+    id uuid primary key,
+    kar_id uuid not null references public.kar(id) on delete cascade,
+    created_by uuid references public.profiles(id) on delete set null,
+    name text not null default '',
+    level text,
+    year integer,
+    term text,
+    data jsonb not null default '{}'::jsonb,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+create index if not exists planeringar_kar_id_idx on public.planeringar (kar_id);
+
+drop trigger if exists planeringar_touch_updated_at on public.planeringar;
+create trigger planeringar_touch_updated_at
+    before update on public.planeringar
+    for each row execute function public.touch_updated_at();
+
 -- ── RLS ──────────────────────────────────────────────────────────────────────
 alter table public.kar enable row level security;
 alter table public.profiles enable row level security;
+alter table public.planeringar enable row level security;
 
 drop policy if exists "kar_select_all" on public.kar;
 create policy "kar_select_all" on public.kar
@@ -140,8 +174,25 @@ create policy "profiles_update_kar_admin" on public.profiles
         and (kar_id is null or kar_id = public.current_user_kar_id())
     );
 
--- ── Kom igång ────────────────────────────────────────────────────────────────
--- 1. insert into public.kar (namn, ort) values ('Gullbrandstorps Scoutkår', 'Halmstad');
+-- Planeringar delas inom kåren och får bara ändras av ledare och admin.
+drop policy if exists "planeringar_select_kar" on public.planeringar;
+create policy "planeringar_select_kar" on public.planeringar
+    for select to authenticated
+    using (kar_id = public.current_user_kar_id());
+
+drop policy if exists "planeringar_write_leader" on public.planeringar;
+create policy "planeringar_write_leader" on public.planeringar
+    for all to authenticated
+    using (
+        public.current_user_is_leader()
+        and kar_id = public.current_user_kar_id()
+    )
+    with check (
+        public.current_user_is_leader()
+        and kar_id = public.current_user_kar_id()
+    );
+
+-- ── Kom igång ────────────────────────────────────────────────────────────────-- 1. insert into public.kar (namn, ort) values ('Gullbrandstorps Scoutkår', 'Halmstad');
 -- 2. Skapa användaren via Authentication > Users (e-post + lösenord).
 -- 3. update public.profiles
 --       set role = 'admin',

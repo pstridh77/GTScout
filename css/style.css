@@ -1262,6 +1262,19 @@ body {
     width: 100%;
 }
 
+.planning-sync-status {
+    color: #4b5563;
+    font-size: 0.82rem;
+}
+
+.planning-sync-status.hidden {
+    display: none;
+}
+
+.planning-sync-status--error {
+    color: #b42318;
+}
+
 .planning-actions-menu {
     position: relative;
     margin-left: auto;
