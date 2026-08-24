@@ -43,6 +43,65 @@ body {
     color: white;
 }
 
+/* ── Inloggning ──────────────────────────────────────────────────────────── */
+
+.auth-area {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: 24px;
+    padding-left: 24px;
+    border-left: 1px solid rgba(184, 213, 236, 0.35);
+}
+
+.auth-status {
+    color: #b8d5ec;
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.auth-button {
+    padding: 4px 12px;
+    border: 1px solid rgba(184, 213, 236, 0.6);
+    border-radius: 999px;
+    background: transparent;
+    color: #b8d5ec;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.auth-button:hover {
+    background: rgba(184, 213, 236, 0.15);
+    color: white;
+}
+
+.auth-button.hidden {
+    display: none;
+}
+
+.auth-note {
+    margin: 0;
+    color: #4b5563;
+    font-size: 0.85rem;
+}
+
+.auth-message {
+    margin: 0;
+    color: #003660;
+    font-size: 0.85rem;
+}
+
+.auth-message.hidden {
+    display: none;
+}
+
+.auth-message--error {
+    color: #b42318;
+}
+
 .header-main {
     position: relative;
     display: grid;
@@ -161,6 +220,11 @@ body {
 
     .utility-nav {
         gap: 16px;
+    }
+
+    .auth-area {
+        margin-left: 12px;
+        padding-left: 12px;
     }
 
     .header-main {
