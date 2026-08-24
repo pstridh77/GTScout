@@ -102,6 +102,96 @@ body {
     color: #b42318;
 }
 
+/* ── Adminvy ─────────────────────────────────────────────────────────────── */
+
+.planning-menu-item.hidden {
+    display: none;
+}
+
+.admin-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 12px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.admin-section h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #003660;
+}
+
+.admin-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.admin-row {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.admin-row--user {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+}
+
+.admin-row input,
+.admin-row select {
+    padding: 8px 10px;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    font: inherit;
+    color: #003660;
+    background: white;
+    min-width: 0;
+}
+
+.admin-user-name {
+    display: flex;
+    flex-direction: column;
+    color: #003660;
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;
+}
+
+.admin-user-name small {
+    color: #6b7280;
+    font-weight: 400;
+}
+
+.admin-add-row {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+    gap: 8px;
+}
+
+.admin-add-row input {
+    padding: 8px 10px;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    font: inherit;
+    color: #003660;
+    min-width: 0;
+}
+
+.admin-empty {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+    .admin-row,
+    .admin-row--user,
+    .admin-add-row {
+        grid-template-columns: 1fr;
+    }
+}
+
 .header-main {
     position: relative;
     display: grid;

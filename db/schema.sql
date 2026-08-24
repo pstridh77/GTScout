@@ -107,13 +107,13 @@ create policy "profiles_select_self" on public.profiles
     for select to authenticated
     using (id = auth.uid());
 
--- Admin ser alla profiler i sin egen kår.
+-- Admin ser profiler i sin egen kår samt konton som ännu inte tilldelats en kår.
 drop policy if exists "profiles_select_kar_admin" on public.profiles;
 create policy "profiles_select_kar_admin" on public.profiles
     for select to authenticated
     using (
         public.current_user_role() = 'admin'
-        and kar_id is not distinct from public.current_user_kar_id()
+        and (kar_id is null or kar_id = public.current_user_kar_id())
     );
 
 -- Egen profil får uppdateras, men inte roll eller kårtillhörighet.
@@ -127,16 +127,17 @@ create policy "profiles_update_self" on public.profiles
         and kar_id is not distinct from public.current_user_kar_id()
     );
 
+-- Admin får ändra roll och kårtillhörighet för sin kår och för icke tilldelade konton.
 drop policy if exists "profiles_update_kar_admin" on public.profiles;
 create policy "profiles_update_kar_admin" on public.profiles
     for update to authenticated
     using (
         public.current_user_role() = 'admin'
-        and kar_id is not distinct from public.current_user_kar_id()
+        and (kar_id is null or kar_id = public.current_user_kar_id())
     )
     with check (
         public.current_user_role() = 'admin'
-        and kar_id is not distinct from public.current_user_kar_id()
+        and (kar_id is null or kar_id = public.current_user_kar_id())
     );
 
 -- ── Kom igång ────────────────────────────────────────────────────────────────
