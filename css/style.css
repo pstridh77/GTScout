@@ -724,6 +724,12 @@ body {
     border: 1px solid #cbd5e1;
 }
 
+.activity-owner-badge--json {
+    background: #dbeafe;
+    color: #1d4ed8;
+    border: 1px solid #93c5fd;
+}
+
 .activity-info-button {
     width: 26px;
     height: 26px;

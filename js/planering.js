@@ -210,11 +210,15 @@ function escapeHtml(value) {
 }
 
 function getActivityOwnerLabel(activity) {
+    if (activity?.readOnlyActivity) return "Scouterna";
     if (!activity?.kar_id) return "Kår saknas";
     return activity.kar_namn || "Okänd kår";
 }
 
 function getActivityOwnershipMeta(activity) {
+    if (activity?.readOnlyActivity) {
+        return { label: "Scouterna", className: "activity-owner-badge--json" };
+    }
     const ownKarId = window.GTScoutAuth?.getState?.().karId || null;
     if (!activity?.kar_id || !ownKarId) {
         return { label: "Annan kår", className: "activity-owner-badge--other" };
