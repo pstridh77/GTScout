@@ -151,6 +151,11 @@
             return;
         }
 
+        if (role === "admin" && !karValue && !isSystemAdmin()) {
+            setMessage("Du kan inte göra en användare till systemadmin (admin utan kår).", true);
+            return;
+        }
+
         const { error } = await client()
             .from("profiles")
             .update({ role, kar_id: karValue || null, requested_kar_id: null })
@@ -201,31 +206,53 @@
             return;
         }
         const ownKarId = auth().getState().karId;
-        const karOptions = isSystemAdmin() ? karer : karer.filter(kar => kar.id === ownKarId);
+        const viewerIsSystemAdmin = isSystemAdmin();
+        const karOptions = viewerIsSystemAdmin ? karer : karer.filter(kar => kar.id === ownKarId);
 
-        list.innerHTML = profiles.map(profile => `
-            <div class="admin-row admin-row--user" data-profile-row="${escapeHtml(profile.id)}">
+        list.innerHTML = profiles.map(profile => {
+            const isProfileSystemAdmin = profile.role === "admin" && !profile.kar_id;
+            // Systemadmins syns för kårens admin men får bara ses, inte redigeras.
+            const readOnly = isProfileSystemAdmin && !viewerIsSystemAdmin;
+            const nameSpan = `
                 <span class="admin-user-name">
                     ${escapeHtml(profile.email)}
                     ${profile.full_name ? `<small>${escapeHtml(profile.full_name)}</small>` : ""}
                     ${!profile.kar_id && profile.requested_kar_id
                         ? `<small class="admin-user-request">Ansöker om ${escapeHtml(karName(profile.requested_kar_id))}</small>`
                         : ""}
-                </span>
+                    ${isProfileSystemAdmin ? `<small class="admin-user-request">Systemadmin</small>` : ""}
+                </span>`;
+
+            if (readOnly) {
+                return `
+            <div class="admin-row admin-row--user" data-profile-row="${escapeHtml(profile.id)}">
+                ${nameSpan}
+                <span>Admin</span>
+                <span>Ingen kår</span>
+            </div>
+        `;
+            }
+
+            return `
+            <div class="admin-row admin-row--user" data-profile-row="${escapeHtml(profile.id)}">
+                ${nameSpan}
                 <select data-field="role" aria-label="Roll">
                     ${ROLE_OPTIONS.map(option => `
                         <option value="${option.value}" ${profile.role === option.value ? "selected" : ""}>${option.label}</option>
                     `).join("")}
                 </select>
                 <select data-field="kar" aria-label="Kår">
-                    <option value="" ${!profile.kar_id ? "selected" : ""}>Ingen kår</option>
+                    ${viewerIsSystemAdmin
+                        ? `<option value="" ${!profile.kar_id ? "selected" : ""}>Ingen kår</option>`
+                        : (!profile.kar_id ? `<option value="" selected disabled>Ej tilldelad – välj kår</option>` : "")}
                     ${karOptions.map(kar => `
                         <option value="${escapeHtml(kar.id)}" ${profile.kar_id === kar.id ? "selected" : ""}>${escapeHtml(kar.namn)}</option>
                     `).join("")}
                 </select>
                 <button class="btn-secondary" type="button" data-action="save-profile" data-id="${escapeHtml(profile.id)}">Spara</button>
             </div>
-        `).join("");
+        `;
+        }).join("");
     }
 
     function onKarListClick(event) {
