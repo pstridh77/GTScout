@@ -120,10 +120,28 @@ create trigger planeringar_touch_updated_at
     before update on public.planeringar
     for each row execute function public.touch_updated_at();
 
+-- ── Märkesanteckningar ───────────────────────────────────────────────────────
+-- En anteckning per märke och kår.
+create table if not exists public.badge_notes (
+    kar_id uuid not null references public.kar(id) on delete cascade,
+    badge_id text not null,
+    note text not null default '',
+    updated_by uuid references public.profiles(id) on delete set null,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    primary key (kar_id, badge_id)
+);
+
+drop trigger if exists badge_notes_touch_updated_at on public.badge_notes;
+create trigger badge_notes_touch_updated_at
+    before update on public.badge_notes
+    for each row execute function public.touch_updated_at();
+
 -- ── RLS ──────────────────────────────────────────────────────────────────────
 alter table public.kar enable row level security;
 alter table public.profiles enable row level security;
 alter table public.planeringar enable row level security;
+alter table public.badge_notes enable row level security;
 
 drop policy if exists "kar_select_all" on public.kar;
 create policy "kar_select_all" on public.kar
@@ -182,6 +200,24 @@ create policy "planeringar_select_kar" on public.planeringar
 
 drop policy if exists "planeringar_write_leader" on public.planeringar;
 create policy "planeringar_write_leader" on public.planeringar
+    for all to authenticated
+    using (
+        public.current_user_is_leader()
+        and kar_id = public.current_user_kar_id()
+    )
+    with check (
+        public.current_user_is_leader()
+        and kar_id = public.current_user_kar_id()
+    );
+
+-- Anteckningar delas inom kåren och får bara ändras av ledare och admin.
+drop policy if exists "badge_notes_select_kar" on public.badge_notes;
+create policy "badge_notes_select_kar" on public.badge_notes
+    for select to authenticated
+    using (kar_id = public.current_user_kar_id());
+
+drop policy if exists "badge_notes_write_leader" on public.badge_notes;
+create policy "badge_notes_write_leader" on public.badge_notes
     for all to authenticated
     using (
         public.current_user_is_leader()

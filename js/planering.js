@@ -1144,6 +1144,7 @@ function importPlannings(file) {
             });
             saveGroups();
             localStorage.setItem(BADGE_NOTES_STORAGE_KEY, JSON.stringify(badgeNotes));
+            window.GTScoutNotes?.scheduleSaveAll(badgeNotes);
             localStorage.setItem(CUSTOM_ACTIVITIES_STORAGE_KEY, JSON.stringify(customActivities));
             localStorage.setItem(CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY, JSON.stringify(customBadgeActivities));
             allAktiviteter = [
@@ -2872,5 +2873,9 @@ window.GTScoutPlanningSync?.init({
         localStorage.setItem(STORAGE_KEY, JSON.stringify(groups));
         renderPlanning();
     }
+});
+
+window.GTScoutNotes?.init({
+    onChange: () => renderPlanning()
 });
 

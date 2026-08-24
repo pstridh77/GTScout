@@ -1,5 +1,6 @@
 /**
- * Synkar planeringar mot Supabase för inloggade ledare/admin med kårtillhörighet.
+ * Synkar planeringar mot Supabase för inloggade användare med kårtillhörighet.
+ * Gäster läser kårens planeringar, ledare och admin får också spara.
  * localStorage används alltid som lokal kopia och som enda lagring i offline-läge.
  */
 (function () {
@@ -17,8 +18,12 @@
         return auth()?.getState().karId || null;
     }
 
-    function isActive() {
-        return Boolean(client() && auth().isSignedIn() && auth().isLeader() && karId());
+    function canRead() {
+        return Boolean(client() && auth().isSignedIn() && karId());
+    }
+
+    function canWrite() {
+        return canRead() && auth().isLeader();
     }
 
     function setStatus(text, isError) {
@@ -73,7 +78,7 @@
         saveTimer = null;
         const groups = pendingGroups;
         pendingGroups = null;
-        if (!groups || !isActive()) return;
+        if (!groups || !canWrite()) return;
 
         try {
             setStatus("Sparar till databasen...", false);
@@ -86,18 +91,23 @@
     }
 
     function scheduleSave(groups) {
-        if (!isActive()) return;
+        if (!canWrite()) return;
         pendingGroups = groups.map(group => JSON.parse(JSON.stringify(group)));
         if (saveTimer) clearTimeout(saveTimer);
         saveTimer = setTimeout(flush, SAVE_DELAY_MS);
     }
 
     async function load() {
-        if (!hooks || !isActive()) return;
+        if (!hooks || !canRead()) return;
         try {
             setStatus("Hämtar planeringar...", false);
             const remote = await fetchGroups();
             const local = hooks.getGroups();
+
+            if (!remote.length && !canWrite()) {
+                setStatus("Kåren har inga planeringar i databasen – visar lokal data.", false);
+                return;
+            }
 
             if (!remote.length && local.length) {
                 const upload = window.confirm(
@@ -113,7 +123,9 @@
             }
 
             hooks.applyGroups(remote);
-            setStatus(`Synkad med databasen (${remote.length} planeringar)`, false);
+            setStatus(canWrite()
+                ? `Synkad med databasen (${remote.length} planeringar)`
+                : `Kårens planeringar visas (${remote.length} st) – dina ändringar sparas bara lokalt.`, false);
         } catch (error) {
             console.error("Kunde inte hämta planeringar från databasen", error);
             setStatus("Kunde inte hämta från databasen – använder lokal data.", true);
@@ -121,9 +133,9 @@
     }
 
     function onAuthChange() {
-        if (!isActive()) {
+        if (!canRead()) {
             loadedForKarId = null;
-            setStatus(auth()?.isOnline() ? "Arbetar lokalt (inte inloggad som ledare)" : "", false);
+            setStatus(auth()?.isOnline() ? "Arbetar lokalt (inte inloggad i någon kår)" : "", false);
             return;
         }
         if (loadedForKarId === karId()) return;
@@ -132,7 +144,8 @@
     }
 
     window.GTScoutPlanningSync = {
-        isActive,
+        canRead,
+        canWrite,
         scheduleSave,
         reload: load,
         init(config) {

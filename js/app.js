@@ -227,6 +227,7 @@ function saveBadgeNote(badgeId, note) {
         delete notes[badgeId];
     }
     localStorage.setItem(BADGE_NOTES_STORAGE_KEY, JSON.stringify(notes));
+    window.GTScoutNotes?.scheduleSave(badgeId, note);
 }
 
 let activeNoteBadge = null;
@@ -452,6 +453,10 @@ typeFilter.addEventListener("change", handleFilterChange);
 programFilter.addEventListener("change", handleFilterChange);
 
 loadMarken();
+
+window.GTScoutNotes?.init({
+    onChange: () => renderMarken(allMarken)
+});
 
 function createPopup() {
     const popup = document.createElement("div");
