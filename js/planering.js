@@ -82,6 +82,8 @@ let editingStandaloneActivityId = null;
 let activeActivityGroupId = null;
 let activeStandaloneActivityBadge = null;
 let activeStandaloneActivityPlanning = null;
+let activeBadgeActivityLibraryMarke = null;
+let activeBadgeActivityLibraryPlanning = null;
 
 function toReadonlyStaticActivity(activity) {
     return {
@@ -192,6 +194,40 @@ function getBadgeActivityIds(marke) {
         ...(Array.isArray(marke.aktiviteter) ? marke.aktiviteter : []),
         ...(Array.isArray(links[marke.id]) ? links[marke.id] : [])
     ];
+}
+
+function addActivityToBadge(marke, activityId) {
+    if (window.GTScoutActivities?.addBadgeActivityLink) {
+        if (!window.GTScoutActivities.canWrite()) return false;
+        window.GTScoutActivities.addBadgeActivityLink(marke.id, activityId).catch(error => {
+            console.error("Kunde inte koppla aktivitet", error);
+        });
+        return true;
+    }
+    const links = loadCustomBadgeActivities();
+    links[marke.id] = Array.isArray(links[marke.id]) ? links[marke.id] : [];
+    if (links[marke.id].includes(activityId)) return false;
+    links[marke.id].push(activityId);
+    localStorage.setItem(CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY, JSON.stringify(links));
+    return true;
+}
+
+function removeActivityFromBadge(marke, activityId) {
+    if (window.GTScoutActivities?.removeBadgeActivityLink) {
+        if (!window.GTScoutActivities.canWrite()) return false;
+        if (!window.GTScoutActivities.canEditBadgeLink(marke.id, activityId)) return false;
+        window.GTScoutActivities.removeBadgeActivityLink(marke.id, activityId).catch(error => {
+            console.error("Kunde inte ta bort aktivitetskoppling", error);
+        });
+        return true;
+    }
+    const links = loadCustomBadgeActivities();
+    if (!Array.isArray(links[marke.id])) return false;
+    const index = links[marke.id].indexOf(activityId);
+    if (index === -1) return false;
+    links[marke.id].splice(index, 1);
+    localStorage.setItem(CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY, JSON.stringify(links));
+    return true;
 }
 
 function formatActivityTime(activity) {
@@ -525,6 +561,128 @@ function createActivityPicker() {
         renderPlanning(new Set([activeActivityGroupId]));
         modal.classList.add("hidden");
     });
+}
+
+function createBadgeActivityLibraryPopup() {
+    const picker = document.createElement("div");
+    picker.className = "detail-popup hidden";
+    picker.style.zIndex = "1250";
+    picker.innerHTML = `
+        <div class="detail-popup-content activity-picker-content">
+            <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2>Välj aktiviteter</h2>
+            <div class="picker-filters">
+                <input type="search" class="activity-picker-search picker-search-input" placeholder="Sök aktivitet...">
+                <select class="activity-picker-category" aria-label="Filtrera aktiviteter efter kategori"></select>
+                <select class="activity-picker-kar" aria-label="Filtrera aktiviteter efter kår"></select>
+            </div>
+            <div class="activity-picker-list"></div>
+            <div class="modal-actions modal-actions--split">
+                <button class="btn-secondary activity-picker-create" type="button">Skapa aktivitet</button>
+                <button class="btn-primary activity-picker-save" type="button">Uppdatera märke</button>
+            </div>
+            <p class="detail-planning-status activity-picker-status" role="status"></p>
+        </div>
+    `;
+    picker.querySelector(".close-popup").addEventListener("click", () => picker.classList.add("hidden"));
+    picker.addEventListener("click", event => {
+        if (event.target === picker) picker.classList.add("hidden");
+    });
+    picker.querySelector(".activity-picker-search").addEventListener("input", () => renderBadgeActivityLibraryList(picker));
+    picker.querySelector(".activity-picker-category").addEventListener("change", () => renderBadgeActivityLibraryList(picker));
+    picker.querySelector(".activity-picker-kar").addEventListener("change", () => renderBadgeActivityLibraryList(picker));
+    picker.querySelector(".activity-picker-create").addEventListener("click", () => {
+        if (!window.GTScoutActivities?.canWrite?.()) return;
+        if (!activeBadgeActivityLibraryMarke) return;
+        picker.classList.add("hidden");
+        openStandaloneActivityForBadge(activeBadgeActivityLibraryMarke, activeBadgeActivityLibraryPlanning);
+    });
+    picker.querySelector(".activity-picker-save").addEventListener("click", () => {
+        if (!window.GTScoutActivities?.canWrite?.()) return;
+        const marke = activeBadgeActivityLibraryMarke;
+        const planning = activeBadgeActivityLibraryPlanning;
+        if (!marke) return;
+        const staticActivityIds = new Set(Array.isArray(marke.aktiviteter) ? marke.aktiviteter : []);
+        const checkedIds = new Set([...picker.querySelectorAll(".activity-picker-list input:checked")].map(input => input.value));
+        allAktiviteter.forEach(activity => {
+            if (staticActivityIds.has(activity.id)) return;
+            const isLinked = getBadgeActivityIds(marke).includes(activity.id);
+            if (checkedIds.has(activity.id) && !isLinked) addActivityToBadge(marke, activity.id);
+            else if (!checkedIds.has(activity.id) && isLinked) removeActivityFromBadge(marke, activity.id);
+        });
+        picker.classList.add("hidden");
+        showBadgeDetail(marke, planning?.id ?? null);
+    });
+    document.body.appendChild(picker);
+    return picker;
+}
+
+const badgeActivityLibraryPopup = createBadgeActivityLibraryPopup();
+
+function renderBadgeActivityLibraryList(picker) {
+    if (!activeBadgeActivityLibraryMarke) return;
+    const marke = activeBadgeActivityLibraryMarke;
+    const searchTerm = picker.querySelector(".activity-picker-search").value.trim().toLowerCase();
+    const selectedCategory = picker.querySelector(".activity-picker-category").value || "Alla";
+    const selectedKar = picker.querySelector(".activity-picker-kar").value || "Alla";
+    const staticActivityIds = new Set(Array.isArray(marke.aktiviteter) ? marke.aktiviteter : []);
+    const linkedActivityIds = new Set(getBadgeActivityIds(marke));
+    const list = picker.querySelector(".activity-picker-list");
+    const visibleActivities = allAktiviteter
+        .filter(activity => selectedCategory === "Alla" || getActivityCategories(activity).includes(selectedCategory))
+        .filter(activity => isActivityVisibleForKarFilter(activity, selectedKar))
+        .filter(activity => !searchTerm || `${activity.namn} ${getActivityCategories(activity).join(" ")}`.toLowerCase().includes(searchTerm))
+        .sort((a, b) => getActivityCategories(a).join(", ").localeCompare(getActivityCategories(b).join(", "), "sv") || a.namn.localeCompare(b.namn, "sv"));
+    list.innerHTML = visibleActivities.length > 0
+        ? visibleActivities.map(activity => {
+            const isStatic = staticActivityIds.has(activity.id);
+            const isChecked = linkedActivityIds.has(activity.id);
+            return `
+            <label class="activity-picker-item">
+                <input type="checkbox" value="${activity.id}" ${isChecked ? "checked" : ""} ${isStatic ? "disabled" : ""}>
+                <span><small class="activity-picker-category">${getActivityCategories(activity).join(", ")}</small>${renderActivityOwnershipBadge(activity)}<small>${escapeHtml(getActivityOwnerLabel(activity))}</small><strong>${activity.namn}</strong>${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}${isStatic ? `<small>Fast kopplad</small>` : ""}</span>
+                <button class="activity-info-button" type="button" data-activity-id="${activity.id}" title="Visa information" aria-label="Visa detaljer för ${activity.namn}">i</button>
+            </label>
+        `;
+        }).join("")
+        : '<p class="no-results">Inga aktiviteter matchar.</p>';
+    list.querySelectorAll(".activity-info-button").forEach(button => {
+        button.addEventListener("click", event => {
+            event.preventDefault();
+            event.stopPropagation();
+            const activity = allAktiviteter.find(item => item.id === button.dataset.activityId);
+            if (activity) showActivityDetail(activity);
+        });
+    });
+}
+
+function populateBadgeActivityLibraryCategories(picker) {
+    const categorySelect = picker.querySelector(".activity-picker-category");
+    const previousValue = categorySelect.value || "Alla";
+    const categories = [...new Set(allAktiviteter.flatMap(getActivityCategories))]
+        .sort((a, b) => a.localeCompare(b, "sv"));
+    categorySelect.innerHTML = [
+        '<option value="Alla">Alla kategorier</option>',
+        ...categories.map(category => `<option value="${category}">${category}</option>`)
+    ].join("");
+    categorySelect.value = categories.includes(previousValue) ? previousValue : "Alla";
+}
+
+function openBadgeActivityLibraryPicker(marke, planning) {
+    activeBadgeActivityLibraryMarke = marke;
+    activeBadgeActivityLibraryPlanning = planning;
+    badgeActivityLibraryPopup.querySelector(".activity-picker-search").value = "";
+    badgeActivityLibraryPopup.querySelector(".activity-picker-status").textContent = "";
+    populateBadgeActivityLibraryCategories(badgeActivityLibraryPopup);
+    populateActivityKarFilter(badgeActivityLibraryPopup.querySelector(".activity-picker-kar"));
+    const canWrite = window.GTScoutActivities?.canWrite?.();
+    badgeActivityLibraryPopup.querySelector(".activity-picker-create").classList.toggle("hidden", !canWrite);
+    badgeActivityLibraryPopup.querySelector(".activity-picker-save").classList.toggle("hidden", !canWrite);
+    if (!canWrite) {
+        badgeActivityLibraryPopup.querySelector(".activity-picker-status").textContent = "Du kan visa aktiviteter, men bara ledare/admin i ägande kår kan redigera kopplingar.";
+    }
+    renderBadgeActivityLibraryList(badgeActivityLibraryPopup);
+    badgeActivityLibraryPopup.classList.remove("hidden");
 }
 
 function renderEditActivitiesList() {
@@ -2919,7 +3077,7 @@ function showBadgeDetail(marke, planningId = null) {
                         </label>
                     `).join("") : "<p>Inga aktiviteter kopplade ännu.</p>"}
                 </div>
-                ${(planning && canWriteActivities) ? '<button id="createBadgeActivityBtn" class="btn-secondary" type="button">Lägg till egen aktivitet</button>' : ""}
+                ${(planning && canWriteActivities) ? '<button id="addExistingActivityBtn" class="btn-secondary" type="button">Aktivitet</button>' : ""}
                 ${(planning && canWriteActivities) ? '<button id="saveBadgeActivitiesBtn" class="btn-primary" type="button">Uppdatera planering</button>' : ""}
             </div>
         `;
@@ -2975,11 +3133,11 @@ function showBadgeDetail(marke, planningId = null) {
         });
     });
     const saveActivitiesButton = body.querySelector("#saveBadgeActivitiesBtn");
-    const createBadgeActivityButton = body.querySelector("#createBadgeActivityBtn");
-    if (createBadgeActivityButton) {
-        createBadgeActivityButton.addEventListener("click", () => {
+    const addExistingActivityButton = body.querySelector("#addExistingActivityBtn");
+    if (addExistingActivityButton) {
+        addExistingActivityButton.addEventListener("click", () => {
             detailPopup.classList.add("hidden");
-            openStandaloneActivityForBadge(marke, planning);
+            openBadgeActivityLibraryPicker(marke, planning);
         });
     }
     if (saveActivitiesButton) {
