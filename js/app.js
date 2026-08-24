@@ -241,6 +241,7 @@ function createNotePopup() {
             <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
             <h2>Anteckning</h2>
             <textarea id="badgeNoteInput" rows="6" placeholder="Skriv en anteckning..."></textarea>
+            <p id="badgeNoteWarning" class="detail-note-warning hidden"></p>
             <p id="badgeNoteStatus" class="detail-note-status" role="status"></p>
             <div class="modal-actions">
                 <button id="saveBadgeNoteBtn" class="btn-primary" type="button">Spara anteckning</button>
@@ -257,10 +258,30 @@ function createNotePopup() {
 
 const notePopup = createNotePopup();
 
+function getNoteSaveWarning() {
+    const notes = window.GTScoutNotes;
+    const auth = window.GTScoutAuth;
+    if (notes?.canWrite()) return "";
+    if (!auth?.isOnline()) {
+        return "Anteckningen sparas bara i den här webbläsaren.";
+    }
+    if (!auth.isSignedIn()) {
+        return "Du är inte inloggad – anteckningen sparas bara i den här webbläsaren.";
+    }
+    if (!auth.getState().karId) {
+        return "Du saknar kårtillhörighet – anteckningen sparas bara i den här webbläsaren.";
+    }
+    return "Du är inloggad som Gäst – anteckningen sparas bara i den här webbläsaren och skrivs över av kårens anteckningar.";
+}
+
 function openNotePopup(marke) {
     activeNoteBadge = marke;
     notePopup.querySelector("#badgeNoteInput").value = loadBadgeNotes()[marke.id] || "";
     notePopup.querySelector("#badgeNoteStatus").textContent = "";
+    const warning = notePopup.querySelector("#badgeNoteWarning");
+    const warningText = getNoteSaveWarning();
+    warning.textContent = warningText;
+    warning.classList.toggle("hidden", !warningText);
     notePopup.classList.remove("hidden");
     notePopup.querySelector("#badgeNoteInput").focus();
 }
