@@ -124,6 +124,10 @@ function getGroupSortValue(group) {
 }
 
 function loadCustomActivities() {
+    const syncedActivities = window.GTScoutActivities?.getAllActivities?.();
+    if (Array.isArray(syncedActivities) && syncedActivities.length > 0) {
+        return syncedActivities.filter(activity => activity.id.startsWith("egen-"));
+    }
     try {
         const activities = JSON.parse(localStorage.getItem(CUSTOM_ACTIVITIES_STORAGE_KEY));
         return Array.isArray(activities) ? activities : [];
@@ -133,6 +137,10 @@ function loadCustomActivities() {
 }
 
 function loadCustomBadgeActivities() {
+    const syncedLinks = window.GTScoutActivities?.getBadgeLinksMap?.();
+    if (syncedLinks && typeof syncedLinks === "object" && Object.keys(syncedLinks).length > 0) {
+        return syncedLinks;
+    }
     try {
         const links = JSON.parse(localStorage.getItem(CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY));
         return links && typeof links === "object" && !Array.isArray(links) ? links : {};
@@ -162,6 +170,36 @@ function escapeHtml(value) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+}
+
+function getActivityOwnerLabel(activity) {
+    if (!activity?.kar_id) return "Kår saknas";
+    return activity.kar_namn || "Okänd kår";
+}
+
+function canEditActivity(activity) {
+    const sync = window.GTScoutActivities;
+    if (sync?.canEditActivity) return sync.canEditActivity(activity);
+    return activity?.id?.startsWith("egen-");
+}
+
+function isActivityVisibleForKarFilter(activity, karFilter) {
+    if (!karFilter || karFilter === "Alla") return true;
+    if (karFilter === "__saknas") return !activity.kar_id;
+    return activity.kar_id === karFilter;
+}
+
+function populateActivityKarFilter(select) {
+    if (!select) return;
+    const previous = select.value || "Alla";
+    const karFilters = window.GTScoutActivities?.getKarFilters?.() || [];
+    select.innerHTML = [
+        '<option value="Alla">Alla kårer</option>',
+        '<option value="__saknas">Kår saknas</option>',
+        ...karFilters.map(kar => `<option value="${escapeHtml(kar.id)}">${escapeHtml(kar.namn)}</option>`)
+    ].join("");
+    const validValues = new Set(["Alla", "__saknas", ...karFilters.map(kar => kar.id)]);
+    select.value = validValues.has(previous) ? previous : "Alla";
 }
 
 function normalizeUrl(url) {
@@ -236,7 +274,8 @@ function createStandaloneActivityPopup() {
     modal.addEventListener("click", event => {
         if (event.target === modal) modal.classList.add("hidden");
     });
-    document.getElementById("savePlanningActivityBtn").addEventListener("click", () => {
+    document.getElementById("savePlanningActivityBtn").addEventListener("click", async () => {
+        if (!window.GTScoutActivities?.canWrite?.()) return;
         const nameInput = document.getElementById("planningActivityName");
         const name = nameInput.value.trim();
         const status = document.getElementById("createActivityStatus");
@@ -244,8 +283,7 @@ function createStandaloneActivityPopup() {
             nameInput.focus();
             return;
         }
-        const customActivities = loadCustomActivities();
-        const existingActivity = customActivities.find(item => item.id === editingStandaloneActivityId);
+        const existingActivity = allAktiviteter.find(item => item.id === editingStandaloneActivityId);
         const activity = {
             id: editingStandaloneActivityId || `egen-${crypto.randomUUID()}`,
             namn: name,
@@ -255,38 +293,35 @@ function createStandaloneActivityPopup() {
             material: document.getElementById("planningActivityMaterial").value.split(/\r?\n/).map(item => item.trim()).filter(Boolean),
             genomforande: document.getElementById("planningActivityInstructions").value.trim()
         };
-        const existingIndex = customActivities.findIndex(item => item.id === activity.id);
-        if (existingIndex === -1) customActivities.push(activity);
-        else customActivities[existingIndex] = activity;
-        localStorage.setItem(CUSTOM_ACTIVITIES_STORAGE_KEY, JSON.stringify(customActivities));
-        if (activeStandaloneActivityBadge) {
-            const links = loadCustomBadgeActivities();
-            links[activeStandaloneActivityBadge.id] = Array.isArray(links[activeStandaloneActivityBadge.id])
-                ? links[activeStandaloneActivityBadge.id]
-                : [];
-            if (!links[activeStandaloneActivityBadge.id].includes(activity.id)) {
-                links[activeStandaloneActivityBadge.id].push(activity.id);
+
+        let savedActivity = null;
+        try {
+            savedActivity = await window.GTScoutActivities.saveActivity(activity);
+            if (activeStandaloneActivityBadge) {
+                await window.GTScoutActivities.addBadgeActivityLink(activeStandaloneActivityBadge.id, savedActivity.id);
             }
-            localStorage.setItem(CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY, JSON.stringify(links));
+        } catch (error) {
+            status.textContent = error.message || "Kunde inte spara aktivitet.";
+            return;
         }
+
         if (activeStandaloneActivityPlanning) {
             activeStandaloneActivityPlanning.activities = Array.isArray(activeStandaloneActivityPlanning.activities)
                 ? activeStandaloneActivityPlanning.activities
                 : [];
-            if (!activeStandaloneActivityPlanning.activities.includes(activity.id)) {
-                activeStandaloneActivityPlanning.activities.push(activity.id);
+            if (!activeStandaloneActivityPlanning.activities.includes(savedActivity.id)) {
+                activeStandaloneActivityPlanning.activities.push(savedActivity.id);
             }
         }
         saveGroups();
-        const activityIndex = allAktiviteter.findIndex(item => item.id === activity.id);
-        if (activityIndex === -1) allAktiviteter.push(activity);
-        else allAktiviteter[activityIndex] = activity;
+        allAktiviteter = window.GTScoutActivities.getAllActivities();
         modal.classList.add("hidden");
         renderPlanning(new Set([activeStandaloneActivityPlanning?.id].filter(Boolean)));
     });
 }
 
 function openStandaloneActivityForBadge(marke, planning) {
+    if (!window.GTScoutActivities?.canWrite?.()) return;
     const modal = document.getElementById("createActivityModal");
     populatePlanningActivityCategories();
     activeStandaloneActivityBadge = marke;
@@ -303,6 +338,7 @@ function openStandaloneActivityForBadge(marke, planning) {
 }
 
 function openStandaloneActivityForPlanning(planning) {
+    if (!window.GTScoutActivities?.canWrite?.()) return;
     const modal = document.getElementById("createActivityModal");
     activeStandaloneActivityBadge = null;
     activeStandaloneActivityPlanning = planning;
@@ -324,6 +360,10 @@ function openActivityPicker(groupId) {
     document.getElementById("selectActivityTitle").textContent = `Välj aktiviteter – ${group.name}`;
     document.getElementById("selectActivitySearch").value = "";
     populateActivityCategories();
+    populateActivityKarFilter(document.getElementById("selectActivityKarFilter"));
+    const canWrite = window.GTScoutActivities?.canWrite?.();
+    document.getElementById("createActivityFromPickerBtn").classList.toggle("hidden", !canWrite);
+    document.getElementById("saveSelectedActivitiesBtn").classList.toggle("hidden", !canWrite);
     renderActivityPicker();
     document.getElementById("selectActivityModal").classList.remove("hidden");
 }
@@ -350,21 +390,23 @@ function renderActivityPicker() {
     if (!group) return;
     const searchTerm = document.getElementById("selectActivitySearch").value.trim().toLowerCase();
     const category = document.getElementById("selectActivityCategory").value;
+    const karFilter = document.getElementById("selectActivityKarFilter")?.value || "Alla";
     const selected = new Set(Array.isArray(group.activities) ? group.activities : []);
     const activities = allAktiviteter.filter(activity => {
         const matchesCategory = category === "Alla" || getActivityCategories(activity).includes(category);
+        const matchesKar = isActivityVisibleForKarFilter(activity, karFilter);
         const matchesSearch = !searchTerm || [activity.namn, activity.beskrivning, ...(activity.material || [])]
             .filter(Boolean)
             .join(" ")
             .toLowerCase()
             .includes(searchTerm);
-        return matchesCategory && matchesSearch;
+        return matchesCategory && matchesKar && matchesSearch;
     });
     document.getElementById("selectActivityList").innerHTML = activities.length > 0
         ? activities.map(activity => `
             <label class="activity-picker-item">
                 <input type="checkbox" value="${activity.id}" ${selected.has(activity.id) ? "checked" : ""}>
-                <span><small class="activity-picker-category">${getActivityCategories(activity).join(", ")}</small><strong>${activity.namn}</strong>${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}</span>
+                <span><small class="activity-picker-category">${getActivityCategories(activity).join(", ")}</small><small>${escapeHtml(getActivityOwnerLabel(activity))}</small><strong>${activity.namn}</strong>${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}</span>
                 <button class="activity-info-button activity-picker-info-button" type="button" data-activity-id="${activity.id}" title="Visa information" aria-label="Visa information om ${activity.namn}">i</button>
             </label>
         `).join("")
@@ -393,20 +435,24 @@ function createActivityPicker() {
     });
     document.getElementById("selectActivitySearch").addEventListener("input", renderActivityPicker);
     document.getElementById("selectActivityCategory").addEventListener("change", renderActivityPicker);
+    document.getElementById("selectActivityKarFilter").addEventListener("change", renderActivityPicker);
     document.getElementById("saveSelectedActivitiesBtn").addEventListener("click", () => {
+        if (!window.GTScoutActivities?.canWrite?.()) return;
         const group = groups.find(item => item.id === activeActivityGroupId);
         if (!group) return;
         const searchTerm = document.getElementById("selectActivitySearch").value.trim().toLowerCase();
         const category = document.getElementById("selectActivityCategory").value;
+        const karFilter = document.getElementById("selectActivityKarFilter")?.value || "Alla";
         const visibleActivityIds = new Set(allAktiviteter
             .filter(activity => {
                 const matchesCategory = category === "Alla" || getActivityCategories(activity).includes(category);
+                const matchesKar = isActivityVisibleForKarFilter(activity, karFilter);
                 const matchesSearch = !searchTerm || [activity.namn, activity.beskrivning, ...(activity.material || [])]
                     .filter(Boolean)
                     .join(" ")
                     .toLowerCase()
                     .includes(searchTerm);
-                return matchesCategory && matchesSearch;
+                return matchesCategory && matchesKar && matchesSearch;
             })
             .map(activity => activity.id));
         const selectedVisibleActivityIds = [...modal.querySelectorAll("#selectActivityList input:checked")]
@@ -427,8 +473,10 @@ function renderEditActivitiesList() {
     const modal = document.getElementById("editActivitiesModal");
     const list = document.getElementById("editActivitiesList");
     const category = document.getElementById("editActivitiesCategory").value;
+    const karFilter = document.getElementById("editActivitiesKarFilter")?.value || "Alla";
     const activities = allAktiviteter
         .filter(activity => category === "Alla" || getActivityCategories(activity).includes(category))
+        .filter(activity => isActivityVisibleForKarFilter(activity, karFilter))
         .sort((a, b) => {
             const categoryA = getActivityCategories(a).join(", ");
             const categoryB = getActivityCategories(b).join(", ");
@@ -439,6 +487,7 @@ function renderEditActivitiesList() {
             <div class="activity-management-item">
                 <div>
                     <small class="activity-picker-category">${getActivityCategories(activity).join(", ")}</small>
+                    <small>${escapeHtml(getActivityOwnerLabel(activity))}</small>
                     <strong>${activity.namn}</strong>
                     <div class="activity-management-time-row">
                         <small>${formatActivityTime(activity) || "Ingen tidsangivelse"}</small>
@@ -452,10 +501,10 @@ function renderEditActivitiesList() {
                 </div>
                 <div class="activity-management-actions">
                     <button class="activity-info-button" type="button" data-activity-id="${activity.id}" title="Visa information" aria-label="Visa information om ${activity.namn}">i</button>
-                    ${activity.id.startsWith("egen-")
+                    ${canEditActivity(activity)
                         ? `<button class="btn-secondary edit-managed-activity" type="button" data-activity-id="${activity.id}">Redigera</button>
                     <button class="btn-danger delete-managed-activity" type="button" data-activity-id="${activity.id}" aria-label="Radera ${activity.namn}">Radera</button>`
-                        : "<small>Fast aktivitet</small>"}
+                        : "<small>Läsläge</small>"}
                 </div>
             </div>
         `).join("")
@@ -486,6 +535,7 @@ function renderEditActivitiesList() {
 
 function openEditActivitiesModal() {
     const categoryFilter = document.getElementById("editActivitiesCategory");
+    const karFilter = document.getElementById("editActivitiesKarFilter");
     const categories = [...new Set(allAktiviteter
         .flatMap(getActivityCategories))]
         .sort((a, b) => a.localeCompare(b, "sv"));
@@ -494,6 +544,8 @@ function openEditActivitiesModal() {
         ...categories.map(category => `<option value="${category}">${category}</option>`)
     ].join("");
     categoryFilter.onchange = renderEditActivitiesList;
+    populateActivityKarFilter(karFilter);
+    karFilter.onchange = renderEditActivitiesList;
     renderEditActivitiesList();
     const modal = document.getElementById("editActivitiesModal");
     modal.classList.remove("hidden");
@@ -501,7 +553,13 @@ function openEditActivitiesModal() {
 
 function createEditActivitiesMenuAction() {
     const modal = document.getElementById("editActivitiesModal");
-    document.getElementById("editActivitiesBtn").addEventListener("click", openEditActivitiesModal);
+    const editButton = document.getElementById("editActivitiesBtn");
+    const syncVisibility = () => {
+        editButton.classList.toggle("hidden", !window.GTScoutActivities?.canWrite?.());
+    };
+    syncVisibility();
+    window.GTScoutAuth?.onChange(syncVisibility);
+    editButton.addEventListener("click", openEditActivitiesModal);
     document.getElementById("closeEditActivitiesModal").addEventListener("click", () => modal.classList.add("hidden"));
     modal.addEventListener("click", event => {
         if (event.target === modal) modal.classList.add("hidden");
@@ -509,6 +567,7 @@ function createEditActivitiesMenuAction() {
 }
 
 function openStandaloneActivityEditor(activity) {
+    if (!canEditActivity(activity)) return;
     const modal = document.getElementById("createActivityModal");
     populatePlanningActivityCategories();
     activeStandaloneActivityBadge = null;
@@ -531,25 +590,22 @@ function openStandaloneActivityEditor(activity) {
     document.getElementById("planningActivityName").focus();
 }
 
-function deleteStandaloneActivity(activity) {
+async function deleteStandaloneActivity(activity) {
+    if (!window.GTScoutActivities?.canEditActivity?.(activity)) return;
     if (!confirm(`Radera aktiviteten "${activity.namn}"?`)) return;
-    localStorage.setItem(CUSTOM_ACTIVITIES_STORAGE_KEY, JSON.stringify(
-        loadCustomActivities().filter(item => item.id !== activity.id)
-    ));
-    const links = loadCustomBadgeActivities();
-    Object.keys(links).forEach(badgeId => {
-        links[badgeId] = Array.isArray(links[badgeId])
-            ? links[badgeId].filter(activityId => activityId !== activity.id)
-            : [];
-    });
-    localStorage.setItem(CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY, JSON.stringify(links));
+    try {
+        await window.GTScoutActivities.deleteActivity(activity.id);
+    } catch (error) {
+        console.error("Kunde inte radera aktivitet", error);
+        return;
+    }
     groups.forEach(group => {
         group.activities = Array.isArray(group.activities)
             ? group.activities.filter(activityId => activityId !== activity.id)
             : [];
     });
     saveGroups();
-    allAktiviteter = allAktiviteter.filter(item => item.id !== activity.id);
+    allAktiviteter = window.GTScoutActivities.getAllActivities();
     activityDetailPopup.classList.add("hidden");
     renderPlanning();
 }
@@ -1076,7 +1132,7 @@ function getImportedPlanningName(name, level) {
 
 function importPlannings(file) {
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
         try {
             const parsed = JSON.parse(reader.result);
             const importedPlannings = Array.isArray(parsed) ? parsed : parsed.plannings;
@@ -1147,7 +1203,28 @@ function importPlannings(file) {
             window.GTScoutNotes?.scheduleSaveAll(badgeNotes);
             localStorage.setItem(CUSTOM_ACTIVITIES_STORAGE_KEY, JSON.stringify(customActivities));
             localStorage.setItem(CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY, JSON.stringify(customBadgeActivities));
-            allAktiviteter = [
+
+            if (window.GTScoutActivities?.canWrite?.()) {
+                for (const activity of importedActivities) {
+                    try {
+                        await window.GTScoutActivities.saveActivity(activity);
+                    } catch (error) {
+                        console.error("Kunde inte importera aktivitet till databasen", error);
+                    }
+                }
+                for (const [badgeId, activityIdsForBadge] of Object.entries(importedActivityLinks)) {
+                    if (!Array.isArray(activityIdsForBadge)) continue;
+                    for (const activityId of activityIdsForBadge) {
+                        try {
+                            await window.GTScoutActivities.addBadgeActivityLink(badgeId, activityId);
+                        } catch (error) {
+                            console.error("Kunde inte importera aktivitetskoppling till databasen", error);
+                        }
+                    }
+                }
+            }
+
+            allAktiviteter = window.GTScoutActivities?.getAllActivities?.() || [
                 ...allAktiviteter.filter(activity => !activity.id.startsWith("egen-")),
                 ...customActivities
             ];
@@ -1179,8 +1256,10 @@ async function loadMarken() {
             markenResponse.json(),
             aktiviteterResponse.json()
         ]);
+        await window.GTScoutActivities?.ensureLoaded?.();
+        const syncedActivities = window.GTScoutActivities?.getAllActivities?.() || [];
         allMarken = marken;
-        allAktiviteter = [...aktiviteter, ...loadCustomActivities()];
+        allAktiviteter = syncedActivities.length ? syncedActivities : [...aktiviteter, ...loadCustomActivities()];
     } catch (err) {
         console.error("Kunde inte ladda marken.json", err);
     }
@@ -2710,6 +2789,7 @@ function showActivityDetail(activity) {
         ${activity.kategori ? `<p class="activity-popup-category">${activity.kategori}</p>` : ""}
         <h2>${activity.namn}</h2>
         ${activity.beskrivning ? `<p>${renderLinkedText(activity.beskrivning)}</p>` : ""}
+        <p><strong>Kår:</strong> ${escapeHtml(getActivityOwnerLabel(activity))}</p>
         ${formatActivityTime(activity) ? `<p><strong>Tid:</strong> ${formatActivityTime(activity)}</p>` : ""}
         ${material.length > 0 ? `<div><strong>Material:</strong><ul>${material.map(item => `<li>${item}</li>`).join("")}</ul></div>` : ""}
         ${activity.genomforande ? `<div><strong>Genomförande:</strong><p>${renderLinkedText(activity.genomforande)}</p></div>` : ""}
@@ -2721,7 +2801,7 @@ function showActivityDetail(activity) {
                 </div>
             </div>
         ` : ""}
-        ${activity.id.startsWith("egen-") ? `
+        ${canEditActivity(activity) ? `
             <div class="activity-popup-actions">
                 <button class="btn-secondary edit-standalone-activity" type="button">Redigera</button>
                 <button class="btn-danger delete-standalone-activity" type="button">Radera</button>
@@ -2759,6 +2839,7 @@ function showBadgeDetail(marke, planningId = null) {
         Array.isArray(group.badges) && group.badges.includes(marke.id)
     );
     const planning = planningId ? groups.find(group => group.id === planningId) : null;
+    const canWriteActivities = window.GTScoutActivities?.canWrite?.();
     const activities = getBadgeActivityIds(marke)
         .map(activityId => allAktiviteter.find(activity => activity.id === activityId))
         .filter(Boolean);
@@ -2770,14 +2851,14 @@ function showBadgeDetail(marke, planningId = null) {
                 <div class="activity-list">
                     ${activities.length > 0 ? activities.map(activity => `
                         <label class="activity-item">
-                            ${planning ? `<input type="checkbox" class="planning-activity-selection" value="${activity.id}" ${selectedActivities.has(activity.id) ? "checked" : ""}>` : ""}
+                            ${(planning && canWriteActivities) ? `<input type="checkbox" class="planning-activity-selection" value="${activity.id}" ${selectedActivities.has(activity.id) ? "checked" : ""}>` : ""}
                             <span class="activity-item-name"><strong>${activity.namn}</strong>${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}</span>
                             <button class="activity-info-button" type="button" data-activity-id="${activity.id}" aria-label="Visa detaljer för ${activity.namn}">i</button>
                         </label>
                     `).join("") : "<p>Inga aktiviteter kopplade ännu.</p>"}
                 </div>
-                ${planning ? '<button id="createBadgeActivityBtn" class="btn-secondary" type="button">Lägg till egen aktivitet</button>' : ""}
-                ${planning ? '<button id="saveBadgeActivitiesBtn" class="btn-primary" type="button">Uppdatera planering</button>' : ""}
+                ${(planning && canWriteActivities) ? '<button id="createBadgeActivityBtn" class="btn-secondary" type="button">Lägg till egen aktivitet</button>' : ""}
+                ${(planning && canWriteActivities) ? '<button id="saveBadgeActivitiesBtn" class="btn-primary" type="button">Uppdatera planering</button>' : ""}
             </div>
         `;
     body.innerHTML = `
@@ -2865,6 +2946,14 @@ createActivityPicker();
 createEditActivitiesMenuAction();
 loadDefaultPlannings();
 loadMarken();
+
+window.GTScoutActivities?.init({
+    onChange: () => {
+        allAktiviteter = window.GTScoutActivities.getAllActivities();
+        renderPlanning();
+        populatePickerFilters();
+    }
+});
 
 window.GTScoutPlanningSync?.init({
     getGroups: () => groups,

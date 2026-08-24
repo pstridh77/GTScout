@@ -137,6 +137,7 @@
             <div class="picker-filters">
                 <input id="selectActivitySearch" class="picker-search-input" type="search" placeholder="Sök aktivitet...">
                 <select id="selectActivityCategory" aria-label="Filtrera aktiviteter efter kategori"></select>
+                <select id="selectActivityKarFilter" aria-label="Filtrera aktiviteter efter kår"></select>
             </div>
             <div id="selectActivityList" class="activity-picker-list"></div>
             <div class="modal-actions">
@@ -151,6 +152,7 @@
             <button class="close-popup" type="button" id="closeEditActivitiesModal" aria-label="Stäng">&times;</button>
             <h2 id="editActivitiesTitle">Hantera aktiviteter</h2>
             <select id="editActivitiesCategory" aria-label="Filtrera aktiviteter efter kategori"></select>
+            <select id="editActivitiesKarFilter" aria-label="Filtrera aktiviteter efter kår"></select>
             <div id="editActivitiesList" class="activity-management-list"></div>
             <div class="modal-actions"><button id="createActivityBtn" class="btn-secondary" type="button">Skapa aktivitet</button></div>
         </div>
@@ -358,6 +360,7 @@
     <script src="js/supabase-config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/admin.js"></script>
+    <script src="js/activities-sync.js"></script>
     <script src="js/planering-sync.js"></script>
     <script src="js/notes-sync.js"></script>
     <script src="js/planering.js"></script>

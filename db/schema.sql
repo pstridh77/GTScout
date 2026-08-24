@@ -154,6 +154,44 @@ create table if not exists public.badge_notes (
     primary key (kar_id, badge_id)
 );
 
+-- ── Aktiviteter ─────────────────────────────────────────────────────────────
+-- Aktiviteter är globala att läsa (även för gäster), men ägs av en kår.
+-- Endast ledare/admin i ägande kår får ändra.
+create table if not exists public.aktiviteter (
+    id text primary key,
+    kar_id uuid not null references public.kar(id) on delete cascade,
+    created_by uuid references public.profiles(id) on delete set null,
+    namn text not null,
+    kategori text,
+    beskrivning text,
+    tid text,
+    material text[] not null default '{}',
+    genomforande text,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+create index if not exists aktiviteter_kar_id_idx on public.aktiviteter (kar_id);
+create index if not exists aktiviteter_namn_idx on public.aktiviteter (namn);
+
+drop trigger if exists aktiviteter_touch_updated_at on public.aktiviteter;
+create trigger aktiviteter_touch_updated_at
+    before update on public.aktiviteter
+    for each row execute function public.touch_updated_at();
+
+-- Kårspecifika kopplingar mellan märken och aktiviteter.
+create table if not exists public.badge_activities (
+    kar_id uuid not null references public.kar(id) on delete cascade,
+    badge_id text not null,
+    activity_id text not null references public.aktiviteter(id) on delete cascade,
+    created_by uuid references public.profiles(id) on delete set null,
+    created_at timestamptz not null default now(),
+    primary key (kar_id, badge_id, activity_id)
+);
+
+create index if not exists badge_activities_badge_id_idx on public.badge_activities (badge_id);
+create index if not exists badge_activities_activity_id_idx on public.badge_activities (activity_id);
+
 drop trigger if exists badge_notes_touch_updated_at on public.badge_notes;
 create trigger badge_notes_touch_updated_at
     before update on public.badge_notes
@@ -164,6 +202,8 @@ alter table public.kar enable row level security;
 alter table public.profiles enable row level security;
 alter table public.planeringar enable row level security;
 alter table public.badge_notes enable row level security;
+alter table public.aktiviteter enable row level security;
+alter table public.badge_activities enable row level security;
 
 -- Kårernas namn måste kunna listas innan inloggning, för valet vid registrering.
 drop policy if exists "kar_select_all" on public.kar;
@@ -277,6 +317,55 @@ create policy "badge_notes_write_leader" on public.badge_notes
     with check (
         public.current_user_is_leader()
         and kar_id = public.current_user_kar_id()
+    );
+
+-- Alla får läsa aktiviteter och aktivitetskopplingar, även utan inloggning.
+drop policy if exists "aktiviteter_select_all" on public.aktiviteter;
+create policy "aktiviteter_select_all" on public.aktiviteter
+    for select to anon, authenticated
+    using (true);
+
+drop policy if exists "badge_activities_select_all" on public.badge_activities;
+create policy "badge_activities_select_all" on public.badge_activities
+    for select to anon, authenticated
+    using (true);
+
+-- Endast ledare/admin i kåren får skapa/ändra/radera kårens aktiviteter.
+drop policy if exists "aktiviteter_write_kar_leader" on public.aktiviteter;
+create policy "aktiviteter_write_kar_leader" on public.aktiviteter
+    for all to authenticated
+    using (
+        public.current_user_is_leader()
+        and kar_id = public.current_user_kar_id()
+    )
+    with check (
+        public.current_user_is_leader()
+        and kar_id = public.current_user_kar_id()
+    );
+
+-- Endast ledare/admin i kåren får hantera kårens märkeskopplingar.
+drop policy if exists "badge_activities_write_kar_leader" on public.badge_activities;
+create policy "badge_activities_write_kar_leader" on public.badge_activities
+    for all to authenticated
+    using (
+        public.current_user_is_leader()
+        and kar_id = public.current_user_kar_id()
+        and exists (
+            select 1
+            from public.aktiviteter a
+            where a.id = activity_id
+              and a.kar_id = public.current_user_kar_id()
+        )
+    )
+    with check (
+        public.current_user_is_leader()
+        and kar_id = public.current_user_kar_id()
+        and exists (
+            select 1
+            from public.aktiviteter a
+            where a.id = activity_id
+              and a.kar_id = public.current_user_kar_id()
+        )
     );
 
 -- ── Kom igång ────────────────────────────────────────────────────────────────-- 1. insert into public.kar (namn, ort) values ('Gullbrandstorps Scoutkår', 'Halmstad');

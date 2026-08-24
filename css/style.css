@@ -777,7 +777,8 @@ body {
     margin-top: 14px;
 }
 
-#editActivitiesCategory {
+#editActivitiesCategory,
+#editActivitiesKarFilter {
     width: 100%;
     margin-top: 14px;
     padding: 10px 12px;
@@ -833,7 +834,8 @@ body {
     font-weight: 400;
 }
 
-#selectActivityCategory {
+#selectActivityCategory,
+#selectActivityKarFilter {
     flex: 1 1 180px;
     padding: 10px 12px;
     border: 1px solid #d0d7de;
@@ -1139,7 +1141,8 @@ body {
     margin-bottom: 14px;
 }
 
-.activity-picker-content select.activity-picker-category {
+.activity-picker-content select.activity-picker-category,
+.activity-picker-content select.activity-picker-kar {
     flex: 1 1 180px;
     padding: 10px 12px;
     border: 1px solid #d0d7de;
