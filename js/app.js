@@ -24,6 +24,7 @@ if (siteMenuBtn && siteMenuDropdown) {
 
 let allMarken = [];
 let allAktiviteter = [];
+let staticJsonActivities = [];
 let activePopupBadge = null;
 const PLANNING_STORAGE_KEY = "gtscout_planering";
 const BADGE_NOTES_STORAGE_KEY = "gtscout_badge_notes";
@@ -36,6 +37,28 @@ const filters = {
     type: "Alla",
     program: "Alla"
 };
+
+function toReadonlyStaticActivity(activity) {
+    return {
+        ...activity,
+        kar_id: null,
+        kar_namn: "",
+        readOnlyActivity: true
+    };
+}
+
+function mergeActivities(staticActivities, dynamicActivities) {
+    const byId = new Map();
+    (dynamicActivities || []).forEach(activity => {
+        if (!activity?.id) return;
+        byId.set(activity.id, { ...activity, readOnlyActivity: Boolean(activity.readOnlyActivity) });
+    });
+    (staticActivities || []).forEach(activity => {
+        if (!activity?.id) return;
+        byId.set(activity.id, toReadonlyStaticActivity(activity));
+    });
+    return [...byId.values()];
+}
 
 async function loadMarken() {
     try {
@@ -54,7 +77,9 @@ async function loadMarken() {
         await window.GTScoutActivities?.ensureLoaded?.();
         const syncedActivities = window.GTScoutActivities?.getAllActivities?.() || [];
         allMarken = marken;
-        allAktiviteter = syncedActivities.length ? syncedActivities : [...aktiviteter, ...loadCustomActivities()];
+        staticJsonActivities = Array.isArray(aktiviteter) ? aktiviteter : [];
+        const dynamicActivities = syncedActivities.length ? syncedActivities : loadCustomActivities();
+        allAktiviteter = mergeActivities(staticJsonActivities, dynamicActivities);
         renderMarken(marken);
     } catch (error) {
         console.error("Failed to load marken.json", error);
@@ -79,16 +104,30 @@ function loadCustomActivities() {
 }
 
 function loadCustomBadgeActivities() {
-    const syncedLinks = window.GTScoutActivities?.getBadgeLinksMap?.();
-    if (syncedLinks && typeof syncedLinks === "object" && Object.keys(syncedLinks).length > 0) {
-        return syncedLinks;
-    }
+    let localLinks = {};
     try {
         const links = JSON.parse(localStorage.getItem(CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY));
-        return links && typeof links === "object" && !Array.isArray(links) ? links : {};
+        localLinks = links && typeof links === "object" && !Array.isArray(links) ? links : {};
     } catch {
-        return {};
+        localLinks = {};
     }
+
+    const syncedLinks = window.GTScoutActivities?.getBadgeLinksMap?.();
+    if (!syncedLinks || typeof syncedLinks !== "object") {
+        return localLinks;
+    }
+
+    const merged = { ...localLinks };
+    Object.entries(syncedLinks).forEach(([badgeId, activityIds]) => {
+        if (!Array.isArray(activityIds)) return;
+        merged[badgeId] = [
+            ...new Set([
+                ...(Array.isArray(merged[badgeId]) ? merged[badgeId] : []),
+                ...activityIds
+            ])
+        ];
+    });
+    return merged;
 }
 
 function getBadgeActivityIds(marke) {
@@ -165,7 +204,24 @@ function getActivityOwnerLabel(activity) {
     return activity.kar_namn || "Okänd kår";
 }
 
+function getActivityOwnershipMeta(activity) {
+    const ownKarId = window.GTScoutAuth?.getState?.().karId || null;
+    if (!activity?.kar_id || !ownKarId) {
+        return { label: "Annan kår", className: "activity-owner-badge--other" };
+    }
+    if (activity.kar_id === ownKarId) {
+        return { label: "Min kår", className: "activity-owner-badge--mine" };
+    }
+    return { label: "Annan kår", className: "activity-owner-badge--other" };
+}
+
+function renderActivityOwnershipBadge(activity) {
+    const meta = getActivityOwnershipMeta(activity);
+    return `<span class="activity-owner-badge ${meta.className}">${meta.label}</span>`;
+}
+
 function canEditActivity(activity) {
+    if (activity?.readOnlyActivity) return false;
     const sync = window.GTScoutActivities;
     if (sync?.canEditActivity) return sync.canEditActivity(activity);
     return activity?.id?.startsWith("egen-");
@@ -173,6 +229,8 @@ function canEditActivity(activity) {
 
 function canEditBadgeActivityLink(marke, activityId) {
     const sync = window.GTScoutActivities;
+    const activity = allAktiviteter.find(item => item.id === activityId);
+    if (activity?.readOnlyActivity) return true;
     if (sync?.canEditBadgeLink) return sync.canEditBadgeLink(marke.id, activityId);
     return true;
 }
@@ -645,11 +703,21 @@ function createActivityPickerPopup() {
 const activityPickerPopup = createActivityPickerPopup();
 
 function addActivityToBadge(marke, activityId) {
+    const activity = allAktiviteter.find(item => item.id === activityId);
+    if (activity?.readOnlyActivity) {
+        const links = loadCustomBadgeActivities();
+        links[marke.id] = Array.isArray(links[marke.id]) ? links[marke.id] : [];
+        if (links[marke.id].includes(activityId)) return false;
+        links[marke.id].push(activityId);
+        localStorage.setItem(CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY, JSON.stringify(links));
+        return true;
+    }
+
     if (window.GTScoutActivities?.addBadgeActivityLink) {
         if (!window.GTScoutActivities.canWrite()) return false;
         window.GTScoutActivities.addBadgeActivityLink(marke.id, activityId)
             .then(() => {
-                allAktiviteter = window.GTScoutActivities.getAllActivities();
+                allAktiviteter = mergeActivities(staticJsonActivities, window.GTScoutActivities.getAllActivities());
                 if (activePopupBadge) showPopup(activePopupBadge);
             })
             .catch(error => {
@@ -666,12 +734,23 @@ function addActivityToBadge(marke, activityId) {
 }
 
 function removeActivityFromBadge(marke, activityId) {
+    const activity = allAktiviteter.find(item => item.id === activityId);
+    if (activity?.readOnlyActivity) {
+        const links = loadCustomBadgeActivities();
+        if (!Array.isArray(links[marke.id])) return false;
+        const index = links[marke.id].indexOf(activityId);
+        if (index === -1) return false;
+        links[marke.id].splice(index, 1);
+        localStorage.setItem(CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY, JSON.stringify(links));
+        return true;
+    }
+
     if (window.GTScoutActivities?.removeBadgeActivityLink) {
         if (!window.GTScoutActivities.canWrite()) return false;
         if (!window.GTScoutActivities.canEditBadgeLink(marke.id, activityId)) return false;
         window.GTScoutActivities.removeBadgeActivityLink(marke.id, activityId)
             .then(() => {
-                allAktiviteter = window.GTScoutActivities.getAllActivities();
+                allAktiviteter = mergeActivities(staticJsonActivities, window.GTScoutActivities.getAllActivities());
                 if (activePopupBadge) showPopup(activePopupBadge);
             })
             .catch(error => {
@@ -720,7 +799,7 @@ function renderActivityPickerList(picker) {
             return `
             <label class="activity-picker-item">
                 <input type="checkbox" value="${activity.id}" ${isChecked ? "checked" : ""} ${isStatic ? "disabled" : ""}>
-                <span>${activity.kategori ? `<small class="activity-picker-category">${activity.kategori}</small>` : ""}<small>${escapeHtml(getActivityOwnerLabel(activity))}</small><strong>${activity.namn}</strong>${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}${isStatic ? `<small>Fast kopplad</small>` : ""}</span>
+                <span>${activity.kategori ? `<small class="activity-picker-category">${activity.kategori}</small>` : ""}${renderActivityOwnershipBadge(activity)}<small>${escapeHtml(getActivityOwnerLabel(activity))}</small><strong>${activity.namn}</strong>${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}${isStatic ? `<small>Fast kopplad</small>` : ""}</span>
                 <button class="activity-info-button" type="button" data-activity-id="${activity.id}" title="Visa information" aria-label="Visa detaljer för ${activity.namn}">i</button>
             </label>
         `;
@@ -941,6 +1020,7 @@ function renderEditActivitiesList() {
             <div class="activity-management-item">
                 <div>
                     <small class="activity-picker-category">${getActivityCategories(activity).join(", ")}</small>
+                    ${renderActivityOwnershipBadge(activity)}
                     <small>${escapeHtml(getActivityOwnerLabel(activity))}</small>
                     <strong>${activity.namn}</strong>
                     <div class="activity-management-time-row">
@@ -1098,7 +1178,7 @@ async function saveCustomActivity(popup) {
         if (!activeCustomActivityId && activeCustomActivityBadge) {
             await window.GTScoutActivities.addBadgeActivityLink(activeCustomActivityBadge.id, savedActivity.id);
         }
-        allAktiviteter = window.GTScoutActivities.getAllActivities();
+        allAktiviteter = mergeActivities(staticJsonActivities, window.GTScoutActivities.getAllActivities());
         popup.classList.add("hidden");
     } catch (error) {
         popup.querySelector(".custom-activity-status").textContent = error.message || "Kunde inte spara aktivitet.";
@@ -1170,7 +1250,7 @@ async function deleteCustomActivity(activity) {
             : []
     }));
     localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(plannings));
-    allAktiviteter = window.GTScoutActivities.getAllActivities();
+    allAktiviteter = mergeActivities(staticJsonActivities, window.GTScoutActivities.getAllActivities());
     activityPopup.classList.add("hidden");
     renderMarken(allMarken);
     if (activeActivityBadge) showPopup(activeActivityBadge);
@@ -1219,7 +1299,7 @@ function showPopup(marke) {
                 ${activities.length > 0
                     ? activities.map(activity => `
                         <div class="activity-item">
-                                <span class="activity-item-name"><strong>${activity.namn}</strong>${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}</span>
+                                <span class="activity-item-name">${renderActivityOwnershipBadge(activity)}<strong>${activity.namn}</strong>${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}</span>
                             <button class="activity-info-button" type="button" data-activity-id="${activity.id}" aria-label="Visa detaljer för ${activity.namn}">i</button>
                             ${(canWriteActivities && !staticActivityIds.has(activity.id) && canEditBadgeActivityLink(marke, activity.id)) ? `<button class="remove-activity-btn" type="button" data-activity-id="${activity.id}" title="Ta bort ${activity.namn}" aria-label="Ta bort ${activity.namn}">&times;</button>` : ""}
                         </div>
@@ -1322,7 +1402,7 @@ createEditActivitiesMenuAction();
 
 window.GTScoutActivities?.init({
     onChange: () => {
-        allAktiviteter = window.GTScoutActivities.getAllActivities();
+        allAktiviteter = mergeActivities(staticJsonActivities, window.GTScoutActivities.getAllActivities());
         if (allMarken.length > 0) {
             renderMarken(allMarken);
             if (activePopupBadge && !popup.classList.contains("hidden")) {

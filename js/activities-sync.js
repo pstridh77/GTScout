@@ -90,8 +90,11 @@
     }
 
     function writeLocalBadgeLinks(nextBadgeLinks) {
+        const managedActivityIds = new Set((activities || []).map(activity => activity.id));
+        const preservedLocalLinks = readLocalBadgeLinks().filter(link => !managedActivityIds.has(link.activity_id));
+        const combinedLinks = [...(nextBadgeLinks || []), ...preservedLocalLinks];
         const map = {};
-        nextBadgeLinks.forEach(link => {
+        combinedLinks.forEach(link => {
             if (!link.badge_id || !link.activity_id) return;
             map[link.badge_id] = map[link.badge_id] || [];
             if (!map[link.badge_id].includes(link.activity_id)) {
