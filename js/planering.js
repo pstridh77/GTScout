@@ -250,6 +250,12 @@ function canEditActivity(activity) {
     return activity?.id?.startsWith("egen-");
 }
 
+function canDeleteActivity(activity) {
+    const sync = window.GTScoutActivities;
+    if (sync?.canDeleteActivity) return sync.canDeleteActivity(activity);
+    return Boolean(window.GTScoutAuth?.isAdmin?.() && canEditActivity(activity));
+}
+
 function isActivityVisibleForKarFilter(activity, karFilter) {
     if (!karFilter || karFilter === "Alla") return true;
     if (karFilter === "__saknas") return !activity.kar_id;
@@ -693,7 +699,7 @@ function renderEditActivitiesList() {
                     <button class="activity-info-button" type="button" data-activity-id="${activity.id}" title="Visa information" aria-label="Visa information om ${activity.namn}">i</button>
                     ${canEditActivity(activity)
                         ? `<button class="btn-secondary edit-managed-activity" type="button" data-activity-id="${activity.id}">Redigera</button>
-                    <button class="btn-danger delete-managed-activity" type="button" data-activity-id="${activity.id}" aria-label="Radera ${activity.namn}">Radera</button>`
+                    ${canDeleteActivity(activity) ? `<button class="btn-danger delete-managed-activity" type="button" data-activity-id="${activity.id}" aria-label="Radera ${activity.namn}">Radera</button>` : ""}`
                         : "<small>Läsläge</small>"}
                 </div>
             </div>
@@ -802,7 +808,7 @@ function openStandaloneActivityCopy(activity) {
 }
 
 async function deleteStandaloneActivity(activity) {
-    if (!window.GTScoutActivities?.canEditActivity?.(activity)) return;
+    if (!canDeleteActivity(activity)) return;
     if (!confirm(`Radera aktiviteten "${activity.namn}"?`)) return;
     try {
         await window.GTScoutActivities.deleteActivity(activity.id);
@@ -3016,7 +3022,7 @@ function showActivityDetail(activity) {
         ${canEditActivity(activity) || (window.GTScoutActivities?.canWrite?.() && !getActivityOwnershipMeta(activity).className.includes("mine")) ? `
             <div class="activity-popup-actions">
                 ${canEditActivity(activity) ? `<button class="btn-secondary edit-standalone-activity" type="button">Redigera</button>
-                <button class="btn-danger delete-standalone-activity" type="button">Radera</button>` : `<button class="btn-secondary copy-standalone-activity" type="button">Kopiera till min kår</button>`}
+                ${canDeleteActivity(activity) ? '<button class="btn-danger delete-standalone-activity" type="button">Radera</button>' : ""}` : `<button class="btn-secondary copy-standalone-activity" type="button">Kopiera till min kår</button>`}
             </div>
         ` : ""}
     `;

@@ -195,6 +195,12 @@ function canEditActivity(activity) {
     return activity?.id?.startsWith("egen-");
 }
 
+function canDeleteActivity(activity) {
+    const sync = window.GTScoutActivities;
+    if (sync?.canDeleteActivity) return sync.canDeleteActivity(activity);
+    return Boolean(window.GTScoutAuth?.isAdmin?.() && canEditActivity(activity));
+}
+
 function canEditBadgeActivityLink(marke, activityId) {
     const sync = window.GTScoutActivities;
     if (sync?.canEditBadgeLink) return sync.canEditBadgeLink(marke.id, activityId);
@@ -1048,7 +1054,7 @@ function createCustomActivityPopup() {
             <label class="modal-field"><span>Genomförande</span><textarea class="custom-activity-instructions" rows="4"></textarea></label>
             <p class="custom-activity-status detail-planning-status" role="status"></p>
             <div class="modal-actions modal-actions--split">
-                <button class="btn-danger delete-custom-activity hidden" type="button">Radera</button>
+                <button class="btn-danger delete-custom-activity" type="button" hidden>Radera</button>
                 <button class="btn-primary save-custom-activity" type="button">Spara aktivitet</button>
             </div>
         </div>
@@ -1080,7 +1086,7 @@ function openCustomActivityPopup(marke, activity = null, copy = false) {
         .join("");
     customActivityPopup.querySelector(".custom-activity-title").textContent = copy ? "Kopiera aktivitet till min kår" : activity ? "Redigera aktivitet" : "Skapa egen aktivitet";
     customActivityPopup.querySelector(".save-custom-activity").textContent = copy ? "Spara som ny aktivitet" : activity ? "Spara ändringar" : "Spara aktivitet";
-    customActivityPopup.querySelector(".delete-custom-activity").classList.toggle("hidden", !activity || !canEditActivity(activity));
+    customActivityPopup.querySelector(".delete-custom-activity").hidden = !activity || !canDeleteActivity(activity);
     customActivityPopup.querySelector(".custom-activity-name").value = activity?.namn || "";
     customActivityPopup.querySelector(".custom-activity-description").value = activity?.beskrivning || "";
     customActivityPopup.querySelector(".custom-activity-category").value = activity?.kategori || marke?.kategori || "";
@@ -1157,7 +1163,7 @@ function showActivityPopup(activity) {
         ${canEditActivity(activity) || (window.GTScoutActivities?.canWrite?.() && activity?.kar_id && !canEditActivity(activity)) ? `
             <div class="activity-popup-actions">
                 ${canEditActivity(activity) ? `<button class="btn-secondary edit-custom-activity" type="button">Redigera</button>
-                <button class="btn-danger delete-custom-activity" type="button">Radera</button>` : `<button class="btn-secondary copy-custom-activity" type="button">Kopiera till min kår</button>`}
+                ${canDeleteActivity(activity) ? '<button class="btn-danger delete-custom-activity" type="button">Radera</button>' : ""}` : `<button class="btn-secondary copy-custom-activity" type="button">Kopiera till min kår</button>`}
             </div>
         ` : ""}
     `;
@@ -1184,7 +1190,7 @@ function showActivityPopup(activity) {
 }
 
 async function deleteCustomActivity(activity, sourcePopup = null) {
-    if (!window.GTScoutActivities?.canEditActivity?.(activity)) return;
+    if (!canDeleteActivity(activity)) return;
     if (!confirm(`Radera aktiviteten "${activity.namn}"?`)) return;
     try {
         await window.GTScoutActivities.deleteActivity(activity.id);
