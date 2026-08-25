@@ -780,6 +780,27 @@ function openStandaloneActivityEditor(activity) {
     document.getElementById("planningActivityName").focus();
 }
 
+function openStandaloneActivityCopy(activity) {
+    if (!window.GTScoutActivities?.canWrite?.()) return;
+    const modal = document.getElementById("createActivityModal");
+    populatePlanningActivityCategories();
+    activeStandaloneActivityBadge = null;
+    activeStandaloneActivityPlanning = null;
+    editingStandaloneActivityId = null;
+    document.getElementById("createActivityTitle").textContent = "Kopiera aktivitet till min kår";
+    document.getElementById("savePlanningActivityBtn").textContent = "Spara som ny aktivitet";
+    document.getElementById("planningActivityMemberships").textContent = "Inte tillagd i någon planering.";
+    document.getElementById("planningActivityName").value = activity.namn || "";
+    document.getElementById("planningActivityDescription").value = activity.beskrivning || "";
+    document.getElementById("planningActivityCategory").value = activity.kategori || "";
+    document.getElementById("planningActivityTime").value = activity.tid || "";
+    document.getElementById("planningActivityMaterial").value = Array.isArray(activity.material) ? activity.material.join("\n") : "";
+    document.getElementById("planningActivityInstructions").value = activity.genomforande || "";
+    document.getElementById("createActivityStatus").textContent = "";
+    modal.classList.remove("hidden");
+    document.getElementById("planningActivityName").focus();
+}
+
 async function deleteStandaloneActivity(activity) {
     if (!window.GTScoutActivities?.canEditActivity?.(activity)) return;
     if (!confirm(`Radera aktiviteten "${activity.namn}"?`)) return;
@@ -2983,10 +3004,10 @@ function showActivityDetail(activity) {
                 </div>
             </div>
         ` : ""}
-        ${canEditActivity(activity) ? `
+        ${canEditActivity(activity) || (window.GTScoutActivities?.canWrite?.() && !getActivityOwnershipMeta(activity).className.includes("mine")) ? `
             <div class="activity-popup-actions">
-                <button class="btn-secondary edit-standalone-activity" type="button">Redigera</button>
-                <button class="btn-danger delete-standalone-activity" type="button">Radera</button>
+                ${canEditActivity(activity) ? `<button class="btn-secondary edit-standalone-activity" type="button">Redigera</button>
+                <button class="btn-danger delete-standalone-activity" type="button">Radera</button>` : `<button class="btn-secondary copy-standalone-activity" type="button">Kopiera till min kår</button>`}
             </div>
         ` : ""}
     `;
@@ -2995,6 +3016,13 @@ function showActivityDetail(activity) {
         editButton.addEventListener("click", () => {
             activityDetailPopup.classList.add("hidden");
             openStandaloneActivityEditor(activity);
+        });
+    }
+    const copyButton = activityDetailPopup.querySelector(".copy-standalone-activity");
+    if (copyButton) {
+        copyButton.addEventListener("click", () => {
+            activityDetailPopup.classList.add("hidden");
+            openStandaloneActivityCopy(activity);
         });
     }
     const deleteButton = activityDetailPopup.querySelector(".delete-standalone-activity");
