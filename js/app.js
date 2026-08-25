@@ -1068,9 +1068,9 @@ function createCustomActivityPopup() {
 
 const customActivityPopup = createCustomActivityPopup();
 
-function openCustomActivityPopup(marke, activity = null) {
+function openCustomActivityPopup(marke, activity = null, copy = false) {
     activeCustomActivityBadge = marke;
-    activeCustomActivityId = activity ? activity.id : null;
+    activeCustomActivityId = activity && !copy ? activity.id : null;
     const categories = [...new Set([
         ...allMarken.map(item => item.kategori),
         ...allAktiviteter.map(item => item.kategori)
@@ -1078,8 +1078,8 @@ function openCustomActivityPopup(marke, activity = null) {
     customActivityPopup.querySelector("#customActivityCategories").innerHTML = categories
         .map(category => `<option value="${category}"></option>`)
         .join("");
-    customActivityPopup.querySelector(".custom-activity-title").textContent = activity ? "Redigera aktivitet" : "Skapa egen aktivitet";
-    customActivityPopup.querySelector(".save-custom-activity").textContent = activity ? "Spara ändringar" : "Spara aktivitet";
+    customActivityPopup.querySelector(".custom-activity-title").textContent = copy ? "Kopiera aktivitet till min kår" : activity ? "Redigera aktivitet" : "Skapa egen aktivitet";
+    customActivityPopup.querySelector(".save-custom-activity").textContent = copy ? "Spara som ny aktivitet" : activity ? "Spara ändringar" : "Spara aktivitet";
     customActivityPopup.querySelector(".delete-custom-activity").classList.toggle("hidden", !activity || !canEditActivity(activity));
     customActivityPopup.querySelector(".custom-activity-name").value = activity?.namn || "";
     customActivityPopup.querySelector(".custom-activity-description").value = activity?.beskrivning || "";
@@ -1154,10 +1154,10 @@ function showActivityPopup(activity) {
                 </div>
             </div>
         ` : ""}
-        ${canEditActivity(activity) ? `
+        ${canEditActivity(activity) || (window.GTScoutActivities?.canWrite?.() && activity?.kar_id && !canEditActivity(activity)) ? `
             <div class="activity-popup-actions">
-                <button class="btn-secondary edit-custom-activity" type="button">Redigera</button>
-                <button class="btn-danger delete-custom-activity" type="button">Radera</button>
+                ${canEditActivity(activity) ? `<button class="btn-secondary edit-custom-activity" type="button">Redigera</button>
+                <button class="btn-danger delete-custom-activity" type="button">Radera</button>` : `<button class="btn-secondary copy-custom-activity" type="button">Kopiera till min kår</button>`}
             </div>
         ` : ""}
     `;
@@ -1169,6 +1169,13 @@ function showActivityPopup(activity) {
                 activityPopup.classList.add("hidden");
                 openCustomActivityPopup(badge, activity);
             }
+        });
+    }
+    const copyButton = activityPopup.querySelector(".copy-custom-activity");
+    if (copyButton) {
+        copyButton.addEventListener("click", () => {
+            activityPopup.classList.add("hidden");
+            openCustomActivityPopup(null, activity, true);
         });
     }
     const deleteButton = activityPopup.querySelector(".delete-custom-activity");

@@ -1750,6 +1750,17 @@ body {
     cursor: grab;
 }
 
+.planned-activity--missing {
+    background: #fff7ed;
+    border: 1px dashed #c2410c;
+    cursor: default;
+}
+
+.missing-activity {
+    color: #9a3412;
+    font-weight: 600;
+}
+
 .planned-activity-details,
 .meeting-activity-details {
     display: grid;

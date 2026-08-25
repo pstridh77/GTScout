@@ -780,6 +780,27 @@ function openStandaloneActivityEditor(activity) {
     document.getElementById("planningActivityName").focus();
 }
 
+function openStandaloneActivityCopy(activity) {
+    if (!window.GTScoutActivities?.canWrite?.()) return;
+    const modal = document.getElementById("createActivityModal");
+    populatePlanningActivityCategories();
+    activeStandaloneActivityBadge = null;
+    activeStandaloneActivityPlanning = null;
+    editingStandaloneActivityId = null;
+    document.getElementById("createActivityTitle").textContent = "Kopiera aktivitet till min kår";
+    document.getElementById("savePlanningActivityBtn").textContent = "Spara som ny aktivitet";
+    document.getElementById("planningActivityMemberships").textContent = "Inte tillagd i någon planering.";
+    document.getElementById("planningActivityName").value = activity.namn || "";
+    document.getElementById("planningActivityDescription").value = activity.beskrivning || "";
+    document.getElementById("planningActivityCategory").value = activity.kategori || "";
+    document.getElementById("planningActivityTime").value = activity.tid || "";
+    document.getElementById("planningActivityMaterial").value = Array.isArray(activity.material) ? activity.material.join("\n") : "";
+    document.getElementById("planningActivityInstructions").value = activity.genomforande || "";
+    document.getElementById("createActivityStatus").textContent = "";
+    modal.classList.remove("hidden");
+    document.getElementById("planningActivityName").focus();
+}
+
 async function deleteStandaloneActivity(activity) {
     if (!window.GTScoutActivities?.canEditActivity?.(activity)) return;
     if (!confirm(`Radera aktiviteten "${activity.namn}"?`)) return;
@@ -1030,10 +1051,12 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
         const plannedActivityIds = Array.isArray(group.activities) ? group.activities : [];
         const badgeActivities = badgeActivityIds
             .filter(activityId => plannedActivityIds.includes(activityId))
-            .map(activityId => allAktiviteter.find(activity => activity.id === activityId))
-            .filter(Boolean);
+            .map(activityId => ({
+                id: activityId,
+                activity: allAktiviteter.find(activity => activity.id === activityId)
+            }));
         const activities = showPlanningActivities && badgeActivities.length > 0
-            ? `<div class="pdf-badge-activities"><strong>Aktiviteter:</strong>${badgeActivities.map(activityId => renderActivity(activityId.id)).join("")}</div>`
+            ? `<div class="pdf-badge-activities"><strong>Aktiviteter:</strong>${badgeActivities.map(activity => renderActivity(activity.id)).join("")}</div>`
             : "";
         const image = resolveImage(marke.bild);
 
@@ -1069,9 +1092,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 .filter(Boolean),
             Array.isArray(group.badges) ? group.badges : []
         );
-        const selectedActivities = (meeting.activities || [])
-            .map(activityId => allAktiviteter.find(item => item.id === activityId))
-            .filter(Boolean);
+        const selectedActivities = meeting.activities || [];
         const badgeImages = meetingBadges.length > 0
             ? meetingBadges.map(badge => `<img class="pdf-meeting-badge" src="${escapeHtml(resolveImage(badge.bild))}" alt="${escapeHtml(badge.namn)}" title="${escapeHtml(badge.namn)}">`).join("")
             : "";
@@ -1081,7 +1102,10 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 <h3>Träff ${escapeHtml(meeting.week || "-")}${meeting.date ? ` <span>(${escapeHtml(meeting.date)})</span>` : ""}</h3>
             </div>
             ${meeting.notes ? `<p class="pdf-meeting-notes">${escapeHtml(meeting.notes)}</p>` : ""}
-            ${selectedActivities.length > 0 ? `<p><strong>Aktiviteter:</strong> ${escapeHtml(selectedActivities.map(activity => activity.namn).join(", "))}</p>` : ""}
+            ${selectedActivities.length > 0 ? `<p><strong>Aktiviteter:</strong> ${selectedActivities.map(activityId => {
+                const activity = allAktiviteter.find(item => item.id === activityId);
+                return activity ? escapeHtml(activity.namn) : `<span class="missing-activity">Aktivitet saknas (${escapeHtml(activityId)})</span>`;
+            }).join(", ")}</p>` : ""}
             ${meeting.responsible ? `<p><strong>Ansvarig:</strong> ${escapeHtml(meeting.responsible)}</p>` : ""}
         </article>`;
     };
@@ -1758,7 +1782,10 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
                         <button class="activity-info-button planned-activity-info-btn" type="button" data-activity-id="${activity.id}" title="Visa detaljer för ${activity.namn}" aria-label="Visa detaljer för ${activity.namn}">i</button>
                         <button class="remove-activity-btn" type="button" data-group-id="${group.id}" data-activity-id="${activity.id}" title="Ta bort ${activity.namn} från planeringen" aria-label="Ta bort ${activity.namn}">&times;</button>
                    </div>`
-                : "";
+                     : `<div class="planned-activity planned-activity--missing" data-group-id="${group.id}" data-activity-id="${escapeHtml(activityId)}">
+                            <span class="planned-activity-details"><span class="missing-activity">Aktivitet saknas</span><small>ID: ${escapeHtml(activityId)}</small></span>
+                            <button class="remove-activity-btn" type="button" data-group-id="${group.id}" data-activity-id="${escapeHtml(activityId)}" title="Ta bort saknad aktivitet från planeringen" aria-label="Ta bort saknad aktivitet från planeringen">&times;</button>
+                        </div>`;
                 }).join("")}</div></details>`;
             const meetingsMarkup = showPlanningMeetings ? `<details class="planned-meetings"${openMeetingGroupIds.has(group.id) ? " open" : ""}><summary><span>Möten${meetings.length > 0 ? ` (${meetings.length})` : ""}</span><button class="btn-secondary add-meeting-btn" type="button" data-group-id="${group.id}">+ Möte</button></summary><div class="planned-meetings-list"><div class="planned-meetings-actions"><button class="btn-secondary print-meetings-btn" type="button" data-group-id="${group.id}">Skriv ut möten</button></div>${meetings.map(meeting => {
             const selectedActivities = (meeting.activities || []).map(activityId => allAktiviteter.find(item => item.id === activityId)).filter(Boolean);
@@ -1779,7 +1806,10 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
                     ${meeting.date ? `<small>${escapeHtml(meeting.date)}</small>` : ""}
                     ${meeting.notes ? `<p>${escapeHtml(meeting.notes)}</p>` : ""}
                     ${meetingBadges.length > 0 ? `<div class="planned-meeting-badges">${meetingBadges.map(badge => `<div class="planned-meeting-badge" title="${escapeHtml(badge.namn)}"><img src="${escapeHtml(badge.bild)}" alt="${escapeHtml(badge.namn)}"></div>`).join("")}</div>` : ""}
-                    ${selectedActivities.length > 0 ? `<div class="planned-meeting-activity-list"><strong>Aktiviteter:</strong> ${escapeHtml(selectedActivities.map(activity => activity.namn).join(", "))}</div>` : ""}
+                    ${(meeting.activities || []).length > 0 ? `<div class="planned-meeting-activity-list"><strong>Aktiviteter:</strong> ${(meeting.activities || []).map(activityId => {
+                        const activity = allAktiviteter.find(item => item.id === activityId);
+                        return activity ? escapeHtml(activity.namn) : `<span class="missing-activity">Aktivitet saknas (${escapeHtml(activityId)})</span>`;
+                    }).join(", ")}</div>` : ""}
                     ${meeting.responsible ? `<div><strong>Ansvarig:</strong> ${escapeHtml(meeting.responsible)}</div>` : ""}
                 </div>`;
         }).join("")}</div></details>` : "";
@@ -2983,10 +3013,10 @@ function showActivityDetail(activity) {
                 </div>
             </div>
         ` : ""}
-        ${canEditActivity(activity) ? `
+        ${canEditActivity(activity) || (window.GTScoutActivities?.canWrite?.() && !getActivityOwnershipMeta(activity).className.includes("mine")) ? `
             <div class="activity-popup-actions">
-                <button class="btn-secondary edit-standalone-activity" type="button">Redigera</button>
-                <button class="btn-danger delete-standalone-activity" type="button">Radera</button>
+                ${canEditActivity(activity) ? `<button class="btn-secondary edit-standalone-activity" type="button">Redigera</button>
+                <button class="btn-danger delete-standalone-activity" type="button">Radera</button>` : `<button class="btn-secondary copy-standalone-activity" type="button">Kopiera till min kår</button>`}
             </div>
         ` : ""}
     `;
@@ -2995,6 +3025,13 @@ function showActivityDetail(activity) {
         editButton.addEventListener("click", () => {
             activityDetailPopup.classList.add("hidden");
             openStandaloneActivityEditor(activity);
+        });
+    }
+    const copyButton = activityDetailPopup.querySelector(".copy-standalone-activity");
+    if (copyButton) {
+        copyButton.addEventListener("click", () => {
+            activityDetailPopup.classList.add("hidden");
+            openStandaloneActivityCopy(activity);
         });
     }
     const deleteButton = activityDetailPopup.querySelector(".delete-standalone-activity");
