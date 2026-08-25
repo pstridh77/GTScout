@@ -980,8 +980,7 @@ function renderEditActivitiesList() {
                 <div class="activity-management-actions">
                     <button class="activity-info-button" type="button" data-activity-id="${activity.id}" title="Visa information" aria-label="Visa information om ${activity.namn}">i</button>
                     ${canEditActivity(activity)
-                        ? `<button class="btn-secondary edit-managed-activity" type="button" data-activity-id="${activity.id}">Redigera</button>
-                    <button class="btn-danger delete-managed-activity" type="button" data-activity-id="${activity.id}" aria-label="Radera ${activity.namn}">Radera</button>`
+                        ? `<button class="btn-secondary edit-managed-activity" type="button" data-activity-id="${activity.id}">Redigera</button>`
                         : "<small>Läsläge</small>"}
                 </div>
             </div>
@@ -1002,16 +1001,6 @@ function renderEditActivitiesList() {
             if (!activity) return;
             editActivitiesModal.classList.add("hidden");
             openCustomActivityPopup(null, activity);
-        });
-    });
-
-    list.querySelectorAll(".delete-managed-activity").forEach(button => {
-        button.addEventListener("click", () => {
-            const activity = allAktiviteter.find(item => item.id === button.dataset.activityId);
-            if (!activity) return;
-            deleteCustomActivity(activity);
-            populateEditActivitiesCategories();
-            renderEditActivitiesList();
         });
     });
 }
@@ -1058,7 +1047,10 @@ function createCustomActivityPopup() {
             <label class="modal-field"><span>Material, ett per rad</span><textarea class="custom-activity-material" rows="3"></textarea></label>
             <label class="modal-field"><span>Genomförande</span><textarea class="custom-activity-instructions" rows="4"></textarea></label>
             <p class="custom-activity-status detail-planning-status" role="status"></p>
-            <div class="modal-actions"><button class="btn-primary save-custom-activity" type="button">Spara aktivitet</button></div>
+            <div class="modal-actions modal-actions--split">
+                <button class="btn-danger delete-custom-activity hidden" type="button">Radera</button>
+                <button class="btn-primary save-custom-activity" type="button">Spara aktivitet</button>
+            </div>
         </div>
     `;
     popup.querySelector(".close-popup").addEventListener("click", () => popup.classList.add("hidden"));
@@ -1066,6 +1058,10 @@ function createCustomActivityPopup() {
         if (event.target === popup) popup.classList.add("hidden");
     });
     popup.querySelector(".save-custom-activity").addEventListener("click", () => saveCustomActivity(popup));
+    popup.querySelector(".delete-custom-activity").addEventListener("click", () => {
+        const activity = allAktiviteter.find(item => item.id === activeCustomActivityId);
+        if (activity) deleteCustomActivity(activity, popup);
+    });
     document.body.appendChild(popup);
     return popup;
 }
@@ -1084,6 +1080,7 @@ function openCustomActivityPopup(marke, activity = null) {
         .join("");
     customActivityPopup.querySelector(".custom-activity-title").textContent = activity ? "Redigera aktivitet" : "Skapa egen aktivitet";
     customActivityPopup.querySelector(".save-custom-activity").textContent = activity ? "Spara ändringar" : "Spara aktivitet";
+    customActivityPopup.querySelector(".delete-custom-activity").classList.toggle("hidden", !activity || !canEditActivity(activity));
     customActivityPopup.querySelector(".custom-activity-name").value = activity?.namn || "";
     customActivityPopup.querySelector(".custom-activity-description").value = activity?.beskrivning || "";
     customActivityPopup.querySelector(".custom-activity-category").value = activity?.kategori || marke?.kategori || "";
@@ -1179,7 +1176,7 @@ function showActivityPopup(activity) {
     activityPopup.classList.remove("hidden");
 }
 
-async function deleteCustomActivity(activity) {
+async function deleteCustomActivity(activity, sourcePopup = null) {
     if (!window.GTScoutActivities?.canEditActivity?.(activity)) return;
     if (!confirm(`Radera aktiviteten "${activity.namn}"?`)) return;
     try {
@@ -1197,6 +1194,12 @@ async function deleteCustomActivity(activity) {
     localStorage.setItem(PLANNING_STORAGE_KEY, JSON.stringify(plannings));
     allAktiviteter = window.GTScoutActivities.getAllActivities();
     activityPopup.classList.add("hidden");
+    sourcePopup?.classList.add("hidden");
+    if (sourcePopup === customActivityPopup) {
+        populateEditActivitiesCategories();
+        renderEditActivitiesList();
+        editActivitiesModal.classList.remove("hidden");
+    }
     renderMarken(allMarken);
     if (activeActivityBadge) showPopup(activeActivityBadge);
 }
