@@ -279,6 +279,8 @@ create policy "profiles_update_kar_admin" on public.profiles
         public.current_user_is_system_admin()
         or (
             public.current_user_role() = 'admin'
+            -- kårens admin får inte sänka sin egen behörighet; det kräver systemadmin
+            and not (id = auth.uid() and role <> 'admin')
             -- kårens admin får aldrig skapa/behålla en systemadmin (admin utan kår)
             and not (role = 'admin' and kar_id is null)
             and (kar_id is null or kar_id = public.current_user_kar_id())

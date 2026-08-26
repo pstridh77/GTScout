@@ -206,11 +206,13 @@
             return;
         }
         const ownKarId = auth().getState().karId;
+        const ownUserId = auth().getUser()?.id;
         const viewerIsSystemAdmin = isSystemAdmin();
         const karOptions = viewerIsSystemAdmin ? karer : karer.filter(kar => kar.id === ownKarId);
 
         list.innerHTML = profiles.map(profile => {
             const isProfileSystemAdmin = profile.role === "admin" && !profile.kar_id;
+            const isOwnProfile = profile.id === ownUserId;
             // Systemadmins syns för kårens admin men får bara ses, inte redigeras.
             const readOnly = isProfileSystemAdmin && !viewerIsSystemAdmin;
             const nameSpan = `
@@ -238,7 +240,7 @@
                 ${nameSpan}
                 <select data-field="role" aria-label="Roll">
                     ${ROLE_OPTIONS.map(option => `
-                        <option value="${option.value}" ${profile.role === option.value ? "selected" : ""}>${option.label}</option>
+                        <option value="${option.value}" ${profile.role === option.value ? "selected" : ""} ${isOwnProfile && option.value !== "admin" ? "disabled" : ""}>${option.label}</option>
                     `).join("")}
                 </select>
                 <select data-field="kar" aria-label="Kår">
