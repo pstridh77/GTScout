@@ -16,6 +16,7 @@
                 <a href="https://www.scoutnet.se/" target="_blank" rel="noreferrer">Scoutnet</a>
                 <a href="https://www.scoutshop.se/" target="_blank" rel="noreferrer">Scoutshop</a>
             </nav>
+            <div id="authArea" class="auth-area"></div>
         </div>
         <div class="header-main">
             <a class="site-brand" href="index.html" aria-label="Gullbrandstorps scoutkår">
@@ -44,6 +45,8 @@
                     <button id="importPlanningBtn" class="planning-menu-item" type="button" role="menuitem">Importera...</button>
                     <div class="planning-menu-divider" role="separator"></div>
                     <button id="exportPlanningPdfBtn" class="planning-menu-item" type="button" role="menuitem">Skriv ut Planering...</button>
+                    <div class="planning-menu-divider" role="separator"></div>
+                    <button class="planning-menu-item hidden" type="button" role="menuitem" data-admin-panel>Administration</button>
                 </div>
             </div>
         </div>
@@ -60,6 +63,7 @@
             <button id="addGroupBtn" class="btn-primary" type="button">+ Lägg till planering</button>
             <button id="openDefaultPlanningBtn" class="btn-secondary" type="button">Standardplaneringar</button>
         </div>
+        <span id="planningSyncStatus" class="planning-sync-status hidden" role="status" aria-live="polite"></span>
     </div>
 
     <div class="planning-filters">
@@ -133,6 +137,7 @@
             <div class="picker-filters">
                 <input id="selectActivitySearch" class="picker-search-input" type="search" placeholder="Sök aktivitet...">
                 <select id="selectActivityCategory" aria-label="Filtrera aktiviteter efter kategori"></select>
+                <select id="selectActivityKarFilter" aria-label="Filtrera aktiviteter efter kår"></select>
             </div>
             <div id="selectActivityList" class="activity-picker-list"></div>
             <div class="modal-actions">
@@ -147,6 +152,7 @@
             <button class="close-popup" type="button" id="closeEditActivitiesModal" aria-label="Stäng">&times;</button>
             <h2 id="editActivitiesTitle">Hantera aktiviteter</h2>
             <select id="editActivitiesCategory" aria-label="Filtrera aktiviteter efter kategori"></select>
+            <select id="editActivitiesKarFilter" aria-label="Filtrera aktiviteter efter kår"></select>
             <div id="editActivitiesList" class="activity-management-list"></div>
             <div class="modal-actions"><button id="createActivityBtn" class="btn-secondary" type="button">Skapa aktivitet</button></div>
         </div>
@@ -351,6 +357,12 @@
         </div>
     </div>
 
+    <script src="js/supabase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/activities-sync.js"></script>
+    <script src="js/planering-sync.js"></script>
+    <script src="js/notes-sync.js"></script>
     <script src="js/planering.js"></script>
 </body>
 </html>
