@@ -1709,7 +1709,14 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
 
             col.appendChild(cardsRow);
         });
+
         grid.appendChild(col);
+        const levelCards = [...col.querySelectorAll(".group-card")];
+        const widestCard = Math.max(...levelCards.map(card => card.offsetWidth));
+        levelCards.forEach(card => {
+            card.style.width = `${widestCard}px`;
+            card.style.flexBasis = `${widestCard}px`;
+        });
     });
 
     // Bind remove-badge and dblclick on planned badges

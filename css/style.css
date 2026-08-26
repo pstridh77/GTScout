@@ -1576,11 +1576,16 @@ body {
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
+    align-items: flex-start;
     gap: 12px;
     overflow-x: auto;
 }
 
 .group-card {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    width: max-content;
     background: white;
     border-radius: 14px;
     box-shadow: 0 3px 10px rgba(0,0,0,0.08);
