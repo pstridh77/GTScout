@@ -1652,14 +1652,23 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
         colHeader.querySelector(".level-remove-all-btn").addEventListener("click", () => removeLevelGroups(level));
         col.appendChild(colHeader);
 
-        const cardsRow = document.createElement("div");
-        cardsRow.className = "level-row-cards";
-
+        const groupsByYear = new Map();
         levelGroups.forEach(group => {
-            const card = document.createElement("div");
-            card.className = "group-card";
-            const noteText = String(group.note ?? "").trim();
-            card.innerHTML = `
+            const year = getGroupYearValue(group);
+            const yearKey = Number.isFinite(year) ? String(year) : "unknown";
+            if (!groupsByYear.has(yearKey)) groupsByYear.set(yearKey, []);
+            groupsByYear.get(yearKey).push(group);
+        });
+
+        groupsByYear.forEach(yearGroups => {
+            const cardsRow = document.createElement("div");
+            cardsRow.className = "level-row-cards";
+
+            yearGroups.forEach(group => {
+                const card = document.createElement("div");
+                card.className = "group-card";
+                const noteText = String(group.note ?? "").trim();
+                card.innerHTML = `
                 <div class="group-card-header">
                     <h3 class="group-name" title="Planeringens namn">${group.name}</h3>
                     <div class="group-card-actions">
@@ -1670,35 +1679,36 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                 <div class="group-badges" data-group-id="${group.id}">
                     ${renderGroupBadges(group, activeOpenActivityGroupIds, activeOpenMeetingGroupIds)}
                 </div>
-            `;
-            card.querySelector(".edit-group-btn").addEventListener("click", () => openGroupEditor(group.id));
-            card.querySelector(".add-badge-btn").addEventListener("click", event => {
-                event.stopPropagation();
-                openBadgePicker(group.id);
-            });
-            const addActivityButton = card.querySelector(".add-activity-btn");
-            if (addActivityButton) {
-                addActivityButton.addEventListener("click", event => {
+                `;
+                card.querySelector(".edit-group-btn").addEventListener("click", () => openGroupEditor(group.id));
+                card.querySelector(".add-badge-btn").addEventListener("click", event => {
                     event.stopPropagation();
-                    openActivityPicker(group.id);
+                    openBadgePicker(group.id);
                 });
-            }
-            const addMeetingButton = card.querySelector(".add-meeting-btn");
-            if (addMeetingButton) {
-                addMeetingButton.addEventListener("click", event => {
-                    event.stopPropagation();
-                    openMeetingModal(group.id);
+                const addActivityButton = card.querySelector(".add-activity-btn");
+                if (addActivityButton) {
+                    addActivityButton.addEventListener("click", event => {
+                        event.stopPropagation();
+                        openActivityPicker(group.id);
+                    });
+                }
+                const addMeetingButton = card.querySelector(".add-meeting-btn");
+                if (addMeetingButton) {
+                    addMeetingButton.addEventListener("click", event => {
+                        event.stopPropagation();
+                        openMeetingModal(group.id);
+                    });
+                }
+                card.addEventListener("dblclick", event => {
+                    const upperContentArea = event.target.closest(".group-card-header, .group-note");
+                    if (!upperContentArea) return;
+                    openGroupEditor(group.id);
                 });
-            }
-            card.addEventListener("dblclick", event => {
-                const upperContentArea = event.target.closest(".group-card-header, .group-note");
-                if (!upperContentArea) return;
-                openGroupEditor(group.id);
+                cardsRow.appendChild(card);
             });
-            cardsRow.appendChild(card);
-        });
 
-        col.appendChild(cardsRow);
+            col.appendChild(cardsRow);
+        });
         grid.appendChild(col);
     });
 
