@@ -334,16 +334,34 @@ create policy "badge_activities_select_all" on public.badge_activities
     for select to anon, authenticated
     using (true);
 
--- Endast ledare/admin i kåren får skapa/ändra/radera kårens aktiviteter.
+-- Endast ledare/admin i kåren får skapa och ändra kårens aktiviteter.
 drop policy if exists "aktiviteter_write_kar_leader" on public.aktiviteter;
-create policy "aktiviteter_write_kar_leader" on public.aktiviteter
-    for all to authenticated
+drop policy if exists "aktiviteter_insert_kar_leader" on public.aktiviteter;
+create policy "aktiviteter_insert_kar_leader" on public.aktiviteter
+    for insert to authenticated
+    with check (
+        public.current_user_is_leader()
+        and kar_id = public.current_user_kar_id()
+    );
+
+drop policy if exists "aktiviteter_update_kar_leader" on public.aktiviteter;
+create policy "aktiviteter_update_kar_leader" on public.aktiviteter
+    for update to authenticated
     using (
         public.current_user_is_leader()
         and kar_id = public.current_user_kar_id()
     )
     with check (
         public.current_user_is_leader()
+        and kar_id = public.current_user_kar_id()
+    );
+
+-- Endast administratörer får radera aktiviteter från den egna kåren.
+drop policy if exists "aktiviteter_delete_kar_admin" on public.aktiviteter;
+create policy "aktiviteter_delete_kar_admin" on public.aktiviteter
+    for delete to authenticated
+    using (
+        public.current_user_role() = 'admin'
         and kar_id = public.current_user_kar_id()
     );
 

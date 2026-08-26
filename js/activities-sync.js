@@ -3,7 +3,8 @@
  *
  * Regler:
  * - Alla (även gäster/anon) kan läsa aktiviteter och badge-kopplingar.
- * - Endast ledare/admin i en kår kan skapa/ändra/radera aktiviteter för sin egen kår.
+ * - Endast ledare/admin i en kår kan skapa och ändra aktiviteter för sin egen kår.
+ * - Endast administratörer kan radera aktiviteter för sin egen kår.
  * - localStorage används alltid som cache och fallback i lokalt läge.
  */
 (function () {
@@ -29,6 +30,10 @@
 
     function canEditActivity(activity) {
         return Boolean(canWrite() && activity?.kar_id && activity.kar_id === getKarId());
+    }
+
+    function canDeleteActivity(activity) {
+        return Boolean(auth()?.isAdmin() && canEditActivity(activity));
     }
 
     function normalizeActivity(activity) {
@@ -279,10 +284,10 @@
     }
 
     async function deleteActivity(activityId) {
-        if (!canWrite()) throw new Error("Du saknar behörighet att radera aktiviteter.");
+        if (!auth()?.isAdmin()) throw new Error("Endast administratörer kan radera aktiviteter.");
         const activity = activities.find(item => item.id === activityId);
         if (!activity) return;
-        if (!canEditActivity(activity)) throw new Error("Du kan bara radera aktiviteter som ägs av din kår.");
+        if (!canDeleteActivity(activity)) throw new Error("Du kan bara radera aktiviteter som ägs av din kår.");
 
         removeLocalActivity(activityId);
         notify();
@@ -376,6 +381,7 @@
         reload,
         canWrite,
         canEditActivity,
+        canDeleteActivity,
         canEditBadgeLink,
         getAllActivities,
         getCustomActivities,
