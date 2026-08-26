@@ -112,7 +112,7 @@
         "name": "Läsår 1 VT",
         "note": "",
         "badges": ["tredje_repmarket","HYX"],
-        "activities": ["terminsuppstart","demokratimote","arsstämma","Hajk-02","terminsavslutning"]
+        "activities": ["terminsuppstart","demokratimote","arsstamma","Hajk-02","terminsavslutning"]
       },
       {
         "name": "Läsår 2 HT",
@@ -124,7 +124,7 @@
         "name": "Läsår 2 VT",
         "note": "",
         "badges": ["elda","12_12","HYX"],
-        "activities": ["terminsuppstart","demokratimote","arsstämma","Hajk-02","terminsavslutning"]
+        "activities": ["terminsuppstart","demokratimote","arsstamma","Hajk-02","terminsavslutning"]
       },
       {
         "name": "Läsår 2 HT",
@@ -136,7 +136,7 @@
         "name": "Läsår 2 VT",
         "note": "",
         "badges": ["navigera","HYX"],
-        "activities": ["terminsuppstart","demokratimote","arsstämma","Hajk-02","terminsavslutning"]
+        "activities": ["terminsuppstart","demokratimote","arsstamma","Hajk-02","terminsavslutning"]
       }
     ]
   },
@@ -154,7 +154,7 @@
         "name": "Läsår 1 VT",
         "note": "",
         "badges": ["hlr","HYX"],
-        "activities": ["terminsuppstart","demokratimote","arsstämma","Hajk-02","terminsavslutning"]
+        "activities": ["terminsuppstart","demokratimote","arsstamma","Hajk-02","terminsavslutning"]
       }
       
     ]

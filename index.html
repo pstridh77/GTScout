@@ -17,6 +17,7 @@
                 <a href="https://www.scoutnet.se/" target="_blank" rel="noreferrer">Scoutnet</a>
                 <a href="https://www.scoutshop.se/" target="_blank" rel="noreferrer">Scoutshop</a>
             </nav>
+            <div id="authArea" class="auth-area"></div>
         </div>
         <div class="header-main">
             <a class="site-brand" href="index.html" aria-label="Gullbrandstorps scoutkår">
@@ -37,6 +38,7 @@
                     <div class="planning-menu-divider" role="separator"></div>
                     <div class="planning-menu-section-label">Funktioner</div>
                     <button id="editActivitiesBtn" class="planning-menu-item" type="button" role="menuitem">Hantera aktiviteter</button>
+                    <button class="planning-menu-item hidden" type="button" role="menuitem" data-admin-panel>Administration</button>
                 </div>
             </div>
         </div>
@@ -87,6 +89,11 @@
     <main id="badgeGrid"></main>
 
 
+    <script src="js/supabase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/activities-sync.js"></script>
+    <script src="js/notes-sync.js"></script>
     <script src="js/app.js"></script>
 
 </body>

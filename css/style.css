@@ -43,6 +43,183 @@ body {
     color: white;
 }
 
+/* ── Inloggning ──────────────────────────────────────────────────────────── */
+
+.auth-area {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: 24px;
+    padding-left: 24px;
+    border-left: 1px solid rgba(184, 213, 236, 0.35);
+}
+
+.auth-status {
+    color: #b8d5ec;
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.auth-button {
+    padding: 4px 12px;
+    border: 1px solid rgba(184, 213, 236, 0.6);
+    border-radius: 999px;
+    background: transparent;
+    color: #b8d5ec;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.auth-button:hover {
+    background: rgba(184, 213, 236, 0.15);
+    color: white;
+}
+
+.auth-button.hidden {
+    display: none;
+}
+
+.auth-note {
+    margin: 0;
+    color: #4b5563;
+    font-size: 0.85rem;
+}
+
+.auth-message {
+    margin: 0;
+    color: #003660;
+    font-size: 0.85rem;
+}
+
+.auth-message.hidden {
+    display: none;
+}
+
+.auth-message--error {
+    color: #b42318;
+}
+
+.auth-link-button {
+    padding: 0;
+    border: none;
+    background: none;
+    color: #2563eb;
+    font: inherit;
+    font-size: 0.85rem;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.modal-field.hidden,
+.modal-actions .btn-secondary.hidden {
+    display: none;
+}
+
+.modal-actions--split #authSubmitBtn {
+    margin-left: auto;
+}
+
+/* ── Adminvy ─────────────────────────────────────────────────────────────── */
+
+.planning-menu-item.hidden {
+    display: none;
+}
+
+.admin-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 12px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.admin-section h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #003660;
+}
+
+.admin-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.admin-row {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.admin-row--user {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+}
+
+.admin-row input,
+.admin-row select {
+    padding: 8px 10px;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    font: inherit;
+    color: #003660;
+    background: white;
+    min-width: 0;
+}
+
+.admin-user-name {
+    display: flex;
+    flex-direction: column;
+    color: #003660;
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;
+}
+
+.admin-user-name small {
+    color: #6b7280;
+    font-weight: 400;
+}
+
+.admin-user-name .admin-user-request {
+    color: #92400e;
+}
+
+.admin-add-row {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+    gap: 8px;
+}
+
+.admin-add-row.hidden {
+    display: none;
+}
+
+.admin-add-row input {
+    padding: 8px 10px;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    font: inherit;
+    color: #003660;
+    min-width: 0;
+}
+
+.admin-empty {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 600px) {
+    .admin-row,
+    .admin-row--user,
+    .admin-add-row {
+        grid-template-columns: 1fr;
+    }
+}
+
 .header-main {
     position: relative;
     display: grid;
@@ -161,6 +338,11 @@ body {
 
     .utility-nav {
         gap: 16px;
+    }
+
+    .auth-area {
+        margin-left: 12px;
+        padding-left: 12px;
     }
 
     .header-main {
@@ -474,6 +656,25 @@ body {
     border-top: 1px solid #d0d7de;
 }
 
+.badge-activity-kar-filter {
+    display: block;
+    width: 100%;
+    max-width: 260px;
+    margin: 8px 0;
+    padding: 10px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 10px;
+    font: inherit;
+    color: #003660;
+    background: white;
+}
+
+.badge-activity-kar-filter:focus {
+    outline: 2px solid #93c5fd;
+    outline-offset: 1px;
+    border-color: #2563eb;
+}
+
 .activity-list {
     display: grid;
     gap: 8px;
@@ -516,6 +717,30 @@ body {
 
 .activity-item-name small {
     color: #536477;
+}
+
+.activity-owner-badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.activity-owner-badge--mine {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #86efac;
+}
+
+.activity-owner-badge--other {
+    background: #e2e8f0;
+    color: #334155;
+    border: 1px solid #cbd5e1;
 }
 
 .activity-info-button {
@@ -595,7 +820,8 @@ body {
     margin-top: 14px;
 }
 
-#editActivitiesCategory {
+#editActivitiesCategory,
+#editActivitiesKarFilter {
     width: 100%;
     margin-top: 14px;
     padding: 10px 12px;
@@ -651,7 +877,8 @@ body {
     font-weight: 400;
 }
 
-#selectActivityCategory {
+#selectActivityCategory,
+#selectActivityKarFilter {
     flex: 1 1 180px;
     padding: 10px 12px;
     border: 1px solid #d0d7de;
@@ -880,6 +1107,19 @@ body {
     font-size: 0.9rem;
 }
 
+.detail-note-warning {
+    margin: 0;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #fef3c7;
+    color: #92400e;
+    font-size: 0.85rem;
+}
+
+.detail-note-warning.hidden {
+    display: none;
+}
+
 .planning-picker-content h2 {
     margin: 0 0 16px;
     color: #003660;
@@ -944,7 +1184,8 @@ body {
     margin-bottom: 14px;
 }
 
-.activity-picker-content select.activity-picker-category {
+.activity-picker-content select.activity-picker-category,
+.activity-picker-content select.activity-picker-kar {
     flex: 1 1 180px;
     padding: 10px 12px;
     border: 1px solid #d0d7de;
@@ -1106,6 +1347,19 @@ body {
     gap: 10px;
     align-items: center;
     width: 100%;
+}
+
+.planning-sync-status {
+    color: #4b5563;
+    font-size: 0.82rem;
+}
+
+.planning-sync-status.hidden {
+    display: none;
+}
+
+.planning-sync-status--error {
+    color: #b42318;
 }
 
 .planning-actions-menu {
@@ -1494,6 +1748,17 @@ body {
     background: #f1f5f9;
     font-size: 0.85rem;
     cursor: grab;
+}
+
+.planned-activity--missing {
+    background: #fff7ed;
+    border: 1px dashed #c2410c;
+    cursor: default;
+}
+
+.missing-activity {
+    color: #9a3412;
+    font-weight: 600;
 }
 
 .planned-activity-details,
