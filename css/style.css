@@ -2343,6 +2343,18 @@ body {
     .level-row-header { align-items: flex-start; }
     .level-remove-all-btn { margin-left: auto; }
     .modal-content--wide { max-width: 95vw; }
+
+    /* På små skärmar visas planeringarna lodrätt, en planering per rad. */
+    .level-row-cards {
+        flex-direction: column;
+        align-items: stretch;
+        overflow-x: visible;
+    }
+
+    .group-card {
+        width: 100% !important;
+        flex-basis: auto !important;
+    }
 }
 
 @media print {
