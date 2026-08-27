@@ -1690,9 +1690,14 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                 const card = document.createElement("div");
                 card.className = "group-card";
                 const noteText = String(group.note ?? "").trim();
+                const planningYear = getGroupYearValue(group);
+                const planningTerm = getGroupTermValue(group);
                 card.innerHTML = `
                 <div class="group-card-header">
-                    <h3 class="group-name" title="Planeringens namn">${group.name}</h3>
+                    <div class="group-card-heading">
+                        <h3 class="group-name" title="Planeringens namn">${group.name}</h3>
+                        <span class="group-planning-meta">År ${planningYear !== null ? planningYear : "-"} · ${planningTerm || "Termin -"}</span>
+                    </div>
                     <div class="group-card-actions">
                         <button class="btn-secondary edit-group-btn" type="button" data-group-id="${group.id}" title="Redigera planering">Redigera</button>
                     </div>

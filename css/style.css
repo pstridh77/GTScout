@@ -1605,6 +1605,10 @@ body {
     gap: 12px;
 }
 
+.group-card-heading {
+    min-width: 0;
+}
+
 .group-level-icon {
     width: 40px;
     height: 40px;
@@ -1633,6 +1637,14 @@ body {
     font-size: 0.82rem;
     font-weight: 600;
     color: #5b6b7a;
+}
+
+.group-planning-meta {
+    display: block;
+    margin-top: 2px;
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 500;
 }
 
 .group-card-actions {
