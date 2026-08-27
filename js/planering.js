@@ -932,7 +932,27 @@ function renderPdfSelectionList() {
     const list = document.getElementById("pdfSelectionList");
     const filterValue = document.getElementById("pdfPlanningFilter").value;
     list.innerHTML = "";
-    const filteredGroups = groups.filter(group => filterValue === "Alla" || group.level === filterValue);
+    const filteredGroups = groups
+        .filter(group => filterValue === "Alla" || group.level === filterValue)
+        .sort((a, b) => {
+            const levelOrderA = TARGET_GROUP_ORDER.indexOf(a.level);
+            const levelOrderB = TARGET_GROUP_ORDER.indexOf(b.level);
+            const normalizedLevelOrderA = levelOrderA === -1 ? TARGET_GROUP_ORDER.length : levelOrderA;
+            const normalizedLevelOrderB = levelOrderB === -1 ? TARGET_GROUP_ORDER.length : levelOrderB;
+            if (normalizedLevelOrderA !== normalizedLevelOrderB) {
+                return normalizedLevelOrderA - normalizedLevelOrderB;
+            }
+
+            const planningOrderA = getGroupSortValue(a);
+            const planningOrderB = getGroupSortValue(b);
+            if (planningOrderA.year !== planningOrderB.year) {
+                return planningOrderA.year - planningOrderB.year;
+            }
+            if (planningOrderA.term !== planningOrderB.term) {
+                return planningOrderA.term - planningOrderB.term;
+            }
+            return String(a.name || "").localeCompare(String(b.name || ""), "sv");
+        });
     if (filteredGroups.length === 0) {
         list.innerHTML = "<p>Det finns inga planeringar att exportera.</p>";
     } else {
