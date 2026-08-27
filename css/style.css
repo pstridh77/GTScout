@@ -1573,19 +1573,17 @@ body {
 }
 
 .level-row-cards {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
     align-items: flex-start;
     gap: 12px;
-    overflow-x: auto;
 }
 
 .group-card {
     display: flex;
-    flex: 0 0 auto;
     flex-direction: column;
-    width: max-content;
+    width: 100%;
+    min-width: 0;
     background: white;
     border-radius: 14px;
     box-shadow: 0 3px 10px rgba(0,0,0,0.08);
@@ -1662,6 +1660,7 @@ body {
     flex-wrap: wrap;
     gap: 10px;
     padding: 14px 16px;
+    min-width: 0;
     min-height: 60px;
     border: 1px solid transparent;
     border-radius: 10px;
@@ -1688,6 +1687,7 @@ body {
 
 .planned-activities {
     flex: 1 1 100%;
+    min-width: 0;
     margin-top: 6px;
     padding-top: 10px;
     border-top: 1px solid #e5e7eb;
@@ -1831,6 +1831,7 @@ body {
 
 .planned-meetings {
     flex: 1 1 100%;
+    min-width: 0;
     display: grid;
     gap: 8px;
     margin-top: 10px;
@@ -2346,9 +2347,7 @@ body {
 
     /* På små skärmar visas planeringarna lodrätt, en planering per rad. */
     .level-row-cards {
-        flex-direction: column;
-        align-items: stretch;
-        overflow-x: visible;
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .group-card {
