@@ -156,7 +156,7 @@ body {
 }
 
 .admin-row--user {
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto auto;
 }
 
 .admin-row input,

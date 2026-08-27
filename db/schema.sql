@@ -119,6 +119,43 @@ as $$
     select public.current_user_role() = 'admin' and public.current_user_kar_id() is null;
 $$;
 
+-- Konton måste tas bort från auth.users, inte bara från profiltabellen.
+create or replace function public.delete_user_by_admin(target_user_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare
+    target_kar_id uuid;
+begin
+    if target_user_id = auth.uid() then
+        raise exception 'Du kan inte ta bort ditt eget konto.';
+    end if;
+
+    select kar_id into target_kar_id
+    from public.profiles
+    where id = target_user_id;
+
+    if not found then
+        raise exception 'Användaren finns inte.';
+    end if;
+
+    if not public.current_user_is_system_admin()
+       and not (
+           public.current_user_role() = 'admin'
+           and target_kar_id = public.current_user_kar_id()
+       ) then
+        raise exception 'Du saknar behörighet att ta bort användaren.';
+    end if;
+
+    delete from auth.users where id = target_user_id;
+end;
+$$;
+
+revoke all on function public.delete_user_by_admin(uuid) from public;
+grant execute on function public.delete_user_by_admin(uuid) to authenticated;
+
 -- ── Planeringar ──────────────────────────────────────────────────────────────
 -- Varje planering sparas som ett JSON-dokument så att klientens datamodell kan
 -- utvecklas utan schemaändringar. Kolumnerna utanför data är till för filtrering.

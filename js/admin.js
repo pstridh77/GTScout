@@ -167,6 +167,22 @@
         await refresh("Användaren sparades.");
     }
 
+    async function deleteProfile(id) {
+        const profile = profiles.find(item => item.id === id);
+        if (!profile || id === auth().getUser()?.id) {
+            setMessage("Du kan inte ta bort ditt eget konto.", true);
+            return;
+        }
+        if (!window.confirm(`Ta bort användaren ${profile.email}? Kontot kan inte ångras.`)) return;
+
+        const { error } = await client().rpc("delete_user_by_admin", { target_user_id: id });
+        if (error) {
+            setMessage(error.message, true);
+            return;
+        }
+        await refresh("Användaren togs bort.");
+    }
+
     /* ── Rendering ───────────────────────────────────────────────────────── */
 
     // Admin utan egen kår är systemadmin och hanterar alla kårer.
@@ -252,6 +268,9 @@
                     `).join("")}
                 </select>
                 <button class="btn-secondary" type="button" data-action="save-profile" data-id="${escapeHtml(profile.id)}">Spara</button>
+                ${viewerIsSystemAdmin || profile.kar_id === ownKarId
+                    ? `<button class="btn-danger" type="button" data-action="delete-profile" data-id="${escapeHtml(profile.id)}">Ta bort</button>`
+                    : ""}
             </div>
         `;
         }).join("");
@@ -265,8 +284,10 @@
     }
 
     function onUserListClick(event) {
-        const button = event.target.closest("button[data-action='save-profile']");
-        if (button) saveProfile(button.dataset.id);
+        const button = event.target.closest("button[data-action]");
+        if (!button) return;
+        if (button.dataset.action === "save-profile") saveProfile(button.dataset.id);
+        if (button.dataset.action === "delete-profile") deleteProfile(button.dataset.id);
     }
 
     async function refresh(message) {
