@@ -981,6 +981,8 @@ function openPdfSelection() {
     filter.value = targetGroups.includes(groupFilters.level) ? groupFilters.level : "Alla";
     pdfSelectionState = new Set(groups
         .filter(group => filter.value === "Alla" || group.level === filter.value)
+        .filter(group => groupFilters.year === "Alla" || String(getGroupYearValue(group) ?? "") === String(groupFilters.year))
+        .filter(group => groupFilters.term === "Alla" || getGroupTermValue(group) === groupFilters.term)
         .map(group => group.id));
     renderPdfSelectionList();
     document.getElementById("pdfSelectionModal").classList.remove("hidden");
@@ -1091,7 +1093,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             : "";
         return `<div class="pdf-activity"><h4>${escapeHtml(activity.namn)}</h4>${activity.kategori ? `<p><strong>Kategori:</strong> ${escapeHtml(activity.kategori)}</p>` : ""}${activity.beskrivning ? `<p><strong>Beskrivning:</strong> ${renderLinkedText(activity.beskrivning)}</p>` : ""}${formatActivityTime(activity) ? `<p><strong>Tid:</strong> ${escapeHtml(formatActivityTime(activity))}</p>` : ""}${material ? `<p><strong>Material:</strong> ${escapeHtml(material)}</p>` : ""}${activity.genomforande ? `<p><strong>Genomförande:</strong> ${renderLinkedText(activity.genomforande)}</p>` : ""}${handwritingSpace}</div>`;
     };
-    const renderMeeting = meeting => {
+    const renderMeeting = (group, meeting) => {
         const meetingBadges = sortBadgesForDisplay(
             getMeetingBadgeIds(meeting)
                 .map(badgeId => allMarken.find(item => item.id === badgeId))
@@ -1234,7 +1236,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 ? `<div class="pdf-activities"><h3>Övriga aktiviteter</h3>${unassignedActivities.map(activityId => renderActivity(activityId)).join("")}</div>`
                 : ""}
             ${showPlanningMeetings && meetings.length > 0 && (isMeetingOverviewPrint || !isMeetingOverviewPrint)
-                ? `<div class="pdf-meetings"><h3>Möten</h3>${meetings.map(renderMeeting).join("")}</div>`
+                ? `<div class="pdf-meetings"><h3>Möten</h3>${meetings.map(meeting => renderMeeting(group, meeting)).join("")}</div>`
                 : ""}
         </section>
         `;
