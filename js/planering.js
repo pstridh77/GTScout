@@ -256,6 +256,15 @@ function canDeleteActivity(activity) {
     return Boolean(window.GTScoutAuth?.isAdmin?.() && canEditActivity(activity));
 }
 
+function canDeleteGroup(group) {
+    const auth = window.GTScoutAuth;
+    if (!auth) return false;
+    if (auth.isAdmin?.()) return true;
+    const userId = auth.getUser?.()?.id;
+    if (userId && group?.created_by === userId) return true;
+    return false;
+}
+
 function isActivityVisibleForKarFilter(activity, karFilter) {
     if (!karFilter || karFilter === "Alla") return true;
     if (karFilter === "__saknas") return !activity.kar_id;
@@ -1669,7 +1678,7 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                 ${icon ? `<img src="${icon}" alt="${level}" class="group-level-icon">` : ""}
                 <span>${level}</span>
             </div>
-            <button class="level-remove-all-btn" type="button" data-level="${level}" title="Ta bort alla planeringar i målgruppen">Ta bort alla</button>
+            <button class="level-remove-all-btn${window.GTScoutAuth?.isAdmin?.() ? "" : " hidden"}" type="button" data-level="${level}" title="Ta bort alla planeringar i målgruppen">Ta bort alla</button>
         `;
         colHeader.querySelector(".level-remove-all-btn").addEventListener("click", () => removeLevelGroups(level));
         col.appendChild(colHeader);
@@ -1882,6 +1891,8 @@ function addGroup(name, level, year = "", term = "", note = "") {
 }
 
 function removeGroup(id) {
+    const group = groups.find(g => g.id === id);
+    if (!canDeleteGroup(group)) return;
     if (!confirm("Ta bort planeringen och alla planerade märken?")) return;
     groups = groups.filter(g => g.id !== id);
     saveGroups();
@@ -1889,6 +1900,7 @@ function removeGroup(id) {
 }
 
 function removeLevelGroups(level) {
+    if (!window.GTScoutAuth?.isAdmin?.()) return;
     const count = groups.filter(g => g.level === level).length;
     if (count === 0) return;
     if (!confirm(`Ta bort alla ${count} planeringar för ${level}?`)) return;
@@ -1909,7 +1921,7 @@ function openGroupEditor(groupId) {
     document.getElementById("groupTerm").value = getGroupTermValue(group) || "";
     document.getElementById("groupNote").value = typeof group.note === "string" ? group.note : "";
     document.getElementById("groupLevel").value = group.level || "Familjescouting";
-    document.getElementById("removeGroupBtn").classList.remove("hidden");
+    document.getElementById("removeGroupBtn").classList.toggle("hidden", !canDeleteGroup(group));
     groupModal.classList.remove("hidden");
     document.getElementById("groupName").focus();
 }

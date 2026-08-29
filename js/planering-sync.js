@@ -50,11 +50,11 @@
     async function fetchGroups() {
         const { data, error } = await client()
             .from("planeringar")
-            .select("id, data")
+            .select("id, created_by, data")
             .eq("kar_id", karId());
         if (error) throw error;
         return (data || [])
-            .map(row => (row.data && typeof row.data === "object" ? { ...row.data, id: row.id } : null))
+            .map(row => (row.data && typeof row.data === "object" ? { ...row.data, id: row.id, created_by: row.created_by || null } : null))
             .filter(Boolean);
     }
 
@@ -67,6 +67,11 @@
 
         const keepIds = rows.map(row => row.id);
         let deleteQuery = client().from("planeringar").delete().eq("kar_id", karId());
+        if (!auth().isAdmin()) {
+            const userId = auth().getUser()?.id;
+            if (!userId) throw new Error("Kunde inte fastställa användarens identitet för borttagning.");
+            deleteQuery = deleteQuery.eq("created_by", userId);
+        }
         if (keepIds.length) {
             deleteQuery = deleteQuery.not("id", "in", `(${keepIds.join(",")})`);
         }
