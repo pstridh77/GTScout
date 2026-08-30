@@ -612,6 +612,33 @@ body {
     font: inherit;
     color: #003660;
     background: white;
+    transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+}
+
+select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: white;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23003660' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 14px 14px;
+    padding-right: 36px !important;
+    cursor: pointer;
+    font: inherit;
+    color: #003660;
+    transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+}
+
+select:hover {
+    border-color: #93c5fd;
+    background-color: #fafcff;
+}
+
+select:focus {
+    outline: none;
+    border-color: #003660;
+    box-shadow: 0 0 0 3px rgba(0, 54, 96, 0.12);
 }
 
 .no-results {
@@ -1420,12 +1447,12 @@ body {
     z-index: 1100;
     display: flex;
     flex-direction: column;
-    min-width: 190px;
-    padding: 6px;
-    border: 1px solid #d0d7de;
-    border-radius: 10px;
+    min-width: 200px;
+    padding: 8px;
+    border: 1px solid #dbe3ea;
+    border-radius: 12px;
     background: white;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+    box-shadow: 0 10px 25px -5px rgba(0, 54, 96, 0.12), 0 8px 10px -6px rgba(0, 54, 96, 0.08);
 }
 
 .site-menu-dropdown.hidden {
@@ -1433,11 +1460,12 @@ body {
 }
 
 .site-menu-item {
-    padding: 10px 12px;
-    border-radius: 7px;
+    padding: 9px 12px;
+    border-radius: 8px;
     color: #003660;
     font-weight: 600;
     text-decoration: none;
+    transition: background 0.15s, color 0.15s;
 }
 
 .site-menu-item:hover {
@@ -1482,12 +1510,12 @@ body {
     z-index: 1100;
     display: flex;
     flex-direction: column;
-    min-width: 150px;
-    padding: 6px;
-    border: 1px solid #d0d7de;
-    border-radius: 10px;
+    min-width: 170px;
+    padding: 8px;
+    border: 1px solid #dbe3ea;
+    border-radius: 12px;
     background: white;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+    box-shadow: 0 10px 25px -5px rgba(0, 54, 96, 0.12), 0 8px 10px -6px rgba(0, 54, 96, 0.08);
 }
 
 .planning-actions-dropdown.hidden {
@@ -1496,13 +1524,15 @@ body {
 
 .planning-menu-item {
     border: 0;
-    border-radius: 7px;
-    padding: 9px 10px;
+    border-radius: 8px;
+    padding: 9px 12px;
     background: transparent;
     color: #003660;
     font: inherit;
+    font-weight: 600;
     text-align: left;
     cursor: pointer;
+    transition: background 0.15s, color 0.15s;
 }
 
 .planning-toggle-item {
@@ -2190,11 +2220,11 @@ body {
 .change-owner-section {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 10px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
+    gap: 10px;
+    padding: 12px 14px;
+    background: #f0f6fc;
+    border: 1px solid #c5d8f6;
+    border-radius: 10px;
     margin-top: 4px;
 }
 
