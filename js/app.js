@@ -1369,6 +1369,15 @@ window.addEventListener("storage", event => {
 
 createEditActivitiesMenuAction();
 
+window.GTScoutAuth?.onChange(() => {
+    if (allMarken.length > 0) {
+        renderMarken(allMarken);
+        if (activePopupBadge && !popup.classList.contains("hidden")) {
+            showPopup(activePopupBadge);
+        }
+    }
+});
+
 window.GTScoutActivities?.init({
     onChange: () => {
         allAktiviteter = window.GTScoutActivities.getAllActivities();

@@ -101,6 +101,17 @@
         }
     }
 
+    function clearLocalKarData() {
+        try {
+            localStorage.removeItem("gtscout_planering");
+            localStorage.removeItem("gtscout_badge_notes");
+            localStorage.removeItem("gtscout_custom_activities");
+            localStorage.removeItem("gtscout_custom_badge_activities");
+        } catch (e) {
+            console.error("Kunde inte rensa lokal kårdata vid utloggning", e);
+        }
+    }
+
     async function signIn(email, password) {
         if (!client) throw new Error("Databaskoppling saknas.");
         const { error } = await client.auth.signInWithPassword({ email: email.trim(), password });
@@ -108,8 +119,19 @@
     }
 
     async function signOut() {
-        if (!client) return;
-        await client.auth.signOut();
+        clearLocalKarData();
+        if (client) {
+            try {
+                await client.auth.signOut();
+            } catch (error) {
+                console.error("Fel vid utloggning", error);
+            }
+        }
+        session = null;
+        profile = null;
+        karName = "";
+        renderUi();
+        notify();
     }
 
     async function resetPassword(email) {

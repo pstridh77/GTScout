@@ -114,6 +114,8 @@
     function onAuthChange() {
         if (!canRead()) {
             loadedForKarId = null;
+            writeLocal({});
+            onChange?.();
             return;
         }
         if (loadedForKarId === karId()) return;

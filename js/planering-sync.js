@@ -144,6 +144,9 @@
         if (!canRead()) {
             loadedForKarId = null;
             setStatus(auth()?.isOnline() ? "Arbetar lokalt (inte inloggad i någon kår)" : "", false);
+            if (hooks) {
+                hooks.applyGroups([]);
+            }
             return;
         }
         if (loadedForKarId === karId()) return;
