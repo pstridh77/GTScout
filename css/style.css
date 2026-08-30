@@ -1459,6 +1459,14 @@ body {
     background: #dbe3ea;
 }
 
+.site-menu-version-note {
+    padding: 6px 10px 4px;
+    color: #8fa0b0;
+    font-size: 0.7rem;
+    text-align: center;
+    user-select: none;
+}
+
 .planning-actions-trigger {
     width: 42px;
     height: 42px;
@@ -2431,6 +2439,44 @@ body {
     }
 }
 
+/* ── Sidfot & Version ────────────────────────────────────────────────────── */
+
+.site-footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 24px 16px 32px;
+    margin-top: 32px;
+    border-top: 1px solid rgba(0, 54, 96, 0.08);
+}
+
+.site-footer-content {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    color: #6b7280;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    user-select: none;
+}
+
+.site-footer-title {
+    font-weight: 600;
+    color: #4b5563;
+}
+
+.site-footer-dot {
+    color: #9ca3af;
+    font-size: 0.7rem;
+}
+
+.site-footer-version,
+.site-footer-build {
+    color: #6b7280;
+}
+
 @media print {
     @page {
         margin: 14mm;
@@ -2446,7 +2492,8 @@ body {
     .level-row-header button,
     .group-card-actions,
     .modal,
-    .detail-popup {
+    .detail-popup,
+    .site-footer {
         display: none !important;
     }
 

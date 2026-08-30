@@ -47,6 +47,8 @@
                     <button id="exportPlanningPdfBtn" class="planning-menu-item" type="button" role="menuitem">Skriv ut Planering...</button>
                     <div class="planning-menu-divider" role="separator"></div>
                     <button class="planning-menu-item hidden" type="button" role="menuitem" data-admin-panel>Administration</button>
+                    <div class="planning-menu-divider" role="separator"></div>
+                    <div class="site-menu-version-note">v1.0.0 (2026-08-30)</div>
                 </div>
             </div>
         </div>
@@ -368,12 +370,23 @@
         </div>
     </div>
 
+    <footer class="site-footer" aria-label="Sidfot och version">
+        <div class="site-footer-content">
+            <span class="site-footer-title">GTScout</span>
+            <span class="site-footer-dot" aria-hidden="true">•</span>
+            <span class="site-footer-version">v1.0.0</span>
+            <span class="site-footer-dot" aria-hidden="true">•</span>
+            <span class="site-footer-build">Byggd 2026-08-30</span>
+        </div>
+    </footer>
+
     <script src="js/supabase-config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/admin.js"></script>
     <script src="js/activities-sync.js"></script>
     <script src="js/planering-sync.js"></script>
     <script src="js/notes-sync.js"></script>
+    <script src="js/version.js"></script>
     <script src="js/planering.js"></script>
 </body>
 </html>
