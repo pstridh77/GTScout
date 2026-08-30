@@ -2841,6 +2841,7 @@ function addDefaultPlanningForLevel(level, yearCount) {
     const profile = auth?.getProfile?.();
     const ownerName = profile?.full_name || profile?.email || "";
     const now = new Date().toISOString();
+    const localOnly = Boolean(auth?.isOnline?.() && !window.GTScoutPlanningSync?.canWrite?.());
     let added = 0;
     const selectedYear = String(yearCount ?? "alla").trim().toLowerCase();
     const parsedYear = Number.parseInt(selectedYear, 10);
@@ -2861,6 +2862,7 @@ function addDefaultPlanningForLevel(level, yearCount) {
                 created_by_name: ownerName,
                 updated_by_name: ownerName,
                 updated_at: now,
+                local_only: localOnly,
                 name: plan.name,
                 level,
                 note: typeof plan.note === "string" ? plan.note.trim() : "",
