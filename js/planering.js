@@ -80,6 +80,7 @@ let activeDraggedActivity = null;
 let editingStandaloneActivityId = null;
 let activeActivityGroupId = null;
 let activeMeetingActivityPicker = null;
+let activeMeetingActivityCreation = null;
 let activeStandaloneActivityBadge = null;
 let activeStandaloneActivityPlanning = null;
 let activeBadgeActivityLibraryMarke = null;
@@ -358,6 +359,7 @@ function createStandaloneActivityPopup() {
         editingStandaloneActivityId = null;
         activeStandaloneActivityBadge = null;
         activeStandaloneActivityPlanning = null;
+        activeMeetingActivityCreation = null;
         document.getElementById("createActivityTitle").textContent = "Skapa aktivitet";
         document.getElementById("savePlanningActivityBtn").textContent = "Spara aktivitet";
         modal.querySelectorAll("input, textarea").forEach(field => field.value = "");
@@ -413,6 +415,11 @@ function createStandaloneActivityPopup() {
             if (!activeStandaloneActivityPlanning.activities.includes(savedActivity.id)) {
                 activeStandaloneActivityPlanning.activities.push(savedActivity.id);
             }
+        }
+        if (activeMeetingActivityCreation) {
+            activeMeetingActivityCreation.selectedIds.add(savedActivity.id);
+            activeMeetingActivityCreation.onApply();
+            activeMeetingActivityCreation = null;
         }
         saveGroups();
         allAktiviteter = window.GTScoutActivities.getAllActivities();
@@ -477,7 +484,7 @@ function openMeetingActivityPicker(group, selectedIds, onApply) {
     document.getElementById("selectActivitySearch").value = "";
     populateActivityCategories();
     populateActivityKarFilter(document.getElementById("selectActivityKarFilter"));
-    document.getElementById("createActivityFromPickerBtn").classList.add("hidden");
+    document.getElementById("createActivityFromPickerBtn").classList.toggle("hidden", !window.GTScoutActivities?.canWrite?.());
     const saveButton = document.getElementById("saveSelectedActivitiesBtn");
     saveButton.textContent = "Lägg till i möte";
     saveButton.classList.remove("hidden");
@@ -544,8 +551,14 @@ function createActivityPicker() {
     document.getElementById("createActivityFromPickerBtn").addEventListener("click", () => {
         const group = groups.find(item => item.id === activeActivityGroupId);
         if (!group) return;
+        const meetingPicker = activeMeetingActivityPicker;
+        activeMeetingActivityPicker = null;
         modal.classList.add("hidden");
         openStandaloneActivityForPlanning(group);
+        if (meetingPicker) {
+            activeStandaloneActivityPlanning = null;
+            activeMeetingActivityCreation = meetingPicker;
+        }
     });
     modal.addEventListener("click", event => {
         if (event.target === modal) modal.classList.add("hidden");
@@ -2381,7 +2394,9 @@ function openMeetingModal(groupId, meetingId = null) {
 
     function renderMeetingActivities() {
         const availableActivityIds = new Set([...planningActivityIds, ...selectedIds]);
-        const availableActivities = allAktiviteter.filter(activity => availableActivityIds.has(activity.id));
+        const availableActivities = allAktiviteter
+            .filter(activity => availableActivityIds.has(activity.id))
+            .sort((left, right) => Number(selectedIds.has(right.id)) - Number(selectedIds.has(left.id)));
         activityList.innerHTML = availableActivities.length > 0
             ? availableActivities.map(activity => `
                 <label class="meeting-activity-option">
