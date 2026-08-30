@@ -2211,6 +2211,15 @@ select:focus {
     display: none;
 }
 
+#changeOwnerBtn.hidden,
+.btn-small.hidden {
+    display: none;
+}
+
+.hidden {
+    display: none !important;
+}
+
 .btn-small {
     padding: 4px 10px;
     font-size: 0.78rem;

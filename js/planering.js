@@ -3099,6 +3099,9 @@ const cancelChangeOwnerBtn = document.getElementById("cancelChangeOwnerBtn");
 const confirmChangeOwnerBtn = document.getElementById("confirmChangeOwnerBtn");
 
 changeOwnerBtn?.addEventListener("click", async () => {
+    const auth = window.GTScoutAuth;
+    if (!auth?.isAdmin?.()) return;
+
     const editingGroupId = groupModal.dataset.editingGroupId;
     if (!editingGroupId) return;
     const group = groups.find(g => g.id === editingGroupId);
@@ -3131,6 +3134,9 @@ cancelChangeOwnerBtn?.addEventListener("click", () => {
 });
 
 confirmChangeOwnerBtn?.addEventListener("click", () => {
+    const auth = window.GTScoutAuth;
+    if (!auth?.isAdmin?.()) return;
+
     const editingGroupId = groupModal.dataset.editingGroupId;
     if (!editingGroupId) return;
     const group = groups.find(g => g.id === editingGroupId);
