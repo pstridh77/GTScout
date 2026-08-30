@@ -54,6 +54,26 @@ body {
     border-left: 1px solid rgba(184, 213, 236, 0.35);
 }
 
+.database-environment {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: #f7d36a;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.database-environment::before {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    content: "";
+}
+
 .auth-status {
     color: #b8d5ec;
     font-size: 0.78rem;

@@ -19,7 +19,11 @@
 
     function config() {
         const raw = window.GTSCOUT_SUPABASE_CONFIG || {};
-        return { url: (raw.url || "").trim(), anonKey: (raw.anonKey || "").trim() };
+        return {
+            url: (raw.url || "").trim(),
+            anonKey: (raw.anonKey || "").trim(),
+            environmentName: (raw.environmentName || "Databas").trim()
+        };
     }
 
     function isConfigured() {
@@ -163,6 +167,7 @@
 
         area.dataset.ready = "true";
         area.innerHTML = `
+            <span id="databaseEnvironment" class="database-environment"></span>
             <span id="authStatus" class="auth-status">Gäst</span>
             <button id="authActionBtn" class="auth-button" type="button">Logga in</button>
         `;
@@ -319,15 +324,20 @@
     function renderUi() {
         const status = document.getElementById("authStatus");
         const button = document.getElementById("authActionBtn");
-        if (!status || !button) return;
+        const environment = document.getElementById("databaseEnvironment");
+        if (!status || !button || !environment) return;
 
         const current = state();
         if (!current.online) {
+            environment.textContent = "Lokalt läge";
+            environment.title = "Ingen Supabase-databas är ansluten.";
             status.textContent = "Gäst (lokalt läge)";
             status.title = "Ingen databaskoppling konfigurerad – data sparas i webbläsaren.";
             button.classList.add("hidden");
             return;
         }
+        environment.textContent = config().environmentName;
+        environment.title = "Ansluten databas: " + config().environmentName;
         button.classList.remove("hidden");
         if (current.signedIn) {
             const kar = current.karName ? " · " + current.karName : "";
