@@ -1329,6 +1329,13 @@ body {
     transition: background 0.15s;
 }
 
+.btn-danger:disabled {
+    background: #e5e7eb;
+    border-color: #d1d5db;
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
 .btn-danger:hover { background: #fee2e2; }
 
 /* ── Planning toolbar ────────────────────────────────────────────────────── */
@@ -1560,6 +1567,10 @@ body {
     padding: 4px 10px;
     cursor: pointer;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.level-remove-all-btn.hidden {
+    display: none;
 }
 
 .level-remove-all-btn:hover {
@@ -2059,6 +2070,12 @@ body {
     gap: 16px;
 }
 
+#groupModal .modal-content {
+    box-sizing: border-box;
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+}
+
 .custom-activity-form-content {
     max-height: calc(100vh - 24px);
     overflow-y: auto;
@@ -2103,6 +2120,16 @@ body {
     outline: 2px solid #93c5fd;
     outline-offset: 1px;
     border-color: #2563eb;
+}
+
+.planning-owner-info {
+    margin: 0;
+    color: #52606d;
+    font-size: 0.9rem;
+}
+
+.planning-owner-info.hidden {
+    display: none;
 }
 
 .modal-actions { display: flex; justify-content: flex-end; }

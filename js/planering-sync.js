@@ -38,7 +38,7 @@
         return {
             id: group.id,
             kar_id: karId(),
-            created_by: auth().getUser()?.id || null,
+            created_by: group.created_by || auth().getUser()?.id || null,
             name: group.name || "",
             level: group.level || null,
             year: Number.isFinite(Number(group.year)) && group.year !== "" ? Number(group.year) : null,

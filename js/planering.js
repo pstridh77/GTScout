@@ -265,6 +265,12 @@ function canDeleteGroup(group) {
     return false;
 }
 
+function getPlanningOwnerLabel(group) {
+    const auth = window.GTScoutAuth;
+    if (group?.created_by && group.created_by === auth?.getUser?.()?.id) return "Du";
+    return group?.created_by_name || "En annan ledare";
+}
+
 function isActivityVisibleForKarFilter(activity, karFilter) {
     if (!karFilter || karFilter === "Alla") return true;
     if (karFilter === "__saknas") return !activity.kar_id;
@@ -1875,8 +1881,12 @@ function addGroup(name, level, year = "", term = "", note = "") {
     const trimmedName = String(name || "").trim();
     const normalizedYear = Number.parseInt(String(year ?? ""), 10);
     const normalizedTerm = normalizePlanningTerm(term);
+    const auth = window.GTScoutAuth;
+    const profile = auth?.getProfile?.();
     groups.push({
         id: crypto.randomUUID(),
+        created_by: auth?.getUser?.()?.id || null,
+        created_by_name: profile?.full_name || profile?.email || "",
         name: trimmedName || [Number.isFinite(normalizedYear) ? `${normalizedYear}` : "", normalizedTerm].filter(Boolean).join(" "),
         level,
         year: Number.isFinite(normalizedYear) ? normalizedYear : "",
@@ -1921,7 +1931,14 @@ function openGroupEditor(groupId) {
     document.getElementById("groupTerm").value = getGroupTermValue(group) || "";
     document.getElementById("groupNote").value = typeof group.note === "string" ? group.note : "";
     document.getElementById("groupLevel").value = group.level || "Familjescouting";
-    document.getElementById("removeGroupBtn").classList.toggle("hidden", !canDeleteGroup(group));
+    const ownerInfo = document.getElementById("planningOwnerInfo");
+    ownerInfo.textContent = `Ägs av: ${getPlanningOwnerLabel(group)}`;
+    ownerInfo.classList.remove("hidden");
+    const removeButton = document.getElementById("removeGroupBtn");
+    const canDelete = canDeleteGroup(group);
+    removeButton.classList.remove("hidden");
+    removeButton.disabled = !canDelete;
+    removeButton.setAttribute("aria-disabled", String(!canDelete));
     groupModal.classList.remove("hidden");
     document.getElementById("groupName").focus();
 }
@@ -1931,7 +1948,11 @@ function resetGroupModalState() {
     document.getElementById("groupModalTitle").textContent = "Ny plannering";
     document.getElementById("saveGroupBtn").textContent = "Spara";
     document.getElementById("groupNote").value = "";
-    document.getElementById("removeGroupBtn").classList.add("hidden");
+    document.getElementById("planningOwnerInfo").classList.add("hidden");
+    const removeButton = document.getElementById("removeGroupBtn");
+    removeButton.classList.add("hidden");
+    removeButton.disabled = false;
+    removeButton.setAttribute("aria-disabled", "false");
 }
 
 function renameGroup(id) {
