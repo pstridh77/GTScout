@@ -332,7 +332,15 @@ create policy "planeringar_select_kar" on public.planeringar
 
 drop policy if exists "planeringar_write_leader" on public.planeringar;
 create policy "planeringar_write_leader" on public.planeringar
-    for all to authenticated
+    for insert to authenticated
+    with check (
+        public.current_user_is_leader()
+        and kar_id = public.current_user_kar_id()
+    );
+
+drop policy if exists "planeringar_update_leader" on public.planeringar;
+create policy "planeringar_update_leader" on public.planeringar
+    for update to authenticated
     using (
         public.current_user_is_leader()
         and kar_id = public.current_user_kar_id()
@@ -340,6 +348,25 @@ create policy "planeringar_write_leader" on public.planeringar
     with check (
         public.current_user_is_leader()
         and kar_id = public.current_user_kar_id()
+    );
+
+-- Admin får radera vilken planering som helst i sin kår.
+-- Ledare får bara radera planering de skapat själva.
+drop policy if exists "planeringar_delete_admin" on public.planeringar;
+create policy "planeringar_delete_admin" on public.planeringar
+    for delete to authenticated
+    using (
+        public.current_user_role() = 'admin'
+        and kar_id = public.current_user_kar_id()
+    );
+
+drop policy if exists "planeringar_delete_own" on public.planeringar;
+create policy "planeringar_delete_own" on public.planeringar
+    for delete to authenticated
+    using (
+        public.current_user_is_leader()
+        and kar_id = public.current_user_kar_id()
+        and created_by = auth.uid()
     );
 
 -- Anteckningar delas inom kåren och får bara ändras av ledare och admin.
