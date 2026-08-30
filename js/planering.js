@@ -281,7 +281,32 @@ function canEditGroup(group) {
 function getPlanningOwnerLabel(group) {
     const auth = window.GTScoutAuth;
     if (group?.created_by && group.created_by === auth?.getUser?.()?.id) return "Du";
-    return group?.created_by_name || "En annan ledare";
+    return group?.created_by_name || (group?.created_by ? "En annan ledare" : "Ingen tilldelad");
+}
+
+async function fetchKarLeadersAndAdmins() {
+    const auth = window.GTScoutAuth;
+    const client = auth?.getClient?.();
+    const karId = auth?.getState?.()?.karId;
+    if (!client || !auth?.isAdmin?.() || !karId) return [];
+
+    try {
+        let query = client.from("profiles").select("id, full_name, email, role, kar_id");
+        if (auth.isSystemAdmin?.()) {
+            query = query.or(`kar_id.eq.${karId},role.eq.admin`);
+        } else {
+            query = query.eq("kar_id", karId);
+        }
+        const { data, error } = await query;
+        if (error) {
+            console.error("Kunde inte hämta ledare/admins för kåren", error);
+            return [];
+        }
+        return (data || []).filter(p => p.role === "ledare" || p.role === "admin");
+    } catch (err) {
+        console.error("Fel vid hämtning av profiler", err);
+        return [];
+    }
 }
 
 function getPlanningUpdaterName() {
@@ -2017,9 +2042,23 @@ function openGroupEditor(groupId) {
     document.getElementById("groupTerm").value = getGroupTermValue(group) || "";
     document.getElementById("groupNote").value = typeof group.note === "string" ? group.note : "";
     document.getElementById("groupLevel").value = group.level || "Familjescouting";
+
+    const ownerRow = document.getElementById("planningOwnerRow");
     const ownerInfo = document.getElementById("planningOwnerInfo");
+    const changeOwnerBtn = document.getElementById("changeOwnerBtn");
+    const changeOwnerSection = document.getElementById("changeOwnerSection");
+    
     ownerInfo.textContent = `Ägs av: ${getPlanningOwnerLabel(group)}`;
-    ownerInfo.classList.remove("hidden");
+    ownerRow.classList.remove("hidden");
+    changeOwnerSection.classList.add("hidden");
+
+    const auth = window.GTScoutAuth;
+    if (auth?.isAdmin?.()) {
+        changeOwnerBtn.classList.remove("hidden");
+    } else {
+        changeOwnerBtn.classList.add("hidden");
+    }
+
     const updatedInfo = document.getElementById("planningUpdatedInfo");
     updatedInfo.textContent = `Senast uppdaterad av: ${group.updated_by_name || "uppgift saknas"}, ${formatPlanningUpdatedAt(group.updated_at)}`;
     updatedInfo.classList.remove("hidden");
@@ -2037,7 +2076,9 @@ function resetGroupModalState() {
     document.getElementById("groupModalTitle").textContent = "Ny plannering";
     document.getElementById("saveGroupBtn").textContent = "Spara";
     document.getElementById("groupNote").value = "";
-    document.getElementById("planningOwnerInfo").classList.add("hidden");
+    document.getElementById("planningOwnerRow")?.classList.add("hidden");
+    document.getElementById("changeOwnerBtn")?.classList.add("hidden");
+    document.getElementById("changeOwnerSection")?.classList.add("hidden");
     document.getElementById("planningUpdatedInfo").classList.add("hidden");
     const removeButton = document.getElementById("removeGroupBtn");
     removeButton.classList.add("hidden");
@@ -3049,6 +3090,76 @@ document.getElementById("removeGroupBtn").addEventListener("click", () => {
     removeGroup(editingGroupId);
     groupModal.classList.add("hidden");
     resetGroupModalState();
+});
+
+const changeOwnerBtn = document.getElementById("changeOwnerBtn");
+const changeOwnerSection = document.getElementById("changeOwnerSection");
+const newOwnerSelect = document.getElementById("newOwnerSelect");
+const cancelChangeOwnerBtn = document.getElementById("cancelChangeOwnerBtn");
+const confirmChangeOwnerBtn = document.getElementById("confirmChangeOwnerBtn");
+
+changeOwnerBtn?.addEventListener("click", async () => {
+    const editingGroupId = groupModal.dataset.editingGroupId;
+    if (!editingGroupId) return;
+    const group = groups.find(g => g.id === editingGroupId);
+    if (!group) return;
+
+    changeOwnerBtn.disabled = true;
+    changeOwnerBtn.textContent = "Hämtar...";
+
+    const leaders = await fetchKarLeadersAndAdmins();
+    changeOwnerBtn.disabled = false;
+    changeOwnerBtn.textContent = "Byt ägare...";
+
+    if (!leaders.length) {
+        alert("Inga ledare eller administratörer hittades för kåren.");
+        return;
+    }
+
+    newOwnerSelect.innerHTML = leaders.map(l => {
+        const displayName = l.full_name ? `${l.full_name} (${l.email})` : l.email;
+        const roleLabel = l.role === "admin" ? " [Admin]" : " [Ledare]";
+        const isCurrent = group.created_by === l.id;
+        return `<option value="${escapeHtml(l.id)}" data-name="${escapeHtml(l.full_name || l.email)}" ${isCurrent ? "selected" : ""}>${escapeHtml(displayName + roleLabel)}</option>`;
+    }).join("");
+
+    changeOwnerSection.classList.remove("hidden");
+});
+
+cancelChangeOwnerBtn?.addEventListener("click", () => {
+    changeOwnerSection.classList.add("hidden");
+});
+
+confirmChangeOwnerBtn?.addEventListener("click", () => {
+    const editingGroupId = groupModal.dataset.editingGroupId;
+    if (!editingGroupId) return;
+    const group = groups.find(g => g.id === editingGroupId);
+    if (!group) return;
+
+    const selectedOption = newOwnerSelect.options[newOwnerSelect.selectedIndex];
+    if (!selectedOption) return;
+
+    const newOwnerId = selectedOption.value;
+    const newOwnerName = selectedOption.getAttribute("data-name") || selectedOption.textContent;
+
+    group.created_by = newOwnerId;
+    group.created_by_name = newOwnerName;
+    group.updated_by_name = getPlanningUpdaterName();
+    group.updated_at = new Date().toISOString();
+
+    const ownerInfo = document.getElementById("planningOwnerInfo");
+    if (ownerInfo) {
+        ownerInfo.textContent = `Ägs av: ${getPlanningOwnerLabel(group)}`;
+    }
+
+    const removeButton = document.getElementById("removeGroupBtn");
+    const canDelete = canDeleteGroup(group);
+    removeButton.disabled = !canDelete;
+    removeButton.setAttribute("aria-disabled", String(!canDelete));
+
+    changeOwnerSection.classList.add("hidden");
+    saveGroups();
+    renderPlanning();
 });
 
 document.getElementById("saveGroupBtn").addEventListener("click", () => {

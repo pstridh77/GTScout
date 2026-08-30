@@ -2170,6 +2170,44 @@ body {
     display: none;
 }
 
+.planning-owner-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.planning-owner-row.hidden {
+    display: none;
+}
+
+.btn-small {
+    padding: 4px 10px;
+    font-size: 0.78rem;
+    border-radius: 6px;
+}
+
+.change-owner-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-top: 4px;
+}
+
+.change-owner-section.hidden {
+    display: none;
+}
+
+.change-owner-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
 .modal-actions { display: flex; justify-content: flex-end; }
 .modal-actions--split { justify-content: space-between; }
 

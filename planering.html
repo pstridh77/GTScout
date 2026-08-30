@@ -242,7 +242,20 @@
                 <span>Anteckning</span>
                 <textarea id="groupNote" rows="4" placeholder="Information om planeringen..."></textarea>
             </label>
-            <p id="planningOwnerInfo" class="planning-owner-info hidden"></p>
+            <div id="planningOwnerRow" class="planning-owner-row hidden">
+                <p id="planningOwnerInfo" class="planning-owner-info"></p>
+                <button id="changeOwnerBtn" class="btn-secondary btn-small hidden" type="button">Byt ägare...</button>
+            </div>
+            <div id="changeOwnerSection" class="change-owner-section hidden">
+                <label class="modal-field">
+                    <span>Välj ny ägare</span>
+                    <select id="newOwnerSelect" aria-label="Välj ny ägare för planeringen"></select>
+                </label>
+                <div class="change-owner-actions">
+                    <button id="cancelChangeOwnerBtn" class="btn-secondary btn-small" type="button">Avbryt</button>
+                    <button id="confirmChangeOwnerBtn" class="btn-primary btn-small" type="button">Spara ny ägare</button>
+                </div>
+            </div>
             <p id="planningUpdatedInfo" class="planning-owner-info hidden"></p>
             <div class="modal-actions">
                 <button id="removeGroupBtn" class="btn-danger hidden" type="button">Ta bort planering</button>
