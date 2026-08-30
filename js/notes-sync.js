@@ -125,9 +125,13 @@
 
     function onAuthChange() {
         if (!canRead()) {
+            const wasLoaded = loadedForKarId !== null;
             loadedForKarId = null;
-            writeLocal({});
-            onChange?.();
+            if (wasLoaded) {
+                // Endast om användaren tidigare var inloggad i en kår och nu loggat ut
+                writeLocal({});
+                onChange?.();
+            }
             return;
         }
         if (loadedForKarId === karId()) return;

@@ -176,9 +176,11 @@
 
     function onAuthChange() {
         if (!canRead()) {
+            const wasLoaded = loadedForKarId !== null;
             loadedForKarId = null;
             setStatus(auth()?.isOnline() ? "Arbetar lokalt (inte inloggad i någon kår)" : "", false);
-            if (hooks) {
+            if (wasLoaded && hooks) {
+                // Endast om användaren tidigare var inloggad i en kår och nu loggat ut
                 hooks.applyGroups([]);
             }
             return;

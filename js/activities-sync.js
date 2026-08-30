@@ -201,10 +201,14 @@
             if (activitiesResult.error) throw activitiesResult.error;
             if (linksResult.error) throw linksResult.error;
 
-            activities = (activitiesResult.data || []).map(row => normalizeActivity({
+            const dbActivities = (activitiesResult.data || []).map(row => normalizeActivity({
                 ...row,
                 kar_namn: row.kar?.namn || ""
             }));
+            const dbIds = new Set(dbActivities.map(a => a.id));
+            const remainingLocalCustom = readLocalActivities().filter(a => !a.kar_id && a.id && a.id.startsWith("egen-") && !dbIds.has(a.id));
+
+            activities = [...dbActivities, ...remainingLocalCustom];
             badgeLinks = (linksResult.data || []).map(normalizeBadgeLink).filter(item => item.badge_id && item.activity_id);
 
             writeLocalActivities(activities);
