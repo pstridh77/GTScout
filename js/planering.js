@@ -261,10 +261,21 @@ function canDeleteActivity(activity) {
 function canDeleteGroup(group) {
     const auth = window.GTScoutAuth;
     if (!auth) return false;
+    if (group?.local_only) return true;
     if (auth.isAdmin?.()) return true;
     const userId = auth.getUser?.()?.id;
     if (userId && group?.created_by === userId) return true;
     return false;
+}
+
+function canEditPlannings() {
+    return true;
+}
+
+function canEditGroup(group) {
+    const auth = window.GTScoutAuth;
+    if (!auth?.isOnline?.()) return true;
+    return Boolean(group?.local_only || window.GTScoutPlanningSync?.canWrite?.());
 }
 
 function getPlanningOwnerLabel(group) {
@@ -465,7 +476,7 @@ function openActivityPicker(groupId) {
     activeMeetingActivityPicker = null;
     activeActivityGroupId = groupId;
     const group = groups.find(item => item.id === groupId);
-    if (!group) return;
+    if (!group || !canEditGroup(group)) return;
     document.getElementById("selectActivityTitle").textContent = `Välj aktiviteter – ${group.name}`;
     document.getElementById("selectActivitySearch").value = "";
     populateActivityCategories();
@@ -1702,6 +1713,7 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
     const activeOpenActivityGroupIds = new Set([...preservedOpenActivityGroupIds, ...openActivityGroupIds]);
     const activeOpenMeetingGroupIds = new Set([...preservedOpenMeetingGroupIds, ...openMeetingGroupIds]);
     populateGroupFilterOptions();
+    document.getElementById("addGroupBtn")?.classList.toggle("hidden", !canEditPlannings());
     const grid = document.getElementById("planningGrid");
     grid.innerHTML = "";
 
@@ -1780,7 +1792,7 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                         <span class="group-planning-meta">År ${planningYear !== null ? planningYear : "-"} · ${planningTerm || "Termin -"}</span>
                     </div>
                     <div class="group-card-actions">
-                        <button class="btn-secondary edit-group-btn" type="button" data-group-id="${group.id}" title="Redigera planering">Redigera</button>
+                        <button class="btn-secondary edit-group-btn" type="button" data-group-id="${group.id}"${canEditGroup(group) ? "" : " disabled aria-disabled=\"true\" title=\"Endast ledare och administratörer kan redigera denna planering\""}>Redigera</button>
                     </div>
                 </div>
                 ${noteText ? `<div class="group-note">${renderLinkedText(noteText)}</div>` : ""}
@@ -1879,22 +1891,24 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
 function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingGroupIds = new Set()) {
     const activities = Array.isArray(group.activities) ? group.activities : [];
     const meetings = normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : []);
+    const editable = canEditGroup(group);
 
     const badges = group.badges.map(badgeId => {
         const marke = allMarken.find(m => m.id === badgeId);
         if (!marke) return "";
         return `
-            <div class="planned-badge" data-group-id="${group.id}" data-badge-id="${badgeId}" draggable="true" title="Klicka för mer info">
+            <div class="planned-badge" data-group-id="${group.id}" data-badge-id="${badgeId}" draggable="${editable}" title="Klicka för mer info">
+                ${editable ? `
                 <button class="remove-badge-btn" type="button"
                     data-group-id="${group.id}" data-badge-id="${badgeId}"
-                    title="Ta bort ${marke.namn}">&times;</button>
+                    title="Ta bort ${marke.namn}">&times;</button>` : ""}
                 <img src="${marke.bild}" alt="${marke.namn}">
                 <span>${marke.namn}</span>
             </div>
         `;
     }).join("");
     let activityMarkup = "";
-    if (showPlanningActivities) activityMarkup = `<details class="planned-activities"${openActivityGroupIds.has(group.id) ? " open" : ""}><summary><span>Aktiviteter${activities.length > 0 ? ` (${activities.length})` : ""}</span><button class="btn-secondary add-activity-btn" type="button" data-group-id="${group.id}">+ Aktivitet</button></summary><div class="planned-activities-list">${activities.map(activityId => {
+    if (showPlanningActivities) activityMarkup = `<details class="planned-activities"${openActivityGroupIds.has(group.id) ? " open" : ""}><summary><span>Aktiviteter${activities.length > 0 ? ` (${activities.length})` : ""}</span>${editable ? `<button class="btn-secondary add-activity-btn" type="button" data-group-id="${group.id}">+ Aktivitet</button>` : ""}</summary><div class="planned-activities-list">${activities.map(activityId => {
             const activity = allAktiviteter.find(item => item.id === activityId);
             return activity
                 ? `<div class="planned-activity" data-group-id="${group.id}" data-activity-id="${activity.id}" draggable="true" title="Dra för att ändra ordning">
@@ -1912,7 +1926,7 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
                             <button class="remove-activity-btn" type="button" data-group-id="${group.id}" data-activity-id="${escapeHtml(activityId)}" title="Ta bort saknad aktivitet från planeringen" aria-label="Ta bort saknad aktivitet från planeringen">&times;</button>
                         </div>`;
                 }).join("")}</div></details>`;
-            const meetingsMarkup = showPlanningMeetings ? `<details class="planned-meetings"${openMeetingGroupIds.has(group.id) ? " open" : ""}><summary><span>Möten${meetings.length > 0 ? ` (${meetings.length})` : ""}</span><button class="btn-secondary add-meeting-btn" type="button" data-group-id="${group.id}">+ Möte</button></summary><div class="planned-meetings-list"><div class="planned-meetings-actions"><button class="btn-secondary print-meetings-btn" type="button" data-group-id="${group.id}">Skriv ut möten</button></div>${meetings.map(meeting => {
+            const meetingsMarkup = showPlanningMeetings ? `<details class="planned-meetings"${openMeetingGroupIds.has(group.id) ? " open" : ""}><summary><span>Möten${meetings.length > 0 ? ` (${meetings.length})` : ""}</span><button class="btn-secondary add-meeting-btn" type="button" data-group-id="${group.id}"${editable ? "" : " disabled aria-disabled=\"true\" title=\"Endast ledare och administratörer kan ändra denna planering\""}>+ Möte</button></summary><div class="planned-meetings-list"><div class="planned-meetings-actions"><button class="btn-secondary print-meetings-btn" type="button" data-group-id="${group.id}">Skriv ut möten</button></div>${meetings.map(meeting => {
             const selectedActivities = (meeting.activities || []).map(activityId => allAktiviteter.find(item => item.id === activityId)).filter(Boolean);
             const meetingBadges = sortBadgesForDisplay(
                 getMeetingBadgeIds(meeting)
@@ -1938,24 +1952,27 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
                     ${meeting.responsible ? `<div><strong>Ansvarig:</strong> ${escapeHtml(meeting.responsible)}</div>` : ""}
                 </div>`;
         }).join("")}</div></details>` : "";
-    return `${badges}<div class="group-badges-actions"><button class="btn-secondary add-badge-btn" type="button" data-group-id="${group.id}">+ Märke</button></div>${activityMarkup}${meetingsMarkup}`;
+    return `${badges}<div class="group-badges-actions"><button class="btn-secondary add-badge-btn" type="button" data-group-id="${group.id}"${editable ? "" : " disabled aria-disabled=\"true\" title=\"Endast ledare och administratörer kan ändra denna planering\""}>+ Märke</button></div>${activityMarkup}${meetingsMarkup}`;
 }
 
 // ── Groups CRUD ────────────────────────────────────────────────────────────
 
 function addGroup(name, level, year = "", term = "", note = "") {
+    if (!canEditPlannings()) return;
     const trimmedName = String(name || "").trim();
     const normalizedYear = Number.parseInt(String(year ?? ""), 10);
     const normalizedTerm = normalizePlanningTerm(term);
     const auth = window.GTScoutAuth;
     const profile = auth?.getProfile?.();
     const now = new Date().toISOString();
+    const localOnly = Boolean(auth?.isOnline?.() && !window.GTScoutPlanningSync?.canWrite?.());
     groups.push({
         id: crypto.randomUUID(),
         created_by: auth?.getUser?.()?.id || null,
         created_by_name: profile?.full_name || profile?.email || "",
         updated_by_name: profile?.full_name || profile?.email || "",
         updated_at: now,
+        local_only: localOnly,
         name: trimmedName || [Number.isFinite(normalizedYear) ? `${normalizedYear}` : "", normalizedTerm].filter(Boolean).join(" "),
         level,
         year: Number.isFinite(normalizedYear) ? normalizedYear : "",
@@ -1990,7 +2007,7 @@ function removeLevelGroups(level) {
 
 function openGroupEditor(groupId) {
     const group = groups.find(g => g.id === groupId);
-    if (!group) return;
+    if (!group || !canEditGroup(group)) return;
 
     groupModal.dataset.editingGroupId = groupId;
     document.getElementById("groupModalTitle").textContent = "Redigera planering";
@@ -2281,7 +2298,7 @@ function bindActivityDragAndDrop() {
 
 function removeBadgeFromGroup(groupId, badgeId) {
     const group = groups.find(g => g.id === groupId);
-    if (!group) return;
+    if (!group || !canEditGroup(group)) return;
     group.badges = group.badges.filter(b => b !== badgeId);
     saveGroups();
     renderPlanning();
@@ -2289,7 +2306,7 @@ function removeBadgeFromGroup(groupId, badgeId) {
 
 function removeActivityFromGroup(groupId, activityId) {
     const group = groups.find(g => g.id === groupId);
-    if (!group || !Array.isArray(group.activities)) return;
+    if (!group || !canEditGroup(group) || !Array.isArray(group.activities)) return;
     group.activities = group.activities.filter(id => id !== activityId);
     group.meetings = normalizeMeetingList((group.meetings || []).map(meeting => ({
         ...meeting,
@@ -2390,7 +2407,7 @@ function renderMeetingLabels(group, activityId) {
 function openMeetingModal(groupId, meetingId = null) {
     const modal = document.getElementById("meetingModal");
     const group = groups.find(item => item.id === groupId);
-    if (!group) return;
+    if (!group || !canEditGroup(group)) return;
 
     const meeting = meetingId ? normalizeMeetingList(group.meetings || []).find(item => item.id === meetingId) : null;
     const meetingName = meeting?.week ? `Träff ${meeting.week}` : "Träff";
@@ -3009,6 +3026,7 @@ importPlanningInput.addEventListener("change", event => {
 });
 
 document.getElementById("addGroupBtn").addEventListener("click", () => {
+    if (!canEditPlannings()) return;
     resetGroupModalState();
     document.getElementById("groupName").value = "";
     document.getElementById("groupYear").value = new Date().getFullYear();
@@ -3049,7 +3067,7 @@ document.getElementById("saveGroupBtn").addEventListener("click", () => {
 
     if (editingGroupId) {
         const group = groups.find(g => g.id === editingGroupId);
-        if (!group) return;
+        if (!group || !canEditGroup(group)) return;
         group.name = resolvedName;
         group.level = level;
         const parsedYear = Number.parseInt(yearValue, 10);
@@ -3097,6 +3115,7 @@ pickerCategoryFilter.addEventListener("change", renderPickerGrid);
 function openBadgePicker(groupId) {
     activeGroupId = groupId;
     const group = groups.find(g => g.id === groupId);
+    if (!group || !canEditGroup(group)) return;
     document.getElementById("pickerTitle").textContent = `Välj märken – ${group.name}`;
     pickerSearch.value = "";
     pickerTargetGroupFilter.value = group.level;
@@ -3397,6 +3416,7 @@ createActivityPicker();
 createEditActivitiesMenuAction();
 loadDefaultPlannings();
 loadMarken();
+window.GTScoutAuth?.onChange(() => renderPlanning());
 
 window.GTScoutActivities?.init({
     onChange: () => {

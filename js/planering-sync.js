@@ -127,10 +127,13 @@
                 return;
             }
 
-            hooks.applyGroups(remote);
+            const localOnly = canWrite()
+                ? []
+                : local.filter(group => group?.local_only);
+            hooks.applyGroups([...remote, ...localOnly]);
             setStatus(canWrite()
                 ? `Synkad med databasen (${remote.length} planeringar)`
-                : `Kårens planeringar visas (${remote.length} st) – dina ändringar sparas bara lokalt.`, false);
+                : `Kårens planeringar visas (${remote.length} st) – egna planeringar sparas lokalt.`, false);
         } catch (error) {
             console.error("Kunde inte hämta planeringar från databasen", error);
             setStatus("Kunde inte hämta från databasen – använder lokal data.", true);
