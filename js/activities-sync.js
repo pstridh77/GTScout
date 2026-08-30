@@ -165,6 +165,29 @@
         }
 
         try {
+            const localCustom = readLocalActivities().filter(a => !a.kar_id && a.id && a.id.startsWith("egen-"));
+            if (localCustom.length > 0 && canWrite()) {
+                const uploadActs = window.confirm(
+                    `Du har skapat ${localCustom.length} aktivitet(er) när du arbetade oinloggad.\n\nVill du spara dem i kårens databas?`
+                );
+                if (uploadActs) {
+                    const karId = getKarId();
+                    const userId = auth()?.getUser()?.id || null;
+                    const rowsToUpsert = localCustom.map(a => ({
+                        id: a.id,
+                        kar_id: karId,
+                        created_by: userId,
+                        namn: a.namn,
+                        kategori: a.kategori || null,
+                        beskrivning: a.beskrivning || null,
+                        tid: a.tid || null,
+                        material: a.material || [],
+                        genomforande: a.genomforande || null
+                    }));
+                    await client().from("aktiviteter").upsert(rowsToUpsert, { onConflict: "id" });
+                }
+            }
+
             const [activitiesResult, linksResult] = await Promise.all([
                 client()
                     .from("aktiviteter")

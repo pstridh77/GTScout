@@ -99,9 +99,21 @@
             });
 
             const local = readLocal();
-            if (!Object.keys(remote).length && Object.keys(local).length && canWrite()) {
-                scheduleSaveAll(local);
-                return;
+            const localKeys = Object.keys(local).filter(k => local[k] && local[k].trim());
+            const newOrDifferentKeys = localKeys.filter(k => !remote[k] || remote[k] !== local[k]);
+
+            if (newOrDifferentKeys.length && canWrite()) {
+                const uploadNotes = window.confirm(
+                    `Du har skrivit ${newOrDifferentKeys.length} märkesanteckning(ar) när du arbetade oinloggad.\n\nVill du spara dem i kårens databas?`
+                );
+                if (uploadNotes) {
+                    const merged = { ...remote };
+                    newOrDifferentKeys.forEach(k => { merged[k] = local[k]; });
+                    writeLocal(merged);
+                    scheduleSaveAll(merged);
+                    onChange?.();
+                    return;
+                }
             }
 
             writeLocal(remote);

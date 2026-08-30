@@ -107,33 +107,67 @@
         try {
             setStatus("Hämtar planeringar...", false);
             const remote = await fetchGroups();
-            const local = hooks.getGroups();
+            const local = hooks.getGroups?.() || [];
 
-            if (!remote.length && !canWrite()) {
-                setStatus("Kåren har inga planeringar i databasen – visar lokal data.", false);
+            if (!canWrite()) {
+                if (!remote.length) {
+                    setStatus("Kåren har inga planeringar i databasen – visar lokal data.", false);
+                    return;
+                }
+                const localOnly = local.filter(group => group?.local_only);
+                hooks.applyGroups([...remote, ...localOnly]);
+                setStatus(`Kårens planeringar visas (${remote.length} st) – egna planeringar sparas lokalt.`, false);
                 return;
             }
+
+            const localNew = local.filter(l => !remote.some(r => r.id === l.id));
 
             if (!remote.length && local.length) {
                 const upload = window.confirm(
-                    `Kåren har inga planeringar i databasen. Vill du ladda upp dina ${local.length} lokala planeringar?`
+                    `Du har ${local.length} planering(ar) från när du arbetade oinloggad.\n\nVill du lägga till och spara dem i kårens databas?`
                 );
                 if (upload) {
+                    const userId = auth().getUser()?.id || null;
+                    const userName = auth().getProfile()?.full_name || auth().getProfile()?.email || "";
+                    local.forEach(g => {
+                        if (!g.created_by) {
+                            g.created_by = userId;
+                            g.created_by_name = userName;
+                        }
+                    });
                     await pushGroups(local);
-                    setStatus("Lokala planeringar uppladdade", false);
+                    hooks.applyGroups(local);
+                    setStatus(`Sparade ${local.length} planeringar i kårens databas`, false);
                     return;
                 }
-                setStatus("Inga planeringar i databasen – arbetar lokalt.", false);
+                hooks.applyGroups([]);
+                setStatus("Inga planeringar i databasen.", false);
                 return;
             }
 
-            const localOnly = canWrite()
-                ? []
-                : local.filter(group => group?.local_only);
-            hooks.applyGroups([...remote, ...localOnly]);
-            setStatus(canWrite()
-                ? `Synkad med databasen (${remote.length} planeringar)`
-                : `Kårens planeringar visas (${remote.length} st) – egna planeringar sparas lokalt.`, false);
+            if (remote.length && localNew.length) {
+                const upload = window.confirm(
+                    `Du har skapat ${localNew.length} planering(ar) när du arbetade oinloggad.\n\nVill du lägga till dem i kårens databas tillsammans med kårens befintliga planeringar (${remote.length} st)?`
+                );
+                if (upload) {
+                    const userId = auth().getUser()?.id || null;
+                    const userName = auth().getProfile()?.full_name || auth().getProfile()?.email || "";
+                    localNew.forEach(g => {
+                        if (!g.created_by) {
+                            g.created_by = userId;
+                            g.created_by_name = userName;
+                        }
+                    });
+                    const combined = [...remote, ...localNew];
+                    await pushGroups(combined);
+                    hooks.applyGroups(combined);
+                    setStatus(`Synkad med databasen (${combined.length} planeringar)`, false);
+                    return;
+                }
+            }
+
+            hooks.applyGroups(remote);
+            setStatus(`Synkad med databasen (${remote.length} planeringar)`, false);
         } catch (error) {
             console.error("Kunde inte hämta planeringar från databasen", error);
             setStatus("Kunde inte hämta från databasen – använder lokal data.", true);
