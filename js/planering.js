@@ -477,8 +477,8 @@ function openActivityPicker(groupId) {
     document.getElementById("selectActivityModal").classList.remove("hidden");
 }
 
-function openMeetingActivityPicker(group, selectedIds, onApply) {
-    activeMeetingActivityPicker = { selectedIds, onApply };
+function openMeetingActivityPicker(group, selectedIds, onApply, activityFilter = null) {
+    activeMeetingActivityPicker = { selectedIds, onApply, activityFilter };
     activeActivityGroupId = group.id;
     document.getElementById("selectActivityTitle").textContent = "Välj aktiviteter till mötet";
     document.getElementById("selectActivitySearch").value = "";
@@ -500,6 +500,10 @@ function getActivityCategories(activity) {
     return categories.length > 0 ? [...new Set(categories)] : ["Övrigt"];
 }
 
+function isGameActivity(activity) {
+    return getActivityCategories(activity).some(category => category.toLowerCase().includes("lek"));
+}
+
 function populateActivityCategories() {
     const categories = [...new Set(allAktiviteter.flatMap(getActivityCategories))]
         .sort((a, b) => a.localeCompare(b, "sv"));
@@ -517,6 +521,7 @@ function renderActivityPicker() {
     const karFilter = document.getElementById("selectActivityKarFilter")?.value || "Alla";
     const selected = activeMeetingActivityPicker?.selectedIds || new Set(Array.isArray(group.activities) ? group.activities : []);
     const activities = allAktiviteter.filter(activity => {
+        if (activeMeetingActivityPicker?.activityFilter && !activeMeetingActivityPicker.activityFilter(activity)) return false;
         const matchesCategory = category === "Alla" || getActivityCategories(activity).includes(category);
         const matchesKar = isActivityVisibleForKarFilter(activity, karFilter);
         const matchesSearch = !searchTerm || [activity.namn, activity.beskrivning, ...(activity.material || [])]
@@ -574,6 +579,7 @@ function createActivityPicker() {
         const karFilter = document.getElementById("selectActivityKarFilter")?.value || "Alla";
         const visibleActivityIds = new Set(allAktiviteter
             .filter(activity => {
+                if (activeMeetingActivityPicker?.activityFilter && !activeMeetingActivityPicker.activityFilter(activity)) return false;
                 const matchesCategory = category === "Alla" || getActivityCategories(activity).includes(category);
                 const matchesKar = isActivityVisibleForKarFilter(activity, karFilter);
                 const matchesSearch = !searchTerm || [activity.namn, activity.beskrivning, ...(activity.material || [])]
@@ -1171,12 +1177,12 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             </article>
         `;
     };
-    const renderActivity = (activityId, includeHandwritingSpace = false) => {
+    const renderActivity = (activityId, includeHandwritingSpace = false, handwritingRows = 3) => {
         const activity = allAktiviteter.find(item => item.id === activityId);
         if (!activity) return `<p class="missing-badge">Aktivitet ${escapeHtml(activityId)} kunde inte hittas.</p>`;
         const material = Array.isArray(activity.material) ? activity.material.join(", ") : "";
         const handwritingSpace = includeHandwritingSpace
-            ? `<div class="pdf-meeting-detail-preparations-grid"><div><h4 aria-hidden="true">&nbsp;</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för egna aktivitetsanteckningar"><span></span><span></span><span></span></div></div><div><h4>Ansvarig</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för aktivitetens ansvarig"><span></span><span></span><span></span></div></div></div>`
+            ? `<div class="pdf-meeting-detail-preparations-grid"><div><h4 aria-hidden="true">&nbsp;</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för egna aktivitetsanteckningar">${"<span></span>".repeat(handwritingRows)}</div></div><div><h4>Ansvarig</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för aktivitetens ansvarig">${"<span></span>".repeat(handwritingRows)}</div></div></div>`
             : "";
         return `<div class="pdf-activity"><h4>${escapeHtml(activity.namn)}</h4>${activity.kategori ? `<p><strong>Kategori:</strong> ${escapeHtml(activity.kategori)}</p>` : ""}${activity.beskrivning ? `<p><strong>Beskrivning:</strong> ${renderLinkedText(activity.beskrivning)}</p>` : ""}${formatActivityTime(activity) ? `<p><strong>Tid:</strong> ${escapeHtml(formatActivityTime(activity))}</p>` : ""}${material ? `<p><strong>Material:</strong> ${escapeHtml(material)}</p>` : ""}${activity.genomforande ? `<p><strong>Genomförande:</strong> ${renderLinkedText(activity.genomforande)}</p>` : ""}${handwritingSpace}</div>`;
     };
@@ -1188,6 +1194,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             Array.isArray(group.badges) ? group.badges : []
         );
         const selectedActivities = meeting.activities || [];
+        const selectedGames = meeting.games || [];
         const badgeImages = meetingBadges.length > 0
             ? meetingBadges.map(badge => `<img class="pdf-meeting-badge" src="${escapeHtml(resolveImage(badge.bild))}" alt="${escapeHtml(badge.namn)}" title="${escapeHtml(badge.namn)}">`).join("")
             : "";
@@ -1197,6 +1204,10 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 <h3>Träff ${escapeHtml(meeting.week || "-")}${meeting.date ? ` <span>(${escapeHtml(meeting.date)})</span>` : ""}</h3>
             </div>
             ${meeting.notes ? `<p class="pdf-meeting-notes">${escapeHtml(meeting.notes)}</p>` : ""}
+            ${selectedGames.length > 0 ? `<p><strong>Lek:</strong> ${selectedGames.map(activityId => {
+                const activity = allAktiviteter.find(item => item.id === activityId);
+                return activity ? escapeHtml(activity.namn) : `<span class="missing-activity">Lek saknas (${escapeHtml(activityId)})</span>`;
+            }).join(", ")}</p>` : ""}
             ${selectedActivities.length > 0 ? `<p><strong>Aktiviteter:</strong> ${selectedActivities.map(activityId => {
                 const activity = allAktiviteter.find(item => item.id === activityId);
                 return activity ? escapeHtml(activity.namn) : `<span class="missing-activity">Aktivitet saknas (${escapeHtml(activityId)})</span>`;
@@ -1212,6 +1223,9 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
         const planningYear = getGroupYearValue(group);
         const planningTerm = getGroupTermValue(group);
         const selectedActivities = (meeting.activities || [])
+            .map(activityId => allAktiviteter.find(item => item.id === activityId))
+            .filter(Boolean);
+        const selectedGames = (meeting.games || [])
             .map(activityId => allAktiviteter.find(item => item.id === activityId))
             .filter(Boolean);
         const badgeInfo = badges.length > 0
@@ -1255,7 +1269,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                         ? `${selectedActivities.length > 0 ? selectedActivities.map(activity => renderActivity(activity.id, true)).join("") : ""}${selectedActivities.length === 0 ? `<div class="pdf-meeting-detail-preparations-grid"><div><h4 aria-hidden="true">&nbsp;</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för aktiviteter"><span></span><span></span><span></span></div></div><div><h4>Ansvarig</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för aktivitetens ansvarig"><span></span><span></span><span></span></div></div></div>` : ""}`
                         : ""}
                     ${section.title === "Lek"
-                        ? `<div class="pdf-meeting-detail-preparations-grid"><div><h4 aria-hidden="true">&nbsp;</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för egna anteckningar"><span></span></div></div><div><h4>Ansvarig</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för lekens ansvarig"><span></span></div></div></div>`
+                        ? `${selectedGames.length > 0 ? selectedGames.map(activity => renderActivity(activity.id, true, 1)).join("") : ""}${selectedGames.length === 0 ? `<div class="pdf-meeting-detail-preparations-grid"><div><h4 aria-hidden="true">&nbsp;</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för egna anteckningar"><span></span></div></div><div><h4>Ansvarig</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för lekens ansvarig"><span></span></div></div></div>` : ""}`
                         : ""}
                 </div>
             </div>
@@ -2347,6 +2361,7 @@ function normalizeMeetingList(meetings) {
                 responsible: String(meeting.responsible ?? meeting.ansvarig ?? "").trim(),
                 badgeIds,
                 badgeId: badgeIds[0] || "",
+                games: Array.isArray(meeting.games) ? [...new Set(meeting.games.filter(Boolean))] : [],
                 activities: Array.isArray(meeting.activities) ? [...new Set(meeting.activities.filter(Boolean))] : [],
                 notes: String(meeting.notes ?? meeting.note ?? "").trim()
             };
@@ -2380,8 +2395,11 @@ function openMeetingModal(groupId, meetingId = null) {
     const meeting = meetingId ? normalizeMeetingList(group.meetings || []).find(item => item.id === meetingId) : null;
     const meetingName = meeting?.week ? `Träff ${meeting.week}` : "Träff";
     document.getElementById("meetingModalTitle").textContent = `${group.level || "Målgrupp"} – ${group.name} – ${meetingName}`;
+    const gameList = document.getElementById("meetingGameList");
     const activityList = document.getElementById("meetingActivityList");
     const selectedIds = new Set((meeting && Array.isArray(meeting.activities) ? meeting.activities : []));
+    const selectedGameIds = new Set((meeting && Array.isArray(meeting.games) ? meeting.games : []));
+    const allGamesButton = document.getElementById("meetingAllGamesBtn");
     const allActivitiesButton = document.getElementById("meetingAllActivitiesBtn");
     const selectedBadgeIds = new Set(getMeetingBadgeIds(meeting));
     const badgeList = sortBadgesForDisplay(
@@ -2407,6 +2425,29 @@ function openMeetingModal(groupId, meetingId = null) {
                     </span>
                 </label>`).join("")
             : "<p class='group-empty'>Det finns inga aktiviteter i denna planering ännu.</p>";
+    }
+
+    function renderMeetingGames() {
+        const selectedGames = allAktiviteter
+            .filter(activity => selectedGameIds.has(activity.id))
+            .filter(isGameActivity);
+        gameList.innerHTML = selectedGames.length > 0
+            ? selectedGames.map(activity => `
+                <label class="meeting-activity-option">
+                    <input type="checkbox" value="${activity.id}" checked>
+                    <span class="meeting-activity-details"><span>${escapeHtml(activity.namn)}</span></span>
+                </label>`).join("")
+            : "<p class='group-empty'>Ingen lek är vald ännu.</p>";
+    }
+
+    function persistSelectedGames() {
+        const currentMeeting = modal.dataset.meetingId
+            ? normalizeMeetingList(group.meetings || []).find(item => item.id === modal.dataset.meetingId)
+            : null;
+        if (!currentMeeting) return;
+        currentMeeting.games = [...selectedGameIds];
+        group.meetings = normalizeMeetingList((group.meetings || []).map(item => item.id === currentMeeting.id ? currentMeeting : item));
+        saveGroups();
     }
 
     modal.dataset.groupId = groupId;
@@ -2462,7 +2503,18 @@ function openMeetingModal(groupId, meetingId = null) {
         if (input.checked) selectedIds.add(input.value);
         else selectedIds.delete(input.value);
     };
+    gameList.onchange = event => {
+        const input = event.target;
+        if (!(input instanceof HTMLInputElement) || input.type !== "checkbox") return;
+        if (input.checked) selectedGameIds.add(input.value);
+        else selectedGameIds.delete(input.value);
+    };
+    allGamesButton.onclick = () => openMeetingActivityPicker(group, selectedGameIds, () => {
+        renderMeetingGames();
+        persistSelectedGames();
+    }, isGameActivity);
     allActivitiesButton.onclick = () => openMeetingActivityPicker(group, selectedIds, renderMeetingActivities);
+    renderMeetingGames();
     renderMeetingActivities();
 
     modal.classList.remove("hidden");
@@ -2480,6 +2532,7 @@ function saveMeetingFromModal() {
     const responsible = document.getElementById("meetingResponsible").value.trim();
     const badgeIds = normalizeMeetingBadgeIds(document.getElementById("meetingBadge").value);
     const notes = document.getElementById("meetingNotes").value.trim();
+    const selectedGames = [...document.querySelectorAll("#meetingGameList input:checked")].map(input => input.value);
     const selectedActivities = [...document.querySelectorAll("#meetingActivityList input:checked")].map(input => input.value);
     if (!week && !date) {
         document.getElementById("meetingWeek").focus();
@@ -2492,6 +2545,7 @@ function saveMeetingFromModal() {
         responsible,
         badgeIds,
         badgeId: badgeIds[0] || "",
+        games: [...new Set(selectedGames.filter(Boolean))],
         activities: [...new Set(selectedActivities.filter(Boolean))],
         notes
     };
@@ -2504,7 +2558,7 @@ function saveMeetingFromModal() {
     modal.classList.add("hidden");
 }
 
-function generateMeetingSeries(groupId, count, startWeek, startDate, activities = [], badgeId = "", responsible = "", notes = "") {
+function generateMeetingSeries(groupId, count, startWeek, startDate, activities = [], games = [], badgeId = "", responsible = "", notes = "") {
     const group = groups.find(item => item.id === groupId);
     if (!group) return;
 
@@ -2524,6 +2578,7 @@ function generateMeetingSeries(groupId, count, startWeek, startDate, activities 
             responsible,
             badgeIds,
             badgeId: badgeIds[0] || "",
+            games: [...new Set(games.filter(Boolean))],
             activities: [...new Set(activities.filter(Boolean))],
             notes
         });
@@ -2559,12 +2614,15 @@ function bindMeetingModalActions() {
         if (!groupId) return;
         const selectedActivities = [...document.querySelectorAll("#meetingActivityList input:checked")]
             .map(input => input.value);
+        const selectedGames = [...document.querySelectorAll("#meetingGameList input:checked")]
+            .map(input => input.value);
         generateMeetingSeries(
             groupId,
             document.getElementById("meetingSeriesCount").value,
             document.getElementById("meetingSeriesStartWeek").value,
             document.getElementById("meetingSeriesStartDate").value,
             selectedActivities,
+            selectedGames,
             document.getElementById("meetingBadge").value,
             document.getElementById("meetingResponsible").value.trim(),
             document.getElementById("meetingNotes").value.trim()
@@ -2593,6 +2651,7 @@ function createMeetingForGroup(groupId, meetingInput = {}) {
         responsible: String(meetingInput.responsible ?? meetingInput.ansvarig ?? "").trim(),
         badgeIds,
         badgeId: badgeIds[0] || "",
+        games: Array.isArray(meetingInput.games) ? [...new Set(meetingInput.games.filter(Boolean))] : [],
         activities: Array.isArray(meetingInput.activities) ? [...new Set(meetingInput.activities.filter(Boolean))] : [],
         notes: String(meetingInput.notes ?? meetingInput.note ?? "").trim()
     };
@@ -2622,6 +2681,9 @@ function updateMeetingForGroup(groupId, meetingId, meetingInput = {}) {
             responsible: String(meetingInput.responsible ?? meetingInput.ansvarig ?? meeting.responsible ?? "").trim(),
             badgeIds: nextBadgeIds,
             badgeId: nextBadgeIds[0] || "",
+            games: Array.isArray(meetingInput.games)
+                ? [...new Set(meetingInput.games.filter(Boolean))]
+                : [...(meeting.games || [])],
             activities: Array.isArray(meetingInput.activities)
                 ? [...new Set(meetingInput.activities.filter(Boolean))]
                 : [...(meeting.activities || [])],
@@ -2647,7 +2709,7 @@ function getMeetingsForGroup(groupId) {
     return normalizeMeetingList(group.meetings || []);
 }
 
-function generateMeetingSeries(groupId, count, startWeek, startDate, activities = [], badgeId = "", responsible = "", notes = "") {
+function generateMeetingSeries(groupId, count, startWeek, startDate, activities = [], games = [], badgeId = "", responsible = "", notes = "") {
     const group = groups.find(item => item.id === groupId);
     if (!group) return;
     const meetingCount = Math.max(1, Number.parseInt(count, 10) || 1);
@@ -2663,6 +2725,7 @@ function generateMeetingSeries(groupId, count, startWeek, startDate, activities 
             week: String(firstWeek + index),
             date: date.toISOString().slice(0, 10),
             badgeId,
+            games: [...new Set(games.filter(Boolean))],
             activities: [...new Set(activities.filter(Boolean))],
             responsible,
             notes
