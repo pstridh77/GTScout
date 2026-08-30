@@ -2057,6 +2057,10 @@ body {
     z-index: 1200;
 }
 
+#selectActivityModal {
+    z-index: 1100;
+}
+
 .modal-content {
     position: relative;
     background: white;
@@ -2171,6 +2175,12 @@ body {
     border: 1px solid #d0d7de;
     border-radius: 10px;
     background: #f8fafc;
+}
+
+.meeting-all-activities-btn {
+    align-self: flex-start;
+    padding: 5px 10px;
+    font-size: 0.82rem;
 }
 
 .meeting-activity-option {

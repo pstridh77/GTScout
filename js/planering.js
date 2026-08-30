@@ -79,6 +79,7 @@ const ACTIVITY_DND_MIME = "application/x-gtscout-activity";
 let activeDraggedActivity = null;
 let editingStandaloneActivityId = null;
 let activeActivityGroupId = null;
+let activeMeetingActivityPicker = null;
 let activeStandaloneActivityBadge = null;
 let activeStandaloneActivityPlanning = null;
 let activeBadgeActivityLibraryMarke = null;
@@ -454,6 +455,7 @@ function openStandaloneActivityForPlanning(planning) {
 }
 
 function openActivityPicker(groupId) {
+    activeMeetingActivityPicker = null;
     activeActivityGroupId = groupId;
     const group = groups.find(item => item.id === groupId);
     if (!group) return;
@@ -464,6 +466,21 @@ function openActivityPicker(groupId) {
     const canWrite = window.GTScoutActivities?.canWrite?.();
     document.getElementById("createActivityFromPickerBtn").classList.toggle("hidden", !canWrite);
     document.getElementById("saveSelectedActivitiesBtn").classList.toggle("hidden", !canWrite);
+    renderActivityPicker();
+    document.getElementById("selectActivityModal").classList.remove("hidden");
+}
+
+function openMeetingActivityPicker(group, selectedIds, onApply) {
+    activeMeetingActivityPicker = { selectedIds, onApply };
+    activeActivityGroupId = group.id;
+    document.getElementById("selectActivityTitle").textContent = "Välj aktiviteter till mötet";
+    document.getElementById("selectActivitySearch").value = "";
+    populateActivityCategories();
+    populateActivityKarFilter(document.getElementById("selectActivityKarFilter"));
+    document.getElementById("createActivityFromPickerBtn").classList.add("hidden");
+    const saveButton = document.getElementById("saveSelectedActivitiesBtn");
+    saveButton.textContent = "Lägg till i möte";
+    saveButton.classList.remove("hidden");
     renderActivityPicker();
     document.getElementById("selectActivityModal").classList.remove("hidden");
 }
@@ -491,7 +508,7 @@ function renderActivityPicker() {
     const searchTerm = document.getElementById("selectActivitySearch").value.trim().toLowerCase();
     const category = document.getElementById("selectActivityCategory").value;
     const karFilter = document.getElementById("selectActivityKarFilter")?.value || "Alla";
-    const selected = new Set(Array.isArray(group.activities) ? group.activities : []);
+    const selected = activeMeetingActivityPicker?.selectedIds || new Set(Array.isArray(group.activities) ? group.activities : []);
     const activities = allAktiviteter.filter(activity => {
         const matchesCategory = category === "Alla" || getActivityCategories(activity).includes(category);
         const matchesKar = isActivityVisibleForKarFilter(activity, karFilter);
@@ -537,7 +554,6 @@ function createActivityPicker() {
     document.getElementById("selectActivityCategory").addEventListener("change", renderActivityPicker);
     document.getElementById("selectActivityKarFilter").addEventListener("change", renderActivityPicker);
     document.getElementById("saveSelectedActivitiesBtn").addEventListener("click", () => {
-        if (!window.GTScoutActivities?.canWrite?.()) return;
         const group = groups.find(item => item.id === activeActivityGroupId);
         if (!group) return;
         const searchTerm = document.getElementById("selectActivitySearch").value.trim().toLowerCase();
@@ -557,6 +573,17 @@ function createActivityPicker() {
             .map(activity => activity.id));
         const selectedVisibleActivityIds = [...modal.querySelectorAll("#selectActivityList input:checked")]
             .map(input => input.value);
+        if (activeMeetingActivityPicker) {
+            const selectedIds = activeMeetingActivityPicker.selectedIds;
+            visibleActivityIds.forEach(activityId => selectedIds.delete(activityId));
+            selectedVisibleActivityIds.forEach(activityId => selectedIds.add(activityId));
+            activeMeetingActivityPicker.onApply();
+            activeMeetingActivityPicker = null;
+            modal.classList.add("hidden");
+            return;
+        }
+
+        if (!window.GTScoutActivities?.canWrite?.()) return;
         const existingActivityIds = Array.isArray(group.activities) ? group.activities : [];
         group.activities = [
             ...existingActivityIds.filter(activityId => !visibleActivityIds.has(activityId)),
@@ -2342,6 +2369,7 @@ function openMeetingModal(groupId, meetingId = null) {
     document.getElementById("meetingModalTitle").textContent = `${group.level || "Målgrupp"} – ${group.name} – ${meetingName}`;
     const activityList = document.getElementById("meetingActivityList");
     const selectedIds = new Set((meeting && Array.isArray(meeting.activities) ? meeting.activities : []));
+    const allActivitiesButton = document.getElementById("meetingAllActivitiesBtn");
     const selectedBadgeIds = new Set(getMeetingBadgeIds(meeting));
     const badgeList = sortBadgesForDisplay(
         (Array.isArray(group.badges) ? group.badges : [])
@@ -2349,9 +2377,22 @@ function openMeetingModal(groupId, meetingId = null) {
             .filter(Boolean),
         Array.isArray(group.badges) ? group.badges : []
     );
-    const availableActivities = (Array.isArray(group.activities) ? group.activities : [])
-        .map(activityId => allAktiviteter.find(item => item.id === activityId))
-        .filter(Boolean);
+    const planningActivityIds = new Set(Array.isArray(group.activities) ? group.activities : []);
+
+    function renderMeetingActivities() {
+        const availableActivityIds = new Set([...planningActivityIds, ...selectedIds]);
+        const availableActivities = allAktiviteter.filter(activity => availableActivityIds.has(activity.id));
+        activityList.innerHTML = availableActivities.length > 0
+            ? availableActivities.map(activity => `
+                <label class="meeting-activity-option">
+                    <input type="checkbox" value="${activity.id}" ${selectedIds.has(activity.id) ? "checked" : ""}>
+                    <span class="meeting-activity-details">
+                        <span>${escapeHtml(activity.namn)}</span>
+                        ${renderMeetingLabels(group, activity.id)}
+                    </span>
+                </label>`).join("")
+            : "<p class='group-empty'>Det finns inga aktiviteter i denna planering ännu.</p>";
+    }
 
     modal.dataset.groupId = groupId;
     modal.dataset.meetingId = meetingId || "";
@@ -2400,16 +2441,14 @@ function openMeetingModal(groupId, meetingId = null) {
     document.getElementById("meetingSeriesCount").value = "10";
     document.getElementById("meetingSeriesStartWeek").value = "1";
     document.getElementById("meetingSeriesStartDate").value = "";
-    activityList.innerHTML = availableActivities.length > 0
-        ? availableActivities.map(activity => `
-            <label class="meeting-activity-option">
-                <input type="checkbox" value="${activity.id}" ${selectedIds.has(activity.id) ? "checked" : ""}>
-                <span class="meeting-activity-details">
-                    <span>${escapeHtml(activity.namn)}</span>
-                    ${renderMeetingLabels(group, activity.id)}
-                </span>
-            </label>`).join("")
-        : "<p class='group-empty'>Det finns inga aktiva aktiviteter i denna planering ännu.</p>";
+    activityList.onchange = event => {
+        const input = event.target;
+        if (!(input instanceof HTMLInputElement) || input.type !== "checkbox") return;
+        if (input.checked) selectedIds.add(input.value);
+        else selectedIds.delete(input.value);
+    };
+    allActivitiesButton.onclick = () => openMeetingActivityPicker(group, selectedIds, renderMeetingActivities);
+    renderMeetingActivities();
 
     modal.classList.remove("hidden");
     document.getElementById("meetingWeek").focus();
