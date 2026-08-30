@@ -206,6 +206,9 @@
         <div class="modal-content">
             <button class="close-popup" type="button" id="closeGroupModal">&times;</button>
             <h2 id="groupModalTitle">Ny plannering</h2>
+            <div class="modal-actions">
+                <button id="saveGroupBtn" class="btn-primary" type="button">Spara</button>
+            </div>
             <label class="modal-field">
                 <span>Namn</span>
                 <input id="groupName" type="text" placeholder="t.ex. År 1 - HT">
@@ -238,9 +241,9 @@
                 <textarea id="groupNote" rows="4" placeholder="Information om planeringen..."></textarea>
             </label>
             <p id="planningOwnerInfo" class="planning-owner-info hidden"></p>
-            <div class="modal-actions modal-actions--split">
+            <p id="planningUpdatedInfo" class="planning-owner-info hidden"></p>
+            <div class="modal-actions">
                 <button id="removeGroupBtn" class="btn-danger hidden" type="button">Ta bort planering</button>
-                <button id="saveGroupBtn" class="btn-primary" type="button">Spara</button>
             </div>
         </div>
     </div>

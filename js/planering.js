@@ -271,6 +271,18 @@ function getPlanningOwnerLabel(group) {
     return group?.created_by_name || "En annan ledare";
 }
 
+function getPlanningUpdaterName() {
+    const auth = window.GTScoutAuth;
+    const profile = auth?.getProfile?.();
+    return profile?.full_name || profile?.email || "Okänd användare";
+}
+
+function formatPlanningUpdatedAt(value) {
+    const updatedAt = new Date(value);
+    if (Number.isNaN(updatedAt.getTime())) return "uppgift saknas";
+    return updatedAt.toLocaleString("sv-SE", { dateStyle: "short", timeStyle: "short" });
+}
+
 function isActivityVisibleForKarFilter(activity, karFilter) {
     if (!karFilter || karFilter === "Alla") return true;
     if (karFilter === "__saknas") return !activity.kar_id;
@@ -1883,10 +1895,13 @@ function addGroup(name, level, year = "", term = "", note = "") {
     const normalizedTerm = normalizePlanningTerm(term);
     const auth = window.GTScoutAuth;
     const profile = auth?.getProfile?.();
+    const now = new Date().toISOString();
     groups.push({
         id: crypto.randomUUID(),
         created_by: auth?.getUser?.()?.id || null,
         created_by_name: profile?.full_name || profile?.email || "",
+        updated_by_name: profile?.full_name || profile?.email || "",
+        updated_at: now,
         name: trimmedName || [Number.isFinite(normalizedYear) ? `${normalizedYear}` : "", normalizedTerm].filter(Boolean).join(" "),
         level,
         year: Number.isFinite(normalizedYear) ? normalizedYear : "",
@@ -1934,6 +1949,9 @@ function openGroupEditor(groupId) {
     const ownerInfo = document.getElementById("planningOwnerInfo");
     ownerInfo.textContent = `Ägs av: ${getPlanningOwnerLabel(group)}`;
     ownerInfo.classList.remove("hidden");
+    const updatedInfo = document.getElementById("planningUpdatedInfo");
+    updatedInfo.textContent = `Senast uppdaterad av: ${group.updated_by_name || "uppgift saknas"}, ${formatPlanningUpdatedAt(group.updated_at)}`;
+    updatedInfo.classList.remove("hidden");
     const removeButton = document.getElementById("removeGroupBtn");
     const canDelete = canDeleteGroup(group);
     removeButton.classList.remove("hidden");
@@ -1949,6 +1967,7 @@ function resetGroupModalState() {
     document.getElementById("saveGroupBtn").textContent = "Spara";
     document.getElementById("groupNote").value = "";
     document.getElementById("planningOwnerInfo").classList.add("hidden");
+    document.getElementById("planningUpdatedInfo").classList.add("hidden");
     const removeButton = document.getElementById("removeGroupBtn");
     removeButton.classList.add("hidden");
     removeButton.disabled = false;
@@ -2684,6 +2703,10 @@ function addDefaultPlanningForLevel(level, yearCount) {
     const template = defaultPlannings.find(p => p.level === level);
     if (!template) return 0;
 
+    const auth = window.GTScoutAuth;
+    const profile = auth?.getProfile?.();
+    const ownerName = profile?.full_name || profile?.email || "";
+    const now = new Date().toISOString();
     let added = 0;
     const selectedYear = String(yearCount ?? "alla").trim().toLowerCase();
     const parsedYear = Number.parseInt(selectedYear, 10);
@@ -2700,6 +2723,10 @@ function addDefaultPlanningForLevel(level, yearCount) {
         if (!groups.some(g => g.level === level && g.name === plan.name)) {
             groups.push({
                 id: crypto.randomUUID(),
+                created_by: auth?.getUser?.()?.id || null,
+                created_by_name: ownerName,
+                updated_by_name: ownerName,
+                updated_at: now,
                 name: plan.name,
                 level,
                 note: typeof plan.note === "string" ? plan.note.trim() : "",
@@ -2912,6 +2939,8 @@ document.getElementById("saveGroupBtn").addEventListener("click", () => {
         group.year = Number.isFinite(parsedYear) ? parsedYear : "";
         group.term = termValue;
         group.note = noteValue;
+        group.updated_by_name = getPlanningUpdaterName();
+        group.updated_at = new Date().toISOString();
         saveGroups();
         renderPlanning();
     } else {
