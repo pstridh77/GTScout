@@ -2915,6 +2915,19 @@ function updateDefaultPlanningYearOptions(level) {
     defaultPlanningYearCount.value = "alla";
 }
 
+function getUniquePlanningName(level, name) {
+    const existingNames = new Set(groups
+        .filter(group => group.level === level)
+        .map(group => group.name));
+    if (!existingNames.has(name)) return name;
+
+    let copyNumber = 2;
+    while (existingNames.has(`${name} (${copyNumber})`)) {
+        copyNumber += 1;
+    }
+    return `${name} (${copyNumber})`;
+}
+
 function addDefaultPlanningForLevel(level, yearCount) {
     const template = defaultPlannings.find(p => p.level === level);
     if (!template) return 0;
@@ -2937,22 +2950,21 @@ function addDefaultPlanningForLevel(level, yearCount) {
             return Number.isFinite(planYear) && planYear === parsedYear;
         });
     plans.forEach(plan => {
-        if (!groups.some(g => g.level === level && g.name === plan.name)) {
-            groups.push({
-                id: crypto.randomUUID(),
-                created_by: auth?.getUser?.()?.id || null,
-                created_by_name: ownerName,
-                updated_by_name: ownerName,
-                updated_at: now,
-                local_only: localOnly,
-                name: plan.name,
-                level,
-                note: typeof plan.note === "string" ? plan.note.trim() : "",
-                badges: Array.isArray(plan.badges) ? [...new Set(plan.badges)] : [],
-                activities: Array.isArray(plan.activities) ? [...new Set(plan.activities)] : []
-            });
-            added += 1;
-        }
+        const name = getUniquePlanningName(level, plan.name);
+        groups.push({
+            id: crypto.randomUUID(),
+            created_by: auth?.getUser?.()?.id || null,
+            created_by_name: ownerName,
+            updated_by_name: ownerName,
+            updated_at: now,
+            local_only: localOnly,
+            name,
+            level,
+            note: typeof plan.note === "string" ? plan.note.trim() : "",
+            badges: Array.isArray(plan.badges) ? [...new Set(plan.badges)] : [],
+            activities: Array.isArray(plan.activities) ? [...new Set(plan.activities)] : []
+        });
+        added += 1;
     });
 
     if (added > 0) {
