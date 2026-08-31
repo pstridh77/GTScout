@@ -186,6 +186,25 @@
     "name": "Gullbrandstorps Scoutkår - Ny",
     "plannings": [
       {
+    "level": "Utmanare",
+    "plans": [
+      {
+        "name": "Läsår 1 HT",
+        "note": "",
+        "badges": ["forebild"],
+        "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
+
+      },
+      {
+        "name": "Läsår 1 VT",
+        "note": "",
+        "badges": ["hlr","HYX"],
+        "activities": ["terminsuppstart","demokratimote","arsstamma","Hajk-02","terminsavslutning"]
+      }
+      
+      ]
+      },
+      {
         "level": "Rover",
         "plans": [
           {

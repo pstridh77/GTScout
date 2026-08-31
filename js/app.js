@@ -914,6 +914,7 @@ function createEditActivitiesPopup() {
             <h2 id="editActivitiesTitle">Hantera aktiviteter</h2>
             <select id="editActivitiesCategory" aria-label="Filtrera aktiviteter efter kategori"></select>
             <select id="editActivitiesKarFilter" aria-label="Filtrera aktiviteter efter kår"></select>
+            <p class="edit-activities-warning detail-note-warning hidden">Du är inte inloggad som ledare eller admin. Egna aktiviteter sparas bara i den här webbläsaren.</p>
             <div id="editActivitiesList" class="activity-management-list"></div>
             <div class="modal-actions"><button id="createActivityBtn" class="btn-secondary" type="button">Skapa aktivitet</button></div>
         </div>
@@ -961,6 +962,8 @@ function renderEditActivitiesList() {
         .filter(activity => selectedCategory === "Alla" || getActivityCategories(activity).includes(selectedCategory))
         .filter(activity => isActivityVisibleForKarFilter(activity, selectedKar))
         .sort((a, b) => {
+            const editableDifference = Number(canEditActivity(b)) - Number(canEditActivity(a));
+            if (editableDifference) return editableDifference;
             const categoryA = getActivityCategories(a).join(", ");
             const categoryB = getActivityCategories(b).join(", ");
             return categoryA.localeCompare(categoryB, "sv") || a.namn.localeCompare(b.namn, "sv");
@@ -986,7 +989,8 @@ function renderEditActivitiesList() {
                 <div class="activity-management-actions">
                     <button class="activity-info-button" type="button" data-activity-id="${activity.id}" title="Visa information" aria-label="Visa information om ${activity.namn}">i</button>
                     ${canEditActivity(activity)
-                        ? `<button class="btn-secondary edit-managed-activity" type="button" data-activity-id="${activity.id}">Redigera</button>`
+                        ? `<button class="btn-secondary edit-managed-activity" type="button" data-activity-id="${activity.id}">Redigera</button>
+                    ${canDeleteActivity(activity) ? `<button class="btn-danger delete-managed-activity" type="button" data-activity-id="${activity.id}" aria-label="Radera ${activity.namn}">Radera</button>` : ""}`
                         : "<small>Läsläge</small>"}
                 </div>
             </div>
@@ -1009,6 +1013,12 @@ function renderEditActivitiesList() {
             openCustomActivityPopup(null, activity);
         });
     });
+    list.querySelectorAll(".delete-managed-activity").forEach(button => {
+        button.addEventListener("click", () => {
+            const activity = allAktiviteter.find(item => item.id === button.dataset.activityId);
+            if (activity) deleteCustomActivity(activity, editActivitiesModal);
+        });
+    });
 }
 
 function createEditActivitiesMenuAction() {
@@ -1016,7 +1026,7 @@ function createEditActivitiesMenuAction() {
     if (!actionButton) return;
 
     const syncVisibility = () => {
-        actionButton.classList.toggle("hidden", !window.GTScoutActivities?.canWrite?.());
+        actionButton.classList.remove("hidden");
     };
     syncVisibility();
     window.GTScoutAuth?.onChange(syncVisibility);
@@ -1026,6 +1036,7 @@ function createEditActivitiesMenuAction() {
         siteMenuBtn?.setAttribute("aria-expanded", "false");
         populateEditActivitiesCategories();
         populateKarFilter(editActivitiesModal.querySelector("#editActivitiesKarFilter"));
+        editActivitiesModal.querySelector(".edit-activities-warning")?.classList.toggle("hidden", Boolean(window.GTScoutActivities?.canWrite?.()));
         renderEditActivitiesList();
         editActivitiesModal.classList.remove("hidden");
     });
@@ -1099,7 +1110,6 @@ function openCustomActivityPopup(marke, activity = null, copy = false) {
 }
 
 async function saveCustomActivity(popup) {
-    if (!window.GTScoutActivities?.canWrite?.()) return;
     const nameInput = popup.querySelector(".custom-activity-name");
     const name = nameInput.value.trim();
     if (!name) {

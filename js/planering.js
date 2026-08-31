@@ -417,7 +417,6 @@ function createStandaloneActivityPopup() {
         if (event.target === modal) modal.classList.add("hidden");
     });
     document.getElementById("savePlanningActivityBtn").addEventListener("click", async () => {
-        if (!window.GTScoutActivities?.canWrite?.()) return;
         const nameInput = document.getElementById("planningActivityName");
         const name = nameInput.value.trim();
         const status = document.getElementById("createActivityStatus");
@@ -485,7 +484,7 @@ function openStandaloneActivityForBadge(marke, planning) {
 }
 
 function openStandaloneActivityForPlanning(planning) {
-    if (!window.GTScoutActivities?.canWrite?.()) return;
+    if (!planning || !canEditGroup(planning)) return;
     const modal = document.getElementById("createActivityModal");
     activeStandaloneActivityBadge = null;
     activeStandaloneActivityPlanning = planning;
@@ -510,7 +509,8 @@ function openActivityPicker(groupId) {
     populateActivityCategories();
     populateActivityKarFilter(document.getElementById("selectActivityKarFilter"));
     const canWrite = window.GTScoutActivities?.canWrite?.();
-    document.getElementById("createActivityFromPickerBtn").classList.toggle("hidden", !canWrite);
+    const canCreateActivity = canEditGroup(group);
+    document.getElementById("createActivityFromPickerBtn").classList.toggle("hidden", !canCreateActivity);
     document.getElementById("saveSelectedActivitiesBtn").classList.toggle("hidden", !canWrite);
     renderActivityPicker();
     document.getElementById("selectActivityModal").classList.remove("hidden");
@@ -523,7 +523,7 @@ function openMeetingActivityPicker(group, selectedIds, onApply, activityFilter =
     document.getElementById("selectActivitySearch").value = "";
     populateActivityCategories();
     populateActivityKarFilter(document.getElementById("selectActivityKarFilter"));
-    document.getElementById("createActivityFromPickerBtn").classList.toggle("hidden", !window.GTScoutActivities?.canWrite?.());
+    document.getElementById("createActivityFromPickerBtn").classList.toggle("hidden", !canEditGroup(group));
     const saveButton = document.getElementById("saveSelectedActivitiesBtn");
     saveButton.textContent = "Lägg till i möte";
     saveButton.classList.remove("hidden");
@@ -800,6 +800,8 @@ function renderEditActivitiesList() {
         .filter(activity => category === "Alla" || getActivityCategories(activity).includes(category))
         .filter(activity => isActivityVisibleForKarFilter(activity, karFilter))
         .sort((a, b) => {
+            const editableDifference = Number(canEditActivity(b)) - Number(canEditActivity(a));
+            if (editableDifference) return editableDifference;
             const categoryA = getActivityCategories(a).join(", ");
             const categoryB = getActivityCategories(b).join(", ");
             return categoryA.localeCompare(categoryB, "sv") || a.namn.localeCompare(b.namn, "sv");
@@ -869,6 +871,8 @@ function openEditActivitiesModal() {
     categoryFilter.onchange = renderEditActivitiesList;
     populateActivityKarFilter(karFilter);
     karFilter.onchange = renderEditActivitiesList;
+    const warning = document.getElementById("editActivitiesWarning");
+    warning.classList.toggle("hidden", Boolean(window.GTScoutActivities?.canWrite?.()));
     renderEditActivitiesList();
     const modal = document.getElementById("editActivitiesModal");
     modal.classList.remove("hidden");
@@ -878,7 +882,7 @@ function createEditActivitiesMenuAction() {
     const modal = document.getElementById("editActivitiesModal");
     const editButton = document.getElementById("editActivitiesBtn");
     const syncVisibility = () => {
-        editButton.classList.toggle("hidden", !window.GTScoutActivities?.canWrite?.());
+        editButton.classList.remove("hidden");
     };
     syncVisibility();
     window.GTScoutAuth?.onChange(syncVisibility);

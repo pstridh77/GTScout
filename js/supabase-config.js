@@ -15,4 +15,4 @@ const GTSCOUT_ENVIRONMENTS = {
     }
 };
 
-window.GTSCOUT_SUPABASE_CONFIG = GTSCOUT_ENVIRONMENTS.production; // Ändra till sandbox för att köra mot sandbox-miljön.
+window.GTSCOUT_SUPABASE_CONFIG = GTSCOUT_ENVIRONMENTS.sandbox; // Ändra till sandbox för att köra mot sandbox-miljön.

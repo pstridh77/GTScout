@@ -29,11 +29,13 @@
     }
 
     function canEditActivity(activity) {
-        return Boolean(canWrite() && activity?.kar_id && activity.kar_id === getKarId());
+        const isLocalActivity = activity?.id?.startsWith("egen-") && !activity?.kar_id;
+        return Boolean(isLocalActivity || (canWrite() && activity?.kar_id === getKarId()));
     }
 
     function canDeleteActivity(activity) {
-        return Boolean(auth()?.isAdmin() && canEditActivity(activity));
+        const isLocalActivity = activity?.id?.startsWith("egen-") && !activity?.kar_id;
+        return Boolean(isLocalActivity || (auth()?.isAdmin() && canEditActivity(activity)));
     }
 
     function normalizeActivity(activity) {
@@ -271,15 +273,17 @@
     }
 
     async function saveActivity(activity) {
-        if (!canWrite()) throw new Error("Du saknar behörighet att spara aktiviteter.");
         const karId = getKarId();
         const normalized = normalizeActivity({
             ...activity,
             id: activity?.id || `egen-${crypto.randomUUID()}`,
-            kar_id: karId
+            kar_id: canWrite() ? karId : null
         });
 
         const existing = activities.find(item => item.id === normalized.id);
+        if (!canWrite() && existing) {
+            throw new Error("Du kan bara skapa nya aktiviteter i lokalt läge.");
+        }
         if (existing?.kar_id && existing.kar_id !== karId) {
             throw new Error("Du kan bara redigera aktiviteter som ägs av din kår.");
         }
@@ -287,6 +291,7 @@
         upsertLocalActivity(normalized);
         notify();
 
+        if (!canWrite()) return normalized;
         if (!client()) return normalized;
 
         const { error } = await client().from("aktiviteter").upsert({
@@ -311,7 +316,6 @@
     }
 
     async function deleteActivity(activityId) {
-        if (!auth()?.isAdmin()) throw new Error("Endast administratörer kan radera aktiviteter.");
         const activity = activities.find(item => item.id === activityId);
         if (!activity) return;
         if (!canDeleteActivity(activity)) throw new Error("Du kan bara radera aktiviteter som ägs av din kår.");
@@ -319,6 +323,8 @@
         removeLocalActivity(activityId);
         notify();
 
+        if (activity.id.startsWith("egen-") && !activity.kar_id) return;
+        if (!auth()?.isAdmin()) throw new Error("Endast administratörer kan radera aktiviteter.");
         if (!client()) return;
 
         const karId = getKarId();
