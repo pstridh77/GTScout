@@ -2244,6 +2244,7 @@ select:focus {
 
 .modal-actions { display: flex; justify-content: flex-end; }
 .modal-actions--split { justify-content: space-between; }
+.group-modal-actions { gap: 12px; }
 
 .meeting-form-grid {
     display: grid;

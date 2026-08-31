@@ -2030,6 +2030,26 @@ function addGroup(name, level, year = "", term = "", note = "") {
     renderPlanning();
 }
 
+function copyGroup(id) {
+    const source = groups.find(group => group.id === id);
+    if (!source || !canEditPlannings()) return;
+
+    const auth = window.GTScoutAuth;
+    const profile = auth?.getProfile?.();
+    const now = new Date().toISOString();
+    const copy = JSON.parse(JSON.stringify(source));
+    copy.id = crypto.randomUUID();
+    copy.name = `Kopia av ${source.name}`;
+    copy.created_by = auth?.getUser?.()?.id || null;
+    copy.created_by_name = profile?.full_name || profile?.email || "";
+    copy.updated_by_name = profile?.full_name || profile?.email || "";
+    copy.updated_at = now;
+    copy.local_only = Boolean(auth?.isOnline?.() && !window.GTScoutPlanningSync?.canWrite?.());
+    groups.push(copy);
+    saveGroups();
+    renderPlanning(new Set([copy.id]));
+}
+
 function removeGroup(id) {
     const group = groups.find(g => g.id === id);
     if (!canDeleteGroup(group)) return;
@@ -2081,6 +2101,7 @@ function openGroupEditor(groupId) {
     const updatedInfo = document.getElementById("planningUpdatedInfo");
     updatedInfo.textContent = `Senast uppdaterad av: ${group.updated_by_name || "uppgift saknas"}, ${formatPlanningUpdatedAt(group.updated_at)}`;
     updatedInfo.classList.remove("hidden");
+    document.getElementById("copyGroupBtn").classList.remove("hidden");
     const removeButton = document.getElementById("removeGroupBtn");
     const canDelete = canDeleteGroup(group);
     removeButton.classList.remove("hidden");
@@ -2099,6 +2120,7 @@ function resetGroupModalState() {
     document.getElementById("changeOwnerBtn")?.classList.add("hidden");
     document.getElementById("changeOwnerSection")?.classList.add("hidden");
     document.getElementById("planningUpdatedInfo").classList.add("hidden");
+    document.getElementById("copyGroupBtn").classList.add("hidden");
     const removeButton = document.getElementById("removeGroupBtn");
     removeButton.classList.add("hidden");
     removeButton.disabled = false;
@@ -3107,6 +3129,14 @@ document.getElementById("removeGroupBtn").addEventListener("click", () => {
     const editingGroupId = groupModal.dataset.editingGroupId;
     if (!editingGroupId) return;
     removeGroup(editingGroupId);
+    groupModal.classList.add("hidden");
+    resetGroupModalState();
+});
+
+document.getElementById("copyGroupBtn").addEventListener("click", () => {
+    const editingGroupId = groupModal.dataset.editingGroupId;
+    if (!editingGroupId) return;
+    copyGroup(editingGroupId);
     groupModal.classList.add("hidden");
     resetGroupModalState();
 });
