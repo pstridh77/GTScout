@@ -686,12 +686,21 @@ function createBadgeActivityLibraryPopup() {
         openStandaloneActivityForBadge(activeBadgeActivityLibraryMarke, activeBadgeActivityLibraryPlanning);
     });
     picker.querySelector(".activity-picker-save").addEventListener("click", () => {
-        if (!window.GTScoutActivities?.canWrite?.()) return;
         const marke = activeBadgeActivityLibraryMarke;
         const planning = activeBadgeActivityLibraryPlanning;
         if (!marke) return;
-        const staticActivityIds = new Set(Array.isArray(marke.aktiviteter) ? marke.aktiviteter : []);
+        const canWrite = window.GTScoutActivities?.canWrite?.();
+        if (!canWrite && (!planning || !canEditGroup(planning))) return;
         const checkedIds = new Set([...picker.querySelectorAll(".activity-picker-list input:checked")].map(input => input.value));
+        if (!canWrite) {
+            planning.activities = [...new Set([...(planning.activities || []), ...checkedIds])];
+            saveGroups();
+            renderPlanning(new Set([planning.id]));
+            picker.classList.add("hidden");
+            showBadgeDetail(marke, planning.id);
+            return;
+        }
+        const staticActivityIds = new Set(Array.isArray(marke.aktiviteter) ? marke.aktiviteter : []);
         allAktiviteter.forEach(activity => {
             if (staticActivityIds.has(activity.id)) return;
             const isLinked = getBadgeActivityIds(marke).includes(activity.id);
@@ -714,7 +723,10 @@ function renderBadgeActivityLibraryList(picker) {
     const selectedCategory = picker.querySelector(".activity-picker-category").value || "Alla";
     const selectedKar = picker.querySelector(".activity-picker-kar").value || "Alla";
     const staticActivityIds = new Set(Array.isArray(marke.aktiviteter) ? marke.aktiviteter : []);
-    const linkedActivityIds = new Set(getBadgeActivityIds(marke));
+    const selectingForPlanning = Boolean(activeBadgeActivityLibraryPlanning && !window.GTScoutActivities?.canWrite?.());
+    const linkedActivityIds = new Set(selectingForPlanning
+        ? activeBadgeActivityLibraryPlanning.activities || []
+        : getBadgeActivityIds(marke));
     const list = picker.querySelector(".activity-picker-list");
     const visibleActivities = allAktiviteter
         .filter(activity => selectedCategory === "Alla" || getActivityCategories(activity).includes(selectedCategory))
@@ -723,7 +735,7 @@ function renderBadgeActivityLibraryList(picker) {
         .sort((a, b) => getActivityCategories(a).join(", ").localeCompare(getActivityCategories(b).join(", "), "sv") || a.namn.localeCompare(b.namn, "sv"));
     list.innerHTML = visibleActivities.length > 0
         ? visibleActivities.map(activity => {
-            const isStatic = staticActivityIds.has(activity.id);
+            const isStatic = !selectingForPlanning && staticActivityIds.has(activity.id);
             const isChecked = linkedActivityIds.has(activity.id);
             return `
             <label class="activity-picker-item">
@@ -764,9 +776,12 @@ function openBadgeActivityLibraryPicker(marke, planning) {
     populateBadgeActivityLibraryCategories(badgeActivityLibraryPopup);
     populateActivityKarFilter(badgeActivityLibraryPopup.querySelector(".activity-picker-kar"));
     const canWrite = window.GTScoutActivities?.canWrite?.();
+    const canEditPlanning = Boolean(planning && canEditGroup(planning));
     badgeActivityLibraryPopup.querySelector(".activity-picker-create").classList.toggle("hidden", !canWrite);
-    badgeActivityLibraryPopup.querySelector(".activity-picker-save").classList.toggle("hidden", !canWrite);
-    if (!canWrite) {
+    const saveButton = badgeActivityLibraryPopup.querySelector(".activity-picker-save");
+    saveButton.classList.toggle("hidden", !canWrite && !canEditPlanning);
+    saveButton.textContent = canWrite ? "Uppdatera märke" : "Lägg till i planering";
+    if (!canWrite && !canEditPlanning) {
         badgeActivityLibraryPopup.querySelector(".activity-picker-status").textContent = "Du kan visa aktiviteter, men bara ledare/admin i ägande kår kan redigera kopplingar.";
     }
     renderBadgeActivityLibraryList(badgeActivityLibraryPopup);
@@ -3423,7 +3438,7 @@ function showBadgeDetail(marke, planningId = null) {
         Array.isArray(group.badges) && group.badges.includes(marke.id)
     );
     const planning = planningId ? groups.find(group => group.id === planningId) : null;
-    const canWriteActivities = window.GTScoutActivities?.canWrite?.();
+    const canEditPlanning = Boolean(planning && canEditGroup(planning));
     const allBadgeActivities = getBadgeActivityIds(marke)
         .map(activityId => allAktiviteter.find(activity => activity.id === activityId))
         .filter(Boolean);
@@ -3437,14 +3452,14 @@ function showBadgeDetail(marke, planningId = null) {
                 <div class="activity-list">
                     ${activities.length > 0 ? activities.map(activity => `
                         <label class="activity-item">
-                            ${(planning && canWriteActivities) ? `<input type="checkbox" class="planning-activity-selection" value="${activity.id}" ${selectedActivities.has(activity.id) ? "checked" : ""}>` : ""}
+                            ${canEditPlanning ? `<input type="checkbox" class="planning-activity-selection" value="${activity.id}" ${selectedActivities.has(activity.id) ? "checked" : ""}>` : ""}
                             <span class="activity-item-name">${renderActivityOwnershipBadge(activity)}<strong>${activity.namn}</strong>${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}</span>
                             <button class="activity-info-button" type="button" data-activity-id="${activity.id}" aria-label="Visa detaljer för ${activity.namn}">i</button>
                         </label>
                     `).join("") : "<p>Inga aktiviteter matchar filtret.</p>"}
                 </div>
-                ${(planning && canWriteActivities) ? '<button id="addExistingActivityBtn" class="btn-secondary" type="button">Aktivitet</button>' : ""}
-                ${(planning && canWriteActivities) ? '<button id="saveBadgeActivitiesBtn" class="btn-primary" type="button">Uppdatera planering</button>' : ""}
+                ${canEditPlanning ? '<button id="addExistingActivityBtn" class="btn-secondary" type="button">Aktivitet</button>' : ""}
+                ${canEditPlanning ? '<button id="saveBadgeActivitiesBtn" class="btn-primary" type="button">Uppdatera planering</button>' : ""}
             </div>
         `;
     body.innerHTML = `
