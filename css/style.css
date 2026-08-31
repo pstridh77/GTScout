@@ -57,7 +57,6 @@ body {
 .database-environment {
     display: flex;
     align-items: center;
-    gap: 5px;
     color: #f7d36a;
     font-size: 0.7rem;
     font-weight: 700;
@@ -66,12 +65,8 @@ body {
     white-space: nowrap;
 }
 
-.database-environment::before {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-    content: "";
+.database-environment--production {
+    color: #6b7280;
 }
 
 .auth-status {

@@ -189,7 +189,6 @@
 
         area.dataset.ready = "true";
         area.innerHTML = `
-            <span id="databaseEnvironment" class="database-environment"></span>
             <span id="authStatus" class="auth-status">Gäst</span>
             <button id="authActionBtn" class="auth-button" type="button">Logga in</button>
         `;
@@ -360,6 +359,7 @@
         }
         environment.textContent = config().environmentName;
         environment.title = "Ansluten databas: " + config().environmentName;
+        environment.classList.toggle("database-environment--production", config().environmentName === "Produktion");
         button.classList.remove("hidden");
         if (current.signedIn) {
             const kar = current.karName ? " · " + current.karName : "";
