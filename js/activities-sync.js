@@ -167,6 +167,7 @@
         }
 
         try {
+            const localBadgeLinks = readLocalBadgeLinks();
             const localCustom = readLocalActivities().filter(a => !a.kar_id && a.id && a.id.startsWith("egen-"));
             if (localCustom.length > 0 && canWrite()) {
                 const uploadActs = window.confirm(
@@ -211,7 +212,12 @@
             const remainingLocalCustom = readLocalActivities().filter(a => !a.kar_id && a.id && a.id.startsWith("egen-") && !dbIds.has(a.id));
 
             activities = [...dbActivities, ...remainingLocalCustom];
-            badgeLinks = (linksResult.data || []).map(normalizeBadgeLink).filter(item => item.badge_id && item.activity_id);
+            const databaseBadgeLinks = (linksResult.data || []).map(normalizeBadgeLink).filter(item => item.badge_id && item.activity_id);
+            badgeLinks = canWrite()
+                ? databaseBadgeLinks
+                : [...databaseBadgeLinks, ...localBadgeLinks].filter((link, index, links) =>
+                    links.findIndex(item => item.badge_id === link.badge_id && item.activity_id === link.activity_id) === index
+                );
 
             writeLocalActivities(activities);
             writeLocalBadgeLinks(badgeLinks);
@@ -255,8 +261,7 @@
     }
 
     function canEditBadgeLink(badgeId, activityId) {
-        if (!canWrite()) return false;
-        const karId = getKarId();
+        const karId = canWrite() ? getKarId() : null;
         return badgeLinks.some(link => link.kar_id === karId && link.badge_id === badgeId && link.activity_id === activityId);
     }
 
@@ -346,10 +351,8 @@
     }
 
     async function addBadgeActivityLink(badgeId, activityId) {
-        if (!canWrite()) return false;
-
         const row = normalizeBadgeLink({
-            kar_id: getKarId(),
+            kar_id: canWrite() ? getKarId() : null,
             badge_id: badgeId,
             activity_id: activityId
         });
@@ -357,6 +360,7 @@
         upsertLocalBadgeLink(row);
         notify();
 
+        if (!canWrite()) return true;
         if (!client()) return true;
 
         const { error } = await client().from("badge_activities").upsert(row, {
@@ -372,13 +376,13 @@
     }
 
     async function removeBadgeActivityLink(badgeId, activityId) {
-        if (!canWrite()) return false;
-        const karId = getKarId();
+        const karId = canWrite() ? getKarId() : null;
         if (!canEditBadgeLink(badgeId, activityId)) return false;
 
         removeLocalBadgeLink(karId, badgeId, activityId);
         notify();
 
+        if (!canWrite()) return true;
         if (!client()) return true;
 
         const { error } = await client()

@@ -32,6 +32,7 @@
         el.textContent = text || "";
         el.classList.toggle("hidden", !text);
         el.classList.toggle("planning-sync-status--error", Boolean(isError));
+        el.classList.toggle("detail-note-warning", !isError && /lokalt|lokal data|den här webbläsaren/i.test(text || ""));
     }
 
     function toRow(group) {
@@ -178,7 +179,7 @@
         if (!canRead()) {
             const wasLoaded = loadedForKarId !== null;
             loadedForKarId = null;
-            setStatus(auth()?.isOnline() ? "Arbetar lokalt (inte inloggad i någon kår)" : "", false);
+            setStatus(auth()?.isOnline() ? "Du är inte inloggad – planeringar sparas bara i den här webbläsaren." : "", false);
             if (wasLoaded && hooks) {
                 // Endast om användaren tidigare var inloggad i en kår och nu loggat ut
                 hooks.applyGroups([]);

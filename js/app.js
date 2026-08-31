@@ -316,8 +316,8 @@ function createNotePopup() {
         <div class="detail-popup-content badge-note-popup-content">
             <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
             <h2>Anteckning</h2>
-            <textarea id="badgeNoteInput" rows="6" placeholder="Skriv en anteckning..."></textarea>
             <p id="badgeNoteWarning" class="detail-note-warning hidden"></p>
+            <textarea id="badgeNoteInput" rows="6" placeholder="Skriv en anteckning..."></textarea>
             <p id="badgeNoteStatus" class="detail-note-status" role="status"></p>
             <div class="modal-actions">
                 <button id="saveBadgeNoteBtn" class="btn-primary" type="button">Spara anteckning</button>
@@ -621,6 +621,7 @@ function createActivityPickerPopup() {
         <div class="detail-popup-content activity-picker-content">
             <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
             <h2>Välj aktiviteter</h2>
+            <p class="detail-note-warning activity-picker-status hidden" role="status"></p>
             <div class="picker-filters">
                 <input type="search" class="activity-picker-search picker-search-input" placeholder="Sök aktivitet...">
                 <select class="activity-picker-category" aria-label="Filtrera aktiviteter efter kategori"></select>
@@ -631,7 +632,6 @@ function createActivityPickerPopup() {
                 <button class="btn-secondary activity-picker-create" type="button">Skapa aktivitet</button>
                 <button class="btn-primary activity-picker-save" type="button">Uppdatera märke</button>
             </div>
-            <p class="detail-planning-status activity-picker-status" role="status"></p>
         </div>
     `;
     picker.querySelector(".close-popup").addEventListener("click", () => picker.classList.add("hidden"));
@@ -642,13 +642,11 @@ function createActivityPickerPopup() {
     picker.querySelector(".activity-picker-category").addEventListener("change", () => renderActivityPickerList(picker));
     picker.querySelector(".activity-picker-kar").addEventListener("change", () => renderActivityPickerList(picker));
     picker.querySelector(".activity-picker-create").addEventListener("click", () => {
-        if (!window.GTScoutActivities?.canWrite?.()) return;
         if (!activeActivityPickerBadge) return;
         picker.classList.add("hidden");
         openCustomActivityPopup(activeActivityPickerBadge);
     });
     picker.querySelector(".activity-picker-save").addEventListener("click", () => {
-        if (!window.GTScoutActivities?.canWrite?.()) return;
         if (!activeActivityPickerBadge) return;
         const searchTerm = picker.querySelector(".activity-picker-search").value.trim().toLowerCase();
         const selectedCategory = picker.querySelector(".activity-picker-category").value || "Alla";
@@ -676,7 +674,6 @@ const activityPickerPopup = createActivityPickerPopup();
 
 function addActivityToBadge(marke, activityId) {
     if (window.GTScoutActivities?.addBadgeActivityLink) {
-        if (!window.GTScoutActivities.canWrite()) return false;
         window.GTScoutActivities.addBadgeActivityLink(marke.id, activityId)
             .then(() => {
                 allAktiviteter = window.GTScoutActivities.getAllActivities();
@@ -697,7 +694,6 @@ function addActivityToBadge(marke, activityId) {
 
 function removeActivityFromBadge(marke, activityId) {
     if (window.GTScoutActivities?.removeBadgeActivityLink) {
-        if (!window.GTScoutActivities.canWrite()) return false;
         if (!window.GTScoutActivities.canEditBadgeLink(marke.id, activityId)) return false;
         window.GTScoutActivities.removeBadgeActivityLink(marke.id, activityId)
             .then(() => {
@@ -773,10 +769,12 @@ function openActivityPicker(marke) {
     populateActivityPickerCategories(activityPickerPopup);
     populateKarFilter(activityPickerPopup.querySelector(".activity-picker-kar"));
     const canWrite = window.GTScoutActivities?.canWrite?.();
-    activityPickerPopup.querySelector(".activity-picker-create").classList.toggle("hidden", !canWrite);
-    activityPickerPopup.querySelector(".activity-picker-save").classList.toggle("hidden", !canWrite);
+    const status = activityPickerPopup.querySelector(".activity-picker-status");
+    activityPickerPopup.querySelector(".activity-picker-create").classList.remove("hidden");
+    activityPickerPopup.querySelector(".activity-picker-save").classList.remove("hidden");
+    status.classList.toggle("hidden", Boolean(canWrite));
     if (!canWrite) {
-        activityPickerPopup.querySelector(".activity-picker-status").textContent = "Du kan visa aktiviteter, men bara ledare/admin i ägande kår kan redigera kopplingar.";
+        status.textContent = "Du är inte inloggad – aktivitetsvalet sparas bara i den här webbläsaren.";
     }
     renderActivityPickerList(activityPickerPopup);
     activityPickerPopup.classList.remove("hidden");
@@ -914,7 +912,7 @@ function createEditActivitiesPopup() {
             <h2 id="editActivitiesTitle">Hantera aktiviteter</h2>
             <select id="editActivitiesCategory" aria-label="Filtrera aktiviteter efter kategori"></select>
             <select id="editActivitiesKarFilter" aria-label="Filtrera aktiviteter efter kår"></select>
-            <p class="edit-activities-warning detail-note-warning hidden">Du är inte inloggad som ledare eller admin. Egna aktiviteter sparas bara i den här webbläsaren.</p>
+            <p class="edit-activities-warning detail-note-warning hidden">Du är inte inloggad – egna aktiviteter sparas bara i den här webbläsaren.</p>
             <div id="editActivitiesList" class="activity-management-list"></div>
             <div class="modal-actions"><button id="createActivityBtn" class="btn-secondary" type="button">Skapa aktivitet</button></div>
         </div>
@@ -1056,6 +1054,7 @@ function createCustomActivityPopup() {
         <div class="detail-popup-content custom-activity-popup-content">
             <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
             <h2 class="custom-activity-title">Skapa egen aktivitet</h2>
+            <p class="custom-activity-warning detail-note-warning hidden">Du är inte inloggad – aktiviteten sparas bara i den här webbläsaren.</p>
             <label class="modal-field"><span>Kategori</span><input class="custom-activity-category" type="text" list="customActivityCategories" placeholder="Välj eller skriv en kategori"></label>
             <datalist id="customActivityCategories"></datalist>
             <label class="modal-field"><span>Namn</span><input class="custom-activity-name" type="text" required></label>
@@ -1096,6 +1095,7 @@ function openCustomActivityPopup(marke, activity = null, copy = false) {
         .map(category => `<option value="${category}"></option>`)
         .join("");
     customActivityPopup.querySelector(".custom-activity-title").textContent = copy ? "Kopiera aktivitet till min kår" : activity ? "Redigera aktivitet" : "Skapa egen aktivitet";
+    customActivityPopup.querySelector(".custom-activity-warning").classList.toggle("hidden", Boolean(window.GTScoutActivities?.canWrite?.()));
     customActivityPopup.querySelector(".save-custom-activity").textContent = copy ? "Spara som ny aktivitet" : activity ? "Spara ändringar" : "Spara aktivitet";
     customActivityPopup.querySelector(".delete-custom-activity").hidden = !activity || !canDeleteActivity(activity);
     customActivityPopup.querySelector(".custom-activity-name").value = activity?.namn || "";
@@ -1262,7 +1262,7 @@ function showPopup(marke) {
     const badgeNote = loadBadgeNotes()[marke.id] || "";
     const activities = getActivitiesForBadge(marke).filter(activity => isActivityVisibleForKarFilter(activity, badgeActivityKarFilter));
     const staticActivityIds = new Set(Array.isArray(marke.aktiviteter) ? marke.aktiviteter : []);
-    const canWriteActivities = window.GTScoutActivities?.canWrite?.();
+    const canManageActivities = Boolean(window.GTScoutActivities?.addBadgeActivityLink);
     const activitySection = `
         <div class="detail-activities">
             <strong>Aktiviteter:</strong>
@@ -1273,12 +1273,12 @@ function showPopup(marke) {
                         <div class="activity-item">
                                 <span class="activity-item-name">${renderActivityOwnershipBadge(activity)}<strong>${activity.namn}</strong>${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}</span>
                             <button class="activity-info-button" type="button" data-activity-id="${activity.id}" aria-label="Visa detaljer för ${activity.namn}">i</button>
-                            ${(canWriteActivities && !staticActivityIds.has(activity.id) && canEditBadgeActivityLink(marke, activity.id)) ? `<button class="remove-activity-btn" type="button" data-activity-id="${activity.id}" title="Ta bort ${activity.namn}" aria-label="Ta bort ${activity.namn}">&times;</button>` : ""}
+                            ${(!staticActivityIds.has(activity.id) && canEditBadgeActivityLink(marke, activity.id)) ? `<button class="remove-activity-btn" type="button" data-activity-id="${activity.id}" title="Ta bort ${activity.namn}" aria-label="Ta bort ${activity.namn}">&times;</button>` : ""}
                         </div>
                     `).join("")
                     : "<p>Inga aktiviteter matchar filtret.</p>"}
             </div>
-            ${canWriteActivities ? '<button id="addExistingActivityBtn" class="btn-secondary" type="button">Aktivitet</button>' : ''}
+            ${canManageActivities ? '<button id="addExistingActivityBtn" class="btn-secondary" type="button">Aktivitet</button>' : ''}
         </div>
     `;
     const planningStatus = badgePlannings.length > 0

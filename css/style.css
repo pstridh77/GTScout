@@ -1167,6 +1167,10 @@ select:focus {
     display: none;
 }
 
+.activity-picker-status.detail-note-warning {
+    margin-bottom: 12px;
+}
+
 .planning-picker-content h2 {
     margin: 0 0 16px;
     color: #003660;
@@ -1406,6 +1410,11 @@ select:focus {
 .planning-sync-status {
     color: #4b5563;
     font-size: 0.82rem;
+}
+
+.planning-sync-status.detail-note-warning {
+    color: #92400e;
+    font-size: 0.85rem;
 }
 
 .planning-sync-status.hidden {

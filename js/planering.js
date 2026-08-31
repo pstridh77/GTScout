@@ -394,6 +394,9 @@ function populatePlanningActivityCategories() {
 
 function createStandaloneActivityPopup() {
     const modal = document.getElementById("createActivityModal");
+    const updateWarning = () => {
+        document.getElementById("createActivityWarning").classList.toggle("hidden", Boolean(window.GTScoutActivities?.canWrite?.()));
+    };
     const reset = () => {
         editingStandaloneActivityId = null;
         activeStandaloneActivityBadge = null;
@@ -404,6 +407,7 @@ function createStandaloneActivityPopup() {
         modal.querySelectorAll("input, textarea").forEach(field => field.value = "");
         document.getElementById("createActivityStatus").textContent = "";
         document.getElementById("planningActivityMemberships").textContent = "Inte tillagd i någon planering.";
+        updateWarning();
     };
     document.getElementById("createActivityBtn").addEventListener("click", () => {
         document.getElementById("editActivitiesModal").classList.add("hidden");
@@ -479,6 +483,7 @@ function openStandaloneActivityForBadge(marke, planning) {
     document.getElementById("planningActivityCategory").value = marke.kategori || "";
     document.getElementById("planningActivityMemberships").innerHTML = `<span>${planning.name} (${planning.level})</span>`;
     document.getElementById("createActivityStatus").textContent = "";
+    document.getElementById("createActivityWarning").classList.toggle("hidden", Boolean(window.GTScoutActivities?.canWrite?.()));
     modal.classList.remove("hidden");
     document.getElementById("planningActivityName").focus();
 }
@@ -495,6 +500,7 @@ function openStandaloneActivityForPlanning(planning) {
     populatePlanningActivityCategories();
     document.getElementById("planningActivityMemberships").innerHTML = `<span>${planning.name} (${planning.level})</span>`;
     document.getElementById("createActivityStatus").textContent = "";
+    document.getElementById("createActivityWarning").classList.toggle("hidden", Boolean(window.GTScoutActivities?.canWrite?.()));
     modal.classList.remove("hidden");
     document.getElementById("planningActivityName").focus();
 }
