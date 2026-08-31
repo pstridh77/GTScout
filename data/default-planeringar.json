@@ -1,5 +1,8 @@
 [
   {
+    "name": "Gullbrandstorps Scoutkår",
+    "plannings": [
+      {
     "level": "Familjescouting",
     "plans": [
       {
@@ -173,6 +176,8 @@
         "note": "",
         "badges": [],
         "activities": [] 
+      }
+    ]
       }
     ]
   }

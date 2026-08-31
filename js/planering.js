@@ -62,7 +62,10 @@ const DEFAULT_PLANNINGS_FALLBACK = [
     }
 ];
 
-let defaultPlannings = JSON.parse(JSON.stringify(DEFAULT_PLANNINGS_FALLBACK));
+let defaultPlanningTemplates = [{
+    name: "Standardplanering",
+    plannings: JSON.parse(JSON.stringify(DEFAULT_PLANNINGS_FALLBACK))
+}];
 
 let allMarken = [];
 let allAktiviteter = [];
@@ -1638,7 +1641,9 @@ async function loadDefaultPlannings() {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         if (Array.isArray(data) && data.length > 0) {
-            defaultPlannings = data;
+            defaultPlanningTemplates = data
+                .filter(template => template && typeof template.name === "string" && Array.isArray(template.plannings))
+                .map(template => ({ name: template.name, plannings: template.plannings }));
         }
     } catch (err) {
         console.warn("Kunde inte ladda default-planeringar.json, anv\u00e4nder fallback.", err);
@@ -2874,8 +2879,21 @@ document.getElementById("groupTermFilter").addEventListener("change", e => {
 // ── Group modal ────────────────────────────────────────────────────────────
 
 const defaultPlanningModal = document.getElementById("defaultPlanningModal");
+const defaultPlanningTemplate = document.getElementById("defaultPlanningTemplate");
 const defaultPlanningLevel = document.getElementById("defaultPlanningLevel");
 const defaultPlanningYearCount = document.getElementById("defaultPlanningYearCount");
+
+function getDefaultPlanningTemplate() {
+    return defaultPlanningTemplates.find(template => template.name === defaultPlanningTemplate.value)
+        || defaultPlanningTemplates[0]
+        || { plannings: [] };
+}
+
+function populateDefaultPlanningTemplates() {
+    defaultPlanningTemplate.innerHTML = defaultPlanningTemplates
+        .map(template => `<option value="${escapeHtml(template.name)}">${escapeHtml(template.name)}</option>`)
+        .join("");
+}
 
 function getDefaultPlanningYear(plan) {
     if (!plan || typeof plan !== "object") return null;
@@ -2889,9 +2907,9 @@ function getDefaultPlanningYear(plan) {
 }
 
 function getAvailableDefaultYears(level) {
-    const template = defaultPlannings.find(p => p.level === level);
-    if (!template) return [];
-    const years = [...new Set((template.plans || [])
+    const planning = getDefaultPlanningTemplate().plannings.find(item => item.level === level);
+    if (!planning) return [];
+    const years = [...new Set((planning.plans || [])
         .map(getDefaultPlanningYear)
         .filter(year => Number.isFinite(year)))].sort((a, b) => a - b);
     return years;
@@ -2899,8 +2917,8 @@ function getAvailableDefaultYears(level) {
 
 function updateDefaultPlanningYearOptions(level) {
     if (!defaultPlanningYearCount) return;
-    const template = defaultPlannings.find(p => p.level === level);
-    const plans = Array.isArray(template?.plans) ? template.plans : [];
+    const planning = getDefaultPlanningTemplate().plannings.find(item => item.level === level);
+    const plans = Array.isArray(planning?.plans) ? planning.plans : [];
     const availableYears = getAvailableDefaultYears(level);
     const yearOptions = availableYears.length > 0 ? availableYears : [1];
     const perYearOptions = yearOptions.map(year => {
@@ -2929,7 +2947,7 @@ function getUniquePlanningName(level, name) {
 }
 
 function addDefaultPlanningForLevel(level, yearCount) {
-    const template = defaultPlannings.find(p => p.level === level);
+    const template = getDefaultPlanningTemplate().plannings.find(item => item.level === level);
     if (!template) return 0;
 
     const auth = window.GTScoutAuth;
@@ -2976,6 +2994,7 @@ function addDefaultPlanningForLevel(level, yearCount) {
 
 document.getElementById("openDefaultPlanningBtn").addEventListener("click", () => {
     const selectedLevel = document.getElementById("groupLevel").value || "Familjescouting";
+    populateDefaultPlanningTemplates();
     document.getElementById("defaultPlanningLevel").value = selectedLevel;
     updateDefaultPlanningYearOptions(selectedLevel);
     defaultPlanningModal.classList.remove("hidden");
@@ -2999,6 +3018,10 @@ document.getElementById("saveDefaultPlanningBtn").addEventListener("click", () =
 });
 
 defaultPlanningLevel.addEventListener("change", () => {
+    updateDefaultPlanningYearOptions(defaultPlanningLevel.value || "Familjescouting");
+});
+
+defaultPlanningTemplate.addEventListener("change", () => {
     updateDefaultPlanningYearOptions(defaultPlanningLevel.value || "Familjescouting");
 });
 
