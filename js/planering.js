@@ -2895,6 +2895,16 @@ function populateDefaultPlanningTemplates() {
         .join("");
 }
 
+function populateDefaultPlanningLevels(preferredLevel) {
+    const levels = getDefaultPlanningTemplate().plannings
+        .map(planning => planning?.level)
+        .filter(level => typeof level === "string" && level.trim());
+    defaultPlanningLevel.innerHTML = levels
+        .map(level => `<option value="${escapeHtml(level)}">${escapeHtml(level)}</option>`)
+        .join("");
+    defaultPlanningLevel.value = levels.includes(preferredLevel) ? preferredLevel : levels[0] || "";
+}
+
 function getDefaultPlanningYear(plan) {
     if (!plan || typeof plan !== "object") return null;
     const explicitYear = Number.parseInt(String(plan.year ?? "").trim(), 10);
@@ -2995,8 +3005,8 @@ function addDefaultPlanningForLevel(level, yearCount) {
 document.getElementById("openDefaultPlanningBtn").addEventListener("click", () => {
     const selectedLevel = document.getElementById("groupLevel").value || "Familjescouting";
     populateDefaultPlanningTemplates();
-    document.getElementById("defaultPlanningLevel").value = selectedLevel;
-    updateDefaultPlanningYearOptions(selectedLevel);
+    populateDefaultPlanningLevels(selectedLevel);
+    updateDefaultPlanningYearOptions(defaultPlanningLevel.value);
     defaultPlanningModal.classList.remove("hidden");
     document.getElementById("defaultPlanningLevel").focus();
 });
@@ -3022,7 +3032,8 @@ defaultPlanningLevel.addEventListener("change", () => {
 });
 
 defaultPlanningTemplate.addEventListener("change", () => {
-    updateDefaultPlanningYearOptions(defaultPlanningLevel.value || "Familjescouting");
+    populateDefaultPlanningLevels(defaultPlanningLevel.value);
+    updateDefaultPlanningYearOptions(defaultPlanningLevel.value);
 });
 
 const groupModal = document.getElementById("groupModal");

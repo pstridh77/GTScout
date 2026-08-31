@@ -180,5 +180,30 @@
     ]
       }
     ]
+  },
+  
+  {
+    "name": "Gullbrandstorps Scoutkår - Ny",
+    "plannings": [
+      {
+        "level": "Rover",
+        "plans": [
+          {
+            "name": "Läsår 1 HT",
+            "note": "",
+            "badges": ["forebild"],
+            "activities": ["terminsuppstart","terminsavslutning"]
+  
+          },
+          {
+            "name": "Läsår 1 VT",
+            "note": "",
+            "badges": ["hlr","HYX"],
+            "activities": ["terminsuppstart","terminsavslutning"]
+          }
+          
+        ]
+      }
+    ]
   }
 ]
