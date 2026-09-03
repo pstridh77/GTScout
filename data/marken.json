@@ -2384,6 +2384,23 @@
         "Typ":  "Intressemärke"
     },
     {
+        "id":  "familjescout_bla",
+        "namn":  "Familjescout Blå",
+        "bild":  "images/marken/familjescout_bla.png",
+        "kategori":  "Deltagandemärke",
+        "malgrupp":  [
+                         "Familjescouting"
+                     ],
+        "inledning":"Deltagandemärke Familjescouting",
+        "kriterier":  [
+                         "Delta i en termins aktiviteter."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Deltagandemärke"
+    },
+    {
         "id":  "tidsspar",
         "namn":  "Tidsspår",
         "bild":  "images/marken/tidsspar.png",
