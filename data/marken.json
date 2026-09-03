@@ -2605,23 +2605,6 @@
         "Typ":  "Deltagandemärke"
     },
     {
-        "id":  "hajken",
-        "namn":  "Hajken",
-        "bild":  "images/marken/hajken.png",
-        "kategori":  "Deltagandemärke",
-        "malgrupp":  [
-                         "Äventyrare"
-                     ],
-        "inledning":"Deltagandemärke Äventyrare",
-        "kriterier":  [
-                         "Planera och genomför en hajk i kåren."
-                     ],
-        "program":  [
-                        "Scouterna"
-                    ],
-        "Typ":  "Deltagandemärke"
-    },
-    {
         "id":  "miljon",
         "namn":  "Miljön",
         "bild":  "images/marken/miljon.png",
