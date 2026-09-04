@@ -619,7 +619,8 @@ body {
 }
 
 .filter-field input,
-.filter-field select {
+.filter-field select,
+.multi-select-trigger {
     min-width: 220px;
     padding: 10px 12px;
     border: 1px solid #d0d7de;
@@ -628,6 +629,75 @@ body {
     color: #003660;
     background: white;
     transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+}
+
+.multi-select-dropdown {
+    position: relative;
+    min-width: 220px;
+}
+
+.multi-select-trigger {
+    width: 100%;
+    padding-right: 36px;
+    text-align: left;
+    background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23003660' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 12px center;
+    background-size: 14px 14px;
+    cursor: pointer;
+}
+
+.multi-select-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 1200;
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    border: 1px solid #d0d7de;
+    border-radius: 10px;
+    background: white;
+    box-shadow: 0 8px 20px rgba(0, 54, 96, 0.16);
+}
+
+.multi-select-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 7px;
+    border-radius: 6px;
+    color: #003660;
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.multi-select-option:hover {
+    background: #eef5fb;
+}
+
+.multi-select-option input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.multi-select-check {
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    border: 1px solid #9aabb9;
+    border-radius: 3px;
+    color: transparent;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.multi-select-option:has(input:checked) .multi-select-check {
+    border-color: #003660;
+    background: #003660;
+    color: white;
 }
 
 select {

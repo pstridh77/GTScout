@@ -77,9 +77,13 @@
 
         <label class="filter-field">
             <span>Målgrupp</span>
-            <select id="targetGroupFilter">
-                <option value="Alla">Alla målgrupper</option>
-            </select>
+            <div id="targetGroupDropdown" class="multi-select-dropdown">
+                <button id="targetGroupDropdownBtn" class="multi-select-trigger" type="button" aria-expanded="false" aria-haspopup="listbox">Alla målgrupper</button>
+                <div id="targetGroupDropdownMenu" class="multi-select-menu hidden" role="listbox" aria-label="Välj målgrupper"></div>
+                <select id="targetGroupFilter" class="hidden" multiple aria-hidden="true">
+                    <option value="Alla">Alla målgrupper</option>
+                </select>
+            </div>
         </label>
 
         

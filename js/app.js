@@ -2,6 +2,9 @@ const grid = document.getElementById("badgeGrid");
 const searchInput = document.getElementById("searchInput");
 const categoryFilter = document.getElementById("categoryFilter");
 const targetGroupFilter = document.getElementById("targetGroupFilter");
+const targetGroupDropdown = document.getElementById("targetGroupDropdown");
+const targetGroupDropdownBtn = document.getElementById("targetGroupDropdownBtn");
+const targetGroupDropdownMenu = document.getElementById("targetGroupDropdownMenu");
 const typeFilter = document.getElementById("typeFilter");
 const programFilter = document.getElementById("programFilter");
 
@@ -19,8 +22,19 @@ if (siteMenuBtn && siteMenuDropdown) {
             siteMenuDropdown.classList.add("hidden");
             siteMenuBtn.setAttribute("aria-expanded", "false");
         }
+        if (targetGroupDropdown && !targetGroupDropdown.contains(event.target)) {
+            targetGroupDropdownMenu?.classList.add("hidden");
+            targetGroupDropdownBtn?.setAttribute("aria-expanded", "false");
+        }
     });
 }
+
+targetGroupDropdownBtn?.addEventListener("click", event => {
+    event.stopPropagation();
+    const isOpen = !targetGroupDropdownMenu.classList.contains("hidden");
+    targetGroupDropdownMenu.classList.toggle("hidden", isOpen);
+    targetGroupDropdownBtn.setAttribute("aria-expanded", String(!isOpen));
+});
 
 const showMissingBadgesBtn = document.getElementById("showMissingBadgesBtn");
 let showMissingBadges = false;
@@ -44,7 +58,7 @@ const TARGET_GROUP_ORDER = ["Familjescouting", "Spårare", "Upptäckare", "Även
 const filters = {
     search: "",
     category: "Alla",
-    targetGroup: "Alla",
+    targetGroup: ["Alla"],
     type: "Alla",
     program: "Alla"
 };
@@ -274,6 +288,42 @@ function formatTargetGroups(marke) {
     return getTargetGroups(marke).join(", ") || "Ingen målgrupp";
 }
 
+function updateTargetGroupDropdown(groups) {
+    if (!targetGroupDropdownMenu || !targetGroupDropdownBtn) return;
+
+    targetGroupDropdownMenu.innerHTML = groups.map(group => {
+        const selected = filters.targetGroup.includes(group);
+        return `
+            <label class="multi-select-option" role="option" aria-selected="${selected}">
+                <input type="checkbox" value="${escapeHtml(group)}"${selected ? " checked" : ""}>
+                <span class="multi-select-check" aria-hidden="true">✓</span>
+                <span>${escapeHtml(group === "Alla" ? "Alla målgrupper" : group)}</span>
+            </label>
+        `;
+    }).join("");
+
+    const selectedGroups = filters.targetGroup.filter(group => group !== "Alla");
+    targetGroupDropdownBtn.textContent = selectedGroups.length === 0
+        ? "Alla målgrupper"
+        : selectedGroups.length === 1
+            ? selectedGroups[0]
+            : `${selectedGroups.length} målgrupper valda`;
+
+    targetGroupDropdownMenu.querySelectorAll("input").forEach(input => {
+        input.addEventListener("change", () => {
+            if (input.value === "Alla" && input.checked) {
+                filters.targetGroup = ["Alla"];
+            } else {
+                filters.targetGroup = [...targetGroupDropdownMenu.querySelectorAll("input:checked")]
+                    .map(checkedInput => checkedInput.value)
+                    .filter(value => value !== "Alla");
+                if (filters.targetGroup.length === 0) filters.targetGroup = ["Alla"];
+            }
+            handleFilterChange();
+        });
+    });
+}
+
 function loadPlannings() {
     try {
         const storedPlannings = JSON.parse(localStorage.getItem(PLANNING_STORAGE_KEY));
@@ -412,9 +462,10 @@ function populateFilters(marken) {
     ].join("");
 
     targetGroupFilter.innerHTML = [
-        '<option value="Alla">Alla målgrupper</option>',
-        ...orderedTargetGroups.map(group => `<option value="${group}" ${filters.targetGroup === group ? "selected" : ""}>${group}</option>`)
+        `<option value="Alla" ${filters.targetGroup.includes("Alla") ? "selected" : ""}>Alla målgrupper</option>`,
+        ...orderedTargetGroups.map(group => `<option value="${group}" ${filters.targetGroup.includes(group) ? "selected" : ""}>${group}</option>`)
     ].join("");
+    updateTargetGroupDropdown(["Alla", ...orderedTargetGroups]);
 
     const programs = [...new Set(marken.flatMap(marke => Array.isArray(marke.program) ? marke.program : [marke.program || "Båda"]))].sort((a, b) => a.localeCompare(b, "sv"));
     programFilter.innerHTML = [
@@ -434,7 +485,7 @@ function getFilteredMarken() {
 
     return allMarken.filter(marke => {
         const matchesCategory = filters.category === "Alla" || (marke.kategori || "Övrigt") === filters.category;
-        const matchesTargetGroup = filters.targetGroup === "Alla" || getTargetGroups(marke).includes(filters.targetGroup);
+        const matchesTargetGroup = filters.targetGroup.includes("Alla") || getTargetGroups(marke).some(group => filters.targetGroup.includes(group));
         const badgePrograms = Array.isArray(marke.program) ? marke.program : [marke.program || "Båda"];
         const matchesProgram = filters.program === "Alla" || badgePrograms.includes(filters.program);
         const markeType = (marke.Typ || marke.typ || "Intressemärke").toString();
@@ -495,8 +546,9 @@ function renderMarken(marken) {
         badgeRow.className = "category-badges";
 
         const groupedByTargetGroup = categories[category].reduce((acc, marke) => {
-            const targetGroup = filters.targetGroup !== "Alla" && getTargetGroups(marke).includes(filters.targetGroup)
-                ? filters.targetGroup
+            const selectedTargetGroup = filters.targetGroup.find(group => getTargetGroups(marke).includes(group));
+            const targetGroup = selectedTargetGroup
+                ? selectedTargetGroup
                 : getPrimaryTargetGroup(marke);
             if (!acc[targetGroup]) {
                 acc[targetGroup] = [];
@@ -510,7 +562,7 @@ function renderMarken(marken) {
             const categoryHasTargetGroup = allMarken
                 .filter(marke => (marke.kategori || "Övrigt") === category)
                 .some(marke => getTargetGroups(marke).includes(targetGroup));
-            const targetGroupIsFilteredOut = filters.targetGroup !== "Alla" && filters.targetGroup !== targetGroup;
+            const targetGroupIsFilteredOut = !filters.targetGroup.includes("Alla") && !filters.targetGroup.includes(targetGroup);
             if (showMissingBadges && !categoryHasTargetGroup && !targetGroupIsFilteredOut) {
                 groupItems.push({
                     isEmptyBadge: true,
@@ -564,7 +616,6 @@ function renderMarken(marken) {
 function handleFilterChange() {
     filters.search = searchInput.value;
     filters.category = categoryFilter.value;
-    filters.targetGroup = targetGroupFilter.value;
     filters.type = typeFilter.value;
     filters.program = programFilter.value;
     renderMarken(allMarken);
@@ -572,7 +623,6 @@ function handleFilterChange() {
 
 searchInput.addEventListener("input", handleFilterChange);
 categoryFilter.addEventListener("change", handleFilterChange);
-targetGroupFilter.addEventListener("change", handleFilterChange);
 typeFilter.addEventListener("change", handleFilterChange);
 programFilter.addEventListener("change", handleFilterChange);
 
