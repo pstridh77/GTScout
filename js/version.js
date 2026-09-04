@@ -1,5 +1,5 @@
 (function () {
-    const APP_VERSION = "v0.2.X";
+    const APP_VERSION = "v0.3.0";
 
     function getFormattedLastModified() {
         if (!document.lastModified) return "";
