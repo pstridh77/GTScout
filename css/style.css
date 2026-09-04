@@ -494,6 +494,7 @@ body {
 }
 
 .badge {
+    position: relative;
     background: white;
     border-radius: 14px;
     padding: 14px 12px;
@@ -510,6 +511,12 @@ body {
 
     cursor: pointer;
     transition: all 0.2s ease;
+}
+
+.badge-owner-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
 }
 
 .badge:hover {
@@ -684,6 +691,10 @@ select:focus {
 
 .detail-popup-header h2 {
     margin: 0;
+}
+
+.badge-popup-owner-badge {
+    margin-bottom: 10px;
 }
 
 .detail-image-row {

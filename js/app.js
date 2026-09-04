@@ -521,6 +521,7 @@ function renderMarken(marken) {
                         : "";
                 }).join("");
                 card.innerHTML = `
+                    ${marke.isCustom ? '<span class="activity-owner-badge activity-owner-badge--mine badge-owner-badge">Min kår</span>' : ""}
                     <img src="${marke.bild}" alt="${marke.namn}">
                     <h3>${marke.namn}</h3>
                     <p>${formatTargetGroups(marke)}</p>
@@ -1314,6 +1315,7 @@ function showPopup(marke) {
         : "";
 
     body.innerHTML = `
+        ${isCustomBadge ? '<span class="activity-owner-badge activity-owner-badge--mine badge-popup-owner-badge">Min kår</span>' : ""}
         <div class="detail-popup-top">
             <div class="detail-popup-main">
                 <div class="detail-popup-header">

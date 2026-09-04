@@ -3560,6 +3560,7 @@ function showBadgeDetail(marke, planningId = null) {
             </div>
         `;
     body.innerHTML = `
+        ${isCustomBadge ? '<span class="activity-owner-badge activity-owner-badge--mine badge-popup-owner-badge">Min kår</span>' : ""}
         <div class="detail-popup-top">
             <div class="detail-popup-main">
                 <div class="detail-popup-header">
