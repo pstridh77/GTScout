@@ -484,6 +484,128 @@ body {
     gap: 12px;
 }
 
+.target-group-cards--stacked {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 300px);
+    width: 100%;
+    max-width: 300px;
+    height: 200px;
+    min-height: 200px;
+    box-sizing: border-box;
+    padding: 0;
+    outline: 2px solid #b8cfe0;
+    outline-offset: 6px;
+    border-radius: 16px;
+    background: #eef5fb;
+}
+
+.target-group-cards--stacked .badge {
+    grid-column: 1;
+    grid-row: 1;
+    width: 260px;
+    max-width: calc(100% - 40px);
+    height: 170px;
+    min-height: 170px;
+    padding: 10px;
+}
+
+.target-group-cards--stacked .badge img {
+    width: 72px;
+    height: 72px;
+}
+
+.target-group-cards--stacked .badge:nth-of-type(1) {
+    transform: translate(0, 0);
+    z-index: 3;
+}
+
+.target-group-cards--stacked .badge:nth-of-type(2) {
+    transform: translate(14px, 14px);
+    z-index: 2;
+}
+
+.target-group-cards--stacked .badge:nth-of-type(3) {
+    transform: translate(28px, 28px);
+    z-index: 1;
+}
+
+.target-group-cards--stacked .badge:hover {
+    transform: translate(0, -5px);
+    z-index: 4;
+}
+
+.target-group-cards--stacked .badge:nth-of-type(2):hover {
+    transform: translate(14px, 9px);
+}
+
+.target-group-cards--stacked .badge:nth-of-type(3):hover {
+    transform: translate(28px, 23px);
+}
+
+.stack-count {
+    position: absolute;
+    right: 7px;
+    bottom: 7px;
+    z-index: 5;
+    padding: 4px 7px;
+    border-radius: 999px;
+    background: #003660;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    pointer-events: none;
+}
+
+.target-group-cards--stacked:not(.target-group-cards--expanded) {
+    cursor: pointer;
+}
+
+.target-group-cards--expanded {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    width: auto;
+    max-width: none;
+    height: auto;
+    min-height: 200px;
+    padding: 0;
+    outline: 0;
+    background: transparent;
+    cursor: default;
+}
+
+.target-group-cards--expanded .stack-count {
+    display: none;
+}
+
+.target-group-cards--expanded .badge,
+.target-group-cards--expanded .badge:nth-of-type(1),
+.target-group-cards--expanded .badge:nth-of-type(2),
+.target-group-cards--expanded .badge:nth-of-type(3),
+.target-group-cards--expanded .badge:hover,
+.target-group-cards--expanded .badge:nth-of-type(2):hover,
+.target-group-cards--expanded .badge:nth-of-type(3):hover {
+    width: min(300px, 100%);
+    transform: none !important;
+    z-index: auto;
+}
+
+.target-group-cards--expanded > .badge {
+    width: 100%;
+    max-width: 300px;
+    height: auto;
+    min-height: 200px;
+    padding: 14px 12px;
+    transform: none !important;
+    z-index: auto;
+}
+
+.target-group-cards--expanded > .badge img {
+    width: 96px;
+    height: 96px;
+}
+
 
 .empty-slot {
     min-height: 100%;

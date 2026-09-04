@@ -577,7 +577,27 @@ function renderMarken(marken) {
             slot.className = "target-group-slot";
 
             const cards = document.createElement("div");
-            cards.className = "target-group-cards";
+            cards.className = groupItems.length > 1
+                ? "target-group-cards target-group-cards--stacked"
+                : "target-group-cards";
+            const expandStack = () => {
+                cards.classList.add("target-group-cards--expanded");
+                cards.removeAttribute("role");
+                cards.removeAttribute("tabindex");
+            };
+            if (groupItems.length > 1) {
+                cards.setAttribute("role", "button");
+                cards.setAttribute("tabindex", "0");
+                cards.setAttribute("aria-label", `Visa alla ${groupItems.length} märken för ${targetGroup}`);
+                cards.insertAdjacentHTML("beforeend", `<span class="stack-count" aria-hidden="true">${groupItems.length} märken</span>`);
+                cards.addEventListener("click", expandStack);
+                cards.addEventListener("keydown", event => {
+                    if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        expandStack();
+                    }
+                });
+            }
 
             groupItems.forEach(marke => {
                 const card = document.createElement("div");
@@ -600,7 +620,14 @@ function renderMarken(marken) {
                     <p>${formatTargetGroups(marke)}</p>
                     ${planningIcons ? `<div class="badge-planning-icons" title="Finns i: ${badgePlannings.map(planning => planning.name).join(", ")}">${planningIcons}</div>` : ""}
                 `;
-                card.addEventListener("click", () => showPopup(marke));
+                card.addEventListener("click", event => {
+                    if (cards.classList.contains("target-group-cards--stacked")) {
+                        event.stopPropagation();
+                        expandStack();
+                        return;
+                    }
+                    showPopup(marke);
+                });
                 cards.appendChild(card);
             });
 
