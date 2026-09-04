@@ -1058,7 +1058,10 @@ select:focus {
 
 .detail-category-icons {
     display: grid;
-    grid-template-columns: repeat(2, 48px);
+    grid-template-rows: repeat(3, 48px);
+    grid-auto-flow: column;
+    grid-auto-columns: 48px;
+    justify-content: end;
     gap: 6px;
     direction: rtl;
     flex-shrink: 0;
