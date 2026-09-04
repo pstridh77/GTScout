@@ -58,7 +58,7 @@ showMissingBadgesBtn?.addEventListener("click", () => {
 });
 
 const toggleBadgeStacksBtn = document.getElementById("toggleBadgeStacksBtn");
-let badgeStacksExpanded = getStoredBoolean(EXPANDED_BADGES_STORAGE_KEY, false);
+let badgeStacksExpanded = getStoredBoolean(EXPANDED_BADGES_STORAGE_KEY, true);
 toggleBadgeStacksBtn?.addEventListener("click", () => {
     badgeStacksExpanded = !badgeStacksExpanded;
     localStorage.setItem(EXPANDED_BADGES_STORAGE_KEY, String(badgeStacksExpanded));
