@@ -616,8 +616,8 @@ body {
 }
 
 .badge--empty {
-    border: 2px dashed #b9c7d2;
-    background: white;
+    border: 2px dashed #aebdca;
+    background: transparent;
     box-shadow: none;
     cursor: default;
 }
@@ -646,6 +646,10 @@ body {
 
     cursor: pointer;
     transition: all 0.2s ease;
+}
+
+.badge.badge--empty {
+    background: transparent;
 }
 
 .badge-owner-badge {
