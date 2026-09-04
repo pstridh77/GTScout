@@ -3687,6 +3687,9 @@ window.GTScoutBadges?.init({
     getAvailableTypes: () => [...baseMarken, ...window.GTScoutBadges.getAllBadges()]
         .map(marke => marke.Typ || marke.typ)
         .filter(Boolean),
+    getAvailableCategories: () => [...baseMarken, ...window.GTScoutBadges.getAllBadges()]
+        .map(marke => marke.kategori)
+        .filter(Boolean),
     onChange: () => {
         if (baseMarken.length === 0) return;
         allMarken = [...baseMarken, ...window.GTScoutBadges.getAllBadges()];

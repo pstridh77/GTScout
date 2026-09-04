@@ -15,6 +15,7 @@
     let initialized = false;
     let editingBadge = null;
     let getAvailableTypes = () => [];
+    let getAvailableCategories = () => [];
     const listeners = new Set();
 
     const auth = () => window.GTScoutAuth;
@@ -55,6 +56,20 @@
 
     function getAllBadges() {
         return badges.map(badge => ({ ...badge, malgrupp: [...badge.malgrupp], kriterier: [...badge.kriterier], program: [...badge.program] }));
+    }
+
+    function populateCategoryOptions(form, selectedCategory = "") {
+        const categories = [...new Set([...getAvailableCategories(), selectedCategory]
+            .map(category => String(category || "").trim())
+            .filter(Boolean))]
+            .sort((left, right) => left.localeCompare(right, "sv"));
+        const categoryList = form.querySelector("#customBadgeCategories");
+        categoryList.replaceChildren(...categories.map(category => {
+            const option = document.createElement("option");
+            option.value = category;
+            return option;
+        }));
+        form.elements.kategori.value = selectedCategory;
     }
 
     async function getImageDimensions(file) {
@@ -193,6 +208,7 @@
             program: [getKarName()]
         });
         if (!normalized.namn) throw new Error("Ange ett namn på märket.");
+        if (!normalized.kategori) throw new Error("Välj eller ange en kategori.");
         if (normalized.program.length === 0) throw new Error("Kårnamnet kunde inte hämtas.");
         if (!normalized.Typ) throw new Error("Välj en typ för märket.");
         if (normalized.malgrupp.length === 0) throw new Error("Välj minst en målgrupp.");
@@ -231,6 +247,7 @@
             program: [getKarName()]
         });
         if (!normalized.namn) throw new Error("Ange ett namn på märket.");
+        if (!normalized.kategori) throw new Error("Välj eller ange en kategori.");
         if (normalized.program.length === 0) throw new Error("Kårnamnet kunde inte hämtas.");
         if (!normalized.Typ) throw new Error("Välj en typ för märket.");
         if (normalized.malgrupp.length === 0) throw new Error("Välj minst en målgrupp.");
@@ -294,7 +311,11 @@
                 <h2 id="customBadgeTitle">Skapa eget märke</h2>
                 <label class="modal-field"><span>Namn</span><input name="namn" type="text" maxlength="100" required></label>
                 <label class="modal-field"><span>Typ</span><select name="typ" required></select></label>
-                <label class="modal-field"><span>Kategori</span><input name="kategori" type="text" maxlength="100" placeholder="Till exempel Friluftsliv" required></label>
+                <label class="modal-field">
+                    <span>Kategori</span>
+                    <input name="kategori" type="text" list="customBadgeCategories" maxlength="100" placeholder="Välj eller skriv en kategori" required>
+                </label>
+                <datalist id="customBadgeCategories"></datalist>
                 <fieldset class="custom-badge-targets">
                     <legend>Målgrupp</legend>
                     ${TARGET_GROUPS.map(group => `<label><input name="malgrupp" type="checkbox" value="${group}"> <span>${group}</span></label>`).join("")}
@@ -358,7 +379,7 @@
                     id: badgeId,
                     namn: formData.get("namn"),
                     typ: formData.get("typ"),
-                    kategori: formData.get("kategori"),
+                    kategori: String(formData.get("kategori") || "").trim(),
                     malgrupp: formData.getAll("malgrupp"),
                     inledning: formData.get("inledning"),
                     kriterier: String(formData.get("kriterier") || "").split(/\r?\n/),
@@ -389,6 +410,7 @@
         editingBadge = null;
         form.reset();
         form.querySelector("[data-custom-badge-preview]").src = DEFAULT_IMAGE;
+        populateCategoryOptions(form);
         const typeSelect = form.elements.typ;
         const availableTypes = getAvailableTypes();
         const types = [...new Set((availableTypes.length ? availableTypes : DEFAULT_TYPES).map(type => String(type || "").trim()).filter(Boolean))]
@@ -413,7 +435,7 @@
         editingBadge = badge;
         form.reset();
         form.elements.namn.value = badge.namn;
-        form.elements.kategori.value = badge.kategori;
+        populateCategoryOptions(form, badge.kategori);
         form.elements.inledning.value = badge.inledning;
         form.elements.kriterier.value = badge.kriterier.join("\n");
         form.querySelectorAll("input[name='malgrupp']").forEach(input => {
@@ -455,6 +477,7 @@
         init(config) {
             if (typeof config?.onChange === "function") listeners.add(config.onChange);
             if (typeof config?.getAvailableTypes === "function") getAvailableTypes = config.getAvailableTypes;
+            if (typeof config?.getAvailableCategories === "function") getAvailableCategories = config.getAvailableCategories;
             bindCreateActions();
             if (!initialized) {
                 initialized = true;
