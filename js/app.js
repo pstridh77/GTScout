@@ -47,40 +47,28 @@ targetGroupDropdownBtn?.addEventListener("click", event => {
     targetGroupDropdownBtn.setAttribute("aria-expanded", String(!isOpen));
 });
 
-const showMissingBadgesBtn = document.getElementById("showMissingBadgesBtn");
+const targetGroupViewBtn = document.getElementById("targetGroupViewBtn");
 let showMissingBadges = getStoredBoolean(SHOW_MISSING_BADGES_STORAGE_KEY, false);
-showMissingBadgesBtn?.addEventListener("click", () => {
-    showMissingBadges = !showMissingBadges;
-    localStorage.setItem(SHOW_MISSING_BADGES_STORAGE_KEY, String(showMissingBadges));
-    showMissingBadgesBtn.setAttribute("aria-pressed", String(showMissingBadges));
-    showMissingBadgesBtn.querySelector(".planning-toggle-status").textContent = showMissingBadges ? "✓" : "";
-    renderMarken(allMarken);
-});
-
-const toggleBadgeStacksBtn = document.getElementById("toggleBadgeStacksBtn");
 let badgeStacksExpanded = getStoredBoolean(EXPANDED_BADGES_STORAGE_KEY, true);
-toggleBadgeStacksBtn?.addEventListener("click", () => {
-    badgeStacksExpanded = !badgeStacksExpanded;
+targetGroupViewBtn?.addEventListener("click", () => {
+    const targetGroupViewEnabled = !(showMissingBadges && !badgeStacksExpanded);
+    showMissingBadges = targetGroupViewEnabled;
+    badgeStacksExpanded = !targetGroupViewEnabled;
+    localStorage.setItem(SHOW_MISSING_BADGES_STORAGE_KEY, String(showMissingBadges));
     localStorage.setItem(EXPANDED_BADGES_STORAGE_KEY, String(badgeStacksExpanded));
     expandedBadgeCategories.clear();
-    updateBadgeStacksToggle();
+    updateTargetGroupViewToggle();
     renderMarken(allMarken);
 });
 
-function updateBadgeStacksToggle() {
-    if (!toggleBadgeStacksBtn) return;
-    toggleBadgeStacksBtn.setAttribute("aria-pressed", String(!badgeStacksExpanded));
-    toggleBadgeStacksBtn.querySelector(".planning-toggle-status").textContent = badgeStacksExpanded ? "" : "✓";
+function updateTargetGroupViewToggle() {
+    if (!targetGroupViewBtn) return;
+    const targetGroupViewEnabled = showMissingBadges && !badgeStacksExpanded;
+    targetGroupViewBtn.setAttribute("aria-pressed", String(targetGroupViewEnabled));
+    targetGroupViewBtn.querySelector(".planning-toggle-status").textContent = targetGroupViewEnabled ? "✓" : "";
 }
 
-function updateMissingBadgesToggle() {
-    if (!showMissingBadgesBtn) return;
-    showMissingBadgesBtn.setAttribute("aria-pressed", String(showMissingBadges));
-    showMissingBadgesBtn.querySelector(".planning-toggle-status").textContent = showMissingBadges ? "✓" : "";
-}
-
-updateMissingBadgesToggle();
-updateBadgeStacksToggle();
+updateTargetGroupViewToggle();
 
 let baseMarken = [];
 let allMarken = [];
