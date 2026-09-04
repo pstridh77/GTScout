@@ -1232,9 +1232,7 @@ async function deleteCustomActivity(activity, sourcePopup = null) {
     if (activeActivityBadge) showPopup(activeActivityBadge);
 }
 
-function getCategoryIconPath(marke) {
-    const targetGroup = getPrimaryTargetGroup(marke);
-    const normalizedTargetGroup = targetGroup.toLowerCase();
+function getCategoryIconPaths(marke) {
     const iconMap = {
         "familjescouting": "./images/icons/familjescout.png",
         "spårare": "./images/icons/sparare.png",
@@ -1244,7 +1242,12 @@ function getCategoryIconPath(marke) {
         "rover": "./images/icons/rover.png"
     };
 
-    return iconMap[normalizedTargetGroup] || "";
+    return getTargetGroups(marke)
+        .map(targetGroup => ({
+            targetGroup,
+            iconPath: iconMap[targetGroup.toLowerCase()] || ""
+        }))
+        .filter(item => item.iconPath);
 }
 
 function showPopup(marke) {
@@ -1261,7 +1264,7 @@ function showPopup(marke) {
     const criteriaList = marke.kriterier
         ? marke.kriterier.map(k => `<li>${formatCriterion(k)}</li>`).join("")
         : "";
-    const categoryIcon = getCategoryIconPath(marke);
+    const categoryIcons = getCategoryIconPaths(marke);
     const targetGroups = formatTargetGroups(marke);
     const badgePlannings = getBadgePlannings(marke.id);
     const badgeNote = loadBadgeNotes()[marke.id] || "";
@@ -1306,15 +1309,23 @@ function showPopup(marke) {
         : "";
 
     body.innerHTML = `
-        <div class="detail-popup-header">
-            <h2>${marke.namn}</h2>
-            ${categoryIcon ? `<img src="${categoryIcon}" alt="${targetGroups}" class="detail-category-icon">` : ""}
-        </div>
-        <div class="detail-image-row">
-            <img
-                src="${marke.bild}"
-                alt="${marke.namn}"
-                class="detail-image">
+        <div class="detail-popup-top">
+            <div class="detail-popup-main">
+                <div class="detail-popup-header">
+                    <h2>${marke.namn}</h2>
+                </div>
+                <div class="detail-image-row">
+                    <img
+                        src="${marke.bild}"
+                        alt="${marke.namn}"
+                        class="detail-image">
+                </div>
+            </div>
+            ${categoryIcons.length > 0 ? `
+                <div class="detail-category-icons" aria-label="Målgrupper: ${targetGroups}">
+                    ${categoryIcons.map(({ targetGroup, iconPath }) => `<img src="${iconPath}" alt="${targetGroup}" class="detail-category-icon">`).join("")}
+                </div>
+            ` : ""}
         </div>
 
         <div class="detail-text">

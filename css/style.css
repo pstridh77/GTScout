@@ -666,6 +666,14 @@ select:focus {
     line-height: 1.55;
 }
 
+.detail-popup-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
 .detail-popup-header {
     display: flex;
     align-items: center;
@@ -682,7 +690,6 @@ select:focus {
     display: flex;
     align-items: flex-start;
     gap: 12px;
-    margin-bottom: 16px;
     justify-content: space-between;
 }
 
@@ -1038,13 +1045,20 @@ select:focus {
     margin-bottom: 10px;
 }
 
+.detail-category-icons {
+    display: grid;
+    grid-template-columns: repeat(2, 64px);
+    gap: 6px;
+    direction: rtl;
+    flex-shrink: 0;
+}
+
 .detail-category-icon {
     width: 64px;
     height: 64px;
     object-fit: contain;
     flex-shrink: 0;
     display: block;
-    margin-left: auto;
     margin-top: 0;
 }
 

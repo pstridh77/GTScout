@@ -3520,9 +3520,10 @@ function showBadgeDetail(marke, planningId = null) {
         "Utmanare": "./images/icons/utmanare.png",
         "Rover": "./images/icons/rover.png"
     };
-    const primaryTargetGroup = getPrimaryTargetGroup(marke);
     const targetGroups = formatTargetGroups(marke);
-    const categoryIcon = iconMap[primaryTargetGroup] || "";
+    const categoryIcons = getTargetGroups(marke)
+        .map(targetGroup => ({ targetGroup, iconPath: iconMap[targetGroup] || "" }))
+        .filter(item => item.iconPath);
     const criteriaList = marke.kriterier ? marke.kriterier.map(k => `<li>${k}</li>`).join("") : "";
     const badgeNote = getBadgeNote(marke.id);
     const badgePlannings = groups.filter(group =>
@@ -3554,12 +3555,20 @@ function showBadgeDetail(marke, planningId = null) {
             </div>
         `;
     body.innerHTML = `
-        <div class="detail-popup-header">
-            <h2>${marke.namn}</h2>
-            ${categoryIcon ? `<img src="${categoryIcon}" alt="${targetGroups}" class="detail-category-icon">` : ""}
-        </div>
-        <div class="detail-image-row">
-            <img src="${marke.bild}" alt="${marke.namn}" class="detail-image">
+        <div class="detail-popup-top">
+            <div class="detail-popup-main">
+                <div class="detail-popup-header">
+                    <h2>${marke.namn}</h2>
+                </div>
+                <div class="detail-image-row">
+                    <img src="${marke.bild}" alt="${marke.namn}" class="detail-image">
+                </div>
+            </div>
+            ${categoryIcons.length > 0 ? `
+                <div class="detail-category-icons" aria-label="Målgrupper: ${targetGroups}">
+                    ${categoryIcons.map(({ targetGroup, iconPath }) => `<img src="${iconPath}" alt="${targetGroup}" class="detail-category-icon">`).join("")}
+                </div>
+            ` : ""}
         </div>
         <div class="detail-text">
             <div class="detail-category-row">
