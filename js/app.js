@@ -1252,6 +1252,11 @@ function getCategoryIconPaths(marke) {
 
 function showPopup(marke) {
     activePopupBadge = marke;
+    const isCustomBadge = Boolean(marke.isCustom);
+    const canAdministerBadge = Boolean(window.GTScoutBadges?.canEditBadge?.(marke));
+    const disabledAdminAction = canAdministerBadge
+        ? ""
+        : ' disabled aria-disabled="true" title="Endast kårens administratör kan ändra kårmärket"';
     const body = popup.querySelector(".popup-body");
     const formatCriterion = value => String(value ?? "")
         .replace(/&/g, "&amp;")
@@ -1355,10 +1360,10 @@ function showPopup(marke) {
             </button>
             <div class="detail-planning-actions">
                 <button id="addBadgeToPlanningBtn" class="btn-primary" type="button">Lägg till i planering</button>
-                ${window.GTScoutBadges?.canEditBadge?.(marke) ? `
+                ${isCustomBadge ? `
                     <div class="detail-admin-actions">
-                        <button id="editCustomBadgeBtn" class="btn-secondary" type="button">Redigera märke</button>
-                        <button id="deleteCustomBadgeBtn" class="btn-danger" type="button">Ta bort märke</button>
+                        <button id="editCustomBadgeBtn" class="btn-secondary" type="button"${disabledAdminAction}>Redigera märke</button>
+                        <button id="deleteCustomBadgeBtn" class="btn-danger" type="button"${disabledAdminAction}>Ta bort märke</button>
                     </div>
                 ` : ""}
             </div>

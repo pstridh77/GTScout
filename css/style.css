@@ -1047,19 +1047,45 @@ select:focus {
 
 .detail-category-icons {
     display: grid;
-    grid-template-columns: repeat(2, 64px);
+    grid-template-columns: repeat(2, 48px);
     gap: 6px;
     direction: rtl;
     flex-shrink: 0;
 }
 
 .detail-category-icon {
-    width: 64px;
-    height: 64px;
+    width: 48px;
+    height: 48px;
     object-fit: contain;
     flex-shrink: 0;
     display: block;
     margin-top: 0;
+}
+
+@media (max-width: 600px) {
+    .detail-popup-top {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .detail-popup-main {
+        display: contents;
+    }
+
+    .detail-popup-header {
+        grid-column: 1 / -1;
+        margin-bottom: 0;
+    }
+
+    .detail-image-row {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    .detail-category-icons {
+        grid-column: 2;
+        grid-row: 2;
+        justify-self: end;
+    }
 }
 
 .detail-introduction {

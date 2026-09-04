@@ -3512,6 +3512,11 @@ function showActivityDetail(activity) {
 
 function showBadgeDetail(marke, planningId = null) {
     const body = detailPopup.querySelector(".popup-body");
+    const isCustomBadge = Boolean(marke.isCustom);
+    const canAdministerBadge = Boolean(window.GTScoutBadges?.canEditBadge?.(marke));
+    const disabledAdminAction = canAdministerBadge
+        ? ""
+        : ' disabled aria-disabled="true" title="Endast kårens administratör kan ändra kårmärket"';
     const iconMap = {
         "Familjescouting": "./images/icons/familjescout.png",
         "Sp\u00e5rare": "./images/icons/sparare.png",
@@ -3591,7 +3596,7 @@ function showBadgeDetail(marke, planningId = null) {
                     <p class="detail-note-display"></p>
                 </div>
             ` : ""}
-            ${window.GTScoutBadges?.canEditBadge?.(marke) ? '<div class="detail-planning-actions"><div class="detail-admin-actions"><button id="editCustomBadgeBtn" class="btn-secondary" type="button">Redigera märke</button><button id="deleteCustomBadgeBtn" class="btn-danger" type="button">Ta bort märke</button></div></div>' : ""}
+            ${isCustomBadge ? `<div class="detail-planning-actions"><div class="detail-admin-actions"><button id="editCustomBadgeBtn" class="btn-secondary" type="button"${disabledAdminAction}>Redigera märke</button><button id="deleteCustomBadgeBtn" class="btn-danger" type="button"${disabledAdminAction}>Ta bort märke</button></div></div>` : ""}
         </div>
     `;
     if (badgePlannings.length > 0) {
