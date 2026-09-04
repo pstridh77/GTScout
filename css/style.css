@@ -493,6 +493,19 @@ body {
     min-height: 200px;
 }
 
+.badge--empty {
+    border: 2px dashed #b9c7d2;
+    background: white;
+    box-shadow: none;
+    cursor: default;
+}
+
+.badge--empty:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+
 .badge {
     position: relative;
     background: white;

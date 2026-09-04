@@ -22,6 +22,15 @@ if (siteMenuBtn && siteMenuDropdown) {
     });
 }
 
+const showMissingBadgesBtn = document.getElementById("showMissingBadgesBtn");
+let showMissingBadges = false;
+showMissingBadgesBtn?.addEventListener("click", () => {
+    showMissingBadges = !showMissingBadges;
+    showMissingBadgesBtn.setAttribute("aria-pressed", String(showMissingBadges));
+    showMissingBadgesBtn.querySelector(".planning-toggle-status").textContent = showMissingBadges ? "✓" : "";
+    renderMarken(allMarken);
+});
+
 let baseMarken = [];
 let allMarken = [];
 let allAktiviteter = [];
@@ -31,6 +40,7 @@ const PLANNING_STORAGE_KEY = "gtscout_planering";
 const BADGE_NOTES_STORAGE_KEY = "gtscout_badge_notes";
 const CUSTOM_ACTIVITIES_STORAGE_KEY = "gtscout_custom_activities";
 const CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY = "gtscout_custom_badge_activities";
+const TARGET_GROUP_ORDER = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
 const filters = {
     search: "",
     category: "Alla",
@@ -377,10 +387,9 @@ notePopup.querySelector("#saveBadgeNoteBtn").addEventListener("click", () => {
 function populateFilters(marken) {
     const categories = [...new Set(marken.map(marke => marke.kategori || "Övrigt"))].sort();
     const targetGroups = [...new Set(marken.flatMap(getTargetGroups))];
-    const targetGroupOrder = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
     const orderedTargetGroups = targetGroups.sort((a, b) => {
-        const indexA = targetGroupOrder.indexOf(a);
-        const indexB = targetGroupOrder.indexOf(b);
+        const indexA = TARGET_GROUP_ORDER.indexOf(a);
+        const indexB = TARGET_GROUP_ORDER.indexOf(b);
 
         if (indexA !== -1 && indexB !== -1) {
             return indexA - indexB;
@@ -473,8 +482,6 @@ function renderMarken(marken) {
         return acc;
     }, {});
 
-    const targetGroupOrder = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
-
     Object.keys(categories).forEach(category => {
         const categoryGroup = document.createElement("section");
         categoryGroup.className = "category-group";
@@ -498,8 +505,18 @@ function renderMarken(marken) {
             return acc;
         }, {});
 
-        targetGroupOrder.forEach(targetGroup => {
-            const groupItems = groupedByTargetGroup[targetGroup] || [];
+        TARGET_GROUP_ORDER.forEach(targetGroup => {
+            const groupItems = [...(groupedByTargetGroup[targetGroup] || [])];
+            const categoryHasTargetGroup = allMarken
+                .filter(marke => (marke.kategori || "Övrigt") === category)
+                .some(marke => getTargetGroups(marke).includes(targetGroup));
+            const targetGroupIsFilteredOut = filters.targetGroup !== "Alla" && filters.targetGroup !== targetGroup;
+            if (showMissingBadges && !categoryHasTargetGroup && !targetGroupIsFilteredOut) {
+                groupItems.push({
+                    isEmptyBadge: true,
+                    malgrupp: [targetGroup]
+                });
+            }
             if (groupItems.length === 0) {
                 return;
             }
@@ -512,7 +529,11 @@ function renderMarken(marken) {
 
             groupItems.forEach(marke => {
                 const card = document.createElement("div");
-                card.className = "badge";
+                card.className = marke.isEmptyBadge ? "badge badge--empty" : "badge";
+                if (marke.isEmptyBadge) {
+                    cards.appendChild(card);
+                    return;
+                }
                 const badgePlannings = getBadgePlannings(marke.id);
                 const planningIcons = badgePlannings.map(planning => {
                     const iconPath = getPlanningIconPath(planning.level);
