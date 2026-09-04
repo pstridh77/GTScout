@@ -345,21 +345,25 @@
     function renderUi() {
         const status = document.getElementById("authStatus");
         const button = document.getElementById("authActionBtn");
-        const environment = document.getElementById("databaseEnvironment");
-        if (!status || !button || !environment) return;
+        const environments = document.querySelectorAll(".database-environment");
+        if (!status || !button || !environments.length) return;
 
         const current = state();
         if (!current.online) {
-            environment.textContent = "Lokalt läge";
-            environment.title = "Ingen Supabase-databas är ansluten.";
+            environments.forEach(function (environment) {
+                environment.textContent = "Lokalt läge";
+                environment.title = "Ingen Supabase-databas är ansluten.";
+            });
             status.textContent = "Gäst (lokalt läge)";
             status.title = "Ingen databaskoppling konfigurerad – data sparas i webbläsaren.";
             button.classList.add("hidden");
             return;
         }
-        environment.textContent = config().environmentName;
-        environment.title = "Ansluten databas: " + config().environmentName;
-        environment.classList.toggle("database-environment--production", config().environmentName === "Produktion");
+        environments.forEach(function (environment) {
+            environment.textContent = config().environmentName;
+            environment.title = "Ansluten databas: " + config().environmentName;
+            environment.classList.toggle("database-environment--production", config().environmentName === "Produktion");
+        });
         button.classList.remove("hidden");
         if (current.signedIn) {
             const kar = current.karName ? " · " + current.karName : "";

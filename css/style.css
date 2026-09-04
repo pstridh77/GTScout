@@ -1574,6 +1574,12 @@ select:focus {
     user-select: none;
 }
 
+.site-menu-environment-note {
+    justify-content: center;
+    padding: 4px 10px 0;
+    font-size: 0.68rem;
+}
+
 .planning-actions-trigger {
     width: 42px;
     height: 42px;
