@@ -216,6 +216,37 @@ create trigger aktiviteter_touch_updated_at
     before update on public.aktiviteter
     for each row execute function public.touch_updated_at();
 
+-- ── Kårägda märken ──────────────────────────────────────────────────────────
+-- Egna märken delas inom kåren. ID-prefixet skiljer dem från märkena i JSON-filen.
+create table if not exists public.custom_badges (
+    id text primary key,
+    kar_id uuid not null references public.kar(id) on delete cascade,
+    created_by uuid references public.profiles(id) on delete set null,
+    namn text not null,
+    kategori text,
+    malgrupp text[] not null default '{}',
+    inledning text,
+    kriterier text[] not null default '{}',
+    program text[] not null default '{}',
+    typ text not null default 'Eget märke',
+    bild text not null default 'images/marken/specialistmarken.png',
+    is_active boolean not null default true,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    constraint custom_badges_id_check check (id like 'egen-%'),
+    constraint custom_badges_kar_namn_unique unique (kar_id, namn)
+);
+
+alter table public.custom_badges
+    alter column program set default '{}';
+
+create index if not exists custom_badges_kar_id_idx on public.custom_badges (kar_id);
+
+drop trigger if exists custom_badges_touch_updated_at on public.custom_badges;
+create trigger custom_badges_touch_updated_at
+    before update on public.custom_badges
+    for each row execute function public.touch_updated_at();
+
 -- Kårspecifika kopplingar mellan märken och aktiviteter. Aktiviteten kan ägas
 -- av vilken kår som helst (delad aktivitetsbank) – behörigheten för länken
 -- avgörs av länkens egen kar_id, se RLS-policyn nedan.
@@ -242,6 +273,7 @@ alter table public.profiles enable row level security;
 alter table public.planeringar enable row level security;
 alter table public.badge_notes enable row level security;
 alter table public.aktiviteter enable row level security;
+alter table public.custom_badges enable row level security;
 alter table public.badge_activities enable row level security;
 
 -- Kårernas namn måste kunna listas innan inloggning, för valet vid registrering.
@@ -418,6 +450,64 @@ create policy "aktiviteter_update_kar_leader" on public.aktiviteter
     with check (
         public.current_user_is_leader()
         and kar_id = public.current_user_kar_id()
+    );
+
+-- Kårägda märken syns inom kåren och hanteras av ledare/admin.
+drop policy if exists "custom_badges_select_kar" on public.custom_badges;
+create policy "custom_badges_select_kar" on public.custom_badges
+    for select to authenticated
+    using (kar_id = public.current_user_kar_id());
+
+drop policy if exists "custom_badges_insert_kar_leader" on public.custom_badges;
+create policy "custom_badges_insert_kar_leader" on public.custom_badges
+    for insert to authenticated
+    with check (
+        public.current_user_is_leader()
+        and kar_id = public.current_user_kar_id()
+    );
+
+drop policy if exists "custom_badges_update_kar_leader" on public.custom_badges;
+drop policy if exists "custom_badges_update_kar_admin" on public.custom_badges;
+create policy "custom_badges_update_kar_admin" on public.custom_badges
+    for update to authenticated
+    using (
+        public.current_user_role() = 'admin'
+        and kar_id = public.current_user_kar_id()
+    )
+    with check (
+        public.current_user_role() = 'admin'
+        and kar_id = public.current_user_kar_id()
+    );
+
+-- ── Märkesbilder i Supabase Storage ─────────────────────────────────────────
+-- Sökväg: <kar-id>/<badge-id>/<fil-id>.png
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('badge-images', 'badge-images', true, 102400, array['image/png'])
+on conflict (id) do update
+set public = excluded.public,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "badge_images_insert_kar_leader" on storage.objects;
+create policy "badge_images_insert_kar_leader" on storage.objects
+    for insert to authenticated
+    with check (
+        bucket_id = 'badge-images'
+        and public.current_user_is_leader()
+        and (storage.foldername(name))[1] = public.current_user_kar_id()::text
+        and lower(storage.extension(name)) = 'png'
+    );
+
+drop policy if exists "badge_images_delete_owner_or_admin" on storage.objects;
+create policy "badge_images_delete_owner_or_admin" on storage.objects
+    for delete to authenticated
+    using (
+        bucket_id = 'badge-images'
+        and (storage.foldername(name))[1] = public.current_user_kar_id()::text
+        and (
+            owner_id = auth.uid()::text
+            or public.current_user_role() = 'admin'
+        )
     );
 
 -- Endast administratörer får radera aktiviteter från den egna kåren.

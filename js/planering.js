@@ -67,6 +67,7 @@ let defaultPlanningTemplates = [{
     plannings: JSON.parse(JSON.stringify(DEFAULT_PLANNINGS_FALLBACK))
 }];
 
+let baseMarken = [];
 let allMarken = [];
 let allAktiviteter = [];
 let groups = loadGroups();
@@ -1634,9 +1635,13 @@ async function loadMarken() {
         const markenResponse = await fetch("data/marken.json");
         if (!markenResponse.ok) throw new Error("Datafiler kunde inte laddas");
         const marken = await markenResponse.json();
-        await window.GTScoutActivities?.ensureLoaded?.();
+        await Promise.all([
+            window.GTScoutActivities?.ensureLoaded?.(),
+            window.GTScoutBadges?.ensureLoaded?.()
+        ]);
         const syncedActivities = window.GTScoutActivities?.getAllActivities?.() || [];
-        allMarken = marken;
+        baseMarken = marken;
+        allMarken = [...baseMarken, ...(window.GTScoutBadges?.getAllBadges?.() || [])];
         allAktiviteter = syncedActivities.length ? syncedActivities : loadCustomActivities();
     } catch (err) {
         console.error("Kunde inte ladda marken.json", err);
@@ -3577,6 +3582,7 @@ function showBadgeDetail(marke, planningId = null) {
                     <p class="detail-note-display"></p>
                 </div>
             ` : ""}
+            ${window.GTScoutBadges?.canEditBadge?.(marke) ? '<div class="detail-planning-actions"><div class="detail-admin-actions"><button id="editCustomBadgeBtn" class="btn-secondary" type="button">Redigera märke</button><button id="deleteCustomBadgeBtn" class="btn-danger" type="button">Ta bort märke</button></div></div>' : ""}
         </div>
     `;
     if (badgePlannings.length > 0) {
@@ -3608,6 +3614,19 @@ function showBadgeDetail(marke, planningId = null) {
     });
     const saveActivitiesButton = body.querySelector("#saveBadgeActivitiesBtn");
     const addExistingActivityButton = body.querySelector("#addExistingActivityBtn");
+    body.querySelector("#editCustomBadgeBtn")?.addEventListener("click", () => {
+        detailPopup.classList.add("hidden");
+        window.GTScoutBadges.openEditDialog(marke);
+    });
+    body.querySelector("#deleteCustomBadgeBtn")?.addEventListener("click", async () => {
+        if (!confirm(`Ta bort märket "${marke.namn}"? Märket tas bort från biblioteket men behålls i befintliga planeringar.`)) return;
+        try {
+            await window.GTScoutBadges.deleteBadge(marke);
+            detailPopup.classList.add("hidden");
+        } catch (error) {
+            alert(error.message || "Märket kunde inte tas bort.");
+        }
+    });
     if (addExistingActivityButton) {
         addExistingActivityButton.addEventListener("click", () => {
             detailPopup.classList.add("hidden");
@@ -3645,6 +3664,18 @@ window.GTScoutAuth?.onChange(() => renderPlanning());
 window.GTScoutActivities?.init({
     onChange: () => {
         allAktiviteter = window.GTScoutActivities.getAllActivities();
+        renderPlanning();
+        populatePickerFilters();
+    }
+});
+
+window.GTScoutBadges?.init({
+    getAvailableTypes: () => [...baseMarken, ...window.GTScoutBadges.getAllBadges()]
+        .map(marke => marke.Typ || marke.typ)
+        .filter(Boolean),
+    onChange: () => {
+        if (baseMarken.length === 0) return;
+        allMarken = [...baseMarken, ...window.GTScoutBadges.getAllBadges()];
         renderPlanning();
         populatePickerFilters();
     }
