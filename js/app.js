@@ -22,6 +22,7 @@ if (siteMenuBtn && siteMenuDropdown) {
     });
 }
 
+let baseMarken = [];
 let allMarken = [];
 let allAktiviteter = [];
 let activePopupBadge = null;
@@ -45,11 +46,15 @@ async function loadMarken() {
             throw new Error("Datafiler kunde inte laddas");
         }
         const marken = await markenResponse.json();
-        await window.GTScoutActivities?.ensureLoaded?.();
+        await Promise.all([
+            window.GTScoutActivities?.ensureLoaded?.(),
+            window.GTScoutBadges?.ensureLoaded?.()
+        ]);
         const syncedActivities = window.GTScoutActivities?.getAllActivities?.() || [];
-        allMarken = marken;
+        baseMarken = marken;
+        allMarken = [...baseMarken, ...(window.GTScoutBadges?.getAllBadges?.() || [])];
         allAktiviteter = syncedActivities.length ? syncedActivities : loadCustomActivities();
-        renderMarken(marken);
+        renderMarken(allMarken);
     } catch (error) {
         console.error("Failed to load marken.json", error);
         const details = document.getElementById("details");
@@ -1339,6 +1344,7 @@ function showPopup(marke) {
             </button>
             <div class="detail-planning-actions">
                 <button id="addBadgeToPlanningBtn" class="btn-primary" type="button">Lägg till i planering</button>
+                ${window.GTScoutBadges?.canDeleteBadge?.(marke) ? '<button id="deleteCustomBadgeBtn" class="btn-danger" type="button">Ta bort märke</button>' : ""}
             </div>
         </div>
     `;
@@ -1353,6 +1359,16 @@ function showPopup(marke) {
     popup.querySelector("#editBadgeNoteBtn").addEventListener("click", () => openNotePopup(marke));
     popup.querySelector("#addExistingActivityBtn")?.addEventListener("click", () => openActivityPicker(marke));
     popup.querySelector("#addBadgeToPlanningBtn").addEventListener("click", () => openPlanningPicker(marke));
+    popup.querySelector("#deleteCustomBadgeBtn")?.addEventListener("click", async () => {
+        if (!confirm(`Ta bort märket "${marke.namn}"? Märket tas bort från biblioteket men behålls i befintliga planeringar.`)) return;
+        try {
+            await window.GTScoutBadges.deleteBadge(marke);
+            activePopupBadge = null;
+            popup.classList.add("hidden");
+        } catch (error) {
+            alert(error.message || "Märket kunde inte tas bort.");
+        }
+    });
     popup.querySelectorAll(".remove-activity-btn").forEach(button => {
         button.addEventListener("click", () => {
             removeActivityFromBadge(marke, button.dataset.activityId);
@@ -1397,5 +1413,16 @@ window.GTScoutActivities?.init({
                 showPopup(activePopupBadge);
             }
         }
+    }
+});
+
+window.GTScoutBadges?.init({
+    getAvailableTypes: () => [...baseMarken, ...window.GTScoutBadges.getAllBadges()]
+        .map(marke => marke.Typ || marke.typ)
+        .filter(Boolean),
+    onChange: () => {
+        if (baseMarken.length === 0) return;
+        allMarken = [...baseMarken, ...window.GTScoutBadges.getAllBadges()];
+        renderMarken(allMarken);
     }
 });
