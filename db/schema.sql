@@ -479,6 +479,37 @@ create policy "custom_badges_update_kar_admin" on public.custom_badges
         and kar_id = public.current_user_kar_id()
     );
 
+-- ── Märkesbilder i Supabase Storage ─────────────────────────────────────────
+-- Sökväg: <kar-id>/<badge-id>/<fil-id>.png
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('badge-images', 'badge-images', true, 102400, array['image/png'])
+on conflict (id) do update
+set public = excluded.public,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "badge_images_insert_kar_leader" on storage.objects;
+create policy "badge_images_insert_kar_leader" on storage.objects
+    for insert to authenticated
+    with check (
+        bucket_id = 'badge-images'
+        and public.current_user_is_leader()
+        and (storage.foldername(name))[1] = public.current_user_kar_id()::text
+        and lower(storage.extension(name)) = 'png'
+    );
+
+drop policy if exists "badge_images_delete_owner_or_admin" on storage.objects;
+create policy "badge_images_delete_owner_or_admin" on storage.objects
+    for delete to authenticated
+    using (
+        bucket_id = 'badge-images'
+        and (storage.foldername(name))[1] = public.current_user_kar_id()::text
+        and (
+            owner_id = auth.uid()::text
+            or public.current_user_role() = 'admin'
+        )
+    );
+
 -- Endast administratörer får radera aktiviteter från den egna kåren.
 drop policy if exists "aktiviteter_delete_kar_admin" on public.aktiviteter;
 create policy "aktiviteter_delete_kar_admin" on public.aktiviteter

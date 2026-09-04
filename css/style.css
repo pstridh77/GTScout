@@ -2183,10 +2183,23 @@ select:focus {
     font-size: 0.9rem;
 }
 
-.custom-badge-image-note {
-    margin: 0;
-    color: #52606d;
-    font-size: 0.9rem;
+.custom-badge-image-control {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+}
+
+.custom-badge-image-control img {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+}
+
+.custom-badge-image-control input {
+    box-sizing: border-box;
+    min-width: 0;
+    width: 100%;
 }
 
 .modal-content--wide {

@@ -3,6 +3,9 @@
  */
 (function () {
     const DEFAULT_IMAGE = "images/marken/specialistmarken.png";
+    const BADGE_IMAGE_BUCKET = "badge-images";
+    const MAX_IMAGE_BYTES = 100 * 1024;
+    const MAX_IMAGE_DIMENSION = 128;
     const DEFAULT_TYPES = ["Intressemärke", "Deltagandemärke", "Bevismärke"];
     const TARGET_GROUPS = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
 
@@ -49,6 +52,69 @@
 
     function getAllBadges() {
         return badges.map(badge => ({ ...badge, malgrupp: [...badge.malgrupp], kriterier: [...badge.kriterier], program: [...badge.program] }));
+    }
+
+    async function getImageDimensions(file) {
+        if (typeof window.createImageBitmap === "function") {
+            const bitmap = await window.createImageBitmap(file);
+            const dimensions = { width: bitmap.width, height: bitmap.height };
+            bitmap.close();
+            return dimensions;
+        }
+
+        return new Promise((resolve, reject) => {
+            const image = new Image();
+            const objectUrl = URL.createObjectURL(file);
+            image.onload = () => {
+                URL.revokeObjectURL(objectUrl);
+                resolve({ width: image.naturalWidth, height: image.naturalHeight });
+            };
+            image.onerror = () => {
+                URL.revokeObjectURL(objectUrl);
+                reject(new Error("Bildfilen kunde inte läsas."));
+            };
+            image.src = objectUrl;
+        });
+    }
+
+    async function validateBadgeImage(file) {
+        if (!file) return null;
+        if (file.type !== "image/png") throw new Error("Bilden måste vara en PNG-fil.");
+        if (file.size > MAX_IMAGE_BYTES) throw new Error("Bilden får vara högst 100 KB.");
+
+        const signature = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+        const pngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
+        if (!pngSignature.every((byte, index) => signature[index] === byte)) {
+            throw new Error("Filen är inte en giltig PNG-bild.");
+        }
+
+        const dimensions = await getImageDimensions(file);
+        if (dimensions.width > MAX_IMAGE_DIMENSION || dimensions.height > MAX_IMAGE_DIMENSION) {
+            throw new Error("Bilden får vara högst 128 × 128 pixlar.");
+        }
+        return dimensions;
+    }
+
+    async function uploadBadgeImage(file, badgeId) {
+        await validateBadgeImage(file);
+        const path = `${getKarId()}/${badgeId}/${crypto.randomUUID()}.png`;
+        const storage = client().storage.from(BADGE_IMAGE_BUCKET);
+        const { error } = await storage.upload(path, file, {
+            cacheControl: "3600",
+            contentType: "image/png",
+            upsert: false
+        });
+        if (error) throw new Error(error.message || "Bilden kunde inte laddas upp.");
+
+        const { data } = storage.getPublicUrl(path);
+        if (!data?.publicUrl) throw new Error("Bildens publika adress kunde inte skapas.");
+        return { path, publicUrl: data.publicUrl };
+    }
+
+    async function removeUploadedImage(path) {
+        if (!path) return;
+        const { error } = await client().storage.from(BADGE_IMAGE_BUCKET).remove([path]);
+        if (error) console.error("Kunde inte rensa uppladdad märkesbild", error);
     }
 
     function notify() {
@@ -133,7 +199,7 @@
             kriterier: normalized.kriterier,
             program: normalized.program,
             typ: normalized.Typ,
-            bild: DEFAULT_IMAGE
+            bild: normalized.bild
         });
 
         if (error) {
@@ -186,7 +252,13 @@
                 </fieldset>
                 <label class="modal-field"><span>Beskrivning</span><textarea name="inledning" rows="2"></textarea></label>
                 <label class="modal-field"><span>Kriterier, ett per rad</span><textarea name="kriterier" rows="4" required></textarea></label>
-                <p class="custom-badge-image-note">Märket använder standardbilden Specialistmärken.</p>
+                <label class="modal-field custom-badge-image-field">
+                    <span>Bild (valfri PNG, max 100 KB och 128 × 128 px)</span>
+                    <span class="custom-badge-image-control">
+                        <img src="${DEFAULT_IMAGE}" alt="Förhandsvisning" data-custom-badge-preview>
+                        <input name="bild" type="file" accept="image/png,.png">
+                    </span>
+                </label>
                 <p class="detail-planning-status" data-custom-badge-status role="status"></p>
                 <div class="modal-actions"><button class="btn-primary" type="submit">Skapa märke</button></div>
             </form>
@@ -199,25 +271,52 @@
         modal.addEventListener("click", event => {
             if (event.target === modal) close();
         });
+        form.elements.bild.addEventListener("change", async () => {
+            const status = form.querySelector("[data-custom-badge-status]");
+            const preview = form.querySelector("[data-custom-badge-preview]");
+            const file = form.elements.bild.files[0];
+            preview.src = DEFAULT_IMAGE;
+            status.textContent = "";
+            if (!file) return;
+            try {
+                await validateBadgeImage(file);
+                const objectUrl = URL.createObjectURL(file);
+                preview.onload = () => URL.revokeObjectURL(objectUrl);
+                preview.src = objectUrl;
+            } catch (error) {
+                form.elements.bild.value = "";
+                status.textContent = error.message;
+            }
+        });
         form.addEventListener("submit", async event => {
             event.preventDefault();
             const status = form.querySelector("[data-custom-badge-status]");
             const submitButton = form.querySelector("button[type='submit']");
             const formData = new FormData(form);
+            const badgeId = `egen-${crypto.randomUUID()}`;
+            const imageFile = form.elements.bild.files[0] || null;
+            let uploadedImage = null;
             status.textContent = "Sparar...";
             submitButton.disabled = true;
             try {
+                if (imageFile) {
+                    status.textContent = "Laddar upp bild...";
+                    uploadedImage = await uploadBadgeImage(imageFile, badgeId);
+                }
                 await saveBadge({
+                    id: badgeId,
                     namn: formData.get("namn"),
                     typ: formData.get("typ"),
                     kategori: formData.get("kategori"),
                     malgrupp: formData.getAll("malgrupp"),
                     inledning: formData.get("inledning"),
-                    kriterier: String(formData.get("kriterier") || "").split(/\r?\n/)
+                    kriterier: String(formData.get("kriterier") || "").split(/\r?\n/),
+                    bild: uploadedImage?.publicUrl || DEFAULT_IMAGE
                 });
                 form.reset();
                 close();
             } catch (error) {
+                await removeUploadedImage(uploadedImage?.path);
                 status.textContent = error.message;
             } finally {
                 submitButton.disabled = false;
@@ -231,6 +330,7 @@
         const modal = ensureCreateDialog();
         const form = modal.querySelector("form");
         form.reset();
+        form.querySelector("[data-custom-badge-preview]").src = DEFAULT_IMAGE;
         const typeSelect = form.elements.typ;
         const availableTypes = getAvailableTypes();
         const types = [...new Set((availableTypes.length ? availableTypes : DEFAULT_TYPES).map(type => String(type || "").trim()).filter(Boolean))]
@@ -276,6 +376,8 @@
         getAllBadges,
         canWrite,
         canDeleteBadge,
+        validateBadgeImage,
+        uploadBadgeImage,
         saveBadge,
         deleteBadge,
         openCreateDialog,
