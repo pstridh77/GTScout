@@ -13,3 +13,6 @@ desktop.ini
 docs/~$rkesbeskrivningar-intressemarken-2026.docx
 docs/~*.tmp
 docs/extrakt.txt
+
+# Lokal Supabase-miljö
+js/supabase-config.local.js
