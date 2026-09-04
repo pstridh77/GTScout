@@ -45,6 +45,21 @@ showMissingBadgesBtn?.addEventListener("click", () => {
     renderMarken(allMarken);
 });
 
+const toggleBadgeStacksBtn = document.getElementById("toggleBadgeStacksBtn");
+let badgeStacksExpanded = false;
+toggleBadgeStacksBtn?.addEventListener("click", () => {
+    badgeStacksExpanded = !badgeStacksExpanded;
+    expandedBadgeCategories.clear();
+    updateBadgeStacksToggle();
+    renderMarken(allMarken);
+});
+
+function updateBadgeStacksToggle() {
+    if (!toggleBadgeStacksBtn) return;
+    toggleBadgeStacksBtn.setAttribute("aria-pressed", String(!badgeStacksExpanded));
+    toggleBadgeStacksBtn.querySelector(".planning-toggle-status").textContent = badgeStacksExpanded ? "" : "✓";
+}
+
 let baseMarken = [];
 let allMarken = [];
 let allAktiviteter = [];
@@ -55,6 +70,7 @@ const BADGE_NOTES_STORAGE_KEY = "gtscout_badge_notes";
 const CUSTOM_ACTIVITIES_STORAGE_KEY = "gtscout_custom_activities";
 const CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY = "gtscout_custom_badge_activities";
 const TARGET_GROUP_ORDER = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
+const expandedBadgeCategories = new Set();
 const filters = {
     search: "",
     category: "Alla",
@@ -286,6 +302,13 @@ function getPrimaryTargetGroup(marke) {
 
 function formatTargetGroups(marke) {
     return getTargetGroups(marke).join(", ") || "Ingen målgrupp";
+}
+
+function getBadgeDisplayKey(marke) {
+    if (marke.isCustom) {
+        return `custom::${marke.kategori || "Övrigt"}::${marke.namn || ""}`.toLocaleLowerCase("sv");
+    }
+    return `json::${marke.namn || ""}::${marke.bild || ""}`;
 }
 
 function updateTargetGroupDropdown(groups) {
@@ -545,20 +568,34 @@ function renderMarken(marken) {
         const badgeRow = document.createElement("div");
         badgeRow.className = "category-badges";
 
+        const categoryExpanded = badgeStacksExpanded || expandedBadgeCategories.has(category);
+        const expandedBadgeIds = new Set();
         const groupedByTargetGroup = categories[category].reduce((acc, marke) => {
-            const selectedTargetGroup = filters.targetGroup.find(group => getTargetGroups(marke).includes(group));
-            const targetGroup = selectedTargetGroup
-                ? selectedTargetGroup
-                : getPrimaryTargetGroup(marke);
-            if (!acc[targetGroup]) {
-                acc[targetGroup] = [];
+            const badgeDisplayKey = getBadgeDisplayKey(marke);
+            if (categoryExpanded && expandedBadgeIds.has(badgeDisplayKey)) {
+                return acc;
             }
-            acc[targetGroup].push(marke);
+            if (categoryExpanded) {
+                expandedBadgeIds.add(badgeDisplayKey);
+            }
+            const badgeTargetGroups = getTargetGroups(marke);
+            const matchingTargetGroups = filters.targetGroup.includes("Alla")
+                ? badgeTargetGroups
+                : badgeTargetGroups.filter(group => filters.targetGroup.includes(group));
+            const targetGroups = categoryExpanded && matchingTargetGroups.length > 1
+                ? [matchingTargetGroups[0]]
+                : matchingTargetGroups;
+            (targetGroups.length > 0 ? targetGroups : [getPrimaryTargetGroup(marke)]).forEach(targetGroup => {
+                if (!acc[targetGroup]) {
+                    acc[targetGroup] = [];
+                }
+                acc[targetGroup].push(marke);
+            });
             return acc;
         }, {});
 
         TARGET_GROUP_ORDER.forEach(targetGroup => {
-            const groupItems = [...(groupedByTargetGroup[targetGroup] || [])];
+            const groupItems = groupedByTargetGroup[targetGroup] || [];
             const categoryHasTargetGroup = allMarken
                 .filter(marke => (marke.kategori || "Övrigt") === category)
                 .some(marke => getTargetGroups(marke).includes(targetGroup));
@@ -578,14 +615,13 @@ function renderMarken(marken) {
 
             const cards = document.createElement("div");
             cards.className = groupItems.length > 1
-                ? "target-group-cards target-group-cards--stacked"
+                ? `target-group-cards target-group-cards--stacked${categoryExpanded ? " target-group-cards--expanded" : ""}`
                 : "target-group-cards";
             const expandStack = () => {
-                cards.classList.add("target-group-cards--expanded");
-                cards.removeAttribute("role");
-                cards.removeAttribute("tabindex");
+                expandedBadgeCategories.add(category);
+                renderMarken(allMarken);
             };
-            if (groupItems.length > 1) {
+            if (groupItems.length > 1 && !categoryExpanded) {
                 cards.setAttribute("role", "button");
                 cards.setAttribute("tabindex", "0");
                 cards.setAttribute("aria-label", `Visa alla ${groupItems.length} märken för ${targetGroup}`);
@@ -621,7 +657,8 @@ function renderMarken(marken) {
                     ${planningIcons ? `<div class="badge-planning-icons" title="Finns i: ${badgePlannings.map(planning => planning.name).join(", ")}">${planningIcons}</div>` : ""}
                 `;
                 card.addEventListener("click", event => {
-                    if (cards.classList.contains("target-group-cards--stacked")) {
+                    if (cards.classList.contains("target-group-cards--stacked")
+                        && !cards.classList.contains("target-group-cards--expanded")) {
                         event.stopPropagation();
                         expandStack();
                         return;
