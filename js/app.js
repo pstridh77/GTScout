@@ -548,6 +548,7 @@ function getFilteredMarken() {
 function renderMarken(marken) {
     allMarken = marken;
     populateFilters(marken);
+    grid.classList.toggle("target-group-view", showMissingBadges && !badgeStacksExpanded);
 
     const filteredMarken = getFilteredMarken();
     grid.innerHTML = "";
@@ -566,7 +567,8 @@ function renderMarken(marken) {
         return acc;
     }, {});
 
-    Object.keys(categories).forEach(category => {
+    const categoryNames = Object.keys(categories);
+    categoryNames.forEach(category => {
         const categoryGroup = document.createElement("section");
         categoryGroup.className = "category-group";
 
@@ -622,6 +624,18 @@ function renderMarken(marken) {
 
             const slot = document.createElement("div");
             slot.className = "target-group-slot";
+            const targetGroupLabel = document.createElement("h3");
+            const targetGroupClass = {
+                Familjescouting: "familjescouting",
+                Spårare: "sparare",
+                Upptäckare: "upptackare",
+                Äventyrare: "aventyrare",
+                Utmanare: "utmanare",
+                Rover: "rover"
+            }[targetGroup] || "default";
+            targetGroupLabel.className = `target-group-label target-group-label--${targetGroupClass}`;
+            targetGroupLabel.textContent = targetGroup;
+            slot.appendChild(targetGroupLabel);
 
             const cards = document.createElement("div");
             cards.className = groupItems.length > 1
@@ -685,7 +699,21 @@ function renderMarken(marken) {
         categoryGroup.appendChild(badgeRow);
         grid.appendChild(categoryGroup);
     });
+
+    updateCategoryGridRows();
 }
+
+function updateCategoryGridRows() {
+    const categoryGroups = [...grid.querySelectorAll(".category-group")];
+    let currentRowTop = null;
+    categoryGroups.forEach(categoryGroup => {
+        const isNewRow = currentRowTop === null || categoryGroup.offsetTop !== currentRowTop;
+        categoryGroup.classList.toggle("category-group--row-start", isNewRow);
+        currentRowTop = categoryGroup.offsetTop;
+    });
+}
+
+window.addEventListener("resize", updateCategoryGridRows);
 
 function handleFilterChange() {
     filters.search = searchInput.value;
