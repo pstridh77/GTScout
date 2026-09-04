@@ -1274,13 +1274,14 @@ function showPopup(marke) {
     const targetGroups = formatTargetGroups(marke);
     const badgePlannings = getBadgePlannings(marke.id);
     const badgeNote = loadBadgeNotes()[marke.id] || "";
-    const activities = getActivitiesForBadge(marke).filter(activity => isActivityVisibleForKarFilter(activity, badgeActivityKarFilter));
+    const allBadgeActivities = getActivitiesForBadge(marke);
+    const activities = allBadgeActivities.filter(activity => isActivityVisibleForKarFilter(activity, badgeActivityKarFilter));
     const staticActivityIds = new Set(Array.isArray(marke.aktiviteter) ? marke.aktiviteter : []);
     const canManageActivities = Boolean(window.GTScoutActivities?.addBadgeActivityLink);
     const activitySection = `
         <div class="detail-activities">
             <strong>Aktiviteter:</strong>
-            <select class="badge-activity-kar-filter" aria-label="Filtrera aktiviteter efter kår"></select>
+            ${allBadgeActivities.length > 0 ? '<select class="badge-activity-kar-filter" aria-label="Filtrera aktiviteter efter kår"></select>' : ""}
             <div class="activity-list">
                 ${activities.length > 0
                     ? activities.map(activity => `
@@ -1290,7 +1291,7 @@ function showPopup(marke) {
                             ${(!staticActivityIds.has(activity.id) && canEditBadgeActivityLink(marke, activity.id)) ? `<button class="remove-activity-btn" type="button" data-activity-id="${activity.id}" title="Ta bort ${activity.namn}" aria-label="Ta bort ${activity.namn}">&times;</button>` : ""}
                         </div>
                     `).join("")
-                    : "<p>Inga aktiviteter matchar filtret.</p>"}
+                    : `<p>${allBadgeActivities.length > 0 ? "Inga aktiviteter matchar filtret." : "Inga aktiviteter tillagda."}</p>`}
             </div>
             ${canManageActivities ? '<button id="addExistingActivityBtn" class="btn-secondary" type="button">Aktivitet</button>' : ''}
         </div>
@@ -1373,12 +1374,14 @@ function showPopup(marke) {
     `;
     if (badgeNote) popup.querySelector("#badgeNoteDisplay").innerHTML = renderLinkedText(badgeNote);
     const badgeActivityKarFilterSelect = popup.querySelector(".badge-activity-kar-filter");
-    populateKarFilter(badgeActivityKarFilterSelect);
-    badgeActivityKarFilterSelect.value = badgeActivityKarFilter;
-    badgeActivityKarFilterSelect.addEventListener("change", () => {
-        badgeActivityKarFilter = badgeActivityKarFilterSelect.value;
-        showPopup(marke);
-    });
+    if (badgeActivityKarFilterSelect) {
+        populateKarFilter(badgeActivityKarFilterSelect);
+        badgeActivityKarFilterSelect.value = badgeActivityKarFilter;
+        badgeActivityKarFilterSelect.addEventListener("change", () => {
+            badgeActivityKarFilter = badgeActivityKarFilterSelect.value;
+            showPopup(marke);
+        });
+    }
     popup.querySelector("#editBadgeNoteBtn").addEventListener("click", () => openNotePopup(marke));
     popup.querySelector("#addExistingActivityBtn")?.addEventListener("click", () => openActivityPicker(marke));
     popup.querySelector("#addBadgeToPlanningBtn").addEventListener("click", () => openPlanningPicker(marke));

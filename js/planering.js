@@ -3545,7 +3545,7 @@ function showBadgeDetail(marke, planningId = null) {
             <div class="detail-activities">
                 <strong>Aktivitetsförslag:</strong>
                 ${planning ? `<p>Välj aktiviteter för ${planning.name}.</p>` : ""}
-                <select class="badge-activity-kar-filter" aria-label="Filtrera aktiviteter efter kår"></select>
+                ${allBadgeActivities.length > 0 ? '<select class="badge-activity-kar-filter" aria-label="Filtrera aktiviteter efter kår"></select>' : ""}
                 <div class="activity-list">
                     ${activities.length > 0 ? activities.map(activity => `
                         <label class="activity-item">
@@ -3553,7 +3553,7 @@ function showBadgeDetail(marke, planningId = null) {
                             <span class="activity-item-name">${renderActivityOwnershipBadge(activity)}<strong>${activity.namn}</strong>${formatActivityTime(activity) ? `<small>${formatActivityTime(activity)}</small>` : ""}</span>
                             <button class="activity-info-button" type="button" data-activity-id="${activity.id}" aria-label="Visa detaljer för ${activity.namn}">i</button>
                         </label>
-                    `).join("") : "<p>Inga aktiviteter matchar filtret.</p>"}
+                    `).join("") : `<p>${allBadgeActivities.length > 0 ? "Inga aktiviteter matchar filtret." : "Inga aktiviteter tillagda."}</p>`}
                 </div>
                 ${canEditPlanning ? '<button id="addExistingActivityBtn" class="btn-secondary" type="button">Aktivitet</button>' : ""}
                 ${canEditPlanning ? '<button id="saveBadgeActivitiesBtn" class="btn-primary" type="button">Uppdatera planering</button>' : ""}
@@ -3615,12 +3615,14 @@ function showBadgeDetail(marke, planningId = null) {
     }
     if (badgeNote) body.querySelector(".detail-note-display").innerHTML = renderLinkedText(badgeNote);
     const badgeActivityKarFilterSelect = body.querySelector(".badge-activity-kar-filter");
-    populateActivityKarFilter(badgeActivityKarFilterSelect);
-    badgeActivityKarFilterSelect.value = planningBadgeActivityKarFilter;
-    badgeActivityKarFilterSelect.addEventListener("change", () => {
-        planningBadgeActivityKarFilter = badgeActivityKarFilterSelect.value;
-        showBadgeDetail(marke, planningId);
-    });
+    if (badgeActivityKarFilterSelect) {
+        populateActivityKarFilter(badgeActivityKarFilterSelect);
+        badgeActivityKarFilterSelect.value = planningBadgeActivityKarFilter;
+        badgeActivityKarFilterSelect.addEventListener("change", () => {
+            planningBadgeActivityKarFilter = badgeActivityKarFilterSelect.value;
+            showBadgeDetail(marke, planningId);
+        });
+    }
     body.querySelectorAll(".activity-info-button").forEach(button => {
         button.addEventListener("click", () => {
             const activity = allAktiviteter.find(item => item.id === button.dataset.activityId);
