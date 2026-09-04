@@ -553,6 +553,7 @@ body {
 .target-group-cards {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
     gap: 12px;
     min-width: 0;
     max-width: 100%;
@@ -577,7 +578,7 @@ body {
         padding-left: 0;
     }
 
-    #badgeGrid.target-group-view .target-group-label {
+    #badgeGrid.target-group-view .category-group--row-start .target-group-label {
         display: none;
     }
 
