@@ -7,6 +7,17 @@ const targetGroupDropdownBtn = document.getElementById("targetGroupDropdownBtn")
 const targetGroupDropdownMenu = document.getElementById("targetGroupDropdownMenu");
 const typeFilter = document.getElementById("typeFilter");
 const programFilter = document.getElementById("programFilter");
+const SHOW_MISSING_BADGES_STORAGE_KEY = "gtscout_show_missing_badges";
+const EXPANDED_BADGES_STORAGE_KEY = "gtscout_expanded_badges";
+
+function getStoredBoolean(key, defaultValue) {
+    try {
+        const storedValue = localStorage.getItem(key);
+        return storedValue === null ? defaultValue : storedValue === "true";
+    } catch {
+        return defaultValue;
+    }
+}
 
 const siteMenuBtn = document.getElementById("siteMenuBtn");
 const siteMenuDropdown = document.getElementById("siteMenuDropdown");
@@ -37,18 +48,20 @@ targetGroupDropdownBtn?.addEventListener("click", event => {
 });
 
 const showMissingBadgesBtn = document.getElementById("showMissingBadgesBtn");
-let showMissingBadges = false;
+let showMissingBadges = getStoredBoolean(SHOW_MISSING_BADGES_STORAGE_KEY, false);
 showMissingBadgesBtn?.addEventListener("click", () => {
     showMissingBadges = !showMissingBadges;
+    localStorage.setItem(SHOW_MISSING_BADGES_STORAGE_KEY, String(showMissingBadges));
     showMissingBadgesBtn.setAttribute("aria-pressed", String(showMissingBadges));
     showMissingBadgesBtn.querySelector(".planning-toggle-status").textContent = showMissingBadges ? "✓" : "";
     renderMarken(allMarken);
 });
 
 const toggleBadgeStacksBtn = document.getElementById("toggleBadgeStacksBtn");
-let badgeStacksExpanded = false;
+let badgeStacksExpanded = getStoredBoolean(EXPANDED_BADGES_STORAGE_KEY, false);
 toggleBadgeStacksBtn?.addEventListener("click", () => {
     badgeStacksExpanded = !badgeStacksExpanded;
+    localStorage.setItem(EXPANDED_BADGES_STORAGE_KEY, String(badgeStacksExpanded));
     expandedBadgeCategories.clear();
     updateBadgeStacksToggle();
     renderMarken(allMarken);
@@ -59,6 +72,15 @@ function updateBadgeStacksToggle() {
     toggleBadgeStacksBtn.setAttribute("aria-pressed", String(!badgeStacksExpanded));
     toggleBadgeStacksBtn.querySelector(".planning-toggle-status").textContent = badgeStacksExpanded ? "" : "✓";
 }
+
+function updateMissingBadgesToggle() {
+    if (!showMissingBadgesBtn) return;
+    showMissingBadgesBtn.setAttribute("aria-pressed", String(showMissingBadges));
+    showMissingBadgesBtn.querySelector(".planning-toggle-status").textContent = showMissingBadges ? "✓" : "";
+}
+
+updateMissingBadgesToggle();
+updateBadgeStacksToggle();
 
 let baseMarken = [];
 let allMarken = [];
