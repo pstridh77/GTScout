@@ -3582,7 +3582,7 @@ function showBadgeDetail(marke, planningId = null) {
                     <p class="detail-note-display"></p>
                 </div>
             ` : ""}
-            ${window.GTScoutBadges?.canDeleteBadge?.(marke) ? '<div class="detail-planning-actions"><button id="deleteCustomBadgeBtn" class="btn-danger" type="button">Ta bort märke</button></div>' : ""}
+            ${window.GTScoutBadges?.canEditBadge?.(marke) ? '<div class="detail-planning-actions"><div class="detail-admin-actions"><button id="editCustomBadgeBtn" class="btn-secondary" type="button">Redigera märke</button><button id="deleteCustomBadgeBtn" class="btn-danger" type="button">Ta bort märke</button></div></div>' : ""}
         </div>
     `;
     if (badgePlannings.length > 0) {
@@ -3614,6 +3614,10 @@ function showBadgeDetail(marke, planningId = null) {
     });
     const saveActivitiesButton = body.querySelector("#saveBadgeActivitiesBtn");
     const addExistingActivityButton = body.querySelector("#addExistingActivityBtn");
+    body.querySelector("#editCustomBadgeBtn")?.addEventListener("click", () => {
+        detailPopup.classList.add("hidden");
+        window.GTScoutBadges.openEditDialog(marke);
+    });
     body.querySelector("#deleteCustomBadgeBtn")?.addEventListener("click", async () => {
         if (!confirm(`Ta bort märket "${marke.namn}"? Märket tas bort från biblioteket men behålls i befintliga planeringar.`)) return;
         try {

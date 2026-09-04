@@ -13,6 +13,7 @@
     let loaded = false;
     let loadPromise = null;
     let initialized = false;
+    let editingBadge = null;
     let getAvailableTypes = () => [];
     const listeners = new Set();
 
@@ -33,6 +34,8 @@
             && badge?.kar_id === getKarId()
         );
     }
+
+    const canEditBadge = canDeleteBadge;
 
     function normalizeBadge(badge) {
         return {
@@ -115,6 +118,13 @@
         if (!path) return;
         const { error } = await client().storage.from(BADGE_IMAGE_BUCKET).remove([path]);
         if (error) console.error("Kunde inte rensa uppladdad märkesbild", error);
+    }
+
+    function getUploadedImagePath(imageUrl) {
+        const marker = `/storage/v1/object/public/${BADGE_IMAGE_BUCKET}/`;
+        const markerIndex = String(imageUrl || "").indexOf(marker);
+        if (markerIndex === -1) return null;
+        return decodeURIComponent(String(imageUrl).slice(markerIndex + marker.length));
     }
 
     function notify() {
@@ -212,6 +222,45 @@
         return normalized;
     }
 
+    async function updateBadge(badge) {
+        if (!canEditBadge(badge)) throw new Error("Endast kårens administratör kan redigera märket.");
+
+        const normalized = normalizeBadge({
+            ...badge,
+            kar_id: getKarId(),
+            program: [getKarName()]
+        });
+        if (!normalized.namn) throw new Error("Ange ett namn på märket.");
+        if (normalized.program.length === 0) throw new Error("Kårnamnet kunde inte hämtas.");
+        if (!normalized.Typ) throw new Error("Välj en typ för märket.");
+        if (normalized.malgrupp.length === 0) throw new Error("Välj minst en målgrupp.");
+        if (normalized.kriterier.length === 0) throw new Error("Ange minst ett kriterium.");
+
+        const { error } = await client()
+            .from("custom_badges")
+            .update({
+                namn: normalized.namn,
+                kategori: normalized.kategori,
+                malgrupp: normalized.malgrupp,
+                inledning: normalized.inledning || null,
+                kriterier: normalized.kriterier,
+                program: normalized.program,
+                typ: normalized.Typ,
+                bild: normalized.bild
+            })
+            .eq("id", normalized.id)
+            .eq("kar_id", getKarId());
+
+        if (error) {
+            if (error.code === "23505") throw new Error("Det finns redan ett märke med det namnet i kåren.");
+            console.error("Kunde inte uppdatera kårens märke", error);
+            throw new Error(error.message || "Märket kunde inte uppdateras.");
+        }
+
+        await reload();
+        return normalized;
+    }
+
     async function deleteBadge(badge) {
         if (!canDeleteBadge(badge)) throw new Error("Endast kårens administratör kan ta bort märket.");
 
@@ -275,7 +324,7 @@
             const status = form.querySelector("[data-custom-badge-status]");
             const preview = form.querySelector("[data-custom-badge-preview]");
             const file = form.elements.bild.files[0];
-            preview.src = DEFAULT_IMAGE;
+            preview.src = editingBadge?.bild || DEFAULT_IMAGE;
             status.textContent = "";
             if (!file) return;
             try {
@@ -293,7 +342,8 @@
             const status = form.querySelector("[data-custom-badge-status]");
             const submitButton = form.querySelector("button[type='submit']");
             const formData = new FormData(form);
-            const badgeId = `egen-${crypto.randomUUID()}`;
+            const currentBadge = editingBadge;
+            const badgeId = currentBadge?.id || `egen-${crypto.randomUUID()}`;
             const imageFile = form.elements.bild.files[0] || null;
             let uploadedImage = null;
             status.textContent = "Sparar...";
@@ -303,7 +353,8 @@
                     status.textContent = "Laddar upp bild...";
                     uploadedImage = await uploadBadgeImage(imageFile, badgeId);
                 }
-                await saveBadge({
+                const nextBadge = {
+                    ...currentBadge,
                     id: badgeId,
                     namn: formData.get("namn"),
                     typ: formData.get("typ"),
@@ -311,8 +362,14 @@
                     malgrupp: formData.getAll("malgrupp"),
                     inledning: formData.get("inledning"),
                     kriterier: String(formData.get("kriterier") || "").split(/\r?\n/),
-                    bild: uploadedImage?.publicUrl || DEFAULT_IMAGE
-                });
+                    bild: uploadedImage?.publicUrl || currentBadge?.bild || DEFAULT_IMAGE
+                };
+                if (currentBadge) await updateBadge(nextBadge);
+                else await saveBadge(nextBadge);
+
+                if (uploadedImage && currentBadge?.bild) {
+                    await removeUploadedImage(getUploadedImagePath(currentBadge.bild));
+                }
                 form.reset();
                 close();
             } catch (error) {
@@ -329,6 +386,7 @@
         if (!canWrite()) return;
         const modal = ensureCreateDialog();
         const form = modal.querySelector("form");
+        editingBadge = null;
         form.reset();
         form.querySelector("[data-custom-badge-preview]").src = DEFAULT_IMAGE;
         const typeSelect = form.elements.typ;
@@ -342,6 +400,39 @@
             return option;
         }));
         form.querySelector("[data-custom-badge-status]").textContent = "";
+        modal.querySelector("#customBadgeTitle").textContent = "Skapa eget märke";
+        form.querySelector("button[type='submit']").textContent = "Skapa märke";
+        modal.classList.remove("hidden");
+        form.elements.namn.focus();
+    }
+
+    function openEditDialog(badge) {
+        if (!canEditBadge(badge)) return;
+        const modal = ensureCreateDialog();
+        const form = modal.querySelector("form");
+        editingBadge = badge;
+        form.reset();
+        form.elements.namn.value = badge.namn;
+        form.elements.kategori.value = badge.kategori;
+        form.elements.inledning.value = badge.inledning;
+        form.elements.kriterier.value = badge.kriterier.join("\n");
+        form.querySelectorAll("input[name='malgrupp']").forEach(input => {
+            input.checked = badge.malgrupp.includes(input.value);
+        });
+        const availableTypes = [...getAvailableTypes(), badge.Typ];
+        const types = [...new Set(availableTypes.map(type => String(type || "").trim()).filter(Boolean))]
+            .sort((left, right) => left.localeCompare(right, "sv"));
+        form.elements.typ.replaceChildren(...types.map(type => {
+            const option = document.createElement("option");
+            option.value = type;
+            option.textContent = type;
+            return option;
+        }));
+        form.elements.typ.value = badge.Typ;
+        form.querySelector("[data-custom-badge-preview]").src = badge.bild || DEFAULT_IMAGE;
+        form.querySelector("[data-custom-badge-status]").textContent = "";
+        modal.querySelector("#customBadgeTitle").textContent = "Redigera märke";
+        form.querySelector("button[type='submit']").textContent = "Spara ändringar";
         modal.classList.remove("hidden");
         form.elements.namn.focus();
     }
@@ -375,12 +466,15 @@
         reload,
         getAllBadges,
         canWrite,
+        canEditBadge,
         canDeleteBadge,
         validateBadgeImage,
         uploadBadgeImage,
         saveBadge,
+        updateBadge,
         deleteBadge,
         openCreateDialog,
+        openEditDialog,
         onChange(listener) {
             listeners.add(listener);
             listener({ loaded, badges: getAllBadges(), canWrite: canWrite() });

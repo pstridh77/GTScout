@@ -1344,7 +1344,12 @@ function showPopup(marke) {
             </button>
             <div class="detail-planning-actions">
                 <button id="addBadgeToPlanningBtn" class="btn-primary" type="button">Lägg till i planering</button>
-                ${window.GTScoutBadges?.canDeleteBadge?.(marke) ? '<button id="deleteCustomBadgeBtn" class="btn-danger" type="button">Ta bort märke</button>' : ""}
+                ${window.GTScoutBadges?.canEditBadge?.(marke) ? `
+                    <div class="detail-admin-actions">
+                        <button id="editCustomBadgeBtn" class="btn-secondary" type="button">Redigera märke</button>
+                        <button id="deleteCustomBadgeBtn" class="btn-danger" type="button">Ta bort märke</button>
+                    </div>
+                ` : ""}
             </div>
         </div>
     `;
@@ -1359,6 +1364,10 @@ function showPopup(marke) {
     popup.querySelector("#editBadgeNoteBtn").addEventListener("click", () => openNotePopup(marke));
     popup.querySelector("#addExistingActivityBtn")?.addEventListener("click", () => openActivityPicker(marke));
     popup.querySelector("#addBadgeToPlanningBtn").addEventListener("click", () => openPlanningPicker(marke));
+    popup.querySelector("#editCustomBadgeBtn")?.addEventListener("click", () => {
+        popup.classList.add("hidden");
+        window.GTScoutBadges.openEditDialog(marke);
+    });
     popup.querySelector("#deleteCustomBadgeBtn")?.addEventListener("click", async () => {
         if (!confirm(`Ta bort märket "${marke.namn}"? Märket tas bort från biblioteket men behålls i befintliga planeringar.`)) return;
         try {
