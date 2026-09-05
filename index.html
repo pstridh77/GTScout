@@ -61,13 +61,16 @@
             <span>Sök märken</span>
             <input id="searchInput" type="text" placeholder="Sök efter namn eller ord...">
         </label>
-        
-        <label class="filter-field">
-            <span>Typ</span>
-            <select id="typeFilter">
-                <option value="Alla">Alla typer</option>
-            </select>
-        </label>
+
+        <button id="filterToggleBtn" class="filter-toggle-button" type="button" aria-expanded="false" aria-controls="advancedFilters">Filter <span id="filterCount" aria-hidden="true"></span></button>
+
+        <div id="advancedFilters" class="advanced-filters">
+            <label class="filter-field">
+                <span>Typ</span>
+                <select id="typeFilter">
+                    <option value="Alla">Alla typer</option>
+                </select>
+            </label>
 
         <label class="filter-field">
             <span>Kategori</span>
@@ -89,12 +92,13 @@
 
         
 
-        <label class="filter-field">
-            <span>Program</span>
-            <select id="programFilter">
-                <option value="Alla">Alla program</option>
-            </select>
-        </label>
+            <label class="filter-field">
+                <span>Program</span>
+                <select id="programFilter">
+                    <option value="Alla">Alla program</option>
+                </select>
+            </label>
+        </div>
     </div>
     
     <main id="badgeGrid"></main>

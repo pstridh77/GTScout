@@ -7,8 +7,27 @@ const targetGroupDropdownBtn = document.getElementById("targetGroupDropdownBtn")
 const targetGroupDropdownMenu = document.getElementById("targetGroupDropdownMenu");
 const typeFilter = document.getElementById("typeFilter");
 const programFilter = document.getElementById("programFilter");
+const filterToggleBtn = document.getElementById("filterToggleBtn");
+const filterCount = document.getElementById("filterCount");
+const advancedFilters = document.getElementById("advancedFilters");
 const SHOW_MISSING_BADGES_STORAGE_KEY = "gtscout_show_missing_badges";
 const EXPANDED_BADGES_STORAGE_KEY = "gtscout_expanded_badges";
+
+filterToggleBtn?.addEventListener("click", () => {
+    const isOpen = advancedFilters.classList.toggle("advanced-filters--open");
+    filterToggleBtn.setAttribute("aria-expanded", String(isOpen));
+});
+
+function updateFilterCount() {
+    if (!filterCount) return;
+    const activeCount = [
+        filters.type !== "Alla",
+        filters.category !== "Alla",
+        !filters.targetGroup.includes("Alla"),
+        filters.program !== "Alla"
+    ].filter(Boolean).length;
+    filterCount.textContent = activeCount > 0 ? `(${activeCount})` : "";
+}
 
 function getStoredBoolean(key, defaultValue) {
     try {
@@ -726,6 +745,7 @@ function handleFilterChange() {
     filters.category = categoryFilter.value;
     filters.type = typeFilter.value;
     filters.program = programFilter.value;
+    updateFilterCount();
     renderMarken(allMarken);
 }
 
