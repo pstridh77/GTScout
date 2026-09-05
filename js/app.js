@@ -1,4 +1,5 @@
 const grid = document.getElementById("badgeGrid");
+const categoryCollapseToggle = document.getElementById("categoryCollapseToggle");
 const searchInput = document.getElementById("searchInput");
 const categoryFilter = document.getElementById("categoryFilter");
 const targetGroupFilter = document.getElementById("targetGroupFilter");
@@ -10,6 +11,35 @@ const programFilter = document.getElementById("programFilter");
 const filterToggleBtn = document.getElementById("filterToggleBtn");
 const filterCount = document.getElementById("filterCount");
 const advancedFilters = document.getElementById("advancedFilters");
+const clearFiltersBtn = document.getElementById("clearFiltersBtn");
+const CATEGORY_COLLAPSE_STORAGE_KEY = "gtscout_collapsed_categories";
+let categoriesCollapsed = false;
+
+categoryCollapseToggle?.addEventListener("click", () => {
+    categoriesCollapsed = !categoriesCollapsed;
+    if (categoriesCollapsed) {
+        collapsedCategories.clear();
+    }
+    saveCategoryCollapseState();
+    updateCategoryCollapseToggle();
+    renderMarken(allMarken);
+});
+
+function updateCategoryCollapseToggle() {
+    if (!categoryCollapseToggle) return;
+    categoryCollapseToggle.textContent = categoriesCollapsed ? "Visa kategorier" : "Fäll ihop kategorier";
+    categoryCollapseToggle.setAttribute("aria-expanded", String(!categoriesCollapsed));
+}
+
+function saveCategoryCollapseState() {
+    try {
+        localStorage.setItem(CATEGORY_COLLAPSE_STORAGE_KEY, JSON.stringify({
+            all: categoriesCollapsed,
+            categories: [...collapsedCategories]
+        }));
+    } catch {
+    }
+}
 const SHOW_MISSING_BADGES_STORAGE_KEY = "gtscout_show_missing_badges";
 const EXPANDED_BADGES_STORAGE_KEY = "gtscout_expanded_badges";
 
@@ -21,13 +51,24 @@ filterToggleBtn?.addEventListener("click", () => {
 function updateFilterCount() {
     if (!filterCount) return;
     const activeCount = [
+        filters.search.trim() !== "",
         filters.type !== "Alla",
         filters.category !== "Alla",
         !filters.targetGroup.includes("Alla"),
         filters.program !== "Alla"
     ].filter(Boolean).length;
     filterCount.textContent = activeCount > 0 ? `(${activeCount})` : "";
+    if (clearFiltersBtn) clearFiltersBtn.disabled = activeCount === 0;
 }
+
+clearFiltersBtn?.addEventListener("click", () => {
+    searchInput.value = "";
+    categoryFilter.value = "Alla";
+    typeFilter.value = "Alla";
+    programFilter.value = "Alla";
+    filters.targetGroup = ["Alla"];
+    handleFilterChange();
+});
 
 function getStoredBoolean(key, defaultValue) {
     try {
@@ -93,6 +134,18 @@ let baseMarken = [];
 let allMarken = [];
 let allAktiviteter = [];
 let activePopupBadge = null;
+const collapsedCategories = new Set();
+try {
+    const storedCategoryState = JSON.parse(localStorage.getItem(CATEGORY_COLLAPSE_STORAGE_KEY));
+    if (storedCategoryState?.all === true) {
+        categoriesCollapsed = true;
+    }
+    if (Array.isArray(storedCategoryState?.categories)) {
+        storedCategoryState.categories.forEach(category => collapsedCategories.add(category));
+    }
+} catch {
+}
+updateCategoryCollapseToggle();
 let badgeActivityKarFilter = "Alla";
 const PLANNING_STORAGE_KEY = "gtscout_planering";
 const BADGE_NOTES_STORAGE_KEY = "gtscout_badge_notes";
@@ -567,6 +620,7 @@ function getFilteredMarken() {
 function renderMarken(marken) {
     allMarken = marken;
     populateFilters(marken);
+    updateFilterCount();
     const targetGroupViewEnabled = showMissingBadges && !badgeStacksExpanded;
     grid.classList.toggle("target-group-view", targetGroupViewEnabled);
 
@@ -590,11 +644,40 @@ function renderMarken(marken) {
     const categoryNames = Object.keys(categories);
     categoryNames.forEach(category => {
         const categoryGroup = document.createElement("section");
-        categoryGroup.className = "category-group";
+        const categoryIsCollapsed = categoriesCollapsed || collapsedCategories.has(category);
+        categoryGroup.className = `category-group${categoryIsCollapsed ? " category-group--collapsed" : ""}`;
+        categoryGroup.dataset.category = category;
 
         const heading = document.createElement("h2");
         heading.className = "category-heading";
         heading.textContent = category;
+        heading.setAttribute("role", "button");
+        heading.setAttribute("tabindex", "0");
+        heading.setAttribute("aria-expanded", String(!categoryIsCollapsed));
+        const toggleCategory = () => {
+            if (categoriesCollapsed) {
+                categoriesCollapsed = false;
+                collapsedCategories.clear();
+                [...grid.querySelectorAll(".category-group")].forEach(group => {
+                    collapsedCategories.add(group.dataset.category);
+                });
+            }
+            if (collapsedCategories.has(category)) {
+                collapsedCategories.delete(category);
+            } else {
+                collapsedCategories.add(category);
+            }
+            saveCategoryCollapseState();
+            updateCategoryCollapseToggle();
+            renderMarken(allMarken);
+        };
+        heading.addEventListener("click", toggleCategory);
+        heading.addEventListener("keydown", event => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                toggleCategory();
+            }
+        });
         categoryGroup.appendChild(heading);
 
         const badgeRow = document.createElement("div");
