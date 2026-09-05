@@ -548,7 +548,8 @@ function getFilteredMarken() {
 function renderMarken(marken) {
     allMarken = marken;
     populateFilters(marken);
-    grid.classList.toggle("target-group-view", showMissingBadges && !badgeStacksExpanded);
+    const targetGroupViewEnabled = showMissingBadges && !badgeStacksExpanded;
+    grid.classList.toggle("target-group-view", targetGroupViewEnabled);
 
     const filteredMarken = getFilteredMarken();
     grid.innerHTML = "";
@@ -597,7 +598,7 @@ function renderMarken(marken) {
         TARGET_GROUP_ORDER.forEach(targetGroup => {
             const groupItems = groupedByTargetGroup[targetGroup] || [];
             const stackKey = `${category}::${targetGroup}`;
-            const stackExpanded = badgeStacksExpanded || expandedBadgeStacks.has(stackKey);
+            const stackExpanded = targetGroupViewEnabled && expandedBadgeStacks.has(stackKey);
             const categoryHasTargetGroup = allMarken
                 .filter(marke => (marke.kategori || "Övrigt") === category)
                 .some(marke => getTargetGroups(marke).includes(targetGroup));
@@ -628,14 +629,14 @@ function renderMarken(marken) {
             slot.appendChild(targetGroupLabel);
 
             const cards = document.createElement("div");
-            cards.className = groupItems.length > 1
+            cards.className = targetGroupViewEnabled && groupItems.length > 1
                 ? `target-group-cards target-group-cards--stacked target-group-cards--${targetGroupClass}${stackExpanded ? " target-group-cards--expanded" : ""}`
                 : "target-group-cards";
             const expandStack = () => {
                 expandedBadgeStacks.add(stackKey);
                 renderMarken(allMarken);
             };
-            if (groupItems.length > 1 && !stackExpanded) {
+            if (targetGroupViewEnabled && groupItems.length > 1 && !stackExpanded) {
                 cards.setAttribute("role", "button");
                 cards.setAttribute("tabindex", "0");
                 cards.setAttribute("aria-label", `Visa alla ${groupItems.length} märken för ${targetGroup}`);
@@ -647,7 +648,7 @@ function renderMarken(marken) {
                         expandStack();
                     }
                 });
-            } else if (groupItems.length > 1 && stackExpanded && !badgeStacksExpanded) {
+            } else if (targetGroupViewEnabled && groupItems.length > 1 && stackExpanded) {
                 const collapseStack = () => {
                     expandedBadgeStacks.delete(stackKey);
                     renderMarken(allMarken);
