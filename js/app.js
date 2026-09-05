@@ -657,6 +657,21 @@ function renderMarken(marken) {
                         expandStack();
                     }
                 });
+            } else if (groupItems.length > 1 && categoryExpanded && !badgeStacksExpanded) {
+                const collapseStack = () => {
+                    expandedBadgeCategories.delete(category);
+                    renderMarken(allMarken);
+                };
+                const collapseButton = document.createElement("button");
+                collapseButton.className = "stack-collapse-button";
+                collapseButton.type = "button";
+                collapseButton.textContent = "Kollapsa trave";
+                collapseButton.setAttribute("aria-label", `Kollapsa trave för ${targetGroup}`);
+                collapseButton.addEventListener("click", event => {
+                    event.stopPropagation();
+                    collapseStack();
+                });
+                cards.appendChild(collapseButton);
             }
 
             groupItems.forEach(marke => {
