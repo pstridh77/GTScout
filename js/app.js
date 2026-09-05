@@ -13,6 +13,7 @@ const filterCount = document.getElementById("filterCount");
 const advancedFilters = document.getElementById("advancedFilters");
 const clearFiltersBtn = document.getElementById("clearFiltersBtn");
 const CATEGORY_COLLAPSE_STORAGE_KEY = "gtscout_collapsed_categories";
+const CATEGORY_COLLAPSE_MOBILE_BREAKPOINT = 600;
 let categoriesCollapsed = false;
 
 categoryCollapseToggle?.addEventListener("click", () => {
@@ -137,11 +138,16 @@ let activePopupBadge = null;
 const collapsedCategories = new Set();
 try {
     const storedCategoryState = JSON.parse(localStorage.getItem(CATEGORY_COLLAPSE_STORAGE_KEY));
-    if (storedCategoryState?.all === true) {
-        categoriesCollapsed = true;
-    }
-    if (Array.isArray(storedCategoryState?.categories)) {
-        storedCategoryState.categories.forEach(category => collapsedCategories.add(category));
+    const isMobileLayout = window.matchMedia(`(max-width: ${CATEGORY_COLLAPSE_MOBILE_BREAKPOINT}px)`).matches;
+    if (isMobileLayout) {
+        if (storedCategoryState?.all === true) {
+            categoriesCollapsed = true;
+        }
+        if (Array.isArray(storedCategoryState?.categories)) {
+            storedCategoryState.categories.forEach(category => collapsedCategories.add(category));
+        }
+    } else if (storedCategoryState) {
+        localStorage.removeItem(CATEGORY_COLLAPSE_STORAGE_KEY);
     }
 } catch {
 }
