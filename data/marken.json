@@ -1745,7 +1745,7 @@
         "id":  "paddla_vanern",
         "namn":  "Paddla Vänern",
         "bild":  "images/marken/paddla_vanern.png",
-        "kategori":  "Distansmärke paddla",
+        "kategori":  "Paddling",
         "malgrupp":  [
                          "Utmanare"
                      ],
@@ -1760,7 +1760,7 @@
         "id":  "paddla_gotland",
         "namn":  "Paddla Gotland",
         "bild":  "images/marken/paddla_gotland.png",
-        "kategori":  "Distansmärke paddla",
+        "kategori":  "Paddling",
         "malgrupp":  [
                          "Rover"
                      ],
