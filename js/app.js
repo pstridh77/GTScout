@@ -629,7 +629,7 @@ function renderMarken(marken) {
 
             const cards = document.createElement("div");
             cards.className = groupItems.length > 1
-                ? `target-group-cards target-group-cards--stacked${stackExpanded ? " target-group-cards--expanded" : ""}`
+                ? `target-group-cards target-group-cards--stacked target-group-cards--${targetGroupClass}${stackExpanded ? " target-group-cards--expanded" : ""}`
                 : "target-group-cards";
             const expandStack = () => {
                 expandedBadgeStacks.add(stackKey);

@@ -596,6 +596,7 @@ body {
 }
 
 .target-group-cards--stacked {
+    --stack-background: #eef5fb;
     position: relative;
     display: grid;
     grid-template-columns: minmax(0, 300px);
@@ -608,7 +609,31 @@ body {
     padding: 0;
     border: 2px solid #b8cfe0;
     border-radius: 16px;
-    background: #eef5fb;
+    background: var(--stack-background);
+}
+
+.target-group-cards--familjescouting {
+    --stack-background: #f1e8f8;
+}
+
+.target-group-cards--sparare {
+    --stack-background: #e8f5e4;
+}
+
+.target-group-cards--upptackare {
+    --stack-background: #e3f6fc;
+}
+
+.target-group-cards--aventyrare {
+    --stack-background: #fff0e6;
+}
+
+.target-group-cards--utmanare {
+    --stack-background: #fde7f0;
+}
+
+.target-group-cards--rover {
+    --stack-background: #fffedb;
 }
 
 .target-group-cards--stacked .badge {
@@ -627,31 +652,31 @@ body {
 }
 
 .target-group-cards--stacked .badge:nth-of-type(1) {
-    transform: translate(0, 0);
+    transform: translate(5px, 5px);
     z-index: 3;
 }
 
 .target-group-cards--stacked .badge:nth-of-type(2) {
-    transform: translate(14px, 14px);
+    transform: translate(13px, 13px);
     z-index: 2;
 }
 
 .target-group-cards--stacked .badge:nth-of-type(n + 3) {
-    transform: translate(28px, 28px);
+    transform: translate(21px, 21px);
     z-index: 1;
 }
 
 .target-group-cards--stacked .badge:hover {
-    transform: translate(0, -5px);
+    transform: translate(5px, 0);
     z-index: 4;
 }
 
 .target-group-cards--stacked .badge:nth-of-type(2):hover {
-    transform: translate(14px, 9px);
+    transform: translate(13px, 8px);
 }
 
 .target-group-cards--stacked .badge:nth-of-type(n + 3):hover {
-    transform: translate(28px, 23px);
+    transform: translate(21px, 16px);
 }
 
 .stack-count {
@@ -694,10 +719,10 @@ body {
     content: "";
     position: absolute;
     z-index: 0;
-    inset: -10px 0;
+    inset: 0;
     border: 2px solid #b8cfe0;
     border-radius: 16px;
-    background: #eef5fb;
+    background: var(--stack-background);
     pointer-events: none;
 }
 
@@ -769,6 +794,10 @@ body {
 .target-group-cards--expanded > .badge img {
     width: 72px;
     height: 72px;
+}
+
+#badgeGrid .target-group-cards--expanded > .badge {
+    transform: translateY(10px) !important;
 }
 
 
