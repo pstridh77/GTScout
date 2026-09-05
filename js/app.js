@@ -56,7 +56,7 @@ targetGroupViewBtn?.addEventListener("click", () => {
     badgeStacksExpanded = !targetGroupViewEnabled;
     localStorage.setItem(SHOW_MISSING_BADGES_STORAGE_KEY, String(showMissingBadges));
     localStorage.setItem(EXPANDED_BADGES_STORAGE_KEY, String(badgeStacksExpanded));
-    expandedBadgeCategories.clear();
+    expandedBadgeStacks.clear();
     updateTargetGroupViewToggle();
     renderMarken(allMarken);
 });
@@ -80,7 +80,7 @@ const BADGE_NOTES_STORAGE_KEY = "gtscout_badge_notes";
 const CUSTOM_ACTIVITIES_STORAGE_KEY = "gtscout_custom_activities";
 const CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY = "gtscout_custom_badge_activities";
 const TARGET_GROUP_ORDER = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
-const expandedBadgeCategories = new Set();
+const expandedBadgeStacks = new Set();
 const filters = {
     search: "",
     category: "Alla",
@@ -580,24 +580,12 @@ function renderMarken(marken) {
         const badgeRow = document.createElement("div");
         badgeRow.className = "category-badges";
 
-        const categoryExpanded = badgeStacksExpanded || expandedBadgeCategories.has(category);
-        const expandedBadgeIds = new Set();
         const groupedByTargetGroup = categories[category].reduce((acc, marke) => {
-            const badgeDisplayKey = getBadgeDisplayKey(marke);
-            if (categoryExpanded && expandedBadgeIds.has(badgeDisplayKey)) {
-                return acc;
-            }
-            if (categoryExpanded) {
-                expandedBadgeIds.add(badgeDisplayKey);
-            }
             const badgeTargetGroups = getTargetGroups(marke);
             const matchingTargetGroups = filters.targetGroup.includes("Alla")
                 ? badgeTargetGroups
                 : badgeTargetGroups.filter(group => filters.targetGroup.includes(group));
-            const targetGroups = categoryExpanded && matchingTargetGroups.length > 1
-                ? [matchingTargetGroups[0]]
-                : matchingTargetGroups;
-            (targetGroups.length > 0 ? targetGroups : [getPrimaryTargetGroup(marke)]).forEach(targetGroup => {
+            (matchingTargetGroups.length > 0 ? matchingTargetGroups : [getPrimaryTargetGroup(marke)]).forEach(targetGroup => {
                 if (!acc[targetGroup]) {
                     acc[targetGroup] = [];
                 }
@@ -608,6 +596,8 @@ function renderMarken(marken) {
 
         TARGET_GROUP_ORDER.forEach(targetGroup => {
             const groupItems = groupedByTargetGroup[targetGroup] || [];
+            const stackKey = `${category}::${targetGroup}`;
+            const stackExpanded = badgeStacksExpanded || expandedBadgeStacks.has(stackKey);
             const categoryHasTargetGroup = allMarken
                 .filter(marke => (marke.kategori || "Övrigt") === category)
                 .some(marke => getTargetGroups(marke).includes(targetGroup));
@@ -639,13 +629,13 @@ function renderMarken(marken) {
 
             const cards = document.createElement("div");
             cards.className = groupItems.length > 1
-                ? `target-group-cards target-group-cards--stacked${categoryExpanded ? " target-group-cards--expanded" : ""}`
+                ? `target-group-cards target-group-cards--stacked${stackExpanded ? " target-group-cards--expanded" : ""}`
                 : "target-group-cards";
             const expandStack = () => {
-                expandedBadgeCategories.add(category);
+                expandedBadgeStacks.add(stackKey);
                 renderMarken(allMarken);
             };
-            if (groupItems.length > 1 && !categoryExpanded) {
+            if (groupItems.length > 1 && !stackExpanded) {
                 cards.setAttribute("role", "button");
                 cards.setAttribute("tabindex", "0");
                 cards.setAttribute("aria-label", `Visa alla ${groupItems.length} märken för ${targetGroup}`);
@@ -657,9 +647,9 @@ function renderMarken(marken) {
                         expandStack();
                     }
                 });
-            } else if (groupItems.length > 1 && categoryExpanded && !badgeStacksExpanded) {
+            } else if (groupItems.length > 1 && stackExpanded && !badgeStacksExpanded) {
                 const collapseStack = () => {
-                    expandedBadgeCategories.delete(category);
+                    expandedBadgeStacks.delete(stackKey);
                     renderMarken(allMarken);
                 };
                 const collapseButton = document.createElement("button");
