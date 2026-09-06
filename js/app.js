@@ -9,12 +9,28 @@ const targetGroupDropdownMenu = document.getElementById("targetGroupDropdownMenu
 const typeFilter = document.getElementById("typeFilter");
 const programFilter = document.getElementById("programFilter");
 const filterToggleBtn = document.getElementById("filterToggleBtn");
+const filtersVisibilityToggle = document.getElementById("filtersVisibilityToggle");
 const filterCount = document.getElementById("filterCount");
 const advancedFilters = document.getElementById("advancedFilters");
 const clearFiltersBtn = document.getElementById("clearFiltersBtn");
+const filtersArea = document.querySelector(".filters");
 const CATEGORY_COLLAPSE_STORAGE_KEY = "gtscout_collapsed_categories";
 const CATEGORY_COLLAPSE_MOBILE_BREAKPOINT = 600;
 let categoriesCollapsed = false;
+
+function updateCategoryStickyOffset() {
+    const siteHeader = document.querySelector(".site-header");
+    if (!siteHeader || !filtersArea) return;
+    const siteHeaderHeight = siteHeader.offsetHeight;
+    document.documentElement.style.setProperty(
+        "--site-header-height",
+        `${siteHeaderHeight}px`
+    );
+    document.documentElement.style.setProperty(
+        "--category-sticky-top",
+        `${siteHeaderHeight + filtersArea.offsetHeight}px`
+    );
+}
 
 categoryCollapseToggle?.addEventListener("click", () => {
     categoriesCollapsed = !categoriesCollapsed;
@@ -47,6 +63,19 @@ const EXPANDED_BADGES_STORAGE_KEY = "gtscout_expanded_badges";
 filterToggleBtn?.addEventListener("click", () => {
     const isOpen = advancedFilters.classList.toggle("advanced-filters--open");
     filterToggleBtn.setAttribute("aria-expanded", String(isOpen));
+    requestAnimationFrame(updateCategoryStickyOffset);
+});
+
+window.addEventListener("resize", updateCategoryStickyOffset);
+requestAnimationFrame(updateCategoryStickyOffset);
+
+filtersVisibilityToggle?.addEventListener("click", () => {
+    const isHidden = filtersArea?.classList.toggle("filters--hidden") ?? false;
+    const label = isHidden ? "Visa sökfält och filter" : "Dölj sökfält och filter";
+    filtersVisibilityToggle.setAttribute("aria-label", label);
+    filtersVisibilityToggle.setAttribute("title", label);
+    filtersVisibilityToggle.setAttribute("aria-pressed", String(isHidden));
+    requestAnimationFrame(updateCategoryStickyOffset);
 });
 
 function updateFilterCount() {

@@ -327,6 +327,9 @@ body {
 }
 
 .category-heading {
+    position: sticky;
+    top: var(--category-sticky-top, 0px);
+    z-index: 8;
     display: flex;
     align-items: center;
     min-height: 28px;
@@ -372,7 +375,7 @@ body {
 
 @media (max-width: 600px) {
     .category-heading {
-        position: relative;
+        position: sticky;
         justify-content: flex-start;
         padding-right: 42px;
     }
@@ -979,7 +982,7 @@ body {
 
 .filters {
     position: sticky;
-    top: 146px;
+    top: var(--site-header-height, 146px);
     z-index: 9;
     display: flex;
     flex-wrap: wrap;
@@ -989,6 +992,10 @@ body {
     box-sizing: border-box;
     background: #f3f4f6;
     box-shadow: 0 8px 12px -10px rgba(0, 54, 96, 0.5);
+}
+
+.filters.filters--hidden {
+    display: none !important;
 }
 
 .advanced-filters {
@@ -1092,7 +1099,6 @@ body {
 
 @media (max-width: 600px) {
     .filters {
-        top: 220px;
         align-items: flex-end;
         gap: 10px;
     }
@@ -1982,6 +1988,52 @@ select:focus {
     grid-column: 1;
     grid-row: 1;
     justify-content: flex-start;
+}
+
+.filters-visibility-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #003660;
+    cursor: pointer;
+}
+
+.filters-visibility-toggle:hover,
+.filters-visibility-toggle[aria-pressed="true"] {
+    background: #eef5fb;
+}
+
+.filters-visibility-toggle:focus-visible {
+    outline: 3px solid rgba(0, 54, 96, 0.24);
+    outline-offset: 2px;
+}
+
+.filters-visibility-icon {
+    position: relative;
+    display: block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+}
+
+.filters-visibility-icon::after {
+    position: absolute;
+    right: -6px;
+    bottom: -4px;
+    width: 7px;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+    content: "";
+    transform: rotate(45deg);
+    transform-origin: left center;
 }
 
 .nav-link {
