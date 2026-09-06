@@ -2779,10 +2779,10 @@
      {
         "id":  "oppet_hav",
         "namn":  "Öppet Hav",
-        "bild":  "images/marken/simma.png",
+        "bild":  "images/marken/oppet_hav.png",
         "kategori":  "Bevismärke",
         "malgrupp":  [
-                         "Äventyrare"
+                         "Äventyrare", "Utmanare"
                      ],
         "inledning":"Bevismärke för att visa att scouten kan simma i öppet hav. \n\n”Öppethav” genomförs vart tredje år av distriktet och genomförs vanligtvis av Gullbrandstorps Scoutkår i Steninge. Första helgen i september.",
         "kriterier":  [
@@ -2826,7 +2826,7 @@
         "bild":  "images/marken/hlr.png",
         "kategori":  "Bevismärke",
         "malgrupp":  [
-                         "Utmanare"
+                         "Äventyrare","Utmanare"
                      ],
         "inledning":"Bevismärke för att visa att scouten kan hantera HLR.",
         "kriterier":  [
@@ -2861,12 +2861,30 @@
     {
         "id":  "12_12",
         "namn":  "12/12 Sova Ute",
-        "bild":  "images/marken/12_12.png",
-        "kategori":  "Sova borta",
+        "bild":  "images/marken/12_12_Sova.png",
+        "kategori":  "Äventyr",
         "malgrupp":  [
                       "Äventyrare"   
                      ],
-        "inledning":"...",
+        "inledning":"Sova ute 1 gång i månaden under 12 månader i sträck.",
+        "kriterier":  [
+                         
+                         "..."
+                     ],
+        "program":  [
+                        "Gullbrandstorps Scoutkår"
+                    ],
+        "Typ":  "Intressemärke"
+    },
+    {
+        "id":  "12_12_bada",
+        "namn":  "12/12 Bada",
+        "bild":  "images/marken/12_12_Bada.png",
+        "kategori":  "Äventyr",
+        "malgrupp":  [
+                      "Äventyrare"   
+                     ],
+        "inledning":"Bada 1 gång i månaden under 12 månader i sträck.",
         "kriterier":  [
                          
                          "..."
