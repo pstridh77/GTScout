@@ -9,7 +9,7 @@
 </head>
 <body>
 
-    <header class="site-header">
+    <header class="site-header site-header--library">
         <div class="utility-bar">
             <span class="utility-spacer" aria-hidden="true"></span>
             <nav class="utility-nav" aria-label="Externa länkar">
@@ -35,18 +35,24 @@
                     <span></span><span></span><span></span>
                 </button>
                 <div id="siteMenuDropdown" class="site-menu-dropdown hidden" role="menu">
-                    <div class="planning-menu-section-label">Navigering</div>
-                    <a href="index.html" class="site-menu-item" role="menuitem">Märkesbibliotek</a>
-                    <a href="planering.html" class="site-menu-item" role="menuitem">Märkesschema</a>
+                    <details class="site-menu-section" open>
+                        <summary class="planning-menu-section-label">Navigering</summary>
+                        <a href="index.html" class="site-menu-item" role="menuitem">Märkesbibliotek</a>
+                        <a href="planering.html" class="site-menu-item" role="menuitem">Märkesschema</a>
+                    </details>
                     <div class="planning-menu-divider" role="separator"></div>
-                    <div class="planning-menu-section-label">Funktioner</div>
-                    <button class="planning-menu-item hidden" type="button" role="menuitem" data-create-custom-badge>Skapa eget märke</button>
-                    <button id="editActivitiesBtn" class="planning-menu-item" type="button" role="menuitem">Hantera aktiviteter</button>
-                    <button class="planning-menu-item hidden" type="button" role="menuitem" data-admin-panel>Administration</button>
+                    <details class="site-menu-section">
+                        <summary class="planning-menu-section-label">Funktioner</summary>
+                        <button class="planning-menu-item hidden" type="button" role="menuitem" data-create-custom-badge>Skapa eget märke</button>
+                        <button id="editActivitiesBtn" class="planning-menu-item" type="button" role="menuitem">Hantera aktiviteter</button>
+                        <button class="planning-menu-item hidden" type="button" role="menuitem" data-admin-panel>Administration</button>
+                    </details>
                     <div class="planning-menu-divider" role="separator"></div>
-                    <div class="planning-menu-section-label">Visa</div>
-                    <button id="targetGroupViewBtn" class="planning-menu-item planning-toggle-item" type="button" role="menuitem" aria-pressed="false"><span>Målgruppsvy</span><span class="planning-toggle-status" aria-hidden="true"></span></button>
-                    <button class="planning-menu-item" type="button" role="menuitem" data-category-collapse-toggle aria-expanded="true">Fäll ihop kategorier</button>
+                    <details class="site-menu-section">
+                        <summary class="planning-menu-section-label">Visa</summary>
+                        <button id="targetGroupViewBtn" class="planning-menu-item planning-toggle-item" type="button" role="menuitem" aria-pressed="false"><span>Målgruppsvy</span><span class="planning-toggle-status" aria-hidden="true"></span></button>
+                        <button class="planning-menu-item" type="button" role="menuitem" data-category-collapse-toggle aria-expanded="true">Fäll ihop kategorier</button>
+                    </details>
                     <div class="planning-menu-divider" role="separator"></div>
                     <div class="site-menu-environment-note database-environment"></div>
                     <div class="site-menu-version-note">v1.0.0 (2026-08-30)</div>

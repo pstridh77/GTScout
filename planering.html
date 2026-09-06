@@ -8,7 +8,7 @@
 </head>
 <body>
 
-    <header class="site-header">
+    <header class="site-header site-header--planning">
         <div class="utility-bar">
             <span class="utility-spacer" aria-hidden="true"></span>
             <nav class="utility-nav" aria-label="Externa länkar">
@@ -31,23 +31,35 @@
                     <span></span><span></span><span></span>
                 </button>
                 <div id="planningActionsDropdown" class="planning-actions-dropdown hidden" role="menu">
-                    <div class="planning-menu-section-label">Navigering</div>
-                    <a href="index.html" class="site-menu-item" role="menuitem">Märkesbibliotek</a>
-                    <a href="planering.html" class="site-menu-item" role="menuitem">Märkesschema</a>
+                    <details class="site-menu-section" open>
+                        <summary class="planning-menu-section-label">Navigering</summary>
+                        <a href="index.html" class="site-menu-item" role="menuitem">Märkesbibliotek</a>
+                        <a href="planering.html" class="site-menu-item" role="menuitem">Märkesschema</a>
+                    </details>
                     <div class="planning-menu-divider" role="separator"></div>
-                    <div class="planning-menu-section-label">Funktioner</div>
-                    <button class="planning-menu-item hidden" type="button" role="menuitem" data-create-custom-badge>Skapa eget märke</button>
-                    <button id="editActivitiesBtn" class="planning-menu-item" type="button" role="menuitem">Hantera aktiviteter</button>
+                    <details class="site-menu-section">
+                        <summary class="planning-menu-section-label">Funktioner</summary>
+                        <button class="planning-menu-item hidden" type="button" role="menuitem" data-create-custom-badge>Skapa eget märke</button>
+                        <button id="editActivitiesBtn" class="planning-menu-item" type="button" role="menuitem">Hantera aktiviteter</button>
+                        <button class="planning-menu-item hidden" type="button" role="menuitem" data-admin-panel>Administration</button>
+                    </details>
                     <div class="planning-menu-divider" role="separator"></div>
-                    <button id="togglePlanningActivitiesBtn" class="planning-menu-item planning-toggle-item" type="button" role="menuitem" aria-pressed="true"><span>Visa aktiviteter</span><span class="planning-toggle-status" aria-hidden="true">✓</span></button>
-                    <button id="togglePlanningMeetingsBtn" class="planning-menu-item planning-toggle-item" type="button" role="menuitem" aria-pressed="true"><span>Visa möten</span><span class="planning-toggle-status" aria-hidden="true">✓</span></button>
+                    <details class="site-menu-section">
+                        <summary class="planning-menu-section-label">Visa</summary>
+                        <button id="togglePlanningActivitiesBtn" class="planning-menu-item planning-toggle-item" type="button" role="menuitem" aria-pressed="true"><span>Visa aktiviteter</span><span class="planning-toggle-status" aria-hidden="true">✓</span></button>
+                        <button id="togglePlanningMeetingsBtn" class="planning-menu-item planning-toggle-item" type="button" role="menuitem" aria-pressed="true"><span>Visa möten</span><span class="planning-toggle-status" aria-hidden="true">✓</span></button>
+                    </details>
                     <div class="planning-menu-divider" role="separator"></div>
-                    <button id="exportPlanningBtn" class="planning-menu-item" type="button" role="menuitem">Exportera</button>
-                    <button id="importPlanningBtn" class="planning-menu-item" type="button" role="menuitem">Importera...</button>
+                    <details class="site-menu-section">
+                        <summary class="planning-menu-section-label">Exportera</summary>
+                        <button id="exportPlanningBtn" class="planning-menu-item" type="button" role="menuitem">Exportera</button>
+                        <button id="importPlanningBtn" class="planning-menu-item" type="button" role="menuitem">Importera...</button>
+                    </details>
                     <div class="planning-menu-divider" role="separator"></div>
-                    <button id="exportPlanningPdfBtn" class="planning-menu-item" type="button" role="menuitem">Skriv ut Planering...</button>
-                    <div class="planning-menu-divider" role="separator"></div>
-                    <button class="planning-menu-item hidden" type="button" role="menuitem" data-admin-panel>Administration</button>
+                    <details class="site-menu-section">
+                        <summary class="planning-menu-section-label">Utskrift</summary>
+                        <button id="exportPlanningPdfBtn" class="planning-menu-item" type="button" role="menuitem">Skriv ut Planering...</button>
+                    </details>
                     <div class="planning-menu-divider" role="separator"></div>
                     <div class="site-menu-environment-note database-environment"></div>
                     <div class="site-menu-version-note">v1.0.0 (2026-08-30)</div>
