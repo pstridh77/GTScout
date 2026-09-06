@@ -3125,6 +3125,24 @@ const planningActionsBtn = document.getElementById("planningActionsBtn");
 const planningActionsDropdown = document.getElementById("planningActionsDropdown");
 const togglePlanningActivitiesBtn = document.getElementById("togglePlanningActivitiesBtn");
 const togglePlanningMeetingsBtn = document.getElementById("togglePlanningMeetingsBtn");
+function keepPlanningMenuSectionsExpandedOnDesktop() {
+    if (!planningActionsDropdown) return;
+    const shouldExpand = window.matchMedia("(min-width: 901px)").matches;
+    planningActionsDropdown.querySelectorAll(".site-menu-section").forEach(section => {
+        if (shouldExpand) section.open = true;
+    });
+}
+
+keepPlanningMenuSectionsExpandedOnDesktop();
+window.addEventListener("resize", keepPlanningMenuSectionsExpandedOnDesktop);
+planningActionsDropdown?.querySelectorAll(".site-menu-section").forEach(section => {
+    section.addEventListener("toggle", () => {
+        if (window.matchMedia("(min-width: 901px)").matches && !section.open) {
+            section.open = true;
+        }
+    });
+});
+
 const updatePlanningDetailsToggles = () => {
     togglePlanningActivitiesBtn.querySelector(".planning-toggle-status").textContent = showPlanningActivities ? "✓" : "–";
     togglePlanningActivitiesBtn.classList.toggle("planning-toggle-item--off", !showPlanningActivities);

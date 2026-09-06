@@ -366,8 +366,14 @@
         });
         button.classList.remove("hidden");
         if (current.signedIn) {
-            const kar = current.karName ? " · " + current.karName : "";
-            status.textContent = `${current.roleLabel}: ${current.email}${kar}`;
+            status.textContent = `${current.roleLabel}: ${current.email}`;
+            if (current.karName) {
+                status.appendChild(document.createTextNode(" · "));
+                const karName = document.createElement("span");
+                karName.className = "auth-kar-name";
+                karName.textContent = current.karName;
+                status.appendChild(karName);
+            }
             status.title = current.karName ? "Kår: " + current.karName : "";
             button.textContent = "Logga ut";
         } else {

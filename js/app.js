@@ -112,6 +112,24 @@ function getStoredBoolean(key, defaultValue) {
 
 const siteMenuBtn = document.getElementById("siteMenuBtn");
 const siteMenuDropdown = document.getElementById("siteMenuDropdown");
+function keepMenuSectionsExpandedOnDesktop() {
+    if (!siteMenuDropdown) return;
+    const shouldExpand = window.matchMedia("(min-width: 901px)").matches;
+    siteMenuDropdown.querySelectorAll(".site-menu-section").forEach(section => {
+        if (shouldExpand) section.open = true;
+    });
+}
+
+keepMenuSectionsExpandedOnDesktop();
+window.addEventListener("resize", keepMenuSectionsExpandedOnDesktop);
+siteMenuDropdown?.querySelectorAll(".site-menu-section").forEach(section => {
+    section.addEventListener("toggle", () => {
+        if (window.matchMedia("(min-width: 901px)").matches && !section.open) {
+            section.open = true;
+        }
+    });
+});
+
 if (siteMenuBtn && siteMenuDropdown) {
     siteMenuBtn.addEventListener("click", event => {
         event.stopPropagation();

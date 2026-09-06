@@ -77,6 +77,10 @@ body {
     white-space: nowrap;
 }
 
+.auth-kar-name {
+    white-space: nowrap;
+}
+
 .auth-button {
     padding: 4px 12px;
     border: 1px solid rgba(184, 213, 236, 0.6);
@@ -423,18 +427,37 @@ body {
     }
 
     .utility-bar {
-        justify-content: center;
+        justify-content: flex-end;
         padding: 0 12px;
         overflow-x: auto;
     }
 
     .utility-nav {
-        gap: 16px;
+        display: none;
     }
 
     .auth-area {
-        margin-left: 12px;
-        padding-left: 12px;
+        flex: 1 1 auto;
+        min-width: 0;
+        margin-left: 0;
+        padding-left: 0;
+        border-left: 0;
+        gap: 6px;
+        justify-content: flex-end;
+    }
+
+    .auth-status {
+        min-width: 0;
+        flex: 1 1 auto;
+        overflow-wrap: anywhere;
+        white-space: normal;
+        line-height: 1.15;
+        text-align: left;
+    }
+
+    .auth-button {
+        flex: 0 0 auto;
+        padding: 4px 10px;
     }
 
     .header-main {
@@ -2184,6 +2207,24 @@ select:focus {
 }
 
 @media (min-width: 601px) and (max-width: 900px) {
+    .auth-area {
+        min-width: 0;
+        gap: 6px;
+    }
+
+    .auth-status {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        white-space: normal;
+        line-height: 1.15;
+        text-align: left;
+    }
+
+    .auth-button {
+        flex: 0 0 auto;
+        padding: 4px 10px;
+    }
+
     .header-main {
         grid-template-columns: minmax(0, 1fr) auto;
         gap: 10px;
