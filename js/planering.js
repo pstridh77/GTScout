@@ -3158,7 +3158,8 @@ document.addEventListener("click", event => {
         planningActionsBtn.setAttribute("aria-expanded", "false");
     }
 });
-planningActionsDropdown.addEventListener("click", () => {
+planningActionsDropdown.addEventListener("click", event => {
+    if (event.target.closest("summary")) return;
     planningActionsDropdown.classList.add("hidden");
     planningActionsBtn.setAttribute("aria-expanded", "false");
 });
