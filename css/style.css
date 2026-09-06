@@ -985,11 +985,36 @@ body {
 }
 
 .advanced-filters {
-    display: contents;
+    display: none;
 }
 
 .filter-toggle-button {
-    display: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: end;
+    min-height: 42px;
+    padding: 10px 14px;
+    border: 1px solid #b8cfe0;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #003660;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.filter-toggle-button:focus-visible,
+.clear-filters-button:focus-visible,
+.filter-field input:focus-visible,
+.filter-field select:focus-visible,
+.multi-select-trigger:focus-visible {
+    outline: 3px solid rgba(0, 54, 96, 0.24);
+    outline-offset: 2px;
+}
+
+.advanced-filters.advanced-filters--open {
+    display: contents;
 }
 
 .clear-filters-button {
@@ -1030,6 +1055,34 @@ body {
     flex: 1 1 260px;
 }
 
+@media (min-width: 901px) {
+    .filters {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+    }
+
+    .search-field {
+        min-width: 0;
+    }
+
+    .advanced-filters.advanced-filters--open {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(130px, 1fr)) auto;
+        gap: 16px;
+        align-items: end;
+    }
+
+    .filter-field input,
+    .filter-field select,
+    .multi-select-dropdown {
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+}
+
 @media (max-width: 600px) {
     .filters {
         align-items: flex-end;
@@ -1038,21 +1091,6 @@ body {
 
     .search-field {
         flex: 1 1 100%;
-    }
-
-    .filter-toggle-button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 42px;
-        padding: 10px 14px;
-        border: 1px solid #b8cfe0;
-        border-radius: 10px;
-        background: #f8fafc;
-        color: #003660;
-        font: inherit;
-        font-weight: 700;
-        cursor: pointer;
     }
 
     .advanced-filters {
