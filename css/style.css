@@ -2183,6 +2183,42 @@ select:focus {
     z-index: 100;
 }
 
+@media (min-width: 601px) and (max-width: 900px) {
+    .header-main {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        padding: 12px 20px;
+        min-height: 92px;
+    }
+
+    .site-brand {
+        grid-column: 1;
+        grid-row: 1;
+        justify-content: center;
+        min-width: 0;
+    }
+
+    .site-brand-banner {
+        width: min(420px, 58vw);
+        max-height: 52px;
+    }
+
+    .main-nav {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        justify-content: center;
+    }
+
+    .site-menu,
+    .header-main > .planning-actions-menu {
+        grid-column: 2;
+        grid-row: 1;
+        width: auto;
+        justify-self: end;
+        display: flex;
+    }
+}
+
 @media (max-width: 600px) {
     .site-header--library .header-main {
         grid-template-columns: minmax(0, 1fr) auto;
