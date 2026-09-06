@@ -26,7 +26,7 @@
             <nav class="main-nav" aria-label="Huvudnavigation">
             <a href="index.html" class="nav-link active">Märkesbibliotek</a>
             <a href="planering.html" class="nav-link">Märkesschema</a>
-            <button id="filtersVisibilityToggle" class="filters-visibility-toggle" type="button" aria-label="Dölj sökfält och filter" aria-pressed="false" title="Dölj sökfält och filter">
+            <button id="filtersVisibilityToggle" class="filters-visibility-toggle" type="button" aria-label="Visa sökfält och filter" aria-pressed="true" title="Visa sökfält och filter">
                 <span class="filters-visibility-icon" aria-hidden="true"></span>
             </button>
             </nav>
@@ -46,6 +46,7 @@
                     <div class="planning-menu-divider" role="separator"></div>
                     <div class="planning-menu-section-label">Visa</div>
                     <button id="targetGroupViewBtn" class="planning-menu-item planning-toggle-item" type="button" role="menuitem" aria-pressed="false"><span>Målgruppsvy</span><span class="planning-toggle-status" aria-hidden="true"></span></button>
+                    <button class="planning-menu-item" type="button" role="menuitem" data-category-collapse-toggle aria-expanded="true">Fäll ihop kategorier</button>
                     <div class="planning-menu-divider" role="separator"></div>
                     <div class="site-menu-environment-note database-environment"></div>
                     <div class="site-menu-version-note">v1.0.0 (2026-08-30)</div>
@@ -59,14 +60,13 @@
         <p>Klicka på ett märke för att visa information.</p>
     </div>
 
-    <div class="filters" aria-label="Filtrera märken">
+    <div class="filters filters--hidden" aria-label="Filtrera märken">
         <label class="filter-field search-field">
             <span>Sök märken</span>
             <input id="searchInput" type="text" placeholder="Sök efter namn eller ord...">
         </label>
 
         <button id="filterToggleBtn" class="filter-toggle-button" type="button" aria-expanded="false" aria-controls="advancedFilters">Filter <span id="filterCount" aria-hidden="true"></span></button>
-        <button id="categoryCollapseToggle" class="category-collapse-toggle" type="button" aria-expanded="true">Fäll ihop kategorier</button>
 
         <div id="advancedFilters" class="advanced-filters">
             <label class="filter-field">
@@ -104,6 +104,10 @@
             </label>
             <button id="clearFiltersBtn" class="clear-filters-button" type="button" disabled>Rensa filter</button>
         </div>
+    </div>
+
+    <div class="category-controls">
+        <button id="categoryCollapseToggle" class="category-collapse-toggle" type="button" data-category-collapse-toggle aria-expanded="true">Fäll ihop kategorier</button>
     </div>
     
     <main id="badgeGrid"></main>

@@ -315,6 +315,10 @@ body {
     display: none;
 }
 
+.category-controls {
+    display: none;
+}
+
 #badgeGrid.target-group-view {
     padding-left: 80px;
 }
@@ -398,7 +402,6 @@ body {
 
     .category-collapse-toggle {
         display: block;
-        margin: 0 0 0 auto;
         padding: 9px 12px;
         border: 1px solid #b8cfe0;
         border-radius: 10px;
@@ -407,6 +410,12 @@ body {
         font: inherit;
         font-weight: 700;
         cursor: pointer;
+    }
+
+    .category-controls {
+        display: flex;
+        justify-content: flex-end;
+        margin: 0 20px 10px;
     }
 
     #badgeGrid .category-group--collapsed .category-badges {

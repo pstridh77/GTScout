@@ -1,5 +1,5 @@
 const grid = document.getElementById("badgeGrid");
-const categoryCollapseToggle = document.getElementById("categoryCollapseToggle");
+const categoryCollapseToggles = document.querySelectorAll("[data-category-collapse-toggle]");
 const searchInput = document.getElementById("searchInput");
 const categoryFilter = document.getElementById("categoryFilter");
 const targetGroupFilter = document.getElementById("targetGroupFilter");
@@ -32,7 +32,7 @@ function updateCategoryStickyOffset() {
     );
 }
 
-categoryCollapseToggle?.addEventListener("click", () => {
+categoryCollapseToggles.forEach(toggle => toggle.addEventListener("click", () => {
     categoriesCollapsed = !categoriesCollapsed;
     if (categoriesCollapsed) {
         collapsedCategories.clear();
@@ -40,12 +40,13 @@ categoryCollapseToggle?.addEventListener("click", () => {
     saveCategoryCollapseState();
     updateCategoryCollapseToggle();
     renderMarken(allMarken);
-});
+}));
 
 function updateCategoryCollapseToggle() {
-    if (!categoryCollapseToggle) return;
-    categoryCollapseToggle.textContent = categoriesCollapsed ? "Visa kategorier" : "Fäll ihop kategorier";
-    categoryCollapseToggle.setAttribute("aria-expanded", String(!categoriesCollapsed));
+    categoryCollapseToggles.forEach(toggle => {
+        toggle.textContent = categoriesCollapsed ? "Visa kategorier" : "Fäll ihop kategorier";
+        toggle.setAttribute("aria-expanded", String(!categoriesCollapsed));
+    });
 }
 
 function saveCategoryCollapseState() {
