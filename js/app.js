@@ -13,6 +13,7 @@ const filtersVisibilityToggle = document.getElementById("filtersVisibilityToggle
 const filterCount = document.getElementById("filterCount");
 const advancedFilters = document.getElementById("advancedFilters");
 const clearFiltersBtn = document.getElementById("clearFiltersBtn");
+const closeFiltersBtn = document.getElementById("closeFiltersBtn");
 const filtersArea = document.querySelector(".filters");
 const CATEGORY_COLLAPSE_STORAGE_KEY = "gtscout_collapsed_categories";
 const CATEGORY_COLLAPSE_MOBILE_BREAKPOINT = 600;
@@ -64,6 +65,15 @@ const EXPANDED_BADGES_STORAGE_KEY = "gtscout_expanded_badges";
 filterToggleBtn?.addEventListener("click", () => {
     const isOpen = advancedFilters.classList.toggle("advanced-filters--open");
     filterToggleBtn.setAttribute("aria-expanded", String(isOpen));
+    if (isOpen && window.matchMedia("(max-width: 600px)").matches) {
+        filtersArea?.scrollIntoView({ block: "start" });
+    }
+    requestAnimationFrame(updateCategoryStickyOffset);
+});
+
+closeFiltersBtn?.addEventListener("click", () => {
+    advancedFilters.classList.remove("advanced-filters--open");
+    filterToggleBtn?.setAttribute("aria-expanded", "false");
     requestAnimationFrame(updateCategoryStickyOffset);
 });
 
