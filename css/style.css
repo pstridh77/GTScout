@@ -419,7 +419,7 @@ body {
     }
 
     .category-collapse-toggle::after,
-    .category-collapse-menu-item::after {
+    .category-collapse-menu-item::before {
         display: inline-block;
         flex: 0 0 7px;
         width: 7px;
@@ -432,7 +432,7 @@ body {
     }
 
     .category-collapse-toggle[aria-expanded="false"]::after,
-    .category-collapse-menu-item[aria-expanded="false"]::after {
+    .category-collapse-menu-item[aria-expanded="false"]::before {
         transform: rotate(45deg) translate(-1px, -1px);
     }
 
