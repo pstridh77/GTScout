@@ -405,15 +405,35 @@ body {
     }
 
     .category-collapse-toggle {
-        display: block;
-        padding: 9px 12px;
-        border: 1px solid #b8cfe0;
-        border-radius: 10px;
-        background: #f8fafc;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 4px 0;
+        border: 0;
+        background: transparent;
         color: #003660;
         font: inherit;
-        font-weight: 700;
+        font-size: 0.9rem;
+        font-weight: 600;
         cursor: pointer;
+    }
+
+    .category-collapse-toggle::after,
+    .category-collapse-menu-item::after {
+        display: inline-block;
+        flex: 0 0 7px;
+        width: 7px;
+        height: 7px;
+        border-right: 1.5px solid currentColor;
+        border-bottom: 1.5px solid currentColor;
+        content: "";
+        transform: rotate(225deg) translate(-1px, -1px);
+        transition: transform 0.15s ease;
+    }
+
+    .category-collapse-toggle[aria-expanded="false"]::after,
+    .category-collapse-menu-item[aria-expanded="false"]::after {
+        transform: rotate(45deg) translate(-1px, -1px);
     }
 
     .category-controls {
@@ -2466,6 +2486,12 @@ select:focus {
     text-align: left;
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
+}
+
+.category-collapse-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .planning-toggle-item {

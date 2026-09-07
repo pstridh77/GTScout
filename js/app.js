@@ -45,7 +45,10 @@ categoryCollapseToggles.forEach(toggle => toggle.addEventListener("click", () =>
 
 function updateCategoryCollapseToggle() {
     categoryCollapseToggles.forEach(toggle => {
-        toggle.textContent = categoriesCollapsed ? "Visa kategorier" : "Fäll ihop kategorier";
+        const isMenuToggle = toggle.classList.contains("category-collapse-menu-item");
+        toggle.textContent = categoriesCollapsed
+            ? (isMenuToggle ? "Visa kategorier" : "Visa")
+            : (isMenuToggle ? "Fäll ihop kategorier" : "Fäll ihop");
         toggle.setAttribute("aria-expanded", String(!categoriesCollapsed));
     });
 }
