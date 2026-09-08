@@ -2680,6 +2680,43 @@ select:focus {
     font-weight: 500;
 }
 
+.planning-visibility-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-weight: 600;
+    color: #9a3412;
+    vertical-align: middle;
+}
+
+.planning-visibility-badge svg {
+    flex-shrink: 0;
+}
+
+.group-visibility-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.group-visibility-row select {
+    flex: 1;
+}
+
+.visibility-icon {
+    display: inline-flex;
+    color: #5b6b7a;
+    flex-shrink: 0;
+}
+
+.modal-field-hint {
+    display: block;
+    margin-top: 4px;
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 400;
+}
+
 .group-card-actions {
     display: flex;
     gap: 8px;
@@ -3208,6 +3245,12 @@ select:focus {
     display: none;
 }
 
+.modal-status-list {
+    list-style: none;
+    margin: 12px 0 0;
+    padding: 0;
+}
+
 .planning-owner-row {
     display: flex;
     align-items: center;
@@ -3258,6 +3301,7 @@ select:focus {
 .modal-actions { display: flex; justify-content: flex-end; }
 .modal-actions--split { justify-content: space-between; }
 .group-modal-actions { gap: 12px; }
+.group-modal-actions #removeGroupBtn { margin-right: auto; }
 
 .meeting-form-grid {
     display: grid;

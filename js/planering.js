@@ -279,7 +279,49 @@ function canEditPlannings() {
 function canEditGroup(group) {
     const auth = window.GTScoutAuth;
     if (!auth?.isOnline?.()) return true;
-    return Boolean(group?.local_only || window.GTScoutPlanningSync?.canWrite?.());
+    if (group?.local_only) return true;
+    if (!window.GTScoutPlanningSync?.canWrite?.()) return false;
+    if (auth.isAdmin?.()) return true;
+    const userId = auth.getUser?.()?.id;
+    if (userId && group?.created_by === userId) return true;
+    return (group?.visibility || "kar_edit") === "kar_edit";
+}
+
+function canChangeGroupVisibility(group) {
+    const auth = window.GTScoutAuth;
+    if (!auth?.isOnline?.() || group?.local_only) return true;
+    if (auth.isAdmin?.()) return true;
+    const userId = auth.getUser?.()?.id;
+    return Boolean(userId && group?.created_by === userId);
+}
+
+// MDI-ikoner (inline SVG, currentColor) för planeringens synlighetsläge.
+const PLANNING_VISIBILITY_ICONS = {
+    kar_edit: '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z" /></svg>',
+    kar_view: '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z" /></svg>',
+    private: '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12,17A2,2 0 0,0 14,15C14,13.89 13.1,13 12,13A2,2 0 0,0 10,15A2,2 0 0,0 12,17M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H7V6A5,5 0 0,1 12,1A5,5 0 0,1 17,6V8H18M12,3A3,3 0 0,0 9,6V8H15V6A3,3 0 0,0 12,3Z" /></svg>'
+};
+
+function getPlanningVisibilityIcon(visibility) {
+    return PLANNING_VISIBILITY_ICONS[visibility] || PLANNING_VISIBILITY_ICONS.kar_edit;
+}
+
+function updateGroupVisibilityHint() {
+    const select = document.getElementById("groupVisibility");
+    const hint = document.getElementById("groupVisibilityHint");
+    const icon = document.getElementById("groupVisibilityIcon");
+    if (!select || !hint) return;
+    hint.textContent = select.selectedOptions[0]?.title || "";
+    if (icon) icon.innerHTML = getPlanningVisibilityIcon(select.value);
+}
+
+function canViewGroup(group) {
+    if ((group?.visibility || "kar_edit") !== "private") return true;
+    const auth = window.GTScoutAuth;
+    if (!auth?.isOnline?.() || group?.local_only) return true;
+    if (auth.isAdmin?.()) return true;
+    const userId = auth.getUser?.()?.id;
+    return Boolean(userId && group?.created_by === userId);
 }
 
 function getPlanningOwnerLabel(group) {
@@ -978,8 +1020,9 @@ function normalizeGroupList(list) {
             group.activities = Array.isArray(group.activities) ? group.activities : [];
             group.badges = Array.isArray(group.badges) ? group.badges : [];
             group.meetings = normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : []);
+            group.visibility = ["private", "kar_view", "kar_edit"].includes(group.visibility) ? group.visibility : "kar_edit";
             return group;
-        }).filter(Boolean)
+        }).filter(Boolean).filter(canViewGroup)
         : [];
 }
 
@@ -1849,7 +1892,7 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                 <div class="group-card-header">
                     <div class="group-card-heading">
                         <h3 class="group-name" title="Planeringens namn">${group.name}</h3>
-                        <span class="group-planning-meta">År ${planningYear !== null ? planningYear : "-"} · ${planningTerm || "Termin -"}</span>
+                        <span class="group-planning-meta">År ${planningYear !== null ? planningYear : "-"} · ${planningTerm || "Termin -"}${group.visibility === "private" ? ` · <span class="planning-visibility-badge" title="Privat – endast synlig för ägare och admin">${getPlanningVisibilityIcon("private")}</span>` : group.visibility === "kar_view" ? ` · <span class="planning-visibility-badge" title="Skrivskyddad – bara ägare och admin kan redigera">${getPlanningVisibilityIcon("kar_view")}</span>` : ""}</span>
                     </div>
                     <div class="group-card-actions">
                         <button class="btn-secondary edit-group-btn" type="button" data-group-id="${group.id}"${canEditGroup(group) ? "" : " disabled aria-disabled=\"true\" title=\"Endast ledare och administratörer kan redigera denna planering\""}>Redigera</button>
@@ -2037,6 +2080,7 @@ function addGroup(name, level, year = "", term = "", note = "") {
         updated_by_name: profile?.full_name || profile?.email || "",
         updated_at: now,
         local_only: localOnly,
+        visibility: "kar_edit",
         name: trimmedName || [Number.isFinite(normalizedYear) ? `${normalizedYear}` : "", normalizedTerm].filter(Boolean).join(" "),
         level,
         year: Number.isFinite(normalizedYear) ? normalizedYear : "",
@@ -2095,19 +2139,23 @@ function openGroupEditor(groupId) {
 
     groupModal.dataset.editingGroupId = groupId;
     document.getElementById("groupModalTitle").textContent = "Redigera planering";
-    document.getElementById("saveGroupBtn").textContent = "Uppdatera";
     document.getElementById("groupName").value = stripPlanningYearPrefix(group.name || "");
     document.getElementById("groupYear").value = Number.isFinite(getGroupYearValue(group)) ? getGroupYearValue(group) : "";
     document.getElementById("groupTerm").value = getGroupTermValue(group) || "";
     document.getElementById("groupNote").value = typeof group.note === "string" ? group.note : "";
     document.getElementById("groupLevel").value = group.level || "Familjescouting";
 
+    const visibilitySelect = document.getElementById("groupVisibility");
+    visibilitySelect.value = group.visibility || "kar_edit";
+    visibilitySelect.disabled = !canChangeGroupVisibility(group);
+    updateGroupVisibilityHint();
+
     const ownerRow = document.getElementById("planningOwnerRow");
     const ownerInfo = document.getElementById("planningOwnerInfo");
     const changeOwnerBtn = document.getElementById("changeOwnerBtn");
     const changeOwnerSection = document.getElementById("changeOwnerSection");
     
-    ownerInfo.textContent = `Ägs av: ${getPlanningOwnerLabel(group)}`;
+    ownerInfo.textContent = `Ägare: ${getPlanningOwnerLabel(group)}`;
     ownerRow.classList.remove("hidden");
     changeOwnerSection.classList.add("hidden");
 
@@ -2136,6 +2184,10 @@ function resetGroupModalState() {
     document.getElementById("groupModalTitle").textContent = "Ny plannering";
     document.getElementById("saveGroupBtn").textContent = "Spara";
     document.getElementById("groupNote").value = "";
+    const visibilitySelect = document.getElementById("groupVisibility");
+    visibilitySelect.value = "kar_edit";
+    visibilitySelect.disabled = false;
+    updateGroupVisibilityHint();
     document.getElementById("planningOwnerRow")?.classList.add("hidden");
     document.getElementById("changeOwnerBtn")?.classList.add("hidden");
     document.getElementById("changeOwnerSection")?.classList.add("hidden");
@@ -3297,6 +3349,8 @@ confirmChangeOwnerBtn?.addEventListener("click", () => {
     renderPlanning();
 });
 
+document.getElementById("groupVisibility").addEventListener("change", updateGroupVisibilityHint);
+
 document.getElementById("saveGroupBtn").addEventListener("click", () => {
     const name = document.getElementById("groupName").value.trim();
     const yearValue = document.getElementById("groupYear").value.trim();
@@ -3322,6 +3376,10 @@ document.getElementById("saveGroupBtn").addEventListener("click", () => {
         group.year = Number.isFinite(parsedYear) ? parsedYear : "";
         group.term = termValue;
         group.note = noteValue;
+        if (canChangeGroupVisibility(group)) {
+            const visibilityValue = document.getElementById("groupVisibility").value;
+            group.visibility = ["private", "kar_view", "kar_edit"].includes(visibilityValue) ? visibilityValue : "kar_edit";
+        }
         group.updated_by_name = getPlanningUpdaterName();
         group.updated_at = new Date().toISOString();
         saveGroups();

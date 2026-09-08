@@ -224,9 +224,6 @@
         <div class="modal-content">
             <button class="close-popup" type="button" id="closeGroupModal">&times;</button>
             <h2 id="groupModalTitle">Ny plannering</h2>
-            <div class="modal-actions">
-                <button id="saveGroupBtn" class="btn-primary" type="button">Spara</button>
-            </div>
             <label class="modal-field">
                 <span>Namn</span>
                 <input id="groupName" type="text" placeholder="t.ex. År 1 - HT">
@@ -258,6 +255,18 @@
                 <span>Anteckning</span>
                 <textarea id="groupNote" rows="4" placeholder="Information om planeringen..."></textarea>
             </label>
+            <label class="modal-field">
+                <span>Synlighet</span>
+                <div class="group-visibility-row">
+                    <span id="groupVisibilityIcon" class="visibility-icon" aria-hidden="true"></span>
+                    <select id="groupVisibility" title="Öppen: hela kåren ser och redigerar. Skrivskyddad: hela kåren ser, bara ägare/admin redigerar. Privat: bara ägare och admin ser den.">
+                        <option value="kar_edit" title="Synlig och redigerbar för alla ledare i kåren">Öppen</option>
+                        <option value="kar_view" title="Synlig för hela kåren, endast ägare/admin redigerar">Skrivskyddad</option>
+                        <option value="private" title="Bara ägare och admin ser och redigerar den">Privat</option>
+                    </select>
+                </div>
+                <small id="groupVisibilityHint" class="modal-field-hint"></small>
+            </label>
             <div id="planningOwnerRow" class="planning-owner-row hidden">
                 <p id="planningOwnerInfo" class="planning-owner-info"></p>
                 <button id="changeOwnerBtn" class="btn-secondary btn-small hidden" type="button">Byt ägare...</button>
@@ -272,11 +281,14 @@
                     <button id="confirmChangeOwnerBtn" class="btn-primary btn-small" type="button">Spara ny ägare</button>
                 </div>
             </div>
-            <p id="planningUpdatedInfo" class="planning-owner-info hidden"></p>
             <div class="modal-actions group-modal-actions">
-                <button id="copyGroupBtn" class="btn-secondary hidden" type="button">Kopiera</button>
                 <button id="removeGroupBtn" class="btn-danger hidden" type="button">Ta bort</button>
+                <button id="copyGroupBtn" class="btn-secondary hidden" type="button">Kopiera</button>
+                <button id="saveGroupBtn" class="btn-primary" type="button">Spara</button>
             </div>
+            <ul class="modal-status-list">
+                <li id="planningUpdatedInfo" class="planning-owner-info hidden"></li>
+            </ul>
         </div>
     </div>
 

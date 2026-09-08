@@ -167,10 +167,28 @@ create table if not exists public.planeringar (
     level text,
     year integer,
     term text,
+    -- private: bara ägare + admin ser/ändrar. kar_view: hela kåren ser, bara ägare + admin ändrar.
+    -- kar_edit: hela kåren ser och ändrar (tidigare standardbeteende).
+    visibility text not null default 'kar_edit',
     data jsonb not null default '{}'::jsonb,
     created_at timestamptz not null default now(),
-    updated_at timestamptz not null default now()
+    updated_at timestamptz not null default now(),
+    constraint planeringar_visibility_check check (visibility in ('private', 'kar_view', 'kar_edit'))
 );
+
+alter table public.planeringar
+    add column if not exists visibility text not null default 'kar_edit';
+
+do $$
+begin
+    if not exists (
+        select 1 from pg_constraint where conname = 'planeringar_visibility_check'
+    ) then
+        alter table public.planeringar
+            add constraint planeringar_visibility_check check (visibility in ('private', 'kar_view', 'kar_edit'));
+    end if;
+end
+$$;
 
 create index if not exists planeringar_kar_id_idx on public.planeringar (kar_id);
 
@@ -356,11 +374,19 @@ create policy "profiles_update_kar_admin" on public.profiles
         )
     );
 
--- Planeringar delas inom kåren och får bara ändras av ledare och admin.
+-- Planeringar delas inom kåren men kan göras privata (visibility='private'),
+-- och redigering kan begränsas till ägare + admin (visibility='kar_view').
 drop policy if exists "planeringar_select_kar" on public.planeringar;
 create policy "planeringar_select_kar" on public.planeringar
     for select to authenticated
-    using (kar_id = public.current_user_kar_id());
+    using (
+        kar_id = public.current_user_kar_id()
+        and (
+            visibility <> 'private'
+            or created_by = auth.uid()
+            or public.current_user_role() = 'admin'
+        )
+    );
 
 drop policy if exists "planeringar_write_leader" on public.planeringar;
 create policy "planeringar_write_leader" on public.planeringar
@@ -370,16 +396,26 @@ create policy "planeringar_write_leader" on public.planeringar
         and kar_id = public.current_user_kar_id()
     );
 
+-- Ägare och admin får alltid ändra. Övriga ledare får bara ändra när
+-- planeringen är satt till visibility='kar_edit'.
 drop policy if exists "planeringar_update_leader" on public.planeringar;
 create policy "planeringar_update_leader" on public.planeringar
     for update to authenticated
     using (
-        public.current_user_is_leader()
-        and kar_id = public.current_user_kar_id()
+        kar_id = public.current_user_kar_id()
+        and (
+            public.current_user_role() = 'admin'
+            or created_by = auth.uid()
+            or (visibility = 'kar_edit' and public.current_user_is_leader())
+        )
     )
     with check (
-        public.current_user_is_leader()
-        and kar_id = public.current_user_kar_id()
+        kar_id = public.current_user_kar_id()
+        and (
+            public.current_user_role() = 'admin'
+            or created_by = auth.uid()
+            or (visibility = 'kar_edit' and public.current_user_is_leader())
+        )
     );
 
 -- Admin får radera vilken planering som helst i sin kår.

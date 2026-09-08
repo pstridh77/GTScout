@@ -44,6 +44,7 @@
             level: group.level || null,
             year: Number.isFinite(Number(group.year)) && group.year !== "" ? Number(group.year) : null,
             term: group.term || null,
+            visibility: group.visibility || "kar_edit",
             data: group
         };
     }
@@ -51,16 +52,25 @@
     async function fetchGroups() {
         const { data, error } = await client()
             .from("planeringar")
-            .select("id, created_by, data")
+            .select("id, created_by, data, visibility")
             .eq("kar_id", karId());
         if (error) throw error;
         return (data || [])
-            .map(row => (row.data && typeof row.data === "object" ? { ...row.data, id: row.id, created_by: row.created_by || null } : null))
+            .map(row => (row.data && typeof row.data === "object" ? { ...row.data, id: row.id, created_by: row.created_by || null, visibility: row.visibility || row.data.visibility || "kar_edit" } : null))
             .filter(Boolean);
     }
 
+    function canWriteRow(group) {
+        if (auth().isAdmin()) return true;
+        const userId = auth().getUser()?.id;
+        if (userId && group.created_by === userId) return true;
+        return (group.visibility || "kar_edit") === "kar_edit";
+    }
+
     async function pushGroups(groups) {
-        const rows = groups.filter(group => group?.id).map(toRow);
+        // Rader som användaren inte får ändra (t.ex. andras privata/kar_view-planeringar)
+        // utesluts så att upsert inte stöter på RLS-fel för dem.
+        const rows = groups.filter(group => group?.id && canWriteRow(group)).map(toRow);
         if (rows.length) {
             const { error } = await client().from("planeringar").upsert(rows, { onConflict: "id" });
             if (error) throw error;
