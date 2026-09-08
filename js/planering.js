@@ -3205,14 +3205,14 @@ const togglePlanningMeetingsBtn = document.getElementById("togglePlanningMeeting
 function keepPlanningMenuSectionsExpandedOnDesktop() {
     if (!planningActionsDropdown) return;
     const shouldExpand = window.matchMedia("(min-width: 901px)").matches;
-    planningActionsDropdown.querySelectorAll(".site-menu-section").forEach(section => {
+    planningActionsDropdown.querySelectorAll(".site-menu-section:not(.site-menu-section--collapsed)").forEach(section => {
         if (shouldExpand) section.open = true;
     });
 }
 
 keepPlanningMenuSectionsExpandedOnDesktop();
 window.addEventListener("resize", keepPlanningMenuSectionsExpandedOnDesktop);
-planningActionsDropdown?.querySelectorAll(".site-menu-section").forEach(section => {
+planningActionsDropdown?.querySelectorAll(".site-menu-section:not(.site-menu-section--collapsed)").forEach(section => {
     section.addEventListener("toggle", () => {
         if (window.matchMedia("(min-width: 901px)").matches && !section.open) {
             section.open = true;
