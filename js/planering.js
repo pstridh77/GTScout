@@ -324,6 +324,13 @@ function canViewGroup(group) {
     return Boolean(userId && group?.created_by === userId);
 }
 
+// MDI-ikonen "star" – markerar märken som kom med från en standardplanering.
+const TEMPLATE_BADGE_ICON = '<svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z" /></svg>';
+
+function isTemplateBadge(group, badgeId) {
+    return Array.isArray(group?.template_badge_ids) && group.template_badge_ids.includes(badgeId);
+}
+
 function getPlanningOwnerLabel(group) {
     const auth = window.GTScoutAuth;
     if (group?.created_by && group.created_by === auth?.getUser?.()?.id) return "Du";
@@ -1999,8 +2006,10 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
     const badges = group.badges.map(badgeId => {
         const marke = allMarken.find(m => m.id === badgeId);
         if (!marke) return "";
+        const fromTemplate = isTemplateBadge(group, badgeId);
         return `
-            <div class="planned-badge" data-group-id="${group.id}" data-badge-id="${badgeId}" draggable="${editable}" title="Klicka för mer info">
+            <div class="planned-badge${fromTemplate ? " planned-badge--template" : ""}" data-group-id="${group.id}" data-badge-id="${badgeId}" draggable="${editable}" title="${fromTemplate ? `${marke.namn} – från standardplanering` : "Klicka för mer info"}">
+                ${fromTemplate ? `<span class="template-badge-marker" title="Från standardplanering">${TEMPLATE_BADGE_ICON}</span>` : ""}
                 ${editable ? `
                 <button class="remove-badge-btn" type="button"
                     data-group-id="${group.id}" data-badge-id="${badgeId}"
@@ -2230,6 +2239,12 @@ function moveBadgeBetweenGroups(sourceGroupId, targetGroupId, badgeId, targetInd
             ? targetGroup.badges.length
             : Math.max(0, Math.min(targetIndex, targetGroup.badges.length));
         targetGroup.badges.splice(insertAt, 0, badgeId);
+
+        // Behåll standardplanerings-markeringen när märket flyttas till en annan planering.
+        if (isTemplateBadge(sourceGroup, badgeId)) {
+            sourceGroup.template_badge_ids = sourceGroup.template_badge_ids.filter(id => id !== badgeId);
+            targetGroup.template_badge_ids = [...new Set([...(targetGroup.template_badge_ids || []), badgeId])];
+        }
     }
 
     saveGroups();
@@ -2453,6 +2468,10 @@ function bindActivityDragAndDrop() {
 function removeBadgeFromGroup(groupId, badgeId) {
     const group = groups.find(g => g.id === groupId);
     if (!group || !canEditGroup(group)) return;
+    if (isTemplateBadge(group, badgeId)) {
+        const marke = allMarken.find(m => m.id === badgeId);
+        if (!confirm(`"${marke ? marke.namn : badgeId}" kommer från en standardplanering. Är du säker på att du vill ta bort det?`)) return;
+    }
     group.badges = group.badges.filter(b => b !== badgeId);
     saveGroups();
     renderPlanning();
@@ -2912,6 +2931,10 @@ function toggleBadgeInGroup(groupId, badgeId) {
     const group = groups.find(g => g.id === groupId);
     if (!group) return;
     if (group.badges.includes(badgeId)) {
+        if (isTemplateBadge(group, badgeId)) {
+            const marke = allMarken.find(m => m.id === badgeId);
+            if (!confirm(`"${marke ? marke.namn : badgeId}" kommer från en standardplanering. Är du säker på att du vill ta bort det?`)) return;
+        }
         group.badges = group.badges.filter(b => b !== badgeId);
     } else {
         group.badges.push(badgeId);
@@ -3057,7 +3080,9 @@ function addDefaultPlanningForLevel(level, yearCount) {
             level,
             note: typeof plan.note === "string" ? plan.note.trim() : "",
             badges: Array.isArray(plan.badges) ? [...new Set(plan.badges)] : [],
-            activities: Array.isArray(plan.activities) ? [...new Set(plan.activities)] : []
+            activities: Array.isArray(plan.activities) ? [...new Set(plan.activities)] : [],
+            // Märken som kom med från standardplaneringen, så de kan markeras/skyddas i UI:t.
+            template_badge_ids: Array.isArray(plan.badges) ? [...new Set(plan.badges)] : []
         });
         added += 1;
     });
@@ -3479,10 +3504,13 @@ function renderPickerGrid() {
 
     pickerGrid.innerHTML = filtered.map(marke => {
         const selected = group.badges.includes(marke.id);
+        const fromTemplate = selected && isTemplateBadge(group, marke.id);
         return `
             <button type="button"
-                class="picker-badge ${selected ? "picker-badge--selected" : ""}"
-                data-badge-id="${marke.id}">
+                class="picker-badge ${selected ? "picker-badge--selected" : ""}${fromTemplate ? " picker-badge--template" : ""}"
+                data-badge-id="${marke.id}"
+                title="${fromTemplate ? `${marke.namn} – från standardplanering` : marke.namn}">
+                ${fromTemplate ? `<span class="template-badge-marker" title="Från standardplanering">${TEMPLATE_BADGE_ICON}</span>` : ""}
                 <img src="${marke.bild}" alt="${marke.namn}">
                 <span>${marke.namn}</span>
                 ${selected ? '<span class="picker-checkmark">✓</span>' : ""}

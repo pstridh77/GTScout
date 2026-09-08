@@ -3055,6 +3055,27 @@ select:focus {
     background: #eff6ff;
 }
 
+.template-badge-marker {
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    display: inline-flex;
+    z-index: 1;
+    color: #b45309;
+    background: #fff7ed;
+    border-radius: 50%;
+    padding: 2px;
+    box-shadow: 0 0 0 1px #fed7aa;
+}
+
+.planned-badge--template img {
+    box-shadow: 0 0 0 2px #fbbf24;
+}
+
+.picker-badge--template img {
+    box-shadow: 0 0 0 2px #fbbf24;
+}
+
 .planned-badge img {
     width: 56px;
     height: 56px;
