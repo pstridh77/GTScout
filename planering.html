@@ -359,10 +359,17 @@
                 </label>
             </div>
 
-            <label class="modal-field">
-                <span>Ansvarig</span>
-                <input id="meetingResponsible" type="text" placeholder="Namn på ansvarig">
-            </label>
+            <div class="meeting-form-grid">
+                <label class="modal-field">
+                    <span>Ansvarig</span>
+                    <input id="meetingResponsible" type="text" placeholder="Namn på ansvarig">
+                </label>
+                <label class="modal-field">
+                    <span>Plats</span>
+                    <input id="meetingLocation" type="text" list="meetingLocationOptions" placeholder="T.ex. Scoutstugan">
+                    <datalist id="meetingLocationOptions"></datalist>
+                </label>
+            </div>
 
             <label class="modal-field">
                 <span>Anteckningar</span>

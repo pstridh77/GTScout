@@ -1461,6 +1461,10 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 });
             });
             if (blocks.length === 0) blocks.push({ activity: "", responsible: "" });
+            if (meeting.location) {
+                const locationLine = `<p class="pdf-leader-location">${escapeHtml(meeting.location)}</p>`;
+                blocks[0].activity = locationLine + blocks[0].activity;
+            }
 
             return blocks.map((block, index) => {
                 const isLast = index === blocks.length - 1;
@@ -1605,7 +1609,6 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
         if (isMeetingLeaderPrint) {
             return `
             <section class="pdf-planning pdf-planning--leader">
-                <h2 class="pdf-planning-heading">${icon}<span>${escapeHtml(group.name)} - ${escapeHtml(group.level)}</span></h2>
                 ${renderLeaderTable(group, meetings)}
             </section>
             `;
@@ -1649,7 +1652,10 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 * { box-sizing: border-box; }
                 body { margin: 0; color: #172b4d; font: 11pt Arial, sans-serif; line-height: 1.45; }
                 .pdf-document-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+                .pdf-document-header--compact h1 { flex: 1; text-align: center; }
                 .pdf-document-logo { width: 28mm; height: 28mm; object-fit: contain; flex: 0 0 28mm; }
+                .pdf-document-logo--small { width: 14mm; height: 14mm; flex-basis: 14mm; }
+                .pdf-document-logo--right { margin-left: auto; }
                 h1 { margin: 0; color: #003660; font-size: 22pt; line-height: 1.15; }
                 .created { margin: 0 0 20px; color: #5b6b7a; }
                 .pdf-planning { page-break-before: always; }
@@ -1727,12 +1733,14 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 .pdf-leader-table td p { margin: 0 0 6px; }
                 .pdf-leader-table td p:last-child { margin-bottom: 0; }
                 .pdf-leader-activity { color: #254b66; }
+                .pdf-leader-location { color: #536477; font-style: italic; }
             </style>
         </head>
         <body>
-            ${isMeetingDetailPrint ? "" : `<header class="pdf-document-header">
-                <img class="pdf-document-logo" src="${escapeHtml(resolveImage("./images/icons/GTorp_250px.png"))}" alt="Gullbrandstorps Scoutkår">
-                <h1>${escapeHtml(printTitle)}</h1>
+            ${isMeetingDetailPrint ? "" : `<header class="pdf-document-header${isMeetingLeaderPrint ? " pdf-document-header--compact" : ""}">
+                <img class="pdf-document-logo${isMeetingLeaderPrint ? " pdf-document-logo--small" : ""}" src="${escapeHtml(resolveImage("./images/icons/GTorp_250px.png"))}" alt="Gullbrandstorps Scoutkår">
+                <h1>${isMeetingLeaderPrint ? `Ledarplanering - ${escapeHtml(selectedGroups[0]?.name || "")}` : escapeHtml(printTitle)}</h1>
+                ${isMeetingLeaderPrint && getLevelIcon(selectedGroups[0]?.level) ? `<img class="pdf-document-logo pdf-document-logo--small pdf-document-logo--right" src="${escapeHtml(resolveImage(getLevelIcon(selectedGroups[0].level)))}" alt="${escapeHtml(selectedGroups[0].level || "")}">` : ""}
             </header>`}
             ${planningSections || "<p>Inga planeringar valdes.</p>"}
             <p class="created">Exporterad ${escapeHtml(new Date().toLocaleDateString("sv-SE"))}</p>
@@ -2239,7 +2247,7 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
                             <button class="remove-meeting-btn" type="button" data-group-id="${group.id}" data-meeting-id="${meeting.id}" aria-label="Ta bort möte">&times;</button>
                         </div>
                     </div>
-                    ${meeting.date ? `<small>${escapeHtml(meeting.date)}${calculateSunsetTime(meeting.date) ? ` &middot; <span class="meeting-sunset-hint">${SUNSET_ICON_SVG}${escapeHtml(calculateSunsetTime(meeting.date))}</span>` : ""}</small>` : ""}
+                    ${meeting.date ? `<small>${escapeHtml(meeting.date)}${meeting.location ? ` &middot; ${escapeHtml(meeting.location)}` : ""}${calculateSunsetTime(meeting.date) ? ` &middot; <span class="meeting-sunset-hint">${SUNSET_ICON_SVG}${escapeHtml(calculateSunsetTime(meeting.date))}</span>` : ""}</small>` : ""}
                     ${meeting.responsible ? `<div><strong>Ansvarig:</strong> ${escapeHtml(meeting.responsible)}</div>` : ""}
                     ${meeting.notes ? `<p>${escapeHtml(meeting.notes)}</p>` : ""}
                     ${meetingBadges.length > 0 ? `<div class="planned-meeting-badges">${meetingBadges.map(badge => `<div class="planned-meeting-badge" title="${escapeHtml(badge.namn)}"><img src="${escapeHtml(badge.bild)}" alt="${escapeHtml(badge.namn)}"></div>`).join("")}</div>` : ""}
@@ -2756,6 +2764,7 @@ function normalizeMeetingList(meetings) {
                 week: weekValue || (typeof meeting.vecka === "number" ? String(meeting.vecka) : ""),
                 date: String(meeting.date ?? ""),
                 responsible: String(meeting.responsible ?? meeting.ansvarig ?? "").trim(),
+                location: String(meeting.location ?? meeting.plats ?? "").trim(),
                 gameResponsible: normalizeActivityResponsibleMap(gameResponsibleInput, games),
                 badgeIds,
                 badgeId: badgeIds[0] || "",
@@ -2904,6 +2913,13 @@ function openMeetingModal(groupId, meetingId = null) {
     meetingDateInput.oninput = updateMeetingSunsetInfo;
     updateMeetingSunsetInfo();
     document.getElementById("meetingResponsible").value = meeting ? (meeting.responsible || "") : "";
+    document.getElementById("meetingLocation").value = meeting ? (meeting.location || "") : "";
+    const knownLocations = [...new Set(
+        groups.flatMap(item => normalizeMeetingList(item.meetings || []).map(item2 => item2.location))
+    )].filter(Boolean).sort((a, b) => a.localeCompare(b, "sv"));
+    document.getElementById("meetingLocationOptions").innerHTML = knownLocations
+        .map(location => `<option value="${escapeHtml(location)}"></option>`)
+        .join("");
     const meetingBadge = document.getElementById("meetingBadge");
     const meetingBadgePicker = document.getElementById("meetingBadgePicker");
     meetingBadge.value = [...selectedBadgeIds].join(",");
@@ -2983,6 +2999,7 @@ function saveMeetingFromModal() {
     const week = document.getElementById("meetingWeek").value.trim();
     const date = document.getElementById("meetingDate").value;
     const responsible = document.getElementById("meetingResponsible").value.trim();
+    const location = document.getElementById("meetingLocation").value.trim();
     const badgeIds = normalizeMeetingBadgeIds(document.getElementById("meetingBadge").value);
     const notes = document.getElementById("meetingNotes").value.trim();
     const selectedGames = [...document.querySelectorAll("#meetingGameList input:checked")].map(input => input.value);
@@ -3008,6 +3025,7 @@ function saveMeetingFromModal() {
         week,
         date,
         responsible,
+        location,
         gameResponsible,
         badgeIds,
         badgeId: badgeIds[0] || "",
@@ -3116,6 +3134,7 @@ function createMeetingForGroup(groupId, meetingInput = {}) {
         week: String(meetingInput.week ?? "").trim(),
         date: String(meetingInput.date ?? ""),
         responsible: String(meetingInput.responsible ?? meetingInput.ansvarig ?? "").trim(),
+        location: String(meetingInput.location ?? "").trim(),
         gameResponsible: meetingInput.gameResponsible && typeof meetingInput.gameResponsible === "object" ? meetingInput.gameResponsible : {},
         badgeIds,
         badgeId: badgeIds[0] || "",
@@ -3148,6 +3167,7 @@ function updateMeetingForGroup(groupId, meetingId, meetingInput = {}) {
             week: String(meetingInput.week ?? meeting.week ?? "").trim(),
             date: String(meetingInput.date ?? meeting.date ?? ""),
             responsible: String(meetingInput.responsible ?? meetingInput.ansvarig ?? meeting.responsible ?? "").trim(),
+            location: String(meetingInput.location ?? meeting.location ?? "").trim(),
             gameResponsible: meetingInput.gameResponsible && typeof meetingInput.gameResponsible === "object"
                 ? meetingInput.gameResponsible
                 : (meeting.gameResponsible || {}),
