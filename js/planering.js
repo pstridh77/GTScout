@@ -3261,7 +3261,11 @@ function keepPlanningMenuSectionsExpandedOnDesktop() {
 }
 
 keepPlanningMenuSectionsExpandedOnDesktop();
-window.addEventListener("resize", keepPlanningMenuSectionsExpandedOnDesktop);
+window.addEventListener("resize", () => {
+    keepPlanningMenuSectionsExpandedOnDesktop();
+    updatePlanningStickyOffset();
+});
+requestAnimationFrame(updatePlanningStickyOffset);
 planningActionsDropdown?.querySelectorAll(".site-menu-section:not(.site-menu-section--collapsed)").forEach(section => {
     section.addEventListener("toggle", () => {
         if (window.matchMedia("(min-width: 901px)").matches && !section.open) {
@@ -3269,6 +3273,14 @@ planningActionsDropdown?.querySelectorAll(".site-menu-section:not(.site-menu-sec
         }
     });
 });
+
+function updatePlanningStickyOffset() {
+    const siteHeader = document.querySelector(".site-header");
+    if (!siteHeader) return;
+
+    const stickyTop = siteHeader.offsetHeight + 4;
+    document.documentElement.style.setProperty("--planning-sticky-top", `${stickyTop}px`);
+}
 
 const updatePlanningDetailsToggles = () => {
     togglePlanningActivitiesBtn.querySelector(".planning-toggle-status").textContent = showPlanningActivities ? "✓" : "–";
@@ -3278,6 +3290,7 @@ const updatePlanningDetailsToggles = () => {
     togglePlanningMeetingsBtn.classList.toggle("planning-toggle-item--off", !showPlanningMeetings);
     togglePlanningMeetingsBtn.setAttribute("aria-pressed", String(showPlanningMeetings));
 };
+updatePlanningStickyOffset();
 updatePlanningDetailsToggles();
 togglePlanningActivitiesBtn.addEventListener("click", () => {
     showPlanningActivities = !showPlanningActivities;

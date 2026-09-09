@@ -2604,6 +2604,9 @@ select:focus {
 }
 
 .level-row-header {
+    position: sticky;
+    top: var(--planning-sticky-top, 0px);
+    z-index: 7;
     display: flex;
     align-items: center;
     justify-content: space-between;
