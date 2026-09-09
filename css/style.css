@@ -2770,6 +2770,25 @@ select:focus {
     font-weight: 400;
 }
 
+.modal-field-hint--inline {
+    display: inline;
+    margin-top: 0;
+}
+
+.meeting-sunset-hint {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 3px;
+    color: #64748b;
+    vertical-align: middle;
+}
+
+.meeting-sunset-hint svg {
+    flex-shrink: 0;
+    position: relative;
+    top: -1px;
+}
+
 .group-card-actions {
     display: flex;
     gap: 8px;
@@ -3438,6 +3457,17 @@ select:focus {
 
 .meeting-activity-option input {
     accent-color: #003660;
+}
+
+.meeting-activity-responsible-input {
+    flex: 0 0 140px;
+    padding: 5px 8px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    font: inherit;
+    font-size: 0.85rem;
+    color: #003660;
+    background: #f8fafc;
 }
 
 .meeting-badge-picker {
