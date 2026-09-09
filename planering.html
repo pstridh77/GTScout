@@ -360,6 +360,11 @@
             </div>
 
             <label class="modal-field">
+                <span>Ansvarig</span>
+                <input id="meetingResponsible" type="text" placeholder="Namn på ansvarig">
+            </label>
+
+            <label class="modal-field">
                 <span>Anteckningar</span>
                 <textarea id="meetingNotes" rows="3" placeholder="Anteckningar för mötet..."></textarea>
             </label>
@@ -372,7 +377,6 @@
 
             <div class="modal-field">
                 <span>Lek</span>
-                <input id="meetingGameResponsible" type="text" class="meeting-section-responsible" placeholder="Ansvarig för lek">
                 <button id="meetingAllGamesBtn" class="btn-secondary meeting-all-activities-btn" type="button">Alla lekar</button>
                 <div id="meetingGameList" class="meeting-activity-list"></div>
             </div>
@@ -382,11 +386,6 @@
                 <button id="meetingAllActivitiesBtn" class="btn-secondary meeting-all-activities-btn" type="button">Alla aktiviteter</button>
                 <div id="meetingActivityList" class="meeting-activity-list"></div>
             </div>
-
-            <label class="modal-field">
-                <span>Ansvarig</span>
-                <input id="meetingResponsible" type="text" placeholder="Namn på ansvarig">
-            </label>
 
             <div class="modal-actions modal-actions--split">
                 <button id="generateMeetingSeriesBtn" class="btn-secondary meeting-series-open-btn" type="button">Generera mötesserie</button>

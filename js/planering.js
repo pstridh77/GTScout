@@ -1437,23 +1437,47 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             const meetingActivities = (meeting.activities || [])
                 .map(activityId => allAktiviteter.find(item => item.id === activityId))
                 .filter(Boolean);
-            const activityDetails = meetingActivities
-                .map(activity => `<p class="pdf-leader-activity"><strong>${escapeHtml(activity.namn)}</strong>${activity.beskrivning ? `<br>${renderLinkedText(activity.beskrivning)}` : ""}</p>`)
-                .join("");
             const meetingGames = (meeting.games || [])
                 .map(activityId => allAktiviteter.find(item => item.id === activityId))
                 .filter(Boolean);
-            const gameDetails = meetingGames
-                .map(game => `<p class="pdf-leader-activity"><strong>Lek: ${escapeHtml(game.namn)}</strong>${game.beskrivning ? `<br>${renderLinkedText(game.beskrivning)}` : ""}</p>`)
-                .join("");
-            const responsibleDetails = `${meeting.notes || meeting.responsible ? `<p>${meeting.responsible ? renderLinkedText(meeting.responsible) : "&nbsp;"}</p>` : ""}${gameDetails || meeting.gameResponsible ? `<p class="pdf-leader-activity">${meeting.gameResponsible ? renderLinkedText(meeting.gameResponsible) : "&nbsp;"}</p>` : ""}`;
-            return `<tr>
-                <td>${escapeHtml(formatShortDateSv(meeting.date))}</td>
-                <td>${escapeHtml(getShortWeekdaySv(meeting.date))}</td>
-                <td>${meeting.notes ? `<p>${renderLinkedText(meeting.notes)}</p>` : ""}${gameDetails}${activityDetails}</td>
-                <td>${responsibleDetails}</td>
-                <td>${sunset ? escapeHtml(sunset) : ""}</td>
-            </tr>`;
+
+            const blocks = [];
+            if (meeting.notes || meeting.responsible) {
+                blocks.push({
+                    activity: meeting.notes ? `<p>${renderLinkedText(meeting.notes)}</p>` : "",
+                    responsible: meeting.responsible ? renderLinkedText(meeting.responsible) : ""
+                });
+            }
+            meetingGames.forEach(game => {
+                blocks.push({
+                    activity: `<p class="pdf-leader-activity">${escapeHtml(game.namn)}</p>`,
+                    responsible: meeting.gameResponsible?.[game.id] ? renderLinkedText(meeting.gameResponsible[game.id]) : ""
+                });
+            });
+            meetingActivities.forEach(activity => {
+                blocks.push({
+                    activity: `<p class="pdf-leader-activity"><strong>${escapeHtml(activity.namn)}</strong>${activity.beskrivning ? ` - ${renderLinkedText(activity.beskrivning)}` : ""}</p>`,
+                    responsible: meeting.activityResponsible?.[activity.id] ? renderLinkedText(meeting.activityResponsible[activity.id]) : ""
+                });
+            });
+            if (blocks.length === 0) blocks.push({ activity: "", responsible: "" });
+
+            return blocks.map((block, index) => {
+                const isLast = index === blocks.length - 1;
+                const rowClass = isLast ? " class=\"pdf-leader-row-last\"" : "";
+                return index === 0
+                    ? `<tr${rowClass}>
+                        <td class="pdf-leader-meeting-edge" rowspan="${blocks.length}">${escapeHtml(formatShortDateSv(meeting.date))}</td>
+                        <td class="pdf-leader-meeting-edge" rowspan="${blocks.length}">${escapeHtml(getShortWeekdaySv(meeting.date))}</td>
+                        <td>${block.activity}</td>
+                        <td>${block.responsible}</td>
+                        <td class="pdf-leader-meeting-edge" rowspan="${blocks.length}">${sunset ? escapeHtml(sunset) : ""}</td>
+                    </tr>`
+                    : `<tr${rowClass}>
+                        <td>${block.activity}</td>
+                        <td>${block.responsible}</td>
+                    </tr>`;
+            }).join("");
         }).join("");
         return `<table class="pdf-leader-table">
             <thead>
@@ -1694,8 +1718,11 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 .pdf-handwriting-space span { display: block; height: 24px; border-bottom: 1px solid #9aa9b8; }
                 .missing-badge { color: #9b1c1c; }
                 .pdf-leader-table { width: 100%; margin-top: 10px; border-collapse: collapse; font-size: 10pt; }
-                .pdf-leader-table th, .pdf-leader-table td { padding: 6px 8px; border: 1px solid #b9c4cf; text-align: left; vertical-align: top; }
-                .pdf-leader-table th { background: #e8eef4; color: #003660; }
+                .pdf-leader-table th, .pdf-leader-table td { padding: 6px 8px; border-left: 1px solid #b9c4cf; border-right: 1px solid #b9c4cf; text-align: left; vertical-align: top; }
+                .pdf-leader-table th { border-top: 1px solid #b9c4cf; border-bottom: 1px solid #b9c4cf; background: #e8eef4; color: #003660; }
+                .pdf-leader-table tr.pdf-leader-row-last td { border-bottom: 1px solid #b9c4cf; }
+                .pdf-leader-table td.pdf-leader-meeting-edge { border-bottom: 1px solid #b9c4cf; }
+                .pdf-leader-table tbody tr:first-child td { border-top: 1px solid #b9c4cf; }
                 .pdf-leader-table tr { break-inside: avoid; }
                 .pdf-leader-table td p { margin: 0 0 6px; }
                 .pdf-leader-table td p:last-child { margin-bottom: 0; }
@@ -2218,11 +2245,15 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
                     ${meetingBadges.length > 0 ? `<div class="planned-meeting-badges">${meetingBadges.map(badge => `<div class="planned-meeting-badge" title="${escapeHtml(badge.namn)}"><img src="${escapeHtml(badge.bild)}" alt="${escapeHtml(badge.namn)}"></div>`).join("")}</div>` : ""}
                     ${(meeting.games || []).length > 0 ? `<div class="planned-meeting-activity-list"><strong>Lek:</strong> ${(meeting.games || []).map(activityId => {
                         const activity = allAktiviteter.find(item => item.id === activityId);
-                        return activity ? escapeHtml(activity.namn) : `<span class="missing-activity">Lek saknas (${escapeHtml(activityId)})</span>`;
-                    }).join(", ")}${meeting.gameResponsible ? ` (${escapeHtml(meeting.gameResponsible)})` : ""}</div>` : ""}
+                        if (!activity) return `<span class="missing-activity">Lek saknas (${escapeHtml(activityId)})</span>`;
+                        const responsible = meeting.gameResponsible?.[activityId];
+                        return `${escapeHtml(activity.namn)}${responsible ? ` - ${escapeHtml(responsible)}` : ""}`;
+                    }).join(", ")}</div>` : ""}
                     ${(meeting.activities || []).length > 0 ? `<div class="planned-meeting-activity-list"><strong>Aktiviteter:</strong> ${(meeting.activities || []).map(activityId => {
                         const activity = allAktiviteter.find(item => item.id === activityId);
-                        return activity ? escapeHtml(activity.namn) : `<span class="missing-activity">Aktivitet saknas (${escapeHtml(activityId)})</span>`;
+                        if (!activity) return `<span class="missing-activity">Aktivitet saknas (${escapeHtml(activityId)})</span>`;
+                        const responsible = meeting.activityResponsible?.[activityId];
+                        return `${escapeHtml(activity.namn)}${responsible ? ` - ${escapeHtml(responsible)}` : ""}`;
                     }).join(", ")}</div>` : ""}
                 </div>`;
         }).join("")}</div></details>` : "";
@@ -2695,6 +2726,18 @@ function getMeetingBadgeIds(meeting) {
     return badgeIds;
 }
 
+function normalizeActivityResponsibleMap(input, activityIds) {
+    const allowedIds = new Set(activityIds);
+    const result = {};
+    if (input && typeof input === "object") {
+        Object.entries(input).forEach(([activityId, value]) => {
+            const trimmed = String(value ?? "").trim();
+            if (trimmed && allowedIds.has(activityId)) result[activityId] = trimmed;
+        });
+    }
+    return result;
+}
+
 function normalizeMeetingList(meetings) {
     if (!Array.isArray(meetings)) return [];
     return meetings
@@ -2702,16 +2745,23 @@ function normalizeMeetingList(meetings) {
             if (!meeting || typeof meeting !== "object") return null;
             const weekValue = String(meeting.week ?? "").trim();
             const badgeIds = getMeetingBadgeIds(meeting);
+            const activities = Array.isArray(meeting.activities) ? [...new Set(meeting.activities.filter(Boolean))] : [];
+            const games = Array.isArray(meeting.games) ? [...new Set(meeting.games.filter(Boolean))] : [];
+            const legacyGameResponsible = typeof meeting.gameResponsible === "string" ? meeting.gameResponsible.trim() : "";
+            const gameResponsibleInput = meeting.gameResponsible && typeof meeting.gameResponsible === "object"
+                ? meeting.gameResponsible
+                : (legacyGameResponsible ? Object.fromEntries(games.map(gameId => [gameId, legacyGameResponsible])) : {});
             return {
                 id: typeof meeting.id === "string" && meeting.id.trim() ? meeting.id.trim() : crypto.randomUUID(),
                 week: weekValue || (typeof meeting.vecka === "number" ? String(meeting.vecka) : ""),
                 date: String(meeting.date ?? ""),
                 responsible: String(meeting.responsible ?? meeting.ansvarig ?? "").trim(),
-                gameResponsible: String(meeting.gameResponsible ?? "").trim(),
+                gameResponsible: normalizeActivityResponsibleMap(gameResponsibleInput, games),
                 badgeIds,
                 badgeId: badgeIds[0] || "",
-                games: Array.isArray(meeting.games) ? [...new Set(meeting.games.filter(Boolean))] : [],
-                activities: Array.isArray(meeting.activities) ? [...new Set(meeting.activities.filter(Boolean))] : [],
+                games,
+                activities,
+                activityResponsible: normalizeActivityResponsibleMap(meeting.activityResponsible, activities),
                 notes: String(meeting.notes ?? meeting.note ?? "").trim()
             };
         })
@@ -2748,6 +2798,8 @@ function openMeetingModal(groupId, meetingId = null) {
     const activityList = document.getElementById("meetingActivityList");
     const selectedIds = new Set((meeting && Array.isArray(meeting.activities) ? meeting.activities : []));
     const selectedGameIds = new Set((meeting && Array.isArray(meeting.games) ? meeting.games : []));
+    const activityResponsibleMap = new Map(Object.entries(meeting?.activityResponsible || {}));
+    const gameResponsibleMap = new Map(Object.entries(meeting?.gameResponsible || {}));
     const allGamesButton = document.getElementById("meetingAllGamesBtn");
     const allActivitiesButton = document.getElementById("meetingAllActivitiesBtn");
     const selectedBadgeIds = new Set(getMeetingBadgeIds(meeting));
@@ -2758,6 +2810,22 @@ function openMeetingModal(groupId, meetingId = null) {
         Array.isArray(group.badges) ? group.badges : []
     );
     const planningActivityIds = new Set(Array.isArray(group.activities) ? group.activities : []);
+
+    function syncActivityResponsibleMapFromDom() {
+        activityList.querySelectorAll(".meeting-activity-responsible-input").forEach(input => {
+            const value = input.value.trim();
+            if (value) activityResponsibleMap.set(input.dataset.activityId, value);
+            else activityResponsibleMap.delete(input.dataset.activityId);
+        });
+    }
+
+    function syncGameResponsibleMapFromDom() {
+        gameList.querySelectorAll(".meeting-activity-responsible-input").forEach(input => {
+            const value = input.value.trim();
+            if (value) gameResponsibleMap.set(input.dataset.activityId, value);
+            else gameResponsibleMap.delete(input.dataset.activityId);
+        });
+    }
 
     function renderMeetingActivities() {
         const availableActivityIds = new Set([...planningActivityIds, ...selectedIds]);
@@ -2772,6 +2840,7 @@ function openMeetingModal(groupId, meetingId = null) {
                         <span>${escapeHtml(activity.namn)}</span>
                         ${renderMeetingLabels(group, activity.id)}
                     </span>
+                    ${selectedIds.has(activity.id) ? `<input type="text" class="meeting-activity-responsible-input" data-activity-id="${activity.id}" placeholder="Ansvarig" value="${escapeHtml(activityResponsibleMap.get(activity.id) || "")}">` : ""}
                     <button class="activity-info-button" type="button" data-activity-id="${activity.id}" title="Visa information" aria-label="Visa information om ${activity.namn}">i</button>
                 </label>`).join("")
             : "<p class='group-empty'>Det finns inga aktiviteter i denna planering ännu.</p>";
@@ -2794,6 +2863,7 @@ function openMeetingModal(groupId, meetingId = null) {
                 <label class="meeting-activity-option">
                     <input type="checkbox" value="${activity.id}" checked>
                     <span class="meeting-activity-details"><span>${escapeHtml(activity.namn)}</span></span>
+                    <input type="text" class="meeting-activity-responsible-input" data-activity-id="${activity.id}" placeholder="Ansvarig" value="${escapeHtml(gameResponsibleMap.get(activity.id) || "")}">
                     <button class="activity-info-button" type="button" data-activity-id="${activity.id}" title="Visa information" aria-label="Visa information om ${activity.namn}">i</button>
                 </label>`).join("")
             : "<p class='group-empty'>Ingen lek är vald ännu.</p>";
@@ -2814,6 +2884,7 @@ function openMeetingModal(groupId, meetingId = null) {
             : null;
         if (!currentMeeting) return;
         currentMeeting.games = [...selectedGameIds];
+        currentMeeting.gameResponsible = Object.fromEntries(gameResponsibleMap);
         group.meetings = normalizeMeetingList((group.meetings || []).map(item => item.id === currentMeeting.id ? currentMeeting : item));
         saveGroups();
     }
@@ -2833,7 +2904,6 @@ function openMeetingModal(groupId, meetingId = null) {
     meetingDateInput.oninput = updateMeetingSunsetInfo;
     updateMeetingSunsetInfo();
     document.getElementById("meetingResponsible").value = meeting ? (meeting.responsible || "") : "";
-    document.getElementById("meetingGameResponsible").value = meeting ? (meeting.gameResponsible || "") : "";
     const meetingBadge = document.getElementById("meetingBadge");
     const meetingBadgePicker = document.getElementById("meetingBadgePicker");
     meetingBadge.value = [...selectedBadgeIds].join(",");
@@ -2879,14 +2949,18 @@ function openMeetingModal(groupId, meetingId = null) {
     activityList.onchange = event => {
         const input = event.target;
         if (!(input instanceof HTMLInputElement) || input.type !== "checkbox") return;
+        syncActivityResponsibleMapFromDom();
         if (input.checked) selectedIds.add(input.value);
         else selectedIds.delete(input.value);
+        renderMeetingActivities();
     };
     gameList.onchange = event => {
         const input = event.target;
         if (!(input instanceof HTMLInputElement) || input.type !== "checkbox") return;
+        syncGameResponsibleMapFromDom();
         if (input.checked) selectedGameIds.add(input.value);
         else selectedGameIds.delete(input.value);
+        renderMeetingGames();
     };
     allGamesButton.onclick = () => openMeetingActivityPicker(group, selectedGameIds, () => {
         renderMeetingGames();
@@ -2909,11 +2983,22 @@ function saveMeetingFromModal() {
     const week = document.getElementById("meetingWeek").value.trim();
     const date = document.getElementById("meetingDate").value;
     const responsible = document.getElementById("meetingResponsible").value.trim();
-    const gameResponsible = document.getElementById("meetingGameResponsible").value.trim();
     const badgeIds = normalizeMeetingBadgeIds(document.getElementById("meetingBadge").value);
     const notes = document.getElementById("meetingNotes").value.trim();
     const selectedGames = [...document.querySelectorAll("#meetingGameList input:checked")].map(input => input.value);
+    const selectedGameSet = new Set(selectedGames.filter(Boolean));
+    const gameResponsible = Object.fromEntries(
+        [...document.querySelectorAll("#meetingGameList .meeting-activity-responsible-input")]
+            .map(input => [input.dataset.activityId, input.value.trim()])
+            .filter(([gameId, value]) => value && selectedGameSet.has(gameId))
+    );
     const selectedActivities = [...document.querySelectorAll("#meetingActivityList input:checked")].map(input => input.value);
+    const selectedActivitySet = new Set(selectedActivities.filter(Boolean));
+    const activityResponsible = Object.fromEntries(
+        [...document.querySelectorAll("#meetingActivityList .meeting-activity-responsible-input")]
+            .map(input => [input.dataset.activityId, input.value.trim()])
+            .filter(([activityId, value]) => value && selectedActivitySet.has(activityId))
+    );
     if (!week && !date) {
         document.getElementById("meetingWeek").focus();
         return;
@@ -2926,8 +3011,9 @@ function saveMeetingFromModal() {
         gameResponsible,
         badgeIds,
         badgeId: badgeIds[0] || "",
-        games: [...new Set(selectedGames.filter(Boolean))],
-        activities: [...new Set(selectedActivities.filter(Boolean))],
+        games: [...selectedGameSet],
+        activities: [...selectedActivitySet],
+        activityResponsible,
         notes
     };
 
@@ -3030,11 +3116,12 @@ function createMeetingForGroup(groupId, meetingInput = {}) {
         week: String(meetingInput.week ?? "").trim(),
         date: String(meetingInput.date ?? ""),
         responsible: String(meetingInput.responsible ?? meetingInput.ansvarig ?? "").trim(),
-        gameResponsible: String(meetingInput.gameResponsible ?? "").trim(),
+        gameResponsible: meetingInput.gameResponsible && typeof meetingInput.gameResponsible === "object" ? meetingInput.gameResponsible : {},
         badgeIds,
         badgeId: badgeIds[0] || "",
         games: Array.isArray(meetingInput.games) ? [...new Set(meetingInput.games.filter(Boolean))] : [],
         activities: Array.isArray(meetingInput.activities) ? [...new Set(meetingInput.activities.filter(Boolean))] : [],
+        activityResponsible: meetingInput.activityResponsible && typeof meetingInput.activityResponsible === "object" ? meetingInput.activityResponsible : {},
         notes: String(meetingInput.notes ?? meetingInput.note ?? "").trim()
     };
     group.meetings = normalizeMeetingList([...(Array.isArray(group.meetings) ? group.meetings : []), meeting]);
@@ -3061,7 +3148,9 @@ function updateMeetingForGroup(groupId, meetingId, meetingInput = {}) {
             week: String(meetingInput.week ?? meeting.week ?? "").trim(),
             date: String(meetingInput.date ?? meeting.date ?? ""),
             responsible: String(meetingInput.responsible ?? meetingInput.ansvarig ?? meeting.responsible ?? "").trim(),
-            gameResponsible: String(meetingInput.gameResponsible ?? meeting.gameResponsible ?? "").trim(),
+            gameResponsible: meetingInput.gameResponsible && typeof meetingInput.gameResponsible === "object"
+                ? meetingInput.gameResponsible
+                : (meeting.gameResponsible || {}),
             badgeIds: nextBadgeIds,
             badgeId: nextBadgeIds[0] || "",
             games: Array.isArray(meetingInput.games)
@@ -3070,6 +3159,9 @@ function updateMeetingForGroup(groupId, meetingId, meetingInput = {}) {
             activities: Array.isArray(meetingInput.activities)
                 ? [...new Set(meetingInput.activities.filter(Boolean))]
                 : [...(meeting.activities || [])],
+            activityResponsible: meetingInput.activityResponsible && typeof meetingInput.activityResponsible === "object"
+                ? meetingInput.activityResponsible
+                : (meeting.activityResponsible || {}),
             notes: String(meetingInput.notes ?? meetingInput.note ?? meeting.notes ?? "").trim()
         };
     }));
