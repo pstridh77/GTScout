@@ -1269,6 +1269,75 @@ function openMeetingSelection(groupId) {
     document.getElementById("meetingSelectionModal").classList.remove("hidden");
 }
 
+// Ungefärlig position för Styrdal/Gullbrandstorp, Halmstads kommun.
+const SUN_LOCATION_LAT = 56.6994;
+const SUN_LOCATION_LON = 12.7439;
+const SUNSET_ICON_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M3,12H7A5,5 0 0,1 12,7A5,5 0 0,1 17,12H21A1,1 0 0,1 22,13A1,1 0 0,1 21,14H3A1,1 0 0,1 2,13A1,1 0 0,1 3,12M15,12A3,3 0 0,0 12,9A3,3 0 0,0 9,12H15M12,2L14.39,5.42C13.65,5.15 12.84,5 12,5C11.16,5 10.35,5.15 9.61,5.42L12,2M3.34,7L7.5,6.65C6.9,7.16 6.36,7.78 5.94,8.5C5.5,9.24 5.25,10 5.11,10.79L3.34,7M20.65,7L18.88,10.79C18.74,10 18.47,9.23 18.05,8.5C17.63,7.78 17.1,7.15 16.5,6.64L20.65,7M12.71,20.71L15.82,17.6C16.21,17.21 16.21,16.57 15.82,16.18C15.43,15.79 14.8,15.79 14.41,16.18L12,18.59L9.59,16.18C9.2,15.79 8.57,15.79 8.18,16.18C7.79,16.57 7.79,17.21 8.18,17.6L11.29,20.71C11.5,20.9 11.74,21 12,21C12.26,21 12.5,20.9 12.71,20.71Z" /></svg>';
+
+function calculateSunsetTime(dateStr, lat = SUN_LOCATION_LAT, lon = SUN_LOCATION_LON) {
+    if (!dateStr) return "";
+    const [year, month, day] = String(dateStr).split("-").map(Number);
+    if (!year || !month || !day) return "";
+
+    const toRad = value => value * Math.PI / 180;
+    const toDeg = value => value * 180 / Math.PI;
+
+    const a = Math.floor((14 - month) / 12);
+    const y = year + 4800 - a;
+    const m = month + 12 * a - 3;
+    const julianDay = day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045 + 0.5;
+
+    const t = (julianDay - 2451545.0) / 36525.0;
+    const meanLong = (280.46646 + t * (36000.76983 + t * 0.0003032)) % 360;
+    const meanAnomaly = 357.52911 + t * (35999.05029 - 0.0001537 * t);
+    const eccent = 0.016708634 - t * (0.000042037 + 0.0000001267 * t);
+    const eqOfCenter = Math.sin(toRad(meanAnomaly)) * (1.914602 - t * (0.004817 + 0.000014 * t))
+        + Math.sin(toRad(2 * meanAnomaly)) * (0.019993 - 0.000101 * t)
+        + Math.sin(toRad(3 * meanAnomaly)) * 0.000289;
+    const trueLong = meanLong + eqOfCenter;
+    const omega = 125.04 - 1934.136 * t;
+    const appLong = trueLong - 0.00569 - 0.00478 * Math.sin(toRad(omega));
+    const meanObliq = 23 + (26 + (21.448 - t * (46.815 + t * (0.00059 - t * 0.001813))) / 60) / 60;
+    const obliqCorr = meanObliq + 0.00256 * Math.cos(toRad(omega));
+    const solarDec = toDeg(Math.asin(Math.sin(toRad(obliqCorr)) * Math.sin(toRad(appLong))));
+
+    const varY = Math.tan(toRad(obliqCorr / 2)) * Math.tan(toRad(obliqCorr / 2));
+    const eqTime = 4 * toDeg(
+        varY * Math.sin(2 * toRad(meanLong))
+        - 2 * eccent * Math.sin(toRad(meanAnomaly))
+        + 4 * eccent * varY * Math.sin(toRad(meanAnomaly)) * Math.cos(2 * toRad(meanLong))
+        - 0.5 * varY * varY * Math.sin(4 * toRad(meanLong))
+        - 1.25 * eccent * eccent * Math.sin(2 * toRad(meanAnomaly))
+    );
+
+    const cosHourAngle = Math.cos(toRad(90.833)) / (Math.cos(toRad(lat)) * Math.cos(toRad(solarDec))) - Math.tan(toRad(lat)) * Math.tan(toRad(solarDec));
+    if (cosHourAngle < -1 || cosHourAngle > 1) return ""; // midnattssol eller polarnatt
+    const hourAngle = toDeg(Math.acos(cosHourAngle));
+
+    const solarNoonMinutesUTC = 720 - 4 * lon - eqTime;
+    const sunsetMinutesUTC = solarNoonMinutesUTC + hourAngle * 4;
+
+    const sunsetDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+    sunsetDate.setUTCMinutes(sunsetDate.getUTCMinutes() + Math.round(sunsetMinutesUTC));
+
+    return sunsetDate.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Stockholm" });
+}
+
+function formatShortDateSv(dateStr) {
+    if (!dateStr) return "";
+    const [year, month, day] = String(dateStr).split("-").map(Number);
+    if (!year || !month || !day) return "";
+    return `${day}/${month}`;
+}
+
+function getShortWeekdaySv(dateStr) {
+    if (!dateStr) return "";
+    const date = new Date(`${dateStr}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return "";
+    const weekday = date.toLocaleDateString("sv-SE", { weekday: "long" });
+    return weekday.charAt(0).toUpperCase() + weekday.charAt(1);
+}
+
 function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetingIds = null) {
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
@@ -1281,6 +1350,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
     const resolveImage = imagePath => imagePath ? new URL(imagePath, window.location.href).href : "";
     const isMeetingDetailPrint = printMode === "meeting-detail";
     const isMeetingOverviewPrint = printMode === "meeting-overview";
+    const isMeetingLeaderPrint = printMode === "meeting-leader";
     const renderBadge = (badgeId, group) => {
         const marke = allMarken.find(item => item.id === badgeId);
         if (!marke) return `<p class="missing-badge">Märke ${escapeHtml(badgeId)} kunde inte hittas.</p>`;
@@ -1360,6 +1430,43 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             }).join(", ")}</p>` : ""}
             ${meeting.responsible ? `<p><strong>Ansvarig:</strong> ${escapeHtml(meeting.responsible)}</p>` : ""}
         </article>`;
+    };
+    const renderLeaderTable = (group, meetings) => {
+        const rows = meetings.map(meeting => {
+            const sunset = calculateSunsetTime(meeting.date);
+            const meetingActivities = (meeting.activities || [])
+                .map(activityId => allAktiviteter.find(item => item.id === activityId))
+                .filter(Boolean);
+            const activityDetails = meetingActivities
+                .map(activity => `<p class="pdf-leader-activity"><strong>${escapeHtml(activity.namn)}</strong>${activity.beskrivning ? `<br>${renderLinkedText(activity.beskrivning)}` : ""}</p>`)
+                .join("");
+            const meetingGames = (meeting.games || [])
+                .map(activityId => allAktiviteter.find(item => item.id === activityId))
+                .filter(Boolean);
+            const gameDetails = meetingGames
+                .map(game => `<p class="pdf-leader-activity"><strong>Lek: ${escapeHtml(game.namn)}</strong>${game.beskrivning ? `<br>${renderLinkedText(game.beskrivning)}` : ""}</p>`)
+                .join("");
+            const responsibleDetails = `${meeting.notes || meeting.responsible ? `<p>${meeting.responsible ? renderLinkedText(meeting.responsible) : "&nbsp;"}</p>` : ""}${gameDetails || meeting.gameResponsible ? `<p class="pdf-leader-activity">${meeting.gameResponsible ? renderLinkedText(meeting.gameResponsible) : "&nbsp;"}</p>` : ""}`;
+            return `<tr>
+                <td>${escapeHtml(formatShortDateSv(meeting.date))}</td>
+                <td>${escapeHtml(getShortWeekdaySv(meeting.date))}</td>
+                <td>${meeting.notes ? `<p>${renderLinkedText(meeting.notes)}</p>` : ""}${gameDetails}${activityDetails}</td>
+                <td>${responsibleDetails}</td>
+                <td>${sunset ? escapeHtml(sunset) : ""}</td>
+            </tr>`;
+        }).join("");
+        return `<table class="pdf-leader-table">
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Dag</th>
+                    <th>Aktivitet</th>
+                    <th>Ansvarig</th>
+                    <th>Solnedgång</th>
+                </tr>
+            </thead>
+            <tbody>${rows || `<tr><td colspan="5">Inga möten valdes.</td></tr>`}</tbody>
+        </table>`;
     };
     const renderMeetingDetailPage = (group, meeting) => {
         const badges = getMeetingBadgeIds(meeting)
@@ -1471,6 +1578,15 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             return meetings.map(meeting => renderMeetingDetailPage(group, meeting)).join("") || "<p>Inga möten valdes.</p>";
         }
 
+        if (isMeetingLeaderPrint) {
+            return `
+            <section class="pdf-planning pdf-planning--leader">
+                <h2 class="pdf-planning-heading">${icon}<span>${escapeHtml(group.name)} - ${escapeHtml(group.level)}</span></h2>
+                ${renderLeaderTable(group, meetings)}
+            </section>
+            `;
+        }
+
         return `
         <section class="pdf-planning">
             <h2 class="pdf-planning-heading">${icon}<span>${escapeHtml(group.name)} - ${escapeHtml(group.level)}</span></h2>
@@ -1493,7 +1609,9 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
         ? "Gullbrandstorps Scoutkårs Mötesöversikt"
         : isMeetingDetailPrint
             ? "Gullbrandstorps Scoutkårs Mötesplanering"
-            : "Gullbrandstorps Scoutkårs Planeringsöversikt";
+            : isMeetingLeaderPrint
+                ? "Gullbrandstorps Scoutkårs Ledarplanering"
+                : "Gullbrandstorps Scoutkårs Planeringsöversikt";
 
     printWindow.addEventListener("load", () => printWindow.print(), { once: true });
     printWindow.document.open();
@@ -1575,6 +1693,13 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 .pdf-handwriting-space { margin-top: 7px; padding-bottom: 5px; }
                 .pdf-handwriting-space span { display: block; height: 24px; border-bottom: 1px solid #9aa9b8; }
                 .missing-badge { color: #9b1c1c; }
+                .pdf-leader-table { width: 100%; margin-top: 10px; border-collapse: collapse; font-size: 10pt; }
+                .pdf-leader-table th, .pdf-leader-table td { padding: 6px 8px; border: 1px solid #b9c4cf; text-align: left; vertical-align: top; }
+                .pdf-leader-table th { background: #e8eef4; color: #003660; }
+                .pdf-leader-table tr { break-inside: avoid; }
+                .pdf-leader-table td p { margin: 0 0 6px; }
+                .pdf-leader-table td p:last-child { margin-bottom: 0; }
+                .pdf-leader-activity { color: #254b66; }
             </style>
         </head>
         <body>
@@ -2087,18 +2212,18 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
                             <button class="remove-meeting-btn" type="button" data-group-id="${group.id}" data-meeting-id="${meeting.id}" aria-label="Ta bort möte">&times;</button>
                         </div>
                     </div>
-                    ${meeting.date ? `<small>${escapeHtml(meeting.date)}</small>` : ""}
+                    ${meeting.date ? `<small>${escapeHtml(meeting.date)}${calculateSunsetTime(meeting.date) ? ` &middot; <span class="meeting-sunset-hint">${SUNSET_ICON_SVG}${escapeHtml(calculateSunsetTime(meeting.date))}</span>` : ""}</small>` : ""}
+                    ${meeting.responsible ? `<div><strong>Ansvarig:</strong> ${escapeHtml(meeting.responsible)}</div>` : ""}
                     ${meeting.notes ? `<p>${escapeHtml(meeting.notes)}</p>` : ""}
                     ${meetingBadges.length > 0 ? `<div class="planned-meeting-badges">${meetingBadges.map(badge => `<div class="planned-meeting-badge" title="${escapeHtml(badge.namn)}"><img src="${escapeHtml(badge.bild)}" alt="${escapeHtml(badge.namn)}"></div>`).join("")}</div>` : ""}
                     ${(meeting.games || []).length > 0 ? `<div class="planned-meeting-activity-list"><strong>Lek:</strong> ${(meeting.games || []).map(activityId => {
                         const activity = allAktiviteter.find(item => item.id === activityId);
                         return activity ? escapeHtml(activity.namn) : `<span class="missing-activity">Lek saknas (${escapeHtml(activityId)})</span>`;
-                    }).join(", ")}</div>` : ""}
+                    }).join(", ")}${meeting.gameResponsible ? ` (${escapeHtml(meeting.gameResponsible)})` : ""}</div>` : ""}
                     ${(meeting.activities || []).length > 0 ? `<div class="planned-meeting-activity-list"><strong>Aktiviteter:</strong> ${(meeting.activities || []).map(activityId => {
                         const activity = allAktiviteter.find(item => item.id === activityId);
                         return activity ? escapeHtml(activity.namn) : `<span class="missing-activity">Aktivitet saknas (${escapeHtml(activityId)})</span>`;
                     }).join(", ")}</div>` : ""}
-                    ${meeting.responsible ? `<div><strong>Ansvarig:</strong> ${escapeHtml(meeting.responsible)}</div>` : ""}
                 </div>`;
         }).join("")}</div></details>` : "";
     return `${badges}<div class="group-badges-actions"><button class="btn-secondary add-badge-btn" type="button" data-group-id="${group.id}"${editable ? "" : " disabled aria-disabled=\"true\" title=\"Endast ledare och administratörer kan ändra denna planering\""}>+ Märke</button></div>${activityMarkup}${meetingsMarkup}`;
@@ -2582,6 +2707,7 @@ function normalizeMeetingList(meetings) {
                 week: weekValue || (typeof meeting.vecka === "number" ? String(meeting.vecka) : ""),
                 date: String(meeting.date ?? ""),
                 responsible: String(meeting.responsible ?? meeting.ansvarig ?? "").trim(),
+                gameResponsible: String(meeting.gameResponsible ?? "").trim(),
                 badgeIds,
                 badgeId: badgeIds[0] || "",
                 games: Array.isArray(meeting.games) ? [...new Set(meeting.games.filter(Boolean))] : [],
@@ -2646,8 +2772,17 @@ function openMeetingModal(groupId, meetingId = null) {
                         <span>${escapeHtml(activity.namn)}</span>
                         ${renderMeetingLabels(group, activity.id)}
                     </span>
+                    <button class="activity-info-button" type="button" data-activity-id="${activity.id}" title="Visa information" aria-label="Visa information om ${activity.namn}">i</button>
                 </label>`).join("")
             : "<p class='group-empty'>Det finns inga aktiviteter i denna planering ännu.</p>";
+        activityList.querySelectorAll(".activity-info-button").forEach(button => {
+            button.addEventListener("click", event => {
+                event.preventDefault();
+                event.stopPropagation();
+                const activity = allAktiviteter.find(item => item.id === button.dataset.activityId);
+                if (activity) showActivityDetail(activity);
+            });
+        });
     }
 
     function renderMeetingGames() {
@@ -2659,9 +2794,19 @@ function openMeetingModal(groupId, meetingId = null) {
                 <label class="meeting-activity-option">
                     <input type="checkbox" value="${activity.id}" checked>
                     <span class="meeting-activity-details"><span>${escapeHtml(activity.namn)}</span></span>
+                    <button class="activity-info-button" type="button" data-activity-id="${activity.id}" title="Visa information" aria-label="Visa information om ${activity.namn}">i</button>
                 </label>`).join("")
             : "<p class='group-empty'>Ingen lek är vald ännu.</p>";
+        gameList.querySelectorAll(".activity-info-button").forEach(button => {
+            button.addEventListener("click", event => {
+                event.preventDefault();
+                event.stopPropagation();
+                const activity = allAktiviteter.find(item => item.id === button.dataset.activityId);
+                if (activity) showActivityDetail(activity);
+            });
+        });
     }
+
 
     function persistSelectedGames() {
         const currentMeeting = modal.dataset.meetingId
@@ -2676,8 +2821,19 @@ function openMeetingModal(groupId, meetingId = null) {
     modal.dataset.groupId = groupId;
     modal.dataset.meetingId = meetingId || "";
     document.getElementById("meetingWeek").value = meeting ? (meeting.week || "") : "";
-    document.getElementById("meetingDate").value = meeting ? (meeting.date || "") : "";
+    const meetingDateInput = document.getElementById("meetingDate");
+    meetingDateInput.value = meeting ? (meeting.date || "") : "";
+    const meetingSunsetInfo = document.getElementById("meetingSunsetInfo");
+    const meetingSunsetTime = document.getElementById("meetingSunsetTime");
+    const updateMeetingSunsetInfo = () => {
+        const sunset = calculateSunsetTime(meetingDateInput.value);
+        meetingSunsetTime.textContent = sunset;
+        meetingSunsetInfo.classList.toggle("hidden", !sunset);
+    };
+    meetingDateInput.oninput = updateMeetingSunsetInfo;
+    updateMeetingSunsetInfo();
     document.getElementById("meetingResponsible").value = meeting ? (meeting.responsible || "") : "";
+    document.getElementById("meetingGameResponsible").value = meeting ? (meeting.gameResponsible || "") : "";
     const meetingBadge = document.getElementById("meetingBadge");
     const meetingBadgePicker = document.getElementById("meetingBadgePicker");
     meetingBadge.value = [...selectedBadgeIds].join(",");
@@ -2753,6 +2909,7 @@ function saveMeetingFromModal() {
     const week = document.getElementById("meetingWeek").value.trim();
     const date = document.getElementById("meetingDate").value;
     const responsible = document.getElementById("meetingResponsible").value.trim();
+    const gameResponsible = document.getElementById("meetingGameResponsible").value.trim();
     const badgeIds = normalizeMeetingBadgeIds(document.getElementById("meetingBadge").value);
     const notes = document.getElementById("meetingNotes").value.trim();
     const selectedGames = [...document.querySelectorAll("#meetingGameList input:checked")].map(input => input.value);
@@ -2766,6 +2923,7 @@ function saveMeetingFromModal() {
         week,
         date,
         responsible,
+        gameResponsible,
         badgeIds,
         badgeId: badgeIds[0] || "",
         games: [...new Set(selectedGames.filter(Boolean))],
@@ -2872,6 +3030,7 @@ function createMeetingForGroup(groupId, meetingInput = {}) {
         week: String(meetingInput.week ?? "").trim(),
         date: String(meetingInput.date ?? ""),
         responsible: String(meetingInput.responsible ?? meetingInput.ansvarig ?? "").trim(),
+        gameResponsible: String(meetingInput.gameResponsible ?? "").trim(),
         badgeIds,
         badgeId: badgeIds[0] || "",
         games: Array.isArray(meetingInput.games) ? [...new Set(meetingInput.games.filter(Boolean))] : [],
@@ -2902,6 +3061,7 @@ function updateMeetingForGroup(groupId, meetingId, meetingInput = {}) {
             week: String(meetingInput.week ?? meeting.week ?? "").trim(),
             date: String(meetingInput.date ?? meeting.date ?? ""),
             responsible: String(meetingInput.responsible ?? meetingInput.ansvarig ?? meeting.responsible ?? "").trim(),
+            gameResponsible: String(meetingInput.gameResponsible ?? meeting.gameResponsible ?? "").trim(),
             badgeIds: nextBadgeIds,
             badgeId: nextBadgeIds[0] || "",
             games: Array.isArray(meetingInput.games)
@@ -3242,7 +3402,7 @@ document.getElementById("generateMeetingsPdfBtn").addEventListener("click", () =
     meetingSelectionModal.classList.add("hidden");
     generatePlanningPdf(
         new Set([meetingSelectionGroupId]),
-        selectedMode === "detailed" ? "meeting-detail" : "meeting-overview",
+        selectedMode === "detailed" ? "meeting-detail" : selectedMode === "leader" ? "meeting-leader" : "meeting-overview",
         meetingSelectionState
     );
 });
