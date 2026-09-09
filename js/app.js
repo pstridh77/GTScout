@@ -244,6 +244,11 @@ async function loadMarken() {
         allMarken = [...baseMarken, ...(window.GTScoutBadges?.getAllBadges?.() || [])];
         allAktiviteter = syncedActivities.length ? syncedActivities : loadCustomActivities();
         renderMarken(allMarken);
+        const sharedBadgeId = new URLSearchParams(window.location.search).get("badge");
+        if (sharedBadgeId) {
+            const sharedBadge = allMarken.find(marke => marke.id === sharedBadgeId);
+            if (sharedBadge) showPopup(sharedBadge);
+        }
     } catch (error) {
         console.error("Failed to load marken.json", error);
         const details = document.getElementById("details");
@@ -937,6 +942,67 @@ function createPopup() {
 }
 
 const popup = createPopup();
+
+function createBadgeSharePopup() {
+    const sharePopup = document.createElement("div");
+    sharePopup.className = "detail-popup hidden";
+    sharePopup.innerHTML = `
+        <div class="detail-popup-content">
+            <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <div class="popup-body">
+                <h2>Dela märke</h2>
+                <p>Alla som har länken kan visa märket.</p>
+                <label class="modal-field">
+                    <span>Länk</span>
+                    <input class="badge-share-url" type="text" readonly aria-label="Länk till märket">
+                </label>
+                <p class="detail-planning-status badge-share-status" role="status"></p>
+                <div class="modal-actions">
+                    <button class="btn-primary badge-share-copy" type="button">Kopiera länk</button>
+                    <button class="btn-secondary badge-share-close" type="button">Stäng</button>
+                </div>
+            </div>
+        </div>
+    `;
+    const close = () => sharePopup.classList.add("hidden");
+    sharePopup.querySelector(".close-popup").addEventListener("click", close);
+    sharePopup.querySelector(".badge-share-close").addEventListener("click", close);
+    sharePopup.addEventListener("click", event => {
+        if (event.target === sharePopup) close();
+    });
+    sharePopup.querySelector(".badge-share-copy").addEventListener("click", async () => {
+        const input = sharePopup.querySelector(".badge-share-url");
+        const status = sharePopup.querySelector(".badge-share-status");
+        input.select();
+        try {
+            await navigator.clipboard.writeText(input.value);
+            status.textContent = "Länken har kopierats.";
+        } catch {
+            status.textContent = "Markera länken och kopiera den manuellt.";
+        }
+    });
+    document.body.appendChild(sharePopup);
+    return sharePopup;
+}
+
+const badgeSharePopup = createBadgeSharePopup();
+
+async function shareBadge(marke) {
+    const shareUrl = new URL("index.html", window.location.href);
+    shareUrl.searchParams.set("badge", marke.id);
+    const input = badgeSharePopup.querySelector(".badge-share-url");
+    const status = badgeSharePopup.querySelector(".badge-share-status");
+    input.value = shareUrl.href;
+    status.textContent = "";
+    badgeSharePopup.classList.remove("hidden");
+    input.select();
+    try {
+        await navigator.clipboard.writeText(shareUrl.href);
+        status.textContent = "Länken har kopierats. Du kan också kopiera den manuellt.";
+    } catch {
+        status.textContent = "Markera länken och kopiera den manuellt.";
+    }
+}
 
 let activePlanningBadge = null;
 
@@ -1670,6 +1736,7 @@ function showPopup(marke) {
             <div class="detail-popup-main">
                 <div class="detail-popup-header">
                     <h2>${marke.namn}</h2>
+                    <button id="shareBadgeBtn" class="btn-secondary badge-share-icon-btn" type="button" aria-label="Dela märke" title="Dela märke"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,16.08C17.24,16.08 16.54,16.38 16,16.85L8.91,12.74C8.96,12.5 9,12.25 9,12C9,11.75 8.96,11.5 8.91,11.26L15.92,7.17C16.47,7.66 17.2,7.97 18,7.97C19.66,7.97 21,6.63 21,4.97C21,3.31 19.66,1.97 18,1.97C16.34,1.97 15,3.31 15,4.97C15,5.22 15.04,5.47 15.09,5.71L8.08,9.8C7.53,9.31 6.8,9 6,9C4.34,9 3,10.34 3,12C3,13.66 4.34,15 6,15C6.8,15 7.53,14.69 8.08,14.2L15.17,18.31C15.12,18.54 15,18.77 15,19C15,20.66 16.34,22 18,22C19.66,22 21,20.66 21,19C21,17.34 19.66,16.08 18,16.08Z" /></svg></button>
                 </div>
                 <div class="detail-image-row">
                     <img
@@ -1732,6 +1799,7 @@ function showPopup(marke) {
         });
     }
     popup.querySelector("#editBadgeNoteBtn").addEventListener("click", () => openNotePopup(marke));
+    popup.querySelector("#shareBadgeBtn").addEventListener("click", () => shareBadge(marke));
     popup.querySelector("#addExistingActivityBtn")?.addEventListener("click", () => openActivityPicker(marke));
     popup.querySelector("#addBadgeToPlanningBtn").addEventListener("click", () => openPlanningPicker(marke));
     popup.querySelector("#editCustomBadgeBtn")?.addEventListener("click", () => {
