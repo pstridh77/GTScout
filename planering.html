@@ -126,6 +126,23 @@
         </div>
     </div>
 
+    <div id="sharePlanningModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="sharePlanningTitle">
+        <div class="modal-content">
+            <button class="close-popup" type="button" id="closeSharePlanningModal" aria-label="Stäng">&times;</button>
+            <h2 id="sharePlanningTitle">Dela planering</h2>
+            <p>Alla som har länken kan visa planeringen i skrivskyddat läge.</p>
+            <label class="modal-field">
+                <span>Länk</span>
+                <input id="sharePlanningUrl" class="share-planning-url" type="text" readonly aria-label="Länk till planeringen">
+            </label>
+            <p id="sharePlanningStatus" class="detail-planning-status" role="status"></p>
+            <div class="modal-actions">
+                <button id="copySharePlanningBtn" class="btn-primary" type="button">Kopiera länk</button>
+                <button id="closeSharePlanningBtn" class="btn-secondary" type="button">Stäng</button>
+            </div>
+        </div>
+    </div>
+
     <div id="createActivityModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="createActivityTitle">
         <div class="modal-content custom-activity-form-content">
             <button class="close-popup" type="button" id="closeCreateActivityModal" aria-label="Stäng">&times;</button>
