@@ -1,5 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+body.shared-planning-view .group-card-actions,
+body.shared-planning-view .planning-toolbar .toolbar-actions,
+body.shared-planning-view .planning-intro {
+    display: none;
+}
+
 body {
     margin: 0;
     font-family: 'Inter', Arial, sans-serif;
@@ -1377,6 +1383,21 @@ select:focus {
 
 .detail-popup-header h2 {
     margin: 0;
+}
+
+.badge-share-icon-btn {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.badge-share-icon-btn svg {
+    width: 28px;
+    height: 28px;
 }
 
 .badge-popup-owner-badge {

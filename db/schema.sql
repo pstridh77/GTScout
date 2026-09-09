@@ -167,6 +167,7 @@ create table if not exists public.planeringar (
     level text,
     year integer,
     term text,
+    share_token uuid unique,
     -- private: bara ägare + admin ser/ändrar. kar_view: hela kåren ser, bara ägare + admin ändrar.
     -- kar_edit: hela kåren ser och ändrar (tidigare standardbeteende).
     visibility text not null default 'kar_edit',
@@ -178,6 +179,24 @@ create table if not exists public.planeringar (
 
 alter table public.planeringar
     add column if not exists visibility text not null default 'kar_edit';
+
+alter table public.planeringar
+    add column if not exists share_token uuid unique;
+
+create or replace function public.get_shared_planning(requested_token uuid)
+returns table (id uuid, data jsonb, visibility text)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+    select p.id, p.data, p.visibility
+    from public.planeringar p
+    where p.share_token = requested_token;
+$$;
+
+revoke all on function public.get_shared_planning(uuid) from public;
+grant execute on function public.get_shared_planning(uuid) to anon, authenticated;
 
 do $$
 begin
