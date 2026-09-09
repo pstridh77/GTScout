@@ -10,6 +10,7 @@
     let saveTimer = null;
     let pendingGroups = null;
     let loadedForKarId = null;
+    let sharedToken = null;
 
     const auth = () => window.GTScoutAuth;
     const client = () => auth()?.getClient() || null;
@@ -44,6 +45,7 @@
             level: group.level || null,
             year: Number.isFinite(Number(group.year)) && group.year !== "" ? Number(group.year) : null,
             term: group.term || null,
+            share_token: group.share_token || null,
             visibility: group.visibility || "kar_edit",
             data: group
         };
@@ -52,11 +54,11 @@
     async function fetchGroups() {
         const { data, error } = await client()
             .from("planeringar")
-            .select("id, created_by, data, visibility")
+            .select("id, created_by, data, visibility, share_token")
             .eq("kar_id", karId());
         if (error) throw error;
         return (data || [])
-            .map(row => (row.data && typeof row.data === "object" ? { ...row.data, id: row.id, created_by: row.created_by || null, visibility: row.visibility || row.data.visibility || "kar_edit" } : null))
+            .map(row => (row.data && typeof row.data === "object" ? { ...row.data, id: row.id, created_by: row.created_by || null, share_token: row.share_token || row.data.share_token || null, visibility: row.visibility || row.data.visibility || "kar_edit" } : null))
             .filter(Boolean);
     }
 
@@ -185,6 +187,21 @@
         }
     }
 
+    async function loadShared() {
+        if (!hooks || !sharedToken || !client()) return;
+        try {
+            const { data, error } = await client().rpc("get_shared_planning", { requested_token: sharedToken });
+            if (error) throw error;
+            const row = Array.isArray(data) ? data[0] : data;
+            if (!row?.data || typeof row.data !== "object") throw new Error("Planeringen kunde inte hittas.");
+            hooks.applyGroups([{ ...row.data, id: row.id, share_token: null, visibility: "kar_view", shared_view: true }]);
+            setStatus("Delad planering – skrivskyddad visning", false);
+        } catch (error) {
+            console.error("Kunde inte hämta delad planering", error);
+            setStatus("Den delade planeringen kunde inte hittas eller är inte längre delad.", true);
+        }
+    }
+
     function onAuthChange() {
         if (!canRead()) {
             const wasLoaded = loadedForKarId !== null;
@@ -208,6 +225,12 @@
         reload: load,
         init(config) {
             hooks = config;
+            sharedToken = new URLSearchParams(window.location.search).get("share");
+            if (sharedToken) {
+                document.body.classList.add("shared-planning-view");
+                auth()?.onChange(() => loadShared());
+                return;
+            }
             auth()?.onChange(onAuthChange);
         }
     };

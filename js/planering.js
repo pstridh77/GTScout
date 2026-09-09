@@ -273,10 +273,15 @@ function canDeleteGroup(group) {
 }
 
 function canEditPlannings() {
-    return true;
+    return !isSharedPlanningView();
+}
+
+function isSharedPlanningView() {
+    return new URLSearchParams(window.location.search).has("share");
 }
 
 function canEditGroup(group) {
+    if (isSharedPlanningView()) return false;
     const auth = window.GTScoutAuth;
     if (!auth?.isOnline?.()) return true;
     if (group?.local_only) return true;
@@ -288,6 +293,7 @@ function canEditGroup(group) {
 }
 
 function canChangeGroupVisibility(group) {
+    if (isSharedPlanningView()) return false;
     const auth = window.GTScoutAuth;
     if (!auth?.isOnline?.() || group?.local_only) return true;
     if (auth.isAdmin?.()) return true;
@@ -1053,6 +1059,31 @@ function saveGroups() {
     }));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     window.GTScoutPlanningSync?.scheduleSave(payload);
+}
+
+async function shareGroup(id) {
+    if (isSharedPlanningView()) return;
+    const group = groups.find(item => item.id === id);
+    if (!group || group.local_only || !window.GTScoutPlanningSync?.canWrite?.()) return;
+    if (!group.share_token) {
+        group.share_token = crypto.randomUUID();
+        saveGroups();
+    }
+    const shareUrl = new URL("planering.html", window.location.href);
+    shareUrl.searchParams.set("share", group.share_token);
+    const modal = document.getElementById("sharePlanningModal");
+    const urlInput = document.getElementById("sharePlanningUrl");
+    const status = document.getElementById("sharePlanningStatus");
+    urlInput.value = shareUrl.href;
+    status.textContent = "";
+    modal.classList.remove("hidden");
+    urlInput.select();
+    try {
+        await navigator.clipboard.writeText(shareUrl.href);
+        status.textContent = "Länken har kopierats. Du kan också markera den och kopiera manuellt.";
+    } catch {
+        status.textContent = "Markera länken och kopiera den manuellt.";
+    }
 }
 
 
@@ -1902,6 +1933,7 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                         <span class="group-planning-meta">År ${planningYear !== null ? planningYear : "-"} · ${planningTerm || "Termin -"}${group.visibility === "private" ? ` · <span class="planning-visibility-badge" title="Privat – endast synlig för ägare och admin">${getPlanningVisibilityIcon("private")}</span>` : group.visibility === "kar_view" ? ` · <span class="planning-visibility-badge" title="Skrivskyddad – bara ägare och admin kan redigera">${getPlanningVisibilityIcon("kar_view")}</span>` : ""}</span>
                     </div>
                     <div class="group-card-actions">
+                        <button class="btn-secondary share-group-btn" type="button" data-group-id="${group.id}" aria-label="Dela planering" title="Dela planering"${group.local_only || !window.GTScoutPlanningSync?.canWrite?.() ? " disabled" : ""}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,16.08C17.24,16.08 16.54,16.38 16,16.85L8.91,12.74C8.96,12.5 9,12.25 9,12C9,11.75 8.96,11.5 8.91,11.26L15.92,7.17C16.47,7.66 17.2,7.97 18,7.97C19.66,7.97 21,6.63 21,4.97C21,3.31 19.66,1.97 18,1.97C16.34,1.97 15,3.31 15,4.97C15,5.22 15.04,5.47 15.09,5.71L8.08,9.8C7.53,9.31 6.8,9 6,9C4.34,9 3,10.34 3,12C3,13.66 4.34,15 6,15C6.8,15 7.53,14.69 8.08,14.2L15.17,18.31C15.12,18.54 15,18.77 15,19C15,20.66 16.34,22 18,22C19.66,22 21,20.66 21,19C21,17.34 19.66,16.08 18,16.08Z" /></svg></button>
                         <button class="btn-secondary edit-group-btn" type="button" data-group-id="${group.id}"${canEditGroup(group) ? "" : " disabled aria-disabled=\"true\" title=\"Endast ledare och administratörer kan redigera denna planering\""}>Redigera</button>
                     </div>
                 </div>
@@ -1911,6 +1943,7 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                 </div>
                 `;
                 card.querySelector(".edit-group-btn").addEventListener("click", () => openGroupEditor(group.id));
+                card.querySelector(".share-group-btn").addEventListener("click", () => shareGroup(group.id));
                 card.querySelector(".add-badge-btn").addEventListener("click", event => {
                     event.stopPropagation();
                     openBadgePicker(group.id);
@@ -3130,6 +3163,7 @@ defaultPlanningTemplate.addEventListener("change", () => {
 
 const groupModal = document.getElementById("groupModal");
 const exportInfoModal = document.getElementById("exportInfoModal");
+const sharePlanningModal = document.getElementById("sharePlanningModal");
 const pdfSelectionModal = document.getElementById("pdfSelectionModal");
 const pdfSelectionList = document.getElementById("pdfSelectionList");
 const pdfPlanningFilter = document.getElementById("pdfPlanningFilter");
@@ -3138,6 +3172,22 @@ document.getElementById("closeExportInfoModal").addEventListener("click", () => 
 document.getElementById("closeExportInfoBtn").addEventListener("click", () => exportInfoModal.classList.add("hidden"));
 exportInfoModal.addEventListener("click", event => {
     if (event.target === exportInfoModal) exportInfoModal.classList.add("hidden");
+});
+document.getElementById("closeSharePlanningModal").addEventListener("click", () => sharePlanningModal.classList.add("hidden"));
+document.getElementById("closeSharePlanningBtn").addEventListener("click", () => sharePlanningModal.classList.add("hidden"));
+sharePlanningModal.addEventListener("click", event => {
+    if (event.target === sharePlanningModal) sharePlanningModal.classList.add("hidden");
+});
+document.getElementById("copySharePlanningBtn").addEventListener("click", async () => {
+    const urlInput = document.getElementById("sharePlanningUrl");
+    const status = document.getElementById("sharePlanningStatus");
+    urlInput.select();
+    try {
+        await navigator.clipboard.writeText(urlInput.value);
+        status.textContent = "Länken har kopierats.";
+    } catch {
+        status.textContent = "Kopiering kunde inte göras automatiskt. Markera länken och kopiera den manuellt.";
+    }
 });
 document.getElementById("closePdfSelectionModal").addEventListener("click", () => pdfSelectionModal.classList.add("hidden"));
 pdfSelectionModal.addEventListener("click", event => {
