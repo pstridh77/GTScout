@@ -2165,13 +2165,6 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
         });
     });
 
-    document.querySelectorAll(".remove-meeting-btn").forEach(btn => {
-        btn.addEventListener("click", e => {
-            e.stopPropagation();
-            removeMeetingFromGroup(btn.dataset.groupId, btn.dataset.meetingId);
-        });
-    });
-
     document.querySelectorAll(".planned-activity-info-btn").forEach(btn => {
         btn.addEventListener("click", e => {
             e.stopPropagation();
@@ -2244,8 +2237,7 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
                         <strong>Träff ${escapeHtml(meeting.week || "-")}</strong>
                         <div class="planned-meeting-tools">
                             ${editable
-                                ? `<button class="edit-meeting-btn" type="button" data-group-id="${group.id}" data-meeting-id="${meeting.id}">Redigera</button>
-                                   <button class="remove-meeting-btn" type="button" data-group-id="${group.id}" data-meeting-id="${meeting.id}" aria-label="Ta bort möte">&times;</button>`
+                                ? `<button class="edit-meeting-btn" type="button" data-group-id="${group.id}" data-meeting-id="${meeting.id}">Redigera</button>`
                                 : `<button class="activity-info-button view-meeting-btn" type="button" data-group-id="${group.id}" data-meeting-id="${meeting.id}" title="Visa mötesinformation" aria-label="Visa information om träff ${escapeHtml(meeting.week || "-")}">i</button>`}
                         </div>
                     </div>
@@ -2977,6 +2969,7 @@ function openMeetingModal(groupId, meetingId = null, readOnly = false) {
     });
     allGamesButton.classList.toggle("hidden", viewOnly);
     allActivitiesButton.classList.toggle("hidden", viewOnly);
+    document.getElementById("removeMeetingBtn").classList.toggle("hidden", viewOnly || !meetingId);
     document.getElementById("generateMeetingSeriesBtn").classList.toggle("hidden", viewOnly);
     document.getElementById("saveMeetingBtn").classList.toggle("hidden", viewOnly);
     document.getElementById("meetingSeriesCount").value = "10";
@@ -3110,6 +3103,15 @@ function bindMeetingModalActions() {
         seriesModal.dataset.groupId = groupId;
         seriesModal.classList.remove("hidden");
         document.getElementById("meetingSeriesCount").focus();
+    });
+    document.getElementById("removeMeetingBtn").addEventListener("click", () => {
+        const groupId = modal.dataset.groupId;
+        const meetingId = modal.dataset.meetingId;
+        const group = groups.find(item => item.id === groupId);
+        if (!groupId || !meetingId || !group || !canEditGroup(group) || modal.dataset.readOnly === "true") return;
+        if (!confirm("Ta bort mötet?")) return;
+        removeMeetingFromGroup(groupId, meetingId);
+        modal.classList.add("hidden");
     });
     const closeSeriesModal = () => seriesModal.classList.add("hidden");
     document.getElementById("closeMeetingSeriesModal").addEventListener("click", closeSeriesModal);

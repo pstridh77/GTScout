@@ -3048,14 +3048,12 @@ select:focus {
 }
 
 .edit-meeting-btn,
-.view-meeting-btn,
-.remove-meeting-btn {
+.view-meeting-btn {
     border: 0;
     cursor: pointer;
 }
 
-.edit-meeting-btn,
-.remove-meeting-btn {
+.edit-meeting-btn {
     border-radius: 6px;
 }
 
@@ -3065,15 +3063,6 @@ select:focus {
     color: #075985;
     font-size: 0.75rem;
     font-weight: 600;
-}
-
-.remove-meeting-btn {
-    width: 22px;
-    height: 22px;
-    background: transparent;
-    color: #b91c1c;
-    font-size: 1rem;
-    line-height: 1;
 }
 
 .planned-meeting .view-meeting-btn {
@@ -3407,6 +3396,8 @@ select:focus {
 .modal-actions--split { justify-content: space-between; }
 .group-modal-actions { gap: 12px; }
 .group-modal-actions #removeGroupBtn { margin-right: auto; }
+.meeting-modal-actions { gap: 12px; }
+.meeting-modal-actions #removeMeetingBtn { margin-right: auto; }
 
 .meeting-form-grid {
     display: grid;
