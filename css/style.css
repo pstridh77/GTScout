@@ -2100,8 +2100,8 @@ select:focus {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
+    width: clamp(36px, 2.6vw, 46px);
+    height: clamp(36px, 2.6vw, 46px);
     padding: 0;
     border: 0;
     border-radius: 8px;
@@ -2122,6 +2122,11 @@ select:focus {
 
 .filters-visibility-icon {
     display: inline-flex;
+}
+
+.filters-visibility-icon svg {
+    width: clamp(17px, 1.25vw, 22px);
+    height: clamp(17px, 1.25vw, 22px);
 }
 
 .nav-link {
@@ -2247,6 +2252,15 @@ select:focus {
     z-index: 100;
 }
 
+.library-header-actions {
+    grid-column: 3;
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    gap: clamp(8px, 1vw, 14px);
+    z-index: 100;
+}
+
 .site-menu {
     position: relative;
     grid-column: 3;
@@ -2299,6 +2313,7 @@ select:focus {
     }
 
     .site-menu,
+    .library-header-actions,
     .header-main > .planning-actions-menu {
         grid-column: 2;
         grid-row: 1;
@@ -2356,7 +2371,14 @@ select:focus {
     }
 
     .site-header--library .site-menu {
+        grid-column: auto;
+    }
+
+    .site-header--library .library-header-actions {
         grid-column: 2;
+        grid-row: 1;
+        justify-self: end;
+        display: flex;
     }
 }
 
