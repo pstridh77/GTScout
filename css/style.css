@@ -3454,6 +3454,12 @@ select:focus {
     gap: 12px;
 }
 
+#meetingLocation.meeting-location-empty-readonly:disabled {
+    border-color: #d0d7de;
+    background: #f8fafc;
+    color: #64748b;
+}
+
 .meeting-series-block {
     display: grid;
     gap: 12px;

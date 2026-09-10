@@ -2861,7 +2861,9 @@ function openMeetingModal(groupId, meetingId = null, readOnly = false) {
     }
 
     function renderMeetingActivities() {
-        const availableActivityIds = new Set([...planningActivityIds, ...selectedIds]);
+        const availableActivityIds = viewOnly
+            ? new Set(selectedIds)
+            : new Set([...planningActivityIds, ...selectedIds]);
         const availableActivities = allAktiviteter
             .filter(activity => availableActivityIds.has(activity.id))
             .sort((left, right) => Number(selectedIds.has(right.id)) - Number(selectedIds.has(left.id)));
@@ -2938,7 +2940,10 @@ function openMeetingModal(groupId, meetingId = null, readOnly = false) {
     meetingDateInput.oninput = updateMeetingSunsetInfo;
     updateMeetingSunsetInfo();
     document.getElementById("meetingResponsible").value = meeting ? (meeting.responsible || "") : "";
-    document.getElementById("meetingLocation").value = meeting ? (meeting.location || "") : "";
+    const meetingLocationInput = document.getElementById("meetingLocation");
+    meetingLocationInput.value = meeting ? (meeting.location || (viewOnly ? "Ingen plats vald" : "")) : "";
+    meetingLocationInput.placeholder = viewOnly ? "Ingen plats vald" : "T.ex. Vindskydden";
+    meetingLocationInput.classList.toggle("meeting-location-empty-readonly", Boolean(viewOnly && meeting && !meeting.location));
     const knownLocations = [...new Set(
         groups.flatMap(item => normalizeMeetingList(item.meetings || []).map(item2 => item2.location))
     )].filter(Boolean).sort((a, b) => a.localeCompare(b, "sv"));
