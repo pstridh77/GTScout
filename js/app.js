@@ -528,6 +528,21 @@ function getBadgePlannings(badgeId) {
     );
 }
 
+function renderBadgePlanningSummary(plannings) {
+    if (!plannings.length) return "";
+    const visiblePlannings = plannings.slice(0, 3);
+    const hiddenCount = plannings.length - visiblePlannings.length;
+    const title = `Finns i: ${plannings.map(planning => planning.name).join(", ")}`;
+    const icons = visiblePlannings.map(planning => {
+        const iconPath = getPlanningIconPath(planning.level);
+        return iconPath
+            ? `<img src="${iconPath}" alt="${planning.level}" title="${planning.name}" class="badge-planning-icon">`
+            : "";
+    }).join("");
+    const countBadge = hiddenCount > 0 ? `<span class="badge-planning-count">+${hiddenCount}</span>` : "";
+    return `<div class="badge-planning-icons${hiddenCount > 0 ? " badge-planning-icons--many" : ""}" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}">${icons}${countBadge}</div>`;
+}
+
 function loadBadgeNotes() {
     try {
         const storedNotes = JSON.parse(localStorage.getItem(BADGE_NOTES_STORAGE_KEY));
@@ -847,18 +862,12 @@ function renderMarken(marken) {
                     return;
                 }
                 const badgePlannings = getBadgePlannings(marke.id);
-                const planningIcons = badgePlannings.map(planning => {
-                    const iconPath = getPlanningIconPath(planning.level);
-                    return iconPath
-                        ? `<img src="${iconPath}" alt="${planning.level}" title="${planning.name}" class="badge-planning-icon">`
-                        : "";
-                }).join("");
                 card.innerHTML = `
                     ${marke.isCustom ? '<span class="activity-owner-badge activity-owner-badge--mine badge-owner-badge">Min kår</span>' : ""}
                     <img src="${marke.bild}" alt="${marke.namn}">
                     <h3>${marke.namn}</h3>
                     <p>${formatTargetGroups(marke)}</p>
-                    ${planningIcons ? `<div class="badge-planning-icons" title="Finns i: ${badgePlannings.map(planning => planning.name).join(", ")}">${planningIcons}</div>` : ""}
+                    ${renderBadgePlanningSummary(badgePlannings)}
                 `;
                 card.addEventListener("click", event => {
                     if (cards.classList.contains("target-group-cards--stacked")

@@ -1023,7 +1023,7 @@ async function deleteStandaloneActivity(activity) {
 // ── Persistence ────────────────────────────────────────────────────────────
 
 function normalizeGroupList(list) {
-    return Array.isArray(list)
+    const normalized = Array.isArray(list)
         ? list.map(group => {
             if (!group || typeof group !== "object") return group;
             const { year, term } = parsePlanningYearAndTerm(group);
@@ -1037,6 +1037,29 @@ function normalizeGroupList(list) {
             return group;
         }).filter(Boolean).filter(canViewGroup)
         : [];
+    clearDuplicateShareTokens(normalized);
+    return normalized;
+}
+
+function clearDuplicateShareTokens(list) {
+    if (!Array.isArray(list)) return;
+    const userId = window.GTScoutAuth?.getUser?.()?.id || null;
+    const groupsByToken = new Map();
+    list.forEach(group => {
+        if (!group?.share_token) return;
+        const token = String(group.share_token);
+        if (!groupsByToken.has(token)) groupsByToken.set(token, []);
+        groupsByToken.get(token).push(group);
+    });
+    groupsByToken.forEach(tokenGroups => {
+        if (tokenGroups.length < 2) return;
+        const keeper = tokenGroups.find(group => !String(group.name || "").startsWith("Kopia av ") && group.created_by !== userId)
+            || tokenGroups.find(group => !String(group.name || "").startsWith("Kopia av "))
+            || tokenGroups[0];
+        tokenGroups.forEach(group => {
+            if (group !== keeper) group.share_token = null;
+        });
+    });
 }
 
 function loadGroups() {
@@ -1057,6 +1080,7 @@ function saveGroups() {
         year: Number.isFinite(getGroupYearValue(group)) ? getGroupYearValue(group) : "",
         term: getGroupTermValue(group)
     }));
+    clearDuplicateShareTokens(payload);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     window.GTScoutPlanningSync?.scheduleSave(payload);
 }
@@ -2308,6 +2332,8 @@ function copyGroup(id) {
     copy.created_by_name = profile?.full_name || profile?.email || "";
     copy.updated_by_name = profile?.full_name || profile?.email || "";
     copy.updated_at = now;
+    copy.share_token = null;
+    copy.shared_view = false;
     copy.local_only = Boolean(auth?.isOnline?.() && !window.GTScoutPlanningSync?.canWrite?.());
     groups.push(copy);
     saveGroups();
