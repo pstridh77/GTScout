@@ -2151,10 +2151,10 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
         });
     });
 
-    document.querySelectorAll(".edit-meeting-btn").forEach(btn => {
+    document.querySelectorAll(".edit-meeting-btn, .view-meeting-btn").forEach(btn => {
         btn.addEventListener("click", e => {
             e.stopPropagation();
-            openMeetingModal(btn.dataset.groupId, btn.dataset.meetingId);
+            openMeetingModal(btn.dataset.groupId, btn.dataset.meetingId, btn.classList.contains("view-meeting-btn"));
         });
     });
 
@@ -2243,8 +2243,10 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
                     <div class="planned-meeting-header">
                         <strong>Träff ${escapeHtml(meeting.week || "-")}</strong>
                         <div class="planned-meeting-tools">
-                            <button class="edit-meeting-btn" type="button" data-group-id="${group.id}" data-meeting-id="${meeting.id}">Redigera</button>
-                            <button class="remove-meeting-btn" type="button" data-group-id="${group.id}" data-meeting-id="${meeting.id}" aria-label="Ta bort möte">&times;</button>
+                            ${editable
+                                ? `<button class="edit-meeting-btn" type="button" data-group-id="${group.id}" data-meeting-id="${meeting.id}">Redigera</button>
+                                   <button class="remove-meeting-btn" type="button" data-group-id="${group.id}" data-meeting-id="${meeting.id}" aria-label="Ta bort möte">&times;</button>`
+                                : `<button class="activity-info-button view-meeting-btn" type="button" data-group-id="${group.id}" data-meeting-id="${meeting.id}" title="Visa mötesinformation" aria-label="Visa information om träff ${escapeHtml(meeting.week || "-")}">i</button>`}
                         </div>
                     </div>
                     ${meeting.date ? `<small>${escapeHtml(meeting.date)}${meeting.location ? ` &middot; ${escapeHtml(meeting.location)}` : ""}${calculateSunsetTime(meeting.date) ? ` &middot; <span class="meeting-sunset-hint">${SUNSET_ICON_SVG}${escapeHtml(calculateSunsetTime(meeting.date))}</span>` : ""}</small>` : ""}
@@ -2795,12 +2797,16 @@ function renderMeetingLabels(group, activityId) {
         : `<span class="activity-meeting-links activity-meeting-links--empty">Inte utlagd på någon träff</span>`;
 }
 
-function openMeetingModal(groupId, meetingId = null) {
+function openMeetingModal(groupId, meetingId = null, readOnly = false) {
     const modal = document.getElementById("meetingModal");
     const group = groups.find(item => item.id === groupId);
-    if (!group || !canEditGroup(group)) return;
+    if (!group) return;
+    const editable = canEditGroup(group);
+    const viewOnly = readOnly || !editable;
+    if (!editable && !meetingId) return;
 
     const meeting = meetingId ? normalizeMeetingList(group.meetings || []).find(item => item.id === meetingId) : null;
+    if (meetingId && !meeting) return;
     const meetingName = meeting?.week ? `Träff ${meeting.week}` : "Träff";
     document.getElementById("meetingModalTitle").textContent = `${group.level || "Målgrupp"} – ${group.name} – ${meetingName}`;
     const gameList = document.getElementById("meetingGameList");
@@ -2844,12 +2850,12 @@ function openMeetingModal(groupId, meetingId = null) {
         activityList.innerHTML = availableActivities.length > 0
             ? availableActivities.map(activity => `
                 <label class="meeting-activity-option">
-                    <input type="checkbox" value="${activity.id}" ${selectedIds.has(activity.id) ? "checked" : ""}>
+                    <input type="checkbox" value="${activity.id}" ${selectedIds.has(activity.id) ? "checked" : ""}${viewOnly ? " disabled" : ""}>
                     <span class="meeting-activity-details">
                         <span>${escapeHtml(activity.namn)}</span>
                         ${renderMeetingLabels(group, activity.id)}
                     </span>
-                    ${selectedIds.has(activity.id) ? `<input type="text" class="meeting-activity-responsible-input" data-activity-id="${activity.id}" placeholder="Ansvarig" value="${escapeHtml(activityResponsibleMap.get(activity.id) || "")}">` : ""}
+                    ${selectedIds.has(activity.id) ? `<input type="text" class="meeting-activity-responsible-input" data-activity-id="${activity.id}" placeholder="Ansvarig" value="${escapeHtml(activityResponsibleMap.get(activity.id) || "")}"${viewOnly ? " disabled" : ""}>` : ""}
                     <button class="activity-info-button" type="button" data-activity-id="${activity.id}" title="Visa information" aria-label="Visa information om ${activity.namn}">i</button>
                 </label>`).join("")
             : "<p class='group-empty'>Det finns inga aktiviteter i denna planering ännu.</p>";
@@ -2870,9 +2876,9 @@ function openMeetingModal(groupId, meetingId = null) {
         gameList.innerHTML = selectedGames.length > 0
             ? selectedGames.map(activity => `
                 <label class="meeting-activity-option">
-                    <input type="checkbox" value="${activity.id}" checked>
+                    <input type="checkbox" value="${activity.id}" checked${viewOnly ? " disabled" : ""}>
                     <span class="meeting-activity-details"><span>${escapeHtml(activity.namn)}</span></span>
-                    <input type="text" class="meeting-activity-responsible-input" data-activity-id="${activity.id}" placeholder="Ansvarig" value="${escapeHtml(gameResponsibleMap.get(activity.id) || "")}">
+                    <input type="text" class="meeting-activity-responsible-input" data-activity-id="${activity.id}" placeholder="Ansvarig" value="${escapeHtml(gameResponsibleMap.get(activity.id) || "")}"${viewOnly ? " disabled" : ""}>
                     <button class="activity-info-button" type="button" data-activity-id="${activity.id}" title="Visa information" aria-label="Visa information om ${activity.namn}">i</button>
                 </label>`).join("")
             : "<p class='group-empty'>Ingen lek är vald ännu.</p>";
@@ -2900,6 +2906,7 @@ function openMeetingModal(groupId, meetingId = null) {
 
     modal.dataset.groupId = groupId;
     modal.dataset.meetingId = meetingId || "";
+    modal.dataset.readOnly = viewOnly ? "true" : "false";
     document.getElementById("meetingWeek").value = meeting ? (meeting.week || "") : "";
     const meetingDateInput = document.getElementById("meetingDate");
     meetingDateInput.value = meeting ? (meeting.date || "") : "";
@@ -2929,6 +2936,7 @@ function openMeetingModal(groupId, meetingId = null) {
     ].join("");
     meetingBadgePicker.querySelectorAll(".meeting-badge-option").forEach(option => {
         option.addEventListener("click", () => {
+            if (viewOnly) return;
             const nextSelectedBadgeIds = new Set(normalizeMeetingBadgeIds(meetingBadge.value));
             const badgeId = option.dataset.badgeId || "";
             if (!badgeId) {
@@ -2959,10 +2967,23 @@ function openMeetingModal(groupId, meetingId = null) {
         });
     });
     document.getElementById("meetingNotes").value = meeting ? (meeting.notes || "") : "";
+    ["meetingWeek", "meetingDate", "meetingResponsible", "meetingLocation", "meetingNotes"].forEach(id => {
+        const field = document.getElementById(id);
+        if (field) field.disabled = viewOnly;
+    });
+    meetingBadgePicker.querySelectorAll("button").forEach(button => {
+        button.disabled = viewOnly;
+        button.setAttribute("aria-disabled", String(viewOnly));
+    });
+    allGamesButton.classList.toggle("hidden", viewOnly);
+    allActivitiesButton.classList.toggle("hidden", viewOnly);
+    document.getElementById("generateMeetingSeriesBtn").classList.toggle("hidden", viewOnly);
+    document.getElementById("saveMeetingBtn").classList.toggle("hidden", viewOnly);
     document.getElementById("meetingSeriesCount").value = "10";
     document.getElementById("meetingSeriesStartWeek").value = "1";
     document.getElementById("meetingSeriesStartDate").value = "";
     activityList.onchange = event => {
+        if (viewOnly) return;
         const input = event.target;
         if (!(input instanceof HTMLInputElement) || input.type !== "checkbox") return;
         syncActivityResponsibleMapFromDom();
@@ -2971,6 +2992,7 @@ function openMeetingModal(groupId, meetingId = null) {
         renderMeetingActivities();
     };
     gameList.onchange = event => {
+        if (viewOnly) return;
         const input = event.target;
         if (!(input instanceof HTMLInputElement) || input.type !== "checkbox") return;
         syncGameResponsibleMapFromDom();
@@ -2987,14 +3009,14 @@ function openMeetingModal(groupId, meetingId = null) {
     renderMeetingActivities();
 
     modal.classList.remove("hidden");
-    document.getElementById("meetingWeek").focus();
+    (viewOnly ? document.getElementById("closeMeetingModal") : document.getElementById("meetingWeek")).focus();
 }
 
 function saveMeetingFromModal() {
     const modal = document.getElementById("meetingModal");
     const groupId = modal.dataset.groupId;
     const group = groups.find(item => item.id === groupId);
-    if (!group) return;
+    if (!group || !canEditGroup(group) || modal.dataset.readOnly === "true") return;
 
     const week = document.getElementById("meetingWeek").value.trim();
     const date = document.getElementById("meetingDate").value;
@@ -3083,7 +3105,8 @@ function bindMeetingModalActions() {
     });
     document.getElementById("generateMeetingSeriesBtn").addEventListener("click", () => {
         const groupId = modal.dataset.groupId;
-        if (!groupId) return;
+        const group = groups.find(item => item.id === groupId);
+        if (!groupId || !group || !canEditGroup(group) || modal.dataset.readOnly === "true") return;
         seriesModal.dataset.groupId = groupId;
         seriesModal.classList.remove("hidden");
         document.getElementById("meetingSeriesCount").focus();

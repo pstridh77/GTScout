@@ -3048,10 +3048,15 @@ select:focus {
 }
 
 .edit-meeting-btn,
+.view-meeting-btn,
 .remove-meeting-btn {
     border: 0;
-    border-radius: 6px;
     cursor: pointer;
+}
+
+.edit-meeting-btn,
+.remove-meeting-btn {
+    border-radius: 6px;
 }
 
 .edit-meeting-btn {
@@ -3069,6 +3074,13 @@ select:focus {
     color: #b91c1c;
     font-size: 1rem;
     line-height: 1;
+}
+
+.planned-meeting .view-meeting-btn {
+    width: 22px;
+    height: 22px;
+    flex-basis: 22px;
+    font-size: 0.85rem;
 }
 
 .planned-meeting small,
