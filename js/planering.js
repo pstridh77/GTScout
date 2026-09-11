@@ -1293,7 +1293,6 @@ function renderMeetingSelectionList() {
 function populateMeetingPlanningSelect() {
     const select = document.getElementById("meetingPlanningSelect");
     const sortedGroups = groups
-        .filter(group => normalizeMeetingList(group.meetings || []).length > 0)
         .sort((left, right) => {
         const leftOrder = getGroupSortValue(left);
         const rightOrder = getGroupSortValue(right);
@@ -1557,7 +1556,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
         const badgeIds = [...new Set(meetings.flatMap(meeting => getMeetingBadgeIds(meeting)))];
         return badgeIds.length > 0
             ? badgeIds.map(badgeId => renderBadge(badgeId, group)).join("")
-            : "<p>Inga märken valdes.</p>";
+            : "";
     };
     const renderMeetingActivityOverview = meetings => {
         const activityIds = [...new Set(meetings.flatMap(meeting => [
@@ -1566,7 +1565,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
         ]))];
         return activityIds.length > 0
             ? activityIds.map(activityId => renderActivity(activityId)).join("")
-            : "<p>Inga aktiviteter valdes.</p>";
+            : "";
     };
     const renderMeetingDetailPage = (group, meeting) => {
         const badges = getMeetingBadgeIds(meeting)
@@ -1694,22 +1693,32 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
         }
 
         if (isMeetingOverviewPrint) {
+            const hasMeetings = meetings.length > 0;
+            const badgeOverview = hasMeetings
+                ? renderMeetingBadgeOverview(group, meetings)
+                : (group.badges || []).map(badgeId => renderBadge(badgeId, group)).join("");
+            const activityOverview = hasMeetings
+                ? renderMeetingActivityOverview(meetings)
+                : (group.activities || []).map(activityId => renderActivity(activityId)).join("");
             return `
-            <section class="pdf-planning pdf-planning--meeting-overview">
+            ${badgeOverview ? `<section class="pdf-planning pdf-planning--meeting-overview">
                 ${renderCompactDocumentHeader(group, "Grovplanering")}
                 <h2 class="pdf-planning-heading">Märken</h2>
-                ${renderMeetingBadgeOverview(group, meetings)}
-            </section>
-            <section class="pdf-planning pdf-planning--meeting-overview">
+                ${badgeOverview}
+            </section>` : ""}
+            ${activityOverview ? `<section class="pdf-planning pdf-planning--meeting-overview">
                 ${renderCompactDocumentHeader(group, "Grovplanering")}
                 <h2 class="pdf-planning-heading">Aktiviteter</h2>
-                ${renderMeetingActivityOverview(meetings)}
-            </section>
-            <section class="pdf-planning pdf-planning--leader">
+                ${activityOverview}
+            </section>` : ""}
+            ${hasMeetings ? `<section class="pdf-planning pdf-planning--leader">
                 ${renderCompactDocumentHeader(group, "Grovplanering")}
                 <h2 class="pdf-planning-heading">Ledaröversikt</h2>
                 ${renderLeaderTable(group, meetings)}
-            </section>
+            </section>` : ""}
+            ${!badgeOverview && !activityOverview ? `<section class="pdf-planning pdf-planning--meeting-overview">
+                ${renderCompactDocumentHeader(group, "Grovplanering")}
+            </section>` : ""}
             `;
         }
 
@@ -3619,11 +3628,11 @@ document.getElementById("generatePdfBtn").addEventListener("click", () => {
         generatePlanningPdf(pdfSelectionState);
         return;
     }
-    if (meetingSelectionState.size === 0 || !meetingSelectionGroupId) {
+    const selectedMode = document.querySelector("input[name='meetingPrintMode']:checked")?.value || "overview";
+    if (!meetingSelectionGroupId || (selectedMode !== "overview" && meetingSelectionState.size === 0)) {
         alert("Välj minst ett möte.");
         return;
     }
-    const selectedMode = document.querySelector("input[name='meetingPrintMode']:checked")?.value || "overview";
     pdfSelectionModal.classList.add("hidden");
     generatePlanningPdf(
         new Set([meetingSelectionGroupId]),
