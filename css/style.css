@@ -2192,6 +2192,13 @@ select:focus {
 
 .btn-primary:hover { background: #00509e; }
 
+.btn-primary:disabled,
+.btn-primary:disabled:hover {
+    background: #a8b2bd;
+    color: #eef2f5;
+    cursor: not-allowed;
+}
+
 .btn-secondary {
     background: #e8f0fe;
     color: #003660;

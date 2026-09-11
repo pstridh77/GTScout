@@ -1186,7 +1186,6 @@ function renderMeetingSelectionList() {
     const meetings = group ? normalizeMeetingList(group.meetings || []) : [];
     list.replaceChildren();
     if (meetings.length === 0) {
-        list.innerHTML = "<p>Det finns inga möten att skriva ut.</p>";
         return;
     }
     meetings.forEach(meeting => {
@@ -1199,6 +1198,7 @@ function renderMeetingSelectionList() {
         checkbox.addEventListener("change", () => {
             if (checkbox.checked) meetingSelectionState.add(meeting.id);
             else meetingSelectionState.delete(meeting.id);
+            updatePrintAvailability();
         });
         const text = document.createElement("span");
         const name = document.createElement("strong");
@@ -1225,8 +1225,9 @@ function populateMeetingPlanningSelect() {
     select.replaceChildren();
     sortedGroups.forEach(group => {
         const option = document.createElement("option");
+        const meetingCount = normalizeMeetingList(group.meetings || []).length;
         option.value = group.id;
-        option.textContent = `${group.name} - ${group.level}`;
+        option.textContent = `${group.name} - ${group.level} (${meetingCount} ${meetingCount === 1 ? "möte" : "möten"})`;
         select.appendChild(option);
     });
     if (!sortedGroups.some(group => group.id === meetingSelectionGroupId)) {
@@ -1241,6 +1242,22 @@ function populateMeetingPlanningSelect() {
 function updatePrintSelectionMode() {
     document.getElementById("meetingPrintSelection").classList.remove("hidden");
     document.getElementById("generatePdfBtn").textContent = "Skriv ut planering";
+    updatePrintAvailability();
+}
+
+function updatePrintAvailability() {
+    const selectedMode = document.querySelector("input[name='meetingPrintMode']:checked")?.value || "overview";
+    const group = groups.find(item => item.id === meetingSelectionGroupId);
+    const hasMeetings = normalizeMeetingList(group?.meetings || []).length > 0;
+    const requiresMeetings = selectedMode === "detailed" || selectedMode === "leader";
+    const hasSelectedMeetings = meetingSelectionState.size > 0;
+    const unavailable = requiresMeetings && (!hasMeetings || !hasSelectedMeetings);
+    const availability = document.getElementById("meetingPrintAvailability");
+    availability.classList.toggle("hidden", !unavailable);
+    availability.textContent = !hasMeetings
+        ? "Den valda planeringen saknar möten. Välj Översikt eller en planering med möten."
+        : unavailable ? "Markera minst ett möte för att skriva ut." : "";
+    document.getElementById("generatePdfBtn").disabled = unavailable;
 }
 
 // Ungefärlig position för Styrdal/Gullbrandstorp, Halmstads kommun.
@@ -3533,16 +3550,19 @@ document.getElementById("selectAllMeetingsBtn").addEventListener("click", () => 
     const group = groups.find(item => item.id === meetingSelectionGroupId);
     meetingSelectionState = new Set(normalizeMeetingList(group?.meetings || []).map(meeting => meeting.id));
     renderMeetingSelectionList();
+    updatePrintAvailability();
 });
 document.getElementById("clearMeetingsBtn").addEventListener("click", () => {
     meetingSelectionState.clear();
     renderMeetingSelectionList();
+    updatePrintAvailability();
 });
 document.getElementById("meetingPlanningSelect").addEventListener("change", event => {
     meetingSelectionGroupId = event.target.value;
     const group = groups.find(item => item.id === meetingSelectionGroupId);
     meetingSelectionState = new Set(normalizeMeetingList(group?.meetings || []).map(meeting => meeting.id));
     renderMeetingSelectionList();
+    updatePrintAvailability();
 });
 document.querySelectorAll("input[name='meetingPrintMode']").forEach(input => {
     input.addEventListener("change", updatePrintSelectionMode);
