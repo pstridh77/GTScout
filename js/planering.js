@@ -1225,7 +1225,7 @@ function renderPdfSelectionList() {
     }
 }
 
-function openPdfSelection() {
+function openPdfSelection(selectedGroupId = null) {
     const filter = document.getElementById("pdfPlanningFilter");
     const targetGroups = [...new Set(groups.map(group => group.level).filter(Boolean))];
     const targetGroupOrder = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
@@ -1242,11 +1242,19 @@ function openPdfSelection() {
         filter.appendChild(option);
     });
     filter.value = targetGroups.includes(groupFilters.level) ? groupFilters.level : "Alla";
-    pdfSelectionState = new Set(groups
-        .filter(group => filter.value === "Alla" || group.level === filter.value)
-        .filter(group => groupFilters.year === "Alla" || String(getGroupYearValue(group) ?? "") === String(groupFilters.year))
-        .filter(group => groupFilters.term === "Alla" || getGroupTermValue(group) === groupFilters.term)
-        .map(group => group.id));
+    pdfSelectionState = selectedGroupId && groups.some(group => group.id === selectedGroupId)
+        ? new Set([selectedGroupId])
+        : new Set(groups
+            .filter(group => filter.value === "Alla" || group.level === filter.value)
+            .filter(group => groupFilters.year === "Alla" || String(getGroupYearValue(group) ?? "") === String(groupFilters.year))
+            .filter(group => groupFilters.term === "Alla" || getGroupTermValue(group) === groupFilters.term)
+            .map(group => group.id));
+    meetingSelectionGroupId = selectedGroupId && groups.some(group => group.id === selectedGroupId)
+        ? selectedGroupId
+        : [...pdfSelectionState][0] || groups[0]?.id || null;
+    document.querySelector("input[name='printSelectionMode'][value='planning']").checked = true;
+    populateMeetingPlanningSelect();
+    updatePrintSelectionMode();
     renderPdfSelectionList();
     document.getElementById("pdfSelectionModal").classList.remove("hidden");
 }
@@ -1282,15 +1290,39 @@ function renderMeetingSelectionList() {
     });
 }
 
-function openMeetingSelection(groupId) {
-    const group = groups.find(item => item.id === groupId);
-    if (!group) return;
-    meetingSelectionGroupId = groupId;
-    const meetings = normalizeMeetingList(group.meetings || []);
-    meetingSelectionState = new Set(meetings.map(meeting => meeting.id));
-    document.getElementById("meetingSelectionTitle").textContent = `Välj möten till PDF – ${group.name}`;
+function populateMeetingPlanningSelect() {
+    const select = document.getElementById("meetingPlanningSelect");
+    const sortedGroups = groups
+        .filter(group => normalizeMeetingList(group.meetings || []).length > 0)
+        .sort((left, right) => {
+        const leftOrder = getGroupSortValue(left);
+        const rightOrder = getGroupSortValue(right);
+        if (left.level !== right.level) return left.level.localeCompare(right.level, "sv");
+        if (leftOrder.year !== rightOrder.year) return leftOrder.year - rightOrder.year;
+        if (leftOrder.term !== rightOrder.term) return leftOrder.term - rightOrder.term;
+        return String(left.name || "").localeCompare(String(right.name || ""), "sv");
+        });
+    select.replaceChildren();
+    sortedGroups.forEach(group => {
+        const option = document.createElement("option");
+        option.value = group.id;
+        option.textContent = `${group.name} - ${group.level}`;
+        select.appendChild(option);
+    });
+    if (!sortedGroups.some(group => group.id === meetingSelectionGroupId)) {
+        meetingSelectionGroupId = sortedGroups[0]?.id || null;
+    }
+    select.value = meetingSelectionGroupId || "";
+    const group = groups.find(item => item.id === meetingSelectionGroupId);
+    meetingSelectionState = new Set(normalizeMeetingList(group?.meetings || []).map(meeting => meeting.id));
     renderMeetingSelectionList();
-    document.getElementById("meetingSelectionModal").classList.remove("hidden");
+}
+
+function updatePrintSelectionMode() {
+    const mode = document.querySelector("input[name='printSelectionMode']:checked")?.value || "planning";
+    document.getElementById("planningPrintSelection").classList.toggle("hidden", mode !== "planning");
+    document.getElementById("meetingPrintSelection").classList.toggle("hidden", mode !== "meetings");
+    document.getElementById("generatePdfBtn").textContent = mode === "meetings" ? "Skriv ut möten" : "Skriv ut planering";
 }
 
 // Ungefärlig position för Styrdal/Gullbrandstorp, Halmstads kommun.
@@ -2118,6 +2150,7 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                     </div>
                     <div class="group-card-actions">
                         <button class="btn-secondary share-group-btn" type="button" data-group-id="${group.id}" aria-label="Dela planering" title="Dela planering"${group.local_only || !window.GTScoutPlanningSync?.canWrite?.() ? " disabled" : ""}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,16.08C17.24,16.08 16.54,16.38 16,16.85L8.91,12.74C8.96,12.5 9,12.25 9,12C9,11.75 8.96,11.5 8.91,11.26L15.92,7.17C16.47,7.66 17.2,7.97 18,7.97C19.66,7.97 21,6.63 21,4.97C21,3.31 19.66,1.97 18,1.97C16.34,1.97 15,3.31 15,4.97C15,5.22 15.04,5.47 15.09,5.71L8.08,9.8C7.53,9.31 6.8,9 6,9C4.34,9 3,10.34 3,12C3,13.66 4.34,15 6,15C6.8,15 7.53,14.69 8.08,14.2L15.17,18.31C15.12,18.54 15,18.77 15,19C15,20.66 16.34,22 18,22C19.66,22 21,20.66 21,19C21,17.34 19.66,16.08 18,16.08Z" /></svg></button>
+                        <button class="btn-secondary print-group-btn" type="button" data-group-id="${group.id}" aria-label="Skriv ut ${escapeHtml(group.name)}" title="Skriv ut ${escapeHtml(group.name)}"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,3H6V7H18M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8M16,19H8V14H16M19,13A1,1 0 1,1 20,12A1,1 0 0,1 19,13Z" /></svg></button>
                         <button class="btn-secondary edit-group-btn" type="button" data-group-id="${group.id}"${canEditGroup(group) ? "" : " disabled aria-disabled=\"true\" title=\"Endast ledare och administratörer kan redigera denna planering\""}>Redigera</button>
                     </div>
                 </div>
@@ -2128,6 +2161,7 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                 `;
                 card.querySelector(".edit-group-btn").addEventListener("click", () => openGroupEditor(group.id));
                 card.querySelector(".share-group-btn").addEventListener("click", () => shareGroup(group.id));
+                card.querySelector(".print-group-btn").addEventListener("click", () => openPdfSelection(group.id));
                 card.querySelector(".add-badge-btn").addEventListener("click", event => {
                     event.stopPropagation();
                     openBadgePicker(group.id);
@@ -2179,13 +2213,6 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
         btn.addEventListener("click", e => {
             e.stopPropagation();
             openMeetingModal(btn.dataset.groupId, btn.dataset.meetingId, btn.classList.contains("view-meeting-btn"));
-        });
-    });
-
-    document.querySelectorAll(".print-meetings-btn").forEach(btn => {
-        btn.addEventListener("click", e => {
-            e.stopPropagation();
-            openMeetingSelection(btn.dataset.groupId);
         });
     });
 
@@ -2248,7 +2275,7 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
                             <button class="remove-activity-btn" type="button" data-group-id="${group.id}" data-activity-id="${escapeHtml(activityId)}" title="Ta bort saknad aktivitet från planeringen" aria-label="Ta bort saknad aktivitet från planeringen">&times;</button>
                         </div>`;
                 }).join("")}</div></details>`;
-            const meetingsMarkup = showPlanningMeetings ? `<details class="planned-meetings"${openMeetingGroupIds.has(group.id) ? " open" : ""}><summary><span>Möten${meetings.length > 0 ? ` (${meetings.length})` : ""}</span><button class="btn-secondary add-meeting-btn" type="button" data-group-id="${group.id}"${editable ? "" : " disabled aria-disabled=\"true\" title=\"Endast ledare och administratörer kan ändra denna planering\""}>+ Möte</button></summary><div class="planned-meetings-list"><div class="planned-meetings-actions"><button class="btn-secondary print-meetings-btn" type="button" data-group-id="${group.id}">Skriv ut möten</button></div>${meetings.map(meeting => {
+            const meetingsMarkup = showPlanningMeetings ? `<details class="planned-meetings"${openMeetingGroupIds.has(group.id) ? " open" : ""}><summary><span>Möten${meetings.length > 0 ? ` (${meetings.length})` : ""}</span><button class="btn-secondary add-meeting-btn" type="button" data-group-id="${group.id}"${editable ? "" : " disabled aria-disabled=\"true\" title=\"Endast ledare och administratörer kan ändra denna planering\""}>+ Möte</button></summary><div class="planned-meetings-list">${meetings.map(meeting => {
             const selectedActivities = (meeting.activities || []).map(activityId => allAktiviteter.find(item => item.id === activityId)).filter(Boolean);
             const meetingBadges = sortBadgesForDisplay(
                 getMeetingBadgeIds(meeting)
@@ -3495,7 +3522,6 @@ const sharePlanningModal = document.getElementById("sharePlanningModal");
 const pdfSelectionModal = document.getElementById("pdfSelectionModal");
 const pdfSelectionList = document.getElementById("pdfSelectionList");
 const pdfPlanningFilter = document.getElementById("pdfPlanningFilter");
-const meetingSelectionModal = document.getElementById("meetingSelectionModal");
 document.getElementById("closeExportInfoModal").addEventListener("click", () => exportInfoModal.classList.add("hidden"));
 document.getElementById("closeExportInfoBtn").addEventListener("click", () => exportInfoModal.classList.add("hidden"));
 exportInfoModal.addEventListener("click", event => {
@@ -3540,17 +3566,27 @@ pdfPlanningFilter.addEventListener("change", () => {
     renderPdfSelectionList();
 });
 document.getElementById("generatePdfBtn").addEventListener("click", () => {
-    const selectedIds = pdfSelectionState;
-    if (selectedIds.size === 0) {
-        alert("Välj minst en planering.");
+    const mode = document.querySelector("input[name='printSelectionMode']:checked")?.value || "planning";
+    if (mode === "planning") {
+        if (pdfSelectionState.size === 0) {
+            alert("Välj minst en planering.");
+            return;
+        }
+        pdfSelectionModal.classList.add("hidden");
+        generatePlanningPdf(pdfSelectionState);
         return;
     }
+    if (meetingSelectionState.size === 0 || !meetingSelectionGroupId) {
+        alert("Välj minst ett möte.");
+        return;
+    }
+    const selectedMode = document.querySelector("input[name='meetingPrintMode']:checked")?.value || "overview";
     pdfSelectionModal.classList.add("hidden");
-    generatePlanningPdf(selectedIds);
-});
-document.getElementById("closeMeetingSelectionModal").addEventListener("click", () => meetingSelectionModal.classList.add("hidden"));
-meetingSelectionModal.addEventListener("click", event => {
-    if (event.target === meetingSelectionModal) meetingSelectionModal.classList.add("hidden");
+    generatePlanningPdf(
+        new Set([meetingSelectionGroupId]),
+        selectedMode === "detailed" ? "meeting-detail" : selectedMode === "leader" ? "meeting-leader" : "meeting-overview",
+        meetingSelectionState
+    );
 });
 document.getElementById("selectAllMeetingsBtn").addEventListener("click", () => {
     const group = groups.find(item => item.id === meetingSelectionGroupId);
@@ -3561,18 +3597,14 @@ document.getElementById("clearMeetingsBtn").addEventListener("click", () => {
     meetingSelectionState.clear();
     renderMeetingSelectionList();
 });
-document.getElementById("generateMeetingsPdfBtn").addEventListener("click", () => {
-    if (meetingSelectionState.size === 0) {
-        alert("Välj minst ett möte.");
-        return;
-    }
-    const selectedMode = document.querySelector("input[name='meetingPrintMode']:checked")?.value || "overview";
-    meetingSelectionModal.classList.add("hidden");
-    generatePlanningPdf(
-        new Set([meetingSelectionGroupId]),
-        selectedMode === "detailed" ? "meeting-detail" : selectedMode === "leader" ? "meeting-leader" : "meeting-overview",
-        meetingSelectionState
-    );
+document.getElementById("meetingPlanningSelect").addEventListener("change", event => {
+    meetingSelectionGroupId = event.target.value;
+    const group = groups.find(item => item.id === meetingSelectionGroupId);
+    meetingSelectionState = new Set(normalizeMeetingList(group?.meetings || []).map(meeting => meeting.id));
+    renderMeetingSelectionList();
+});
+document.querySelectorAll("input[name='printSelectionMode']").forEach(input => {
+    input.addEventListener("change", updatePrintSelectionMode);
 });
 
 const importPlanningInput = document.getElementById("importPlanningInput");
