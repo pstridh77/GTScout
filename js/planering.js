@@ -1385,14 +1385,15 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             </article>
         `;
     };
-    const renderActivity = (activityId, includeHandwritingSpace = false, handwritingRows = 3) => {
+    const renderActivity = (activityId, includeHandwritingSpace = false, handwritingRows = 3, responsible = "", includeCategory = true) => {
         const activity = allAktiviteter.find(item => item.id === activityId);
         if (!activity) return `<p class="missing-badge">Aktivitet ${escapeHtml(activityId)} kunde inte hittas.</p>`;
         const material = Array.isArray(activity.material) ? activity.material.join(", ") : "";
-        const handwritingSpace = includeHandwritingSpace
-            ? `<div class="pdf-meeting-detail-preparations-grid"><div><h4 aria-hidden="true">&nbsp;</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för egna aktivitetsanteckningar">${"<span></span>".repeat(handwritingRows)}</div></div><div><h4>Ansvarig</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för aktivitetens ansvarig">${"<span></span>".repeat(handwritingRows)}</div></div></div>`
-            : "";
-        return `<div class="pdf-activity"><h4>${escapeHtml(activity.namn)}</h4>${activity.kategori ? `<p><strong>Kategori:</strong> ${escapeHtml(activity.kategori)}</p>` : ""}${activity.beskrivning ? `<p><strong>Beskrivning:</strong> ${renderLinkedText(activity.beskrivning)}</p>` : ""}${formatActivityTime(activity) ? `<p><strong>Tid:</strong> ${escapeHtml(formatActivityTime(activity))}</p>` : ""}${material ? `<p><strong>Material:</strong> ${escapeHtml(material)}</p>` : ""}${activity.genomforande ? `<p><strong>Genomförande:</strong> ${renderLinkedText(activity.genomforande)}</p>` : ""}${handwritingSpace}</div>`;
+        const activityDetails = `${includeCategory && activity.kategori ? `<p><strong>Kategori:</strong> ${escapeHtml(activity.kategori)}</p>` : ""}${activity.beskrivning ? `<p><strong>Beskrivning:</strong> ${renderLinkedText(activity.beskrivning)}</p>` : ""}${formatActivityTime(activity) ? `<p><strong>Tid:</strong> ${escapeHtml(formatActivityTime(activity))}</p>` : ""}${material ? `<p><strong>Material:</strong> ${escapeHtml(material)}</p>` : ""}${activity.genomforande ? `<p><strong>Genomförande:</strong> ${renderLinkedText(activity.genomforande)}</p>` : ""}`;
+        if (includeHandwritingSpace) {
+            return `<div class="pdf-activity"><div class="pdf-meeting-detail-preparations-grid"><div><h4>${escapeHtml(activity.namn)}</h4>${activityDetails}<div class="pdf-handwriting-space" aria-label="Skrivyta för egna aktivitetsanteckningar">${"<span></span>".repeat(handwritingRows)}</div></div><div><h4>Ansvarig</h4>${responsible ? `<p>${renderLinkedText(responsible)}</p>` : ""}<div class="pdf-handwriting-space" aria-label="Skrivyta för aktivitetens ansvarig">${"<span></span>".repeat(handwritingRows)}</div></div></div></div>`;
+        }
+        return `<div class="pdf-activity"><h4>${escapeHtml(activity.namn)}</h4>${activityDetails}</div>`;
     };
     const renderMeeting = (group, meeting) => {
         const meetingBadges = sortBadgesForDisplay(
@@ -1507,9 +1508,6 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
         const badges = getMeetingBadgeIds(meeting)
             .map(badgeId => allMarken.find(item => item.id === badgeId))
             .filter(Boolean);
-        const levelIcon = getLevelIcon(group.level);
-        const planningYear = getGroupYearValue(group);
-        const planningTerm = getGroupTermValue(group);
         const selectedActivities = (meeting.activities || [])
             .map(activityId => allAktiviteter.find(item => item.id === activityId))
             .filter(Boolean);
@@ -1519,12 +1517,6 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
         const badgeInfo = badges.length > 0
             ? `<div class="pdf-meeting-detail-summary">${badges.map(badge => `<div class="pdf-meeting-detail-badge"><img src="${escapeHtml(resolveImage(badge.bild))}" alt="${escapeHtml(badge.namn)}"><span>${escapeHtml(badge.namn)}</span></div>`).join("")}</div>`
             : `<div class="pdf-meeting-detail-summary"><p><strong>Märken:</strong> -</p></div>`;
-        const dateInfo = meeting.date
-            ? escapeHtml(meeting.date)
-            : '<span class="pdf-meeting-detail-date-write-in" aria-label="Skriv datum här"></span>';
-        const responsibleInfo = meeting.responsible
-            ? escapeHtml(meeting.responsible)
-            : '<span class="pdf-meeting-detail-responsible-write-in" aria-label="Skriv ansvarig här"></span>';
         const notesContent = `<h4>Anteckningar</h4>${meeting.notes ? `<p>${renderLinkedText(meeting.notes)}</p>` : ""}<div class="pdf-handwriting-space" aria-label="Skrivyta för mötesanteckningar"><span></span><span></span><span></span></div>`;
         const preparationsContent = `<div class="pdf-meeting-detail-preparations-grid"><div><h4>Förberedelser</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för förberedelser"><span></span><span></span><span></span><span></span><span></span></div></div><div><h4>Ansvarig</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för ansvarig"><span></span><span></span><span></span><span></span><span></span></div></div></div>`;
         const templateSections = [
@@ -1554,30 +1546,16 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 <div class="pdf-meeting-detail-section-content">
                     <p>${escapeHtml(section.text)}</p>
                     ${section.title === "Aktivitet"
-                        ? `${selectedActivities.length > 0 ? selectedActivities.map(activity => renderActivity(activity.id, true)).join("") : ""}${selectedActivities.length === 0 ? `<div class="pdf-meeting-detail-preparations-grid"><div><h4 aria-hidden="true">&nbsp;</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för aktiviteter"><span></span><span></span><span></span></div></div><div><h4>Ansvarig</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för aktivitetens ansvarig"><span></span><span></span><span></span></div></div></div>` : ""}`
+                        ? `${selectedActivities.length > 0 ? selectedActivities.map(activity => renderActivity(activity.id, true, 3, meeting.activityResponsible?.[activity.id] || "")).join("") : ""}${selectedActivities.length === 0 ? `<div class="pdf-meeting-detail-preparations-grid"><div><h4 aria-hidden="true">&nbsp;</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för aktiviteter"><span></span><span></span><span></span></div></div><div><h4>Ansvarig</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för aktivitetens ansvarig"><span></span><span></span><span></span></div></div></div>` : ""}`
                         : ""}
                     ${section.title === "Lek"
-                        ? `${selectedGames.length > 0 ? selectedGames.map(activity => renderActivity(activity.id, true, 1)).join("") : ""}${selectedGames.length === 0 ? `<div class="pdf-meeting-detail-preparations-grid"><div><h4 aria-hidden="true">&nbsp;</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för egna anteckningar"><span></span></div></div><div><h4>Ansvarig</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för lekens ansvarig"><span></span></div></div></div>` : ""}`
+                        ? `${selectedGames.length > 0 ? selectedGames.map(activity => renderActivity(activity.id, true, 1, meeting.gameResponsible?.[activity.id] || "", false)).join("") : ""}${selectedGames.length === 0 ? `<div class="pdf-meeting-detail-preparations-grid"><div><h4 aria-hidden="true">&nbsp;</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för egna anteckningar"><span></span></div></div><div><h4>Ansvarig</h4><div class="pdf-handwriting-space" aria-label="Skrivyta för lekens ansvarig"><span></span></div></div></div>` : ""}`
                         : ""}
                 </div>
             </div>
         `).join("");
         return `
             <section class="pdf-meeting-detail-page">
-                <header class="pdf-meeting-detail-document-header">
-                    <img src="${escapeHtml(resolveImage("./images/icons/GTorp_250px.png"))}" alt="Gullbrandstorps Scoutkår">
-                    <div class="pdf-meeting-detail-document-heading">
-                        <span class="pdf-meeting-detail-meta-row">
-                            <span>${planningYear !== null ? `År ${escapeHtml(String(planningYear))}` : "År -"}</span>
-                            <span>&middot;</span>
-                            <span>${escapeHtml(planningTerm || "Termin -")}</span>
-                            <span>&middot;</span>
-                            <span>${escapeHtml(group.level || "Målgrupp -")}</span>
-                            ${levelIcon ? `<img src="${escapeHtml(resolveImage(levelIcon))}" alt="${escapeHtml(group.level || "Målgrupp")}">` : ""}
-                        </span>
-                        <span class="pdf-meeting-detail-meeting-row">Träff ${escapeHtml(meeting.week || "-")} &middot; Datum: ${dateInfo} &middot; Ansvarig: ${responsibleInfo}</span>
-                    </div>
-                </header>
                 <div class="pdf-meeting-detail-info">
                     <div class="pdf-meeting-detail-card">
                         ${notesContent}
@@ -1593,10 +1571,13 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             </section>
         `;
     };
-    const renderCompactDocumentHeader = (group, title) => `
+    const renderCompactDocumentHeader = (group, title, details = "") => `
         <header class="pdf-document-header pdf-document-header--compact">
             <img class="pdf-document-logo pdf-document-logo--small" src="${escapeHtml(resolveImage("./images/icons/GTorp_250px.png"))}" alt="Gullbrandstorps Scoutkår">
-            <h1>${escapeHtml(title)} - ${escapeHtml(group.name || "")}</h1>
+            <div class="pdf-document-header-heading">
+                <h1>${escapeHtml(title)} - ${escapeHtml(group.name || "")}</h1>
+                ${details ? `<p>${details}</p>` : ""}
+            </div>
             ${getLevelIcon(group.level) ? `<img class="pdf-document-logo pdf-document-logo--small pdf-document-logo--right" src="${escapeHtml(resolveImage(getLevelIcon(group.level)))}" alt="${escapeHtml(group.level || "")}">` : ""}
         </header>
     `;
@@ -1617,7 +1598,12 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             .filter(meeting => !selectedMeetingIds || selectedMeetingIds.has(meeting.id));
 
         if (isMeetingDetailPrint) {
-            return meetings.map(meeting => renderMeetingDetailPage(group, meeting)).join("") || "<p>Inga möten valdes.</p>";
+            return meetings.map(meeting => `
+                <section class="pdf-planning pdf-planning--meeting-detail">
+                    ${renderCompactDocumentHeader(group, `Träff ${meeting.week || "-"}`, `${escapeHtml(meeting.date || "-")} &middot; Ansvarig: ${escapeHtml(meeting.responsible || "-")} &middot; Plats: ${escapeHtml(meeting.location || "-")} &middot; Skymning: ${escapeHtml(calculateSunsetTime(meeting.date) || "-")}`)}
+                    ${renderMeetingDetailPage(group, meeting)}
+                </section>
+            `).join("") || "<p>Inga möten valdes.</p>";
         }
 
         if (isMeetingLeaderPrint) {
@@ -1696,7 +1682,9 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 * { box-sizing: border-box; }
                 body { margin: 0; color: #172b4d; font: 11pt Arial, sans-serif; line-height: 1.45; }
                 .pdf-document-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
-                .pdf-document-header--compact h1 { flex: 1; text-align: center; }
+                .pdf-document-header--compact .pdf-document-header-heading { flex: 1; text-align: center; }
+                .pdf-document-header--compact h1 { margin: 0; }
+                .pdf-document-header-heading p { margin: 3px 0 0; color: #536477; font-size: 10pt; }
                 .pdf-document-logo { width: 28mm; height: 28mm; object-fit: contain; flex: 0 0 28mm; }
                 .pdf-document-logo--small { width: 14mm; height: 14mm; flex-basis: 14mm; }
                 .pdf-document-logo--right { margin-left: auto; }
@@ -1736,9 +1724,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 .pdf-meeting-badges { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
                 .pdf-meeting-detail-page { page-break-before: always; margin: 0 0 12px; padding-top: 4px; }
                 .pdf-meeting-detail-page:first-of-type { page-break-before: auto; }
-                .pdf-meeting-detail-document-header { display: flex; align-items: flex-start; gap: 7px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 2px solid #003660; color: #003660; font-size: 15pt; font-weight: bold; }
-                .pdf-meeting-detail-document-header img { width: 18mm; height: 18mm; object-fit: contain; }
-                .pdf-meeting-detail-document-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 2px 12px; min-width: 0; flex: 1; text-align: left; }
+                .pdf-planning--meeting-detail .pdf-meeting-detail-page { page-break-before: auto; }
                 .pdf-meeting-detail-document-title { display: block; white-space: nowrap; }
                 .pdf-meeting-detail-header { margin-bottom: 8px; padding-bottom: 5px; border-bottom: 2px solid #003660; }
                 .pdf-meeting-detail-header h2 { margin: 0 0 6px; color: #003660; font-size: 18pt; }
@@ -1764,6 +1750,8 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 .pdf-meeting-detail-section-content p { margin: 0; line-height: 1.3; }
                 .pdf-meeting-detail-preparations { margin-top: 20px; break-inside: avoid; }
                 .pdf-meeting-detail-preparations-grid { display: grid; grid-template-columns: 3fr 1fr; gap: 16px; }
+                .pdf-activity .pdf-meeting-detail-preparations-grid > div { display: flex; flex-direction: column; }
+                .pdf-activity .pdf-meeting-detail-preparations-grid .pdf-handwriting-space { margin-top: auto; }
                 .pdf-handwriting-space { margin-top: 7px; padding-bottom: 5px; }
                 .pdf-handwriting-space span { display: block; height: 24px; border-bottom: 1px solid #9aa9b8; }
                 .missing-badge { color: #9b1c1c; }
@@ -1808,18 +1796,6 @@ function importPlannings(file) {
     reader.onload = async () => {
         try {
             const parsed = JSON.parse(reader.result);
-            const importedPlannings = Array.isArray(parsed) ? parsed : parsed.plannings;
-            if (!Array.isArray(importedPlannings)) throw new Error("Ogiltigt format");
-
-            const validPlannings = importedPlannings.filter(planning =>
-                planning && typeof planning.name === "string" && planning.name.trim() &&
-                typeof planning.level === "string"
-            );
-            if (validPlannings.length === 0) throw new Error("Inga giltiga planeringar");
-
-            const importedNotes = parsed && !Array.isArray(parsed) && parsed.badgeNotes && typeof parsed.badgeNotes === "object"
-                ? parsed.badgeNotes
-                : {};
             const importedActivities = parsed && !Array.isArray(parsed) && Array.isArray(parsed.customActivities)
                 ? parsed.customActivities.filter(activity => activity && typeof activity.id === "string" && typeof activity.namn === "string")
                 : [];
