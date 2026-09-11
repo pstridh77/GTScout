@@ -73,7 +73,6 @@ let allAktiviteter = [];
 let groups = loadGroups();
 let activeGroupId = null; // which group is getting badges added
 let groupFilters = { search: "", level: "Alla", year: "Alla", term: "Alla" };
-let pdfSelectionState = new Set();
 let meetingSelectionGroupId = null;
 let meetingSelectionState = new Set();
 let showPlanningActivities = localStorage.getItem(SHOW_ACTIVITIES_STORAGE_KEY) !== "false";
@@ -1171,91 +1170,13 @@ function exportPlannings() {
     ]);
 }
 
-function renderPdfSelectionList() {
-    const list = document.getElementById("pdfSelectionList");
-    const filterValue = document.getElementById("pdfPlanningFilter").value;
-    list.innerHTML = "";
-    const filteredGroups = groups
-        .filter(group => filterValue === "Alla" || group.level === filterValue)
-        .sort((a, b) => {
-            const levelOrderA = TARGET_GROUP_ORDER.indexOf(a.level);
-            const levelOrderB = TARGET_GROUP_ORDER.indexOf(b.level);
-            const normalizedLevelOrderA = levelOrderA === -1 ? TARGET_GROUP_ORDER.length : levelOrderA;
-            const normalizedLevelOrderB = levelOrderB === -1 ? TARGET_GROUP_ORDER.length : levelOrderB;
-            if (normalizedLevelOrderA !== normalizedLevelOrderB) {
-                return normalizedLevelOrderA - normalizedLevelOrderB;
-            }
-
-            const planningOrderA = getGroupSortValue(a);
-            const planningOrderB = getGroupSortValue(b);
-            if (planningOrderA.year !== planningOrderB.year) {
-                return planningOrderA.year - planningOrderB.year;
-            }
-            if (planningOrderA.term !== planningOrderB.term) {
-                return planningOrderA.term - planningOrderB.term;
-            }
-            return String(a.name || "").localeCompare(String(b.name || ""), "sv");
-        });
-    if (filteredGroups.length === 0) {
-        list.innerHTML = "<p>Det finns inga planeringar att exportera.</p>";
-    } else {
-        filteredGroups.forEach(group => {
-            const label = document.createElement("label");
-            label.className = "pdf-selection-option";
-            const checkbox = document.createElement("input");
-            checkbox.type = "checkbox";
-            checkbox.value = group.id;
-            checkbox.checked = pdfSelectionState.has(group.id);
-            checkbox.addEventListener("change", () => {
-                if (checkbox.checked) {
-                    pdfSelectionState.add(group.id);
-                } else {
-                    pdfSelectionState.delete(group.id);
-                }
-            });
-            const text = document.createElement("span");
-            const name = document.createElement("strong");
-            name.textContent = group.name;
-            const level = document.createElement("small");
-            level.textContent = group.level;
-            text.append(name, level);
-            label.append(checkbox, text);
-            list.appendChild(label);
-        });
-    }
-}
-
 function openPdfSelection(selectedGroupId = null) {
-    const filter = document.getElementById("pdfPlanningFilter");
-    const targetGroups = [...new Set(groups.map(group => group.level).filter(Boolean))];
-    const targetGroupOrder = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
-    targetGroups.sort((a, b) => {
-        const indexA = targetGroupOrder.indexOf(a);
-        const indexB = targetGroupOrder.indexOf(b);
-        return (indexA === -1 ? targetGroupOrder.length : indexA) - (indexB === -1 ? targetGroupOrder.length : indexB);
-    });
-    filter.innerHTML = "<option value=\"Alla\">Alla målgrupper</option>";
-    targetGroups.forEach(targetGroup => {
-        const option = document.createElement("option");
-        option.value = targetGroup;
-        option.textContent = targetGroup;
-        filter.appendChild(option);
-    });
-    filter.value = targetGroups.includes(groupFilters.level) ? groupFilters.level : "Alla";
-    pdfSelectionState = selectedGroupId && groups.some(group => group.id === selectedGroupId)
-        ? new Set([selectedGroupId])
-        : new Set(groups
-            .filter(group => filter.value === "Alla" || group.level === filter.value)
-            .filter(group => groupFilters.year === "Alla" || String(getGroupYearValue(group) ?? "") === String(groupFilters.year))
-            .filter(group => groupFilters.term === "Alla" || getGroupTermValue(group) === groupFilters.term)
-            .map(group => group.id));
     meetingSelectionGroupId = selectedGroupId && groups.some(group => group.id === selectedGroupId)
         ? selectedGroupId
-        : [...pdfSelectionState][0] || groups[0]?.id || null;
-    document.querySelector("input[name='printSelectionMode'][value='planning']").checked = true;
+        : groups[0]?.id || null;
+    document.querySelector("input[name='meetingPrintMode'][value='overview']").checked = true;
     populateMeetingPlanningSelect();
     updatePrintSelectionMode();
-    renderPdfSelectionList();
     document.getElementById("pdfSelectionModal").classList.remove("hidden");
 }
 
@@ -1318,10 +1239,8 @@ function populateMeetingPlanningSelect() {
 }
 
 function updatePrintSelectionMode() {
-    const mode = document.querySelector("input[name='printSelectionMode']:checked")?.value || "planning";
-    document.getElementById("planningPrintSelection").classList.toggle("hidden", mode !== "planning");
-    document.getElementById("meetingPrintSelection").classList.toggle("hidden", mode !== "meetings");
-    document.getElementById("generatePdfBtn").textContent = mode === "meetings" ? "Skriv ut möten" : "Skriv ut planering";
+    document.getElementById("meetingPrintSelection").classList.remove("hidden");
+    document.getElementById("generatePdfBtn").textContent = "Skriv ut planering";
 }
 
 // Ungefärlig position för Styrdal/Gullbrandstorp, Halmstads kommun.
@@ -3572,8 +3491,6 @@ const groupModal = document.getElementById("groupModal");
 const exportInfoModal = document.getElementById("exportInfoModal");
 const sharePlanningModal = document.getElementById("sharePlanningModal");
 const pdfSelectionModal = document.getElementById("pdfSelectionModal");
-const pdfSelectionList = document.getElementById("pdfSelectionList");
-const pdfPlanningFilter = document.getElementById("pdfPlanningFilter");
 document.getElementById("closeExportInfoModal").addEventListener("click", () => exportInfoModal.classList.add("hidden"));
 document.getElementById("closeExportInfoBtn").addEventListener("click", () => exportInfoModal.classList.add("hidden"));
 exportInfoModal.addEventListener("click", event => {
@@ -3599,35 +3516,7 @@ document.getElementById("closePdfSelectionModal").addEventListener("click", () =
 pdfSelectionModal.addEventListener("click", event => {
     if (event.target === pdfSelectionModal) pdfSelectionModal.classList.add("hidden");
 });
-document.getElementById("selectAllPdfBtn").addEventListener("click", () => {
-    groups
-        .filter(group => pdfPlanningFilter.value === "Alla" || group.level === pdfPlanningFilter.value)
-        .forEach(group => pdfSelectionState.add(group.id));
-    renderPdfSelectionList();
-});
-document.getElementById("clearPdfBtn").addEventListener("click", () => {
-    groups
-        .filter(group => pdfPlanningFilter.value === "Alla" || group.level === pdfPlanningFilter.value)
-        .forEach(group => pdfSelectionState.delete(group.id));
-    renderPdfSelectionList();
-});
-pdfPlanningFilter.addEventListener("change", () => {
-    pdfSelectionState = new Set(groups
-        .filter(group => pdfPlanningFilter.value === "Alla" || group.level === pdfPlanningFilter.value)
-        .map(group => group.id));
-    renderPdfSelectionList();
-});
 document.getElementById("generatePdfBtn").addEventListener("click", () => {
-    const mode = document.querySelector("input[name='printSelectionMode']:checked")?.value || "planning";
-    if (mode === "planning") {
-        if (pdfSelectionState.size === 0) {
-            alert("Välj minst en planering.");
-            return;
-        }
-        pdfSelectionModal.classList.add("hidden");
-        generatePlanningPdf(pdfSelectionState);
-        return;
-    }
     const selectedMode = document.querySelector("input[name='meetingPrintMode']:checked")?.value || "overview";
     if (!meetingSelectionGroupId || (selectedMode !== "overview" && meetingSelectionState.size === 0)) {
         alert("Välj minst ett möte.");
@@ -3655,7 +3544,7 @@ document.getElementById("meetingPlanningSelect").addEventListener("change", even
     meetingSelectionState = new Set(normalizeMeetingList(group?.meetings || []).map(meeting => meeting.id));
     renderMeetingSelectionList();
 });
-document.querySelectorAll("input[name='printSelectionMode']").forEach(input => {
+document.querySelectorAll("input[name='meetingPrintMode']").forEach(input => {
     input.addEventListener("change", updatePrintSelectionMode);
 });
 

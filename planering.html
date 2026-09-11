@@ -198,49 +198,26 @@
             <button class="close-popup" type="button" id="closePdfSelectionModal" aria-label="Stäng">&times;</button>
             <h2 id="pdfSelectionTitle">Skriv ut</h2>
             <fieldset class="meeting-print-mode">
-                <legend>Innehåll</legend>
-                <label class="meeting-print-mode-option">
-                    <input type="radio" name="printSelectionMode" value="planning" checked>
-                    <span>Planering</span>
-                </label>
-                <label class="meeting-print-mode-option">
-                    <input type="radio" name="printSelectionMode" value="meetings">
-                    <span>Möten</span>
-                </label>
-            </fieldset>
-            <div id="planningPrintSelection">
-                <p class="pdf-selection-intro">Markera de planeringar som ska ingå i utskriften.</p>
-                <label class="filter-field pdf-selection-filter">
-                    <span>Målgrupp</span>
-                    <select id="pdfPlanningFilter" aria-label="Filtrera planeringar efter målgrupp"></select>
-                </label>
-                <div id="pdfSelectionList" class="pdf-selection-list"></div>
-                <div class="modal-actions pdf-selection-actions">
-                    <button id="selectAllPdfBtn" class="btn-secondary" type="button">Markera alla</button>
-                    <button id="clearPdfBtn" class="btn-secondary" type="button">Rensa</button>
-                </div>
-            </div>
-            <div id="meetingPrintSelection" class="hidden">
-                <p class="pdf-selection-intro">Välj planering och markera de möten som ska skrivas ut.</p>
-                <label class="filter-field pdf-selection-filter">
-                    <span>Planering</span>
-                    <select id="meetingPlanningSelect" aria-label="Välj planering för mötesutskrift"></select>
-                </label>
-                <fieldset class="meeting-print-mode">
                 <legend>Utskriftsläge</legend>
                 <label class="meeting-print-mode-option">
                     <input type="radio" name="meetingPrintMode" value="overview" checked>
-                    <span>Grovplanering</span>
-                </label>
-                <label class="meeting-print-mode-option">
-                    <input type="radio" name="meetingPrintMode" value="detailed">
-                    <span>Mötesplanering</span>
+                    <span>Översikt</span>
                 </label>
                 <label class="meeting-print-mode-option">
                     <input type="radio" name="meetingPrintMode" value="leader">
                     <span>Ledarplanering</span>
                 </label>
-                </fieldset>
+                <label class="meeting-print-mode-option">
+                    <input type="radio" name="meetingPrintMode" value="detailed">
+                    <span>Möte</span>
+                </label>
+            </fieldset>
+            <div id="meetingPrintSelection">
+                <p class="pdf-selection-intro">Välj planering och markera de möten som ska skrivas ut.</p>
+                <label class="filter-field pdf-selection-filter">
+                    <span>Planering</span>
+                    <select id="meetingPlanningSelect" aria-label="Välj planering för mötesutskrift"></select>
+                </label>
                 <div id="meetingSelectionList" class="pdf-selection-list"></div>
                 <div class="modal-actions pdf-selection-actions">
                     <button id="selectAllMeetingsBtn" class="btn-secondary" type="button">Markera alla</button>
