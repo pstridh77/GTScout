@@ -1624,22 +1624,22 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 : (group.activities || []).map(activityId => renderActivity(activityId)).join("");
             return `
             ${badgeOverview ? `<section class="pdf-planning pdf-planning--meeting-overview">
-                ${renderCompactDocumentHeader(group, "Grovplanering")}
+                ${renderCompactDocumentHeader(group, "Översikt")}
                 <h2 class="pdf-planning-heading">Märken</h2>
                 ${badgeOverview}
             </section>` : ""}
             ${activityOverview ? `<section class="pdf-planning pdf-planning--meeting-overview">
-                ${renderCompactDocumentHeader(group, "Grovplanering")}
+                ${renderCompactDocumentHeader(group, "Översikt")}
                 <h2 class="pdf-planning-heading">Aktiviteter</h2>
                 ${activityOverview}
             </section>` : ""}
             ${hasMeetings ? `<section class="pdf-planning pdf-planning--leader">
-                ${renderCompactDocumentHeader(group, "Grovplanering")}
+                ${renderCompactDocumentHeader(group, "Översikt")}
                 <h2 class="pdf-planning-heading">Ledaröversikt</h2>
                 ${renderLeaderTable(group, meetings)}
             </section>` : ""}
             ${!badgeOverview && !activityOverview ? `<section class="pdf-planning pdf-planning--meeting-overview">
-                ${renderCompactDocumentHeader(group, "Grovplanering")}
+                ${renderCompactDocumentHeader(group, "Översikt")}
             </section>` : ""}
             `;
         }
@@ -1683,6 +1683,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 body { margin: 0; color: #172b4d; font: 11pt Arial, sans-serif; line-height: 1.45; }
                 .pdf-document-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
                 .pdf-document-header--compact .pdf-document-header-heading { flex: 1; text-align: center; }
+                .pdf-document-header--compact > h1 { flex: 1; text-align: center; }
                 .pdf-document-header--compact h1 { margin: 0; }
                 .pdf-document-header-heading p { margin: 3px 0 0; color: #536477; font-size: 10pt; }
                 .pdf-document-logo { width: 28mm; height: 28mm; object-fit: contain; flex: 0 0 28mm; }
