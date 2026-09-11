@@ -1407,6 +1407,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
     const isMeetingDetailPrint = printMode === "meeting-detail";
     const isMeetingOverviewPrint = printMode === "meeting-overview";
     const isMeetingLeaderPrint = printMode === "meeting-leader";
+    const usesLeaderHeader = isMeetingLeaderPrint || isMeetingOverviewPrint;
     const renderBadge = (badgeId, group) => {
         const marke = allMarken.find(item => item.id === badgeId);
         if (!marke) return `<p class="missing-badge">Märke ${escapeHtml(badgeId)} kunde inte hittas.</p>`;
@@ -1552,6 +1553,21 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             <tbody>${rows || `<tr><td colspan="5">Inga möten valdes.</td></tr>`}</tbody>
         </table>`;
     };
+    const renderMeetingBadgeOverview = (group, meetings) => {
+        const badgeIds = [...new Set(meetings.flatMap(meeting => getMeetingBadgeIds(meeting)))];
+        return badgeIds.length > 0
+            ? badgeIds.map(badgeId => renderBadge(badgeId, group)).join("")
+            : "<p>Inga märken valdes.</p>";
+    };
+    const renderMeetingActivityOverview = meetings => {
+        const activityIds = [...new Set(meetings.flatMap(meeting => [
+            ...(meeting.games || []),
+            ...(meeting.activities || [])
+        ]))];
+        return activityIds.length > 0
+            ? activityIds.map(activityId => renderActivity(activityId)).join("")
+            : "<p>Inga aktiviteter valdes.</p>";
+    };
     const renderMeetingDetailPage = (group, meeting) => {
         const badges = getMeetingBadgeIds(meeting)
             .map(badgeId => allMarken.find(item => item.id === badgeId))
@@ -1642,6 +1658,13 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             </section>
         `;
     };
+    const renderCompactDocumentHeader = (group, title) => `
+        <header class="pdf-document-header pdf-document-header--compact">
+            <img class="pdf-document-logo pdf-document-logo--small" src="${escapeHtml(resolveImage("./images/icons/GTorp_250px.png"))}" alt="Gullbrandstorps Scoutkår">
+            <h1>${escapeHtml(title)} - ${escapeHtml(group.name || "")}</h1>
+            ${getLevelIcon(group.level) ? `<img class="pdf-document-logo pdf-document-logo--small pdf-document-logo--right" src="${escapeHtml(resolveImage(getLevelIcon(group.level)))}" alt="${escapeHtml(group.level || "")}">` : ""}
+        </header>
+    `;
 
     const planningSections = selectedGroups.map(group => {
         const planningIcon = getLevelIcon(group.level);
@@ -1670,18 +1693,38 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             `;
         }
 
+        if (isMeetingOverviewPrint) {
+            return `
+            <section class="pdf-planning pdf-planning--meeting-overview">
+                ${renderCompactDocumentHeader(group, "Grovplanering")}
+                <h2 class="pdf-planning-heading">Märken</h2>
+                ${renderMeetingBadgeOverview(group, meetings)}
+            </section>
+            <section class="pdf-planning pdf-planning--meeting-overview">
+                ${renderCompactDocumentHeader(group, "Grovplanering")}
+                <h2 class="pdf-planning-heading">Aktiviteter</h2>
+                ${renderMeetingActivityOverview(meetings)}
+            </section>
+            <section class="pdf-planning pdf-planning--leader">
+                ${renderCompactDocumentHeader(group, "Grovplanering")}
+                <h2 class="pdf-planning-heading">Ledaröversikt</h2>
+                ${renderLeaderTable(group, meetings)}
+            </section>
+            `;
+        }
+
         return `
         <section class="pdf-planning">
             <h2 class="pdf-planning-heading">${icon}<span>${escapeHtml(group.name)} - ${escapeHtml(group.level)}</span></h2>
             ${noteText ? `<p class="pdf-planning-note">${renderLinkedText(noteText)}</p>` : ""}
-            <p class="pdf-planning-intro">${isMeetingOverviewPrint ? "Följande möten är planerade:" : "Följande märken är planerade:"}</p>
-            ${!isMeetingOverviewPrint && Array.isArray(group.badges) && group.badges.length > 0
+            <p class="pdf-planning-intro">Följande märken är planerade:</p>
+            ${Array.isArray(group.badges) && group.badges.length > 0
                 ? group.badges.map(badgeId => renderBadge(badgeId, group)).join("")
-                : !isMeetingOverviewPrint ? "<p>Inga märken planerade.</p>" : ""}
-            ${!isMeetingOverviewPrint && showPlanningActivities && unassignedActivities.length > 0
+                : "<p>Inga märken planerade.</p>"}
+            ${showPlanningActivities && unassignedActivities.length > 0
                 ? `<div class="pdf-activities"><h3>Övriga aktiviteter</h3>${unassignedActivities.map(activityId => renderActivity(activityId)).join("")}</div>`
                 : ""}
-            ${showPlanningMeetings && meetings.length > 0 && (isMeetingOverviewPrint || !isMeetingOverviewPrint)
+            ${showPlanningMeetings && meetings.length > 0
                 ? `<div class="pdf-meetings"><h3>Möten</h3>${meetings.map(meeting => renderMeeting(group, meeting)).join("")}</div>`
                 : ""}
         </section>
@@ -1793,10 +1836,10 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             </style>
         </head>
         <body>
-            ${isMeetingDetailPrint ? "" : `<header class="pdf-document-header${isMeetingLeaderPrint ? " pdf-document-header--compact" : ""}">
-                <img class="pdf-document-logo${isMeetingLeaderPrint ? " pdf-document-logo--small" : ""}" src="${escapeHtml(resolveImage("./images/icons/GTorp_250px.png"))}" alt="Gullbrandstorps Scoutkår">
-                <h1>${isMeetingLeaderPrint ? `Ledarplanering - ${escapeHtml(selectedGroups[0]?.name || "")}` : escapeHtml(printTitle)}</h1>
-                ${isMeetingLeaderPrint && getLevelIcon(selectedGroups[0]?.level) ? `<img class="pdf-document-logo pdf-document-logo--small pdf-document-logo--right" src="${escapeHtml(resolveImage(getLevelIcon(selectedGroups[0].level)))}" alt="${escapeHtml(selectedGroups[0].level || "")}">` : ""}
+            ${isMeetingDetailPrint || isMeetingOverviewPrint ? "" : `<header class="pdf-document-header${usesLeaderHeader ? " pdf-document-header--compact" : ""}">
+                <img class="pdf-document-logo${usesLeaderHeader ? " pdf-document-logo--small" : ""}" src="${escapeHtml(resolveImage("./images/icons/GTorp_250px.png"))}" alt="Gullbrandstorps Scoutkår">
+                <h1>${usesLeaderHeader ? `${isMeetingOverviewPrint ? "Grovplanering" : "Ledarplanering"} - ${escapeHtml(selectedGroups[0]?.name || "")}` : escapeHtml(printTitle)}</h1>
+                ${usesLeaderHeader && getLevelIcon(selectedGroups[0]?.level) ? `<img class="pdf-document-logo pdf-document-logo--small pdf-document-logo--right" src="${escapeHtml(resolveImage(getLevelIcon(selectedGroups[0].level)))}" alt="${escapeHtml(selectedGroups[0].level || "")}">` : ""}
             </header>`}
             ${planningSections || "<p>Inga planeringar valdes.</p>"}
             <p class="created">Exporterad ${escapeHtml(new Date().toLocaleDateString("sv-SE"))}</p>
