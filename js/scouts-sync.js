@@ -10,7 +10,7 @@
     const auth = () => window.GTScoutAuth;
     const client = () => auth()?.getClient() || null;
     const karId = () => auth()?.getState?.().karId || null;
-    const canRead = () => Boolean(client() && auth()?.isSignedIn?.() && karId());
+    const canRead = () => Boolean(client() && auth()?.isSignedIn?.() && karId() && auth()?.isLeader?.());
     const canWrite = () => canRead() && auth()?.isLeader?.();
 
     function readLocal() {
@@ -48,7 +48,7 @@
             writeLocal();
         } catch (error) {
             console.error("Kunde inte hämta scouter", error);
-            scouts = readLocal();
+            scouts = [];
             onChange?.();
         }
     }
@@ -112,7 +112,7 @@
     function onAuthChange() {
         if (!canRead()) {
             loadedForKarId = null;
-            scouts = readLocal();
+            scouts = [];
             onChange?.();
             return;
         }
@@ -125,7 +125,7 @@
         init(config) {
             onChange = config?.onChange || null;
             badges = config?.badges || {};
-            scouts = readLocal();
+            scouts = canRead() ? readLocal() : [];
             auth()?.onChange(onAuthChange);
             onChange?.();
         },

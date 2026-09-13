@@ -346,7 +346,7 @@
         const status = document.getElementById("authStatus");
         const button = document.getElementById("authActionBtn");
         const environments = document.querySelectorAll(".database-environment");
-        if (!status || !button || !environments.length) return;
+        if (!status || !button) return;
 
         const current = state();
         if (!current.online) {

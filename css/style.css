@@ -18,6 +18,28 @@ body {
     margin: 32px auto 48px;
 }
 
+.scouts-access-denied {
+    width: min(100% - 32px, 620px);
+    margin: 80px auto;
+    padding: 32px;
+    border: 1px solid #d7e1eb;
+    border-radius: 10px;
+    background: white;
+    box-shadow: 0 8px 24px rgba(0, 54, 96, 0.08);
+    text-align: center;
+}
+
+.scouts-access-denied h1 {
+    margin: 0;
+    color: #003660;
+    font-size: 1.5rem;
+}
+
+.scouts-access-denied p {
+    margin: 12px 0 20px;
+    color: #536477;
+}
+
 .scouts-page-header {
     display: flex;
     align-items: flex-end;

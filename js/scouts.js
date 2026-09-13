@@ -39,6 +39,8 @@ const scoutImportModal = document.getElementById("scoutImportModal");
 const scoutImportPreview = document.getElementById("scoutImportPreview");
 const scoutImportStatus = document.getElementById("scoutImportStatus");
 const confirmScoutImportBtn = document.getElementById("confirmScoutImportBtn");
+const scoutsContent = document.getElementById("scoutsContent");
+const scoutsAccessDenied = document.getElementById("scoutsAccessDenied");
 let scoutBadges = [];
 let scoutData = [];
 let pendingScoutImport = [];
@@ -135,6 +137,22 @@ function showScoutImportPreview(rows) {
 function canManageScouts() {
     const auth = window.GTScoutAuth;
     return !auth?.isOnline?.() || !auth?.isSignedIn?.() || Boolean(window.GTScoutScouts?.canWrite?.());
+}
+
+function canViewScouts() {
+    return Boolean(window.GTScoutAuth?.isSignedIn?.() && window.GTScoutAuth?.isLeader?.());
+}
+
+function updateScoutAccess() {
+    const allowed = canViewScouts();
+    scoutsContent.classList.toggle("hidden", !allowed);
+    scoutsAccessDenied.classList.toggle("hidden", allowed);
+    document.getElementById("importScoutsBtn").classList.toggle("hidden", !canDeleteScouts());
+    if (allowed) renderAll();
+}
+
+function canDeleteScouts() {
+    return Boolean(window.GTScoutAuth?.isAdmin?.());
 }
 
 function getNextStatus(status) {
@@ -235,7 +253,7 @@ function getVisibleScouts() {
 
 function renderScouts() {
     const visible = getVisibleScouts();
-    removeFilteredScoutsBtn.disabled = !canManageScouts() || visible.length === 0;
+    removeFilteredScoutsBtn.disabled = !canDeleteScouts() || visible.length === 0;
     removeFilteredScoutsBtn.textContent = visible.length > 0 ? `Ta bort filtrerade (${visible.length})` : "Ta bort filtrerade";
     scoutEmpty.classList.toggle("hidden", scoutData.length > 0);
     const visibleBadges = getVisibleScoutBadges();
@@ -251,7 +269,7 @@ function renderScouts() {
             const status = scout.statuses?.[badge.id] || "not_started";
             return `<td><button class="scout-status scout-status--${status}" type="button" data-scout-id="${scout.id}" data-badge-id="${escapeScoutHtml(badge.id)}" aria-label="${escapeScoutHtml(scout.namn)} – ${escapeScoutHtml(badge.namn)}: ${SCOUT_STATUS_LABELS[status]}" title="${SCOUT_STATUS_LABELS[status]}">${status === "completed" ? "✓" : status === "in_progress" ? "•" : "–"}</button></td>`;
         }).join("")}
-        <td>${canManageScouts() ? `<button class="scout-remove-btn" type="button" data-scout-id="${scout.id}" aria-label="Ta bort ${escapeScoutHtml(scout.namn)}" title="Ta bort scout">&times;</button>` : ""}</td>
+        <td>${canDeleteScouts() ? `<button class="scout-remove-btn" type="button" data-scout-id="${scout.id}" aria-label="Ta bort ${escapeScoutHtml(scout.namn)}" title="Ta bort scout">&times;</button>` : ""}</td>
     </tr>`).join("");
     document.querySelectorAll(".scout-status").forEach(button => button.addEventListener("click", () => {
         const scout = scoutData.find(item => item.id === button.dataset.scoutId);
@@ -271,6 +289,12 @@ function renderScouts() {
 }
 
 function renderAll() {
+    if (!canViewScouts()) {
+        scoutData = [];
+        scoutsContent.classList.add("hidden");
+        scoutsAccessDenied.classList.remove("hidden");
+        return;
+    }
     scoutData = window.GTScoutScouts?.getAll?.() || [];
     updateYearFilter();
     updateBadgeFilterDropdowns();
@@ -299,11 +323,15 @@ async function loadScoutBadges() {
     }
 }
 
-document.getElementById("importScoutsBtn").addEventListener("click", () => scoutCsvInput.click());
+document.getElementById("importScoutsBtn").addEventListener("click", () => {
+    if (!canDeleteScouts()) return;
+    scoutCsvInput.click();
+});
 document.getElementById("closeScoutImportModal").addEventListener("click", () => scoutImportModal.classList.add("hidden"));
 document.getElementById("cancelScoutImportBtn").addEventListener("click", () => scoutImportModal.classList.add("hidden"));
 scoutImportModal.addEventListener("click", event => { if (event.target === scoutImportModal) scoutImportModal.classList.add("hidden"); });
 scoutCsvInput.addEventListener("change", async event => {
+    if (!canDeleteScouts()) return;
     const file = event.target.files?.[0];
     scoutCsvInput.value = "";
     if (!file) return;
@@ -350,7 +378,7 @@ scoutBadgeSearch.addEventListener("input", () => { renderScoutHeader(); renderSc
 scoutActiveBadgeFilter.addEventListener("change", () => { renderScoutHeader(); renderScouts(); });
 removeFilteredScoutsBtn.addEventListener("click", () => {
     const visible = getVisibleScouts();
-    if (!visible.length || !canManageScouts()) return;
+    if (!visible.length || !canDeleteScouts()) return;
     const names = visible.length <= 3 ? ` (${visible.map(scout => scout.namn).join(", ")})` : "";
     if (!confirm(`Ta bort ${visible.length} filtrerade scouter${names}? Märkesstatusen tas också bort.`)) return;
     window.GTScoutScouts.removeMany(visible.map(scout => scout.id));
@@ -380,5 +408,7 @@ document.addEventListener("click", event => {
         }
     });
 });
+document.getElementById("openScoutLoginBtn").addEventListener("click", () => window.GTScoutAuth?.openLogin?.());
+window.GTScoutAuth?.onChange(updateScoutAccess);
 window.GTScoutBadges?.init({ onChange: loadScoutBadges });
 loadScoutBadges();
