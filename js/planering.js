@@ -2924,7 +2924,7 @@ function openMeetingReadingView(groupId, meetingId) {
             </div>
         </header>
         ${meeting.notes ? `<div class="meeting-reading-notes"><strong>Anteckning</strong><p>${renderLinkedText(meeting.notes)}</p></div>` : ""}
-        ${badges.length > 0 ? `<div class="meeting-reading-badges" aria-label="Märken">${badges.map(badge => `<div><img src="${escapeHtml(resolveImage(badge.bild))}" alt=""><span>${escapeHtml(badge.namn)}</span></div>`).join("")}</div>` : ""}
+        ${badges.length > 0 ? `<div class="meeting-reading-badges" aria-label="Märken">${badges.map(badge => `<div><img src="${escapeHtml(new URL(badge.bild, window.location.href).href)}" alt=""><span>${escapeHtml(badge.namn)}</span></div>`).join("")}</div>` : ""}
         <div class="meeting-reading-sections">${sections.map(([title, text, content]) => `<section><h3>${title}</h3><p>${text}</p>${content || ""}</section>`).join("")}</div>
     `;
     const meetingShareButton = view.querySelector("#meetingReadingShareBtn");
