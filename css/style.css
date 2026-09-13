@@ -59,8 +59,29 @@ body {
     min-width: 190px;
 }
 
+.scouts-toolbar select[multiple] {
+    min-height: 86px;
+    padding: 6px 8px;
+}
+
 .scouts-toolbar .planning-sync-status {
     margin-bottom: 10px;
+}
+
+.scout-active-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 38px;
+    color: #536477;
+    font-size: 0.84rem;
+    white-space: nowrap;
+}
+
+.scout-active-filter input {
+    width: 17px;
+    height: 17px;
+    accent-color: #003660;
 }
 
 .scouts-table-wrap {
@@ -93,6 +114,49 @@ body {
     font-size: 0.78rem;
 }
 
+.scouts-table thead .scout-target-row th {
+    height: 28px;
+    padding: 6px 8px;
+    border-bottom: 1px solid #c9d8e5;
+    background: #dbeaf5;
+    color: #536477;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.scouts-table thead .scout-target-row .scout-target-group--familjescouting {
+    background: #652d91;
+    color: white;
+}
+
+.scouts-table thead .scout-target-row .scout-target-group--sparare {
+    background: #41a62a;
+    color: white;
+}
+
+.scouts-table thead .scout-target-row .scout-target-group--upptackare {
+    background: #00a8e1;
+    color: #003660;
+}
+
+.scouts-table thead .scout-target-row .scout-target-group--aventyrare {
+    background: #e95f13;
+    color: white;
+}
+
+.scouts-table thead .scout-target-row .scout-target-group--utmanare {
+    background: #da005e;
+    color: white;
+}
+
+.scouts-table thead .scout-target-row .scout-target-group--rover {
+    background: #e2e000;
+    color: #003660;
+}
+
 .scouts-table tbody th,
 .scouts-table tbody td:first-of-type {
     text-align: left;
@@ -108,10 +172,29 @@ body {
 .scout-badge-heading span {
     display: block;
     max-width: 82px;
+    margin: 0 auto;
     overflow: hidden;
-    text-overflow: ellipsis;
-    transform: rotate(-35deg);
-    transform-origin: center bottom;
+    line-height: 1.08;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.scout-badge-heading {
+    width: 78px;
+    min-width: 78px;
+    max-width: 78px;
+    height: 112px;
+    padding: 8px 6px 10px !important;
+    vertical-align: bottom;
+    box-sizing: border-box;
+}
+
+.scout-badge-heading img {
+    display: block;
+    width: 34px;
+    height: 34px;
+    margin: 0 auto 7px;
+    object-fit: contain;
 }
 
 .scout-status {

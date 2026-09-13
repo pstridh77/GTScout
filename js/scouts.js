@@ -6,8 +6,28 @@ const SCOUT_STATUS_LABELS = {
 const SCOUT_STATUS_ORDER = ["not_started", "in_progress", "completed"];
 const REPEATABLE_BADGE_IDS = new Set(["100_scout"]);
 const REPEATABLE_BADGE_TARGET = 5;
+const SCOUT_BADGE_TARGET_ORDER = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
+const SCOUT_BADGE_TYPE_ORDER = ["Intressemärke", "Bevismärke", "Deltagarmärke"];
+const SCOUT_TARGET_CLASS_NAMES = {
+    Familjescouting: "familjescouting",
+    Spårare: "sparare",
+    Upptäckare: "upptackare",
+    Äventyrare: "aventyrare",
+    Utmanare: "utmanare",
+    Rover: "rover"
+};
 const scoutSearch = document.getElementById("scoutSearch");
-const scoutYearFilter = document.getElementById("scoutYearFilter");
+const scoutBadgeSearch = document.getElementById("scoutBadgeSearch");
+const scoutActiveBadgeFilter = document.getElementById("scoutActiveBadgeFilter");
+const scoutYearDropdown = document.getElementById("scoutYearDropdown");
+const scoutYearDropdownBtn = document.getElementById("scoutYearDropdownBtn");
+const scoutYearDropdownMenu = document.getElementById("scoutYearDropdownMenu");
+const scoutTargetDropdown = document.getElementById("scoutTargetDropdown");
+const scoutTargetDropdownBtn = document.getElementById("scoutTargetDropdownBtn");
+const scoutTargetDropdownMenu = document.getElementById("scoutTargetDropdownMenu");
+const scoutCategoryDropdown = document.getElementById("scoutCategoryDropdown");
+const scoutCategoryDropdownBtn = document.getElementById("scoutCategoryDropdownBtn");
+const scoutCategoryDropdownMenu = document.getElementById("scoutCategoryDropdownMenu");
 const scoutTableHead = document.getElementById("scoutsTableHead");
 const scoutTableBody = document.getElementById("scoutsTableBody");
 const scoutEmpty = document.getElementById("scoutsEmpty");
@@ -15,6 +35,20 @@ const scoutModal = document.getElementById("scoutModal");
 const scoutModalStatus = document.getElementById("scoutModalStatus");
 let scoutBadges = [];
 let scoutData = [];
+
+function getScoutBadgeSortTarget(badge) {
+    const targets = Array.isArray(badge.malgrupp) ? badge.malgrupp : [badge.malgrupp || "Övrigt"];
+    return targets
+        .map(target => SCOUT_BADGE_TARGET_ORDER.indexOf(target))
+        .filter(index => index >= 0)
+        .sort((left, right) => left - right)[0] ?? SCOUT_BADGE_TARGET_ORDER.length;
+}
+
+function getScoutBadgeSortType(badge) {
+    const type = badge.Typ || badge.typ || "";
+    const index = SCOUT_BADGE_TYPE_ORDER.indexOf(type);
+    return index < 0 ? SCOUT_BADGE_TYPE_ORDER.length : index;
+}
 
 function escapeScoutHtml(value) {
     return String(value ?? "")
@@ -36,29 +70,97 @@ function getNextStatus(status) {
 }
 
 function renderScoutHeader() {
-    scoutTableHead.innerHTML = `<tr><th>Scout</th><th>Födelseår</th>${scoutBadges.map(badge => `<th class="scout-badge-heading" title="${escapeScoutHtml(badge.namn)}"><span>${escapeScoutHtml(badge.namn)}</span></th>`).join("")}<th aria-label="Åtgärder"></th></tr>`;
+    const badges = getVisibleScoutBadges();
+    const targetGroups = [];
+    badges.forEach(badge => {
+        const targets = Array.isArray(badge.malgrupp) ? badge.malgrupp : [badge.malgrupp || "Övrigt"];
+        const target = targets
+            .map(value => ({ value, order: SCOUT_BADGE_TARGET_ORDER.indexOf(value) }))
+            .sort((left, right) => (left.order < 0 ? SCOUT_BADGE_TARGET_ORDER.length : left.order) - (right.order < 0 ? SCOUT_BADGE_TARGET_ORDER.length : right.order))[0]?.value || "Övrigt";
+        const previous = targetGroups[targetGroups.length - 1];
+        if (previous?.name === target) previous.count += 1;
+        else targetGroups.push({ name: target, count: 1 });
+    });
+    const targetHeader = `<tr class="scout-target-row"><th colspan="2"></th>${targetGroups.map(group => `<th class="scout-target-group--${SCOUT_TARGET_CLASS_NAMES[group.name] || "default"}" colspan="${group.count}">${escapeScoutHtml(group.name)}</th>`).join("")}<th></th></tr>`;
+    const badgeHeader = `<tr><th>Scout</th><th>Födelseår</th>${badges.map(badge => `<th class="scout-badge-heading" title="${escapeScoutHtml(badge.namn)}"><img src="${escapeScoutHtml(badge.bild)}" alt=""><span>${escapeScoutHtml(badge.namn)}</span></th>`).join("")}<th aria-label="Åtgärder"></th></tr>`;
+    scoutTableHead.innerHTML = targetHeader + badgeHeader;
+}
+
+function badgeHasStatus(badge) {
+    return scoutData.some(scout => (Number(scout.counts?.[badge.id]) || 0) > 0 || scout.statuses?.[badge.id] === "in_progress" || scout.statuses?.[badge.id] === "completed");
+}
+
+function getVisibleScoutBadges() {
+    const search = scoutBadgeSearch.value.trim().toLowerCase();
+    const selectedTargets = [...scoutTargetDropdownMenu.querySelectorAll("input:checked")].map(input => input.value).filter(value => value !== "Alla");
+    const selectedCategories = [...scoutCategoryDropdownMenu.querySelectorAll("input:checked")].map(input => input.value).filter(value => value !== "Alla");
+    return scoutBadges.filter(badge => {
+        const matchesSearch = !search || badge.namn.toLowerCase().includes(search);
+        const targets = Array.isArray(badge.malgrupp) ? badge.malgrupp : [badge.malgrupp || "Övrigt"];
+        const matchesTarget = selectedTargets.length === 0 || selectedTargets.some(target => targets.includes(target));
+        const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(badge.kategori || "Övrigt");
+        return matchesSearch && matchesTarget && matchesCategory && (!scoutActiveBadgeFilter.checked || badgeHasStatus(badge));
+    });
+}
+
+function renderBadgeFilterDropdown(menu, button, values, allLabel, selectedValues) {
+    menu.innerHTML = ["Alla", ...values].map(value => `<label class="multi-select-option" role="option" aria-selected="${value === "Alla" ? selectedValues.length === 0 : selectedValues.includes(value)}"><input type="checkbox" value="${escapeScoutHtml(value)}"${value === "Alla" ? selectedValues.length === 0 ? " checked" : "" : selectedValues.includes(value) ? " checked" : ""}><span class="multi-select-check" aria-hidden="true">✓</span><span>${value === "Alla" ? allLabel : escapeScoutHtml(value)}</span></label>`).join("");
+    button.textContent = selectedValues.length === 0 ? allLabel : selectedValues.length === 1 ? selectedValues[0] : `${selectedValues.length} valda`;
+    menu.querySelectorAll("input").forEach(input => input.addEventListener("change", () => {
+        const allInput = menu.querySelector("input[value='Alla']");
+        if (input.value === "Alla" && input.checked) menu.querySelectorAll("input").forEach(option => { option.checked = option.value === "Alla"; });
+        else if (input.value !== "Alla" && input.checked) allInput.checked = false;
+        updateBadgeFilterDropdowns();
+        renderScoutHeader();
+        renderScouts();
+    }));
+}
+
+function updateBadgeFilterDropdowns() {
+    const targets = [...new Set(scoutBadges.flatMap(badge => Array.isArray(badge.malgrupp) ? badge.malgrupp : [badge.malgrupp || "Övrigt"]))].sort((a, b) => a.localeCompare(b, "sv"));
+    const categories = [...new Set(scoutBadges.map(badge => badge.kategori || "Övrigt"))].sort((a, b) => a.localeCompare(b, "sv"));
+    const selectedTargets = [...scoutTargetDropdownMenu.querySelectorAll("input:checked")].map(input => input.value).filter(value => value !== "Alla");
+    const selectedCategories = [...scoutCategoryDropdownMenu.querySelectorAll("input:checked")].map(input => input.value).filter(value => value !== "Alla");
+    renderBadgeFilterDropdown(scoutTargetDropdownMenu, scoutTargetDropdownBtn, targets, "Alla målgrupper", selectedTargets.filter(value => targets.includes(value)));
+    renderBadgeFilterDropdown(scoutCategoryDropdownMenu, scoutCategoryDropdownBtn, categories, "Alla kategorier", selectedCategories.filter(value => categories.includes(value)));
 }
 
 function updateYearFilter() {
-    const current = scoutYearFilter.value;
+    const current = [...scoutYearDropdownMenu.querySelectorAll("input:checked")].map(input => input.value);
     const years = [...new Set(scoutData.map(scout => scout.fodelsear).filter(Boolean))].sort((a, b) => a - b);
-    scoutYearFilter.innerHTML = `<option value="Alla">Alla år</option>${years.map(year => `<option value="${year}">${year}</option>`).join("")}`;
-    scoutYearFilter.value = years.includes(Number(current)) ? current : "Alla";
+    const selectedYears = current.filter(value => value !== "Alla" && years.includes(Number(value)));
+    const options = ["Alla", ...years.map(String)];
+    scoutYearDropdownMenu.innerHTML = options.map(value => `<label class="multi-select-option" role="option" aria-selected="${value === "Alla" ? selectedYears.length === 0 : selectedYears.includes(value)}"><input type="checkbox" value="${value}"${value === "Alla" ? selectedYears.length === 0 ? " checked" : "" : selectedYears.includes(value) ? " checked" : ""}><span class="multi-select-check" aria-hidden="true">✓</span><span>${value === "Alla" ? "Alla år" : value}</span></label>`).join("");
+    scoutYearDropdownBtn.textContent = selectedYears.length === 0 ? "Alla år" : selectedYears.length === 1 ? selectedYears[0] : `${selectedYears.length} år valda`;
+    scoutYearDropdownMenu.querySelectorAll("input").forEach(input => input.addEventListener("change", handleYearFilterChange));
+}
+
+function handleYearFilterChange(event) {
+    const input = event.target;
+    const allInput = scoutYearDropdownMenu.querySelector("input[value='Alla']");
+    if (input.value === "Alla" && input.checked) {
+        scoutYearDropdownMenu.querySelectorAll("input").forEach(option => { option.checked = option.value === "Alla"; });
+    } else if (input.value !== "Alla" && input.checked) {
+        allInput.checked = false;
+    }
+    updateYearFilter();
+    renderScouts();
 }
 
 function renderScouts() {
     const search = scoutSearch.value.trim().toLowerCase();
-    const year = scoutYearFilter.value;
+    const selectedYears = [...scoutYearDropdownMenu.querySelectorAll("input:checked")].map(input => input.value);
     const visible = scoutData.filter(scout => {
         const matchesName = !search || scout.namn.toLowerCase().includes(search);
-        const matchesYear = year === "Alla" || String(scout.fodelsear) === year;
+        const matchesYear = selectedYears.includes("Alla") || selectedYears.length === 0 || selectedYears.includes(String(scout.fodelsear));
         return matchesName && matchesYear && scout.aktiv !== false;
     });
     scoutEmpty.classList.toggle("hidden", scoutData.length > 0);
+    const visibleBadges = getVisibleScoutBadges();
     scoutTableBody.innerHTML = visible.map(scout => `<tr>
         <th scope="row"><span class="scout-name">${escapeScoutHtml(scout.namn)}</span></th>
         <td>${escapeScoutHtml(scout.fodelsear)}</td>
-        ${scoutBadges.map(badge => {
+        ${visibleBadges.map(badge => {
             if (REPEATABLE_BADGE_IDS.has(badge.id)) {
                 const count = Number(scout.counts?.[badge.id]) || 0;
                 const completed = count >= REPEATABLE_BADGE_TARGET;
@@ -89,6 +191,7 @@ function renderScouts() {
 function renderAll() {
     scoutData = window.GTScoutScouts?.getAll?.() || [];
     updateYearFilter();
+    updateBadgeFilterDropdowns();
     renderScoutHeader();
     renderScouts();
 }
@@ -99,7 +202,14 @@ async function loadScoutBadges() {
         const baseBadges = await response.json();
         scoutBadges = [...baseBadges, ...(window.GTScoutBadges?.getAllBadges?.() || [])]
             .filter((badge, index, list) => list.findIndex(item => item.id === badge.id) === index)
-            .sort((left, right) => left.namn.localeCompare(right.namn, "sv"));
+            .sort((left, right) => {
+                const targetDifference = getScoutBadgeSortTarget(left) - getScoutBadgeSortTarget(right);
+                if (targetDifference) return targetDifference;
+                const typeDifference = getScoutBadgeSortType(left) - getScoutBadgeSortType(right);
+                if (typeDifference) return typeDifference;
+                const categoryDifference = String(left.kategori || "Övrigt").localeCompare(String(right.kategori || "Övrigt"), "sv");
+                return categoryDifference || left.namn.localeCompare(right.namn, "sv");
+            });
         window.GTScoutScouts?.init({ badges: scoutBadges, onChange: renderAll });
         renderAll();
     } catch (error) {
@@ -128,6 +238,32 @@ document.getElementById("saveScoutBtn").addEventListener("click", () => {
     scoutModal.classList.add("hidden");
 });
 scoutSearch.addEventListener("input", renderScouts);
-scoutYearFilter.addEventListener("change", renderScouts);
+scoutBadgeSearch.addEventListener("input", () => { renderScoutHeader(); renderScouts(); });
+scoutActiveBadgeFilter.addEventListener("change", () => { renderScoutHeader(); renderScouts(); });
+[[scoutTargetDropdown, scoutTargetDropdownBtn, scoutTargetDropdownMenu], [scoutCategoryDropdown, scoutCategoryDropdownBtn, scoutCategoryDropdownMenu]].forEach(([dropdown, button, menu]) => button.addEventListener("click", event => {
+    event.stopPropagation();
+    document.querySelectorAll(".scouts-toolbar .multi-select-menu").forEach(otherMenu => { if (otherMenu !== menu) otherMenu.classList.add("hidden"); });
+    const isOpen = !menu.classList.contains("hidden");
+    menu.classList.toggle("hidden", isOpen);
+    button.setAttribute("aria-expanded", String(!isOpen));
+}));
+scoutYearDropdownBtn.addEventListener("click", event => {
+    event.stopPropagation();
+    const isOpen = !scoutYearDropdownMenu.classList.contains("hidden");
+    scoutYearDropdownMenu.classList.toggle("hidden", isOpen);
+    scoutYearDropdownBtn.setAttribute("aria-expanded", String(!isOpen));
+});
+document.addEventListener("click", event => {
+    if (!scoutYearDropdown.contains(event.target)) {
+        scoutYearDropdownMenu.classList.add("hidden");
+        scoutYearDropdownBtn.setAttribute("aria-expanded", "false");
+    }
+    [[scoutTargetDropdown, scoutTargetDropdownBtn, scoutTargetDropdownMenu], [scoutCategoryDropdown, scoutCategoryDropdownBtn, scoutCategoryDropdownMenu]].forEach(([dropdown, button, menu]) => {
+        if (!dropdown.contains(event.target)) {
+            menu.classList.add("hidden");
+            button.setAttribute("aria-expanded", "false");
+        }
+    });
+});
 window.GTScoutBadges?.init({ onChange: loadScoutBadges });
 loadScoutBadges();
