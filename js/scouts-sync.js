@@ -5,6 +5,7 @@
     let onChange = null;
     let loadedForKarId = null;
     let saveTimer = null;
+    const pendingDeletions = new Set();
 
     const auth = () => window.GTScoutAuth;
     const client = () => auth()?.getClient() || null;
@@ -82,6 +83,19 @@
         });
         const { error: badgeError } = await client().from("scout_badges").upsert(badgeRows, { onConflict: "scout_id,badge_id" });
         if (badgeError) console.error("Kunde inte spara märkesstatus", badgeError);
+        if (pendingDeletions.size > 0) {
+            const ids = [...pendingDeletions];
+            const { error: deleteError } = await client()
+                .from("scouts")
+                .delete()
+                .eq("kar_id", karId())
+                .in("id", ids);
+            if (deleteError) {
+                console.error("Kunde inte ta bort scouter", deleteError);
+            } else {
+                ids.forEach(id => pendingDeletions.delete(id));
+            }
+        }
     }
 
     function scheduleSave() {
@@ -138,7 +152,14 @@
             notify();
         },
         remove(id) {
+            pendingDeletions.add(id);
             scouts = scouts.filter(scout => scout.id !== id);
+            notify();
+        },
+        removeMany(ids) {
+            const idsToRemove = new Set(ids);
+            idsToRemove.forEach(id => pendingDeletions.add(id));
+            scouts = scouts.filter(scout => !idsToRemove.has(scout.id));
             notify();
         },
         setStatus(scoutId, badgeId, status) {

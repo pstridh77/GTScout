@@ -84,14 +84,27 @@ body {
 }
 
 .scouts-toolbar {
-    display: flex;
-    align-items: flex-end;
-    gap: 12px;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(150px, 1fr) ) auto;
+    align-items: end;
+    gap: 14px;
     margin-bottom: 18px;
+    padding: 14px;
+    border: 1px solid #d7e1eb;
+    border-radius: 10px;
+    background: #f8fafc;
 }
 
 .scouts-toolbar .filter-field {
-    min-width: 190px;
+    min-width: 0;
+    width: 100%;
+}
+
+.scouts-toolbar .multi-select-dropdown,
+.scouts-toolbar .multi-select-trigger,
+.scouts-toolbar input[type="search"] {
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .scouts-toolbar select[multiple] {
@@ -110,7 +123,13 @@ body {
     min-height: 38px;
     color: #536477;
     font-size: 0.84rem;
-    white-space: nowrap;
+    white-space: normal;
+}
+
+.scouts-toolbar .btn-danger {
+    min-height: 40px;
+    max-width: 150px;
+    line-height: 1.15;
 }
 
 .scout-active-filter input {
@@ -119,12 +138,59 @@ body {
     accent-color: #003660;
 }
 
+@media (max-width: 1100px) {
+    .scouts-toolbar {
+        grid-template-columns: repeat(3, minmax(160px, 1fr));
+    }
+
+    .scouts-toolbar .scout-active-filter,
+    .scouts-toolbar .btn-danger,
+    .scouts-toolbar .planning-sync-status {
+        grid-column: span 1;
+    }
+}
+
+@media (max-width: 680px) {
+    .scouts-toolbar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .scouts-toolbar .scout-active-filter,
+    .scouts-toolbar .btn-danger,
+    .scouts-toolbar .planning-sync-status {
+        grid-column: 1 / -1;
+    }
+}
+
 .scouts-table-wrap {
-    overflow-x: auto;
+    width: 100%;
+    max-width: 100%;
+    max-height: min(620px, calc(100vh - 320px));
+    min-height: 180px;
+    overflow-x: scroll;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    overscroll-behavior-x: contain;
     border: 1px solid #d7e1eb;
     border-radius: 10px;
     background: white;
     box-shadow: 0 8px 24px rgba(0, 54, 96, 0.06);
+}
+
+.scouts-table-wrap::-webkit-scrollbar {
+    height: 12px;
+}
+
+.scouts-table-wrap::-webkit-scrollbar-track {
+    background: #eef2f6;
+}
+
+.scouts-table-wrap::-webkit-scrollbar-thumb {
+    border: 3px solid #eef2f6;
+    border-radius: 999px;
+    background: #8b99a8;
 }
 
 .scouts-table {
@@ -132,6 +198,14 @@ body {
     min-width: 720px;
     border-collapse: collapse;
     color: #003660;
+}
+
+.scout-name-column {
+    width: 180px;
+}
+
+.scout-year-column {
+    width: 92px;
 }
 
 .scouts-table th,
@@ -142,11 +216,88 @@ body {
     white-space: nowrap;
 }
 
+.scouts-table tr > :first-child,
+.scouts-table tr > :nth-child(2) {
+    position: sticky;
+    z-index: 2;
+    background: white;
+    box-sizing: border-box;
+}
+
+.scouts-table tr > :first-child {
+    width: 180px;
+    min-width: 180px;
+    max-width: 180px;
+}
+
+.scouts-table tr > :nth-child(2) {
+    width: 92px;
+    min-width: 92px;
+    max-width: 92px;
+}
+
+.scouts-table tr > :first-child {
+    left: 0;
+}
+
+.scouts-table tr > :nth-child(2) {
+    left: 180px;
+    box-shadow: 3px 0 8px rgba(0, 54, 96, 0.08);
+}
+
+.scouts-table thead tr > :first-child,
+.scouts-table thead tr > :nth-child(2) {
+    background: #eef5fb;
+    z-index: 4;
+}
+
+.scouts-table thead .scout-target-row > :first-child {
+    left: 0;
+}
+
+.scouts-table thead tr:nth-child(2) > :first-child {
+    left: 0;
+}
+
+.scouts-table thead tr:nth-child(2) > :nth-child(2) {
+    left: 180px;
+}
+
+.scouts-table tbody tr > :first-child,
+.scouts-table tbody tr > :nth-child(2) {
+    background: white;
+}
+
 .scouts-table thead th {
     position: sticky;
-    top: 0;
     background: #eef5fb;
     font-size: 0.78rem;
+}
+
+.scouts-table thead tr:first-child th {
+    top: 0;
+    z-index: 5;
+}
+
+.scouts-table thead tr:nth-child(2) th {
+    top: 40px;
+    z-index: 5;
+}
+
+.scouts-table thead tr > :first-child,
+.scouts-table thead tr > :nth-child(2) {
+    z-index: 7;
+    background: #eef5fb;
+}
+
+.scouts-table thead .scout-target-row > :first-child {
+    background: #eef5fb;
+}
+
+.scouts-table thead tr:nth-child(2) > th:first-child,
+.scouts-table thead tr:nth-child(2) > th:nth-child(2) {
+    z-index: 8 !important;
+    background: #eef5fb !important;
 }
 
 .scouts-table thead .scout-target-row th {

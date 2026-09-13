@@ -19,6 +19,7 @@ const SCOUT_TARGET_CLASS_NAMES = {
 const scoutSearch = document.getElementById("scoutSearch");
 const scoutBadgeSearch = document.getElementById("scoutBadgeSearch");
 const scoutActiveBadgeFilter = document.getElementById("scoutActiveBadgeFilter");
+const removeFilteredScoutsBtn = document.getElementById("removeFilteredScoutsBtn");
 const scoutYearDropdown = document.getElementById("scoutYearDropdown");
 const scoutYearDropdownBtn = document.getElementById("scoutYearDropdownBtn");
 const scoutYearDropdownMenu = document.getElementById("scoutYearDropdownMenu");
@@ -219,14 +220,23 @@ function handleYearFilterChange(event) {
     renderScouts();
 }
 
-function renderScouts() {
+function getVisibleScouts() {
     const search = scoutSearch.value.trim().toLowerCase();
     const selectedYears = [...scoutYearDropdownMenu.querySelectorAll("input:checked")].map(input => input.value);
-    const visible = scoutData.filter(scout => {
+    return scoutData.filter(scout => {
         const matchesName = !search || scout.namn.toLowerCase().includes(search);
         const matchesYear = selectedYears.includes("Alla") || selectedYears.length === 0 || selectedYears.includes(String(scout.fodelsear));
         return matchesName && matchesYear && scout.aktiv !== false;
+    }).sort((left, right) => {
+        const yearDifference = Number(left.fodelsear) - Number(right.fodelsear);
+        return yearDifference || left.namn.localeCompare(right.namn, "sv");
     });
+}
+
+function renderScouts() {
+    const visible = getVisibleScouts();
+    removeFilteredScoutsBtn.disabled = !canManageScouts() || visible.length === 0;
+    removeFilteredScoutsBtn.textContent = visible.length > 0 ? `Ta bort filtrerade (${visible.length})` : "Ta bort filtrerade";
     scoutEmpty.classList.toggle("hidden", scoutData.length > 0);
     const visibleBadges = getVisibleScoutBadges();
     scoutTableBody.innerHTML = visible.map(scout => `<tr>
@@ -338,6 +348,13 @@ document.getElementById("saveScoutBtn").addEventListener("click", () => {
 scoutSearch.addEventListener("input", renderScouts);
 scoutBadgeSearch.addEventListener("input", () => { renderScoutHeader(); renderScouts(); });
 scoutActiveBadgeFilter.addEventListener("change", () => { renderScoutHeader(); renderScouts(); });
+removeFilteredScoutsBtn.addEventListener("click", () => {
+    const visible = getVisibleScouts();
+    if (!visible.length || !canManageScouts()) return;
+    const names = visible.length <= 3 ? ` (${visible.map(scout => scout.namn).join(", ")})` : "";
+    if (!confirm(`Ta bort ${visible.length} filtrerade scouter${names}? Märkesstatusen tas också bort.`)) return;
+    window.GTScoutScouts.removeMany(visible.map(scout => scout.id));
+});
 [[scoutTargetDropdown, scoutTargetDropdownBtn, scoutTargetDropdownMenu], [scoutCategoryDropdown, scoutCategoryDropdownBtn, scoutCategoryDropdownMenu]].forEach(([dropdown, button, menu]) => button.addEventListener("click", event => {
     event.stopPropagation();
     document.querySelectorAll(".scouts-toolbar .multi-select-menu").forEach(otherMenu => { if (otherMenu !== menu) otherMenu.classList.add("hidden"); });
