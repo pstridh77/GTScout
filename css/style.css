@@ -39,6 +39,41 @@ body {
     line-height: 1.5;
 }
 
+.scouts-page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.scout-import-preview {
+    max-height: 260px;
+    overflow: auto;
+    border: 1px solid #d7e1eb;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.scout-import-preview table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+}
+
+.scout-import-preview th,
+.scout-import-preview td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.scout-import-preview th {
+    position: sticky;
+    top: 0;
+    background: #eef5fb;
+}
+
 .scouts-kicker {
     margin: 0 !important;
     color: #64748b !important;

@@ -30,7 +30,7 @@
         if (!canRead()) return;
         try {
             const [{ data: scoutRows, error: scoutError }, { data: badgeRows, error: badgeError }] = await Promise.all([
-                client().from("scouts").select("id, namn, fodelsear, aktiv").eq("kar_id", karId()).order("namn"),
+                client().from("scouts").select("id, medlemsnummer, namn, fodelsedatum, fodelsear, aktiv").eq("kar_id", karId()).order("namn"),
                 client().from("scout_badges").select("scout_id, badge_id, status, antal")
             ]);
             if (scoutError) throw scoutError;
@@ -58,7 +58,9 @@
         const rows = scouts.map(scout => ({
             id: scout.id,
             kar_id: karId(),
+            medlemsnummer: scout.medlemsnummer || null,
             namn: scout.namn,
+            fodelsedatum: scout.fodelsedatum || null,
             fodelsear: scout.fodelsear,
             aktiv: scout.aktiv !== false,
             created_by: auth().getUser()?.id || null
@@ -117,6 +119,22 @@
         canWrite,
         add(scout) {
             scouts.push({ ...scout, statuses: {}, counts: {} });
+            notify();
+        },
+        upsertMany(importedScouts) {
+            importedScouts.forEach(importedScout => {
+                const existing = importedScout.medlemsnummer
+                    ? scouts.find(scout => scout.medlemsnummer === importedScout.medlemsnummer)
+                    : null;
+                if (existing) {
+                    existing.namn = importedScout.namn;
+                    existing.fodelsedatum = importedScout.fodelsedatum;
+                    existing.fodelsear = importedScout.fodelsear;
+                    existing.aktiv = true;
+                } else {
+                    scouts.push({ ...importedScout, id: crypto.randomUUID(), statuses: {}, counts: {} });
+                }
+            });
             notify();
         },
         remove(id) {

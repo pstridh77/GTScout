@@ -33,8 +33,14 @@ const scoutTableBody = document.getElementById("scoutsTableBody");
 const scoutEmpty = document.getElementById("scoutsEmpty");
 const scoutModal = document.getElementById("scoutModal");
 const scoutModalStatus = document.getElementById("scoutModalStatus");
+const scoutCsvInput = document.getElementById("scoutCsvInput");
+const scoutImportModal = document.getElementById("scoutImportModal");
+const scoutImportPreview = document.getElementById("scoutImportPreview");
+const scoutImportStatus = document.getElementById("scoutImportStatus");
+const confirmScoutImportBtn = document.getElementById("confirmScoutImportBtn");
 let scoutBadges = [];
 let scoutData = [];
+let pendingScoutImport = [];
 
 function getScoutBadgeSortTarget(badge) {
     const targets = Array.isArray(badge.malgrupp) ? badge.malgrupp : [badge.malgrupp || "Övrigt"];
@@ -57,6 +63,72 @@ function escapeScoutHtml(value) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+}
+
+function normalizeCsvHeader(value) {
+    return String(value || "").replace(/^\uFEFF/, "").trim().toLowerCase().replace(/[åä]/g, "a").replace(/ö/g, "o");
+}
+
+function parseCsv(text) {
+    const separator = (text.split(/\r?\n/)[0].match(/;/g) || []).length > (text.split(/\r?\n/)[0].match(/,/g) || []).length ? ";" : ",";
+    const rows = [];
+    let row = [];
+    let cell = "";
+    let quoted = false;
+    for (let index = 0; index < text.length; index += 1) {
+        const char = text[index];
+        if (char === '"' && text[index + 1] === '"' && quoted) { cell += '"'; index += 1; continue; }
+        if (char === '"') { quoted = !quoted; continue; }
+        if (!quoted && char === separator) { row.push(cell.trim()); cell = ""; continue; }
+        if (!quoted && (char === "\n" || char === "\r")) {
+            if (char === "\r" && text[index + 1] === "\n") index += 1;
+            row.push(cell.trim());
+            if (row.some(value => value)) rows.push(row);
+            row = []; cell = ""; continue;
+        }
+        cell += char;
+    }
+    row.push(cell.trim());
+    if (row.some(value => value)) rows.push(row);
+    if (rows.length < 2) throw new Error("CSV-filen saknar data.");
+    const headers = rows.shift().map(normalizeCsvHeader);
+    const indexOf = name => headers.indexOf(name);
+    const memberIndex = indexOf("medlemsnummer");
+    const firstNameIndex = indexOf("fornamn");
+    const lastNameIndex = indexOf("efternamn");
+    const birthDateIndex = indexOf("fodelsedatum");
+    if ([memberIndex, firstNameIndex, lastNameIndex, birthDateIndex].some(index => index < 0)) {
+        throw new Error("CSV-filen måste ha kolumnerna Medlemsnummer, Förnamn, Efternamn och Födelsedatum.");
+    }
+    return rows.map(values => {
+        const birthDate = parseBirthDate(values[birthDateIndex]);
+        return {
+            medlemsnummer: values[memberIndex],
+            namn: `${values[firstNameIndex]} ${values[lastNameIndex]}`.trim(),
+            fodelsedatum: birthDate.iso,
+            fodelsear: birthDate.year,
+            aktiv: true
+        };
+    }).filter(row => row.medlemsnummer && row.namn && row.fodelsear);
+}
+
+function parseBirthDate(value) {
+    const raw = String(value || "").trim();
+    let match = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/) || raw.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+    if (!match) return { iso: "", year: 0 };
+    const year = match[1].length === 4 ? Number(match[1]) : Number(match[3]);
+    const month = match[1].length === 4 ? Number(match[2]) : Number(match[2]);
+    const day = match[1].length === 4 ? Number(match[3]) : Number(match[1]);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return { iso: "", year: 0 };
+    return { iso: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`, year };
+}
+
+function showScoutImportPreview(rows) {
+    pendingScoutImport = rows;
+    scoutImportPreview.innerHTML = `<table><thead><tr><th>Medlemsnummer</th><th>Namn</th><th>Födelsedatum</th></tr></thead><tbody>${rows.slice(0, 50).map(row => `<tr><td>${escapeScoutHtml(row.medlemsnummer)}</td><td>${escapeScoutHtml(row.namn)}</td><td>${escapeScoutHtml(row.fodelsedatum)}</td></tr>`).join("")}</tbody></table>`;
+    scoutImportStatus.textContent = `${rows.length} scouter hittades${rows.length > 50 ? " (visar de första 50)" : ""}. Befintliga matchas på medlemsnummer.`;
+    confirmScoutImportBtn.disabled = rows.length === 0;
 }
 
 function canManageScouts() {
@@ -216,6 +288,32 @@ async function loadScoutBadges() {
         console.error("Kunde inte läsa märken", error);
     }
 }
+
+document.getElementById("importScoutsBtn").addEventListener("click", () => scoutCsvInput.click());
+document.getElementById("closeScoutImportModal").addEventListener("click", () => scoutImportModal.classList.add("hidden"));
+document.getElementById("cancelScoutImportBtn").addEventListener("click", () => scoutImportModal.classList.add("hidden"));
+scoutImportModal.addEventListener("click", event => { if (event.target === scoutImportModal) scoutImportModal.classList.add("hidden"); });
+scoutCsvInput.addEventListener("change", async event => {
+    const file = event.target.files?.[0];
+    scoutCsvInput.value = "";
+    if (!file) return;
+    try {
+        const rows = parseCsv(await file.text());
+        showScoutImportPreview(rows);
+        scoutImportModal.classList.remove("hidden");
+    } catch (error) {
+        scoutImportPreview.innerHTML = "";
+        scoutImportStatus.textContent = error.message || "CSV-filen kunde inte läsas.";
+        confirmScoutImportBtn.disabled = true;
+        scoutImportModal.classList.remove("hidden");
+    }
+});
+confirmScoutImportBtn.addEventListener("click", () => {
+    if (!pendingScoutImport.length) return;
+    window.GTScoutScouts.upsertMany(pendingScoutImport);
+    pendingScoutImport = [];
+    scoutImportModal.classList.add("hidden");
+});
 
 document.getElementById("addScoutBtn").addEventListener("click", () => {
     if (!canManageScouts()) return;

@@ -304,7 +304,9 @@ create index if not exists badge_activities_activity_id_idx on public.badge_acti
 create table if not exists public.scouts (
     id uuid primary key default gen_random_uuid(),
     kar_id uuid not null references public.kar(id) on delete cascade,
+    medlemsnummer text,
     namn text not null,
+    fodelsedatum date,
     fodelsear integer not null,
     aktiv boolean not null default true,
     created_by uuid references public.profiles(id) on delete set null,
@@ -328,6 +330,16 @@ create table if not exists public.scout_badges (
 
 alter table public.scout_badges
     add column if not exists antal integer not null default 0;
+
+alter table public.scouts
+    add column if not exists medlemsnummer text;
+
+alter table public.scouts
+    add column if not exists fodelsedatum date;
+
+create unique index if not exists scouts_kar_medlemsnummer_idx
+    on public.scouts (kar_id, medlemsnummer)
+    where medlemsnummer is not null and medlemsnummer <> '';
 
 create index if not exists scouts_kar_id_idx on public.scouts (kar_id);
 create index if not exists scouts_fodelsear_idx on public.scouts (fodelsear);
