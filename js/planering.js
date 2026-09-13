@@ -4,6 +4,38 @@ const CUSTOM_ACTIVITIES_STORAGE_KEY = "gtscout_custom_activities";
 const CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY = "gtscout_custom_badge_activities";
 const SHOW_ACTIVITIES_STORAGE_KEY = "gtscout_show_activities";
 const SHOW_MEETINGS_STORAGE_KEY = "gtscout_show_meetings";
+const MEETING_SECTION_STATUS_STORAGE_KEY = "gtscout_meeting_section_status";
+
+function getMeetingSectionStatusKey(groupId, meetingId) {
+    return `${groupId}:${meetingId}`;
+}
+
+function loadMeetingSectionStatuses() {
+    try {
+        const statuses = JSON.parse(localStorage.getItem(MEETING_SECTION_STATUS_STORAGE_KEY));
+        return statuses && typeof statuses === "object" && !Array.isArray(statuses) ? statuses : {};
+    } catch {
+        return {};
+    }
+}
+
+function getMeetingSectionStatuses(groupId, meetingId) {
+    const statuses = loadMeetingSectionStatuses();
+    const meetingStatuses = statuses[getMeetingSectionStatusKey(groupId, meetingId)];
+    return meetingStatuses && typeof meetingStatuses === "object" ? meetingStatuses : {};
+}
+
+function toggleMeetingSectionStatus(groupId, meetingId, sectionKey) {
+    const statuses = loadMeetingSectionStatuses();
+    const meetingKey = getMeetingSectionStatusKey(groupId, meetingId);
+    const meetingStatuses = statuses[meetingKey] && typeof statuses[meetingKey] === "object"
+        ? statuses[meetingKey]
+        : {};
+    meetingStatuses[sectionKey] = !meetingStatuses[sectionKey];
+    statuses[meetingKey] = meetingStatuses;
+    localStorage.setItem(MEETING_SECTION_STATUS_STORAGE_KEY, JSON.stringify(statuses));
+    return Boolean(meetingStatuses[sectionKey]);
+}
 
 const DEFAULT_PLANNINGS_FALLBACK = [
     {
@@ -2901,12 +2933,13 @@ function openMeetingReadingView(groupId, meetingId) {
             ${activity.genomforande ? `<p><strong>Genomförande:</strong> ${renderLinkedText(activity.genomforande)}</p>` : ""}
         </article>`;
     };
+    const sectionStatuses = getMeetingSectionStatuses(group.id, meeting.id);
     const sections = [
-        ["Inledningsceremoni", "Välkomna scouterna och skapa en tydlig start på mötet."],
-        ["Lek", "Ha roligt, lär känna varandra och få upp rörelsen.", (meeting.games || []).map(id => renderActivity(id, "Lek")).join("")],
-        ["Aktivitet", "Mötets planerade innehåll.", (meeting.activities || []).map(id => renderActivity(id, "Aktivitet")).join("")],
-        ["Reflektion", "Samla gruppen och prata kort om mötet och det ni har gjort."],
-        ["Avslutningsceremoni", "Tacka för idag, markera ett tydligt slut och berätta vad som händer nästa gång."]
+        ["opening", "Inledningsceremoni", "Välkomna scouterna och skapa en tydlig start på mötet."],
+        ["game", "Lek", "Ha roligt, lär känna varandra och få upp rörelsen.", (meeting.games || []).map(id => renderActivity(id, "Lek")).join("")],
+        ["activity", "Aktivitet", "Mötets planerade innehåll.", (meeting.activities || []).map(id => renderActivity(id, "Aktivitet")).join("")],
+        ["reflection", "Reflektion", "Samla gruppen och prata kort om mötet och det ni har gjort."],
+        ["closing", "Avslutningsceremoni", "Tacka för idag, markera ett tydligt slut och berätta vad som händer nästa gång."]
     ];
     const canShare = !isSharedPlanningView() && !group.local_only && window.GTScoutPlanningSync?.canWrite?.();
     view.innerHTML = `
@@ -2925,8 +2958,26 @@ function openMeetingReadingView(groupId, meetingId) {
         </header>
         ${meeting.notes ? `<div class="meeting-reading-notes"><strong>Anteckning</strong><p>${renderLinkedText(meeting.notes)}</p></div>` : ""}
         ${badges.length > 0 ? `<div class="meeting-reading-badges" aria-label="Märken">${badges.map(badge => `<div><img src="${escapeHtml(new URL(badge.bild, window.location.href).href)}" alt=""><span>${escapeHtml(badge.namn)}</span></div>`).join("")}</div>` : ""}
-        <div class="meeting-reading-sections">${sections.map(([title, text, content]) => `<section><h3>${title}</h3><p>${text}</p>${content || ""}</section>`).join("")}</div>
+        <div class="meeting-reading-sections">${sections.map(([key, title, text, content]) => `<section class="meeting-reading-section${sectionStatuses[key] ? " meeting-reading-section--completed" : ""}" data-section-key="${key}" role="button" tabindex="0" aria-pressed="${Boolean(sectionStatuses[key])}" aria-label="${sectionStatuses[key] ? "Markera " : "Markera "} ${escapeHtml(title)} ${sectionStatuses[key] ? "som ej klar" : "som klar"}"><div class="meeting-reading-section-heading"><h3>${title}</h3><span class="meeting-reading-section-status">${sectionStatuses[key] ? "Klar" : ""}</span></div><p>${text}</p>${content || ""}</section>`).join("")}</div>
     `;
+    view.querySelectorAll(".meeting-reading-section").forEach(section => {
+        const toggle = () => {
+            const completed = toggleMeetingSectionStatus(group.id, meeting.id, section.dataset.sectionKey);
+            section.classList.toggle("meeting-reading-section--completed", completed);
+            section.setAttribute("aria-pressed", String(completed));
+            section.setAttribute("aria-label", `Markera ${section.querySelector("h3")?.textContent || "delen"} ${completed ? "som ej klar" : "som klar"}`);
+            section.querySelector(".meeting-reading-section-status").textContent = completed ? "Klar" : "";
+        };
+        section.addEventListener("click", event => {
+            if (event.target.closest("a, button, input, select, textarea")) return;
+            toggle();
+        });
+        section.addEventListener("keydown", event => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            toggle();
+        });
+    });
     const meetingShareButton = view.querySelector("#meetingReadingShareBtn");
     const planningShareIcon = document.querySelector(".share-group-btn svg");
     if (meetingShareButton && planningShareIcon) {

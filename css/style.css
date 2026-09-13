@@ -3199,10 +3199,48 @@ select:focus {
     background: #f8fafc;
 }
 
+.meeting-reading-section {
+    cursor: pointer;
+}
+
+.meeting-reading-section:focus-visible {
+    outline: 3px solid #f2b233;
+    outline-offset: 2px;
+}
+
+.meeting-reading-section--completed {
+    border-color: #b8c1cc;
+    background: #e5e7eb;
+    color: #64748b;
+    opacity: 0.72;
+}
+
+.meeting-reading-section--completed h3,
+.meeting-reading-section--completed p,
+.meeting-reading-section--completed .meeting-reading-activity h4,
+.meeting-reading-section--completed .meeting-reading-activity p {
+    color: #64748b;
+}
+
+.meeting-reading-section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
 .meeting-reading-sections h3 {
     margin: 0;
     color: #003660;
     font-size: 1.1rem;
+}
+
+.meeting-reading-section-status {
+    min-width: 42px;
+    color: #287044;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-align: right;
 }
 
 .meeting-reading-activity {
