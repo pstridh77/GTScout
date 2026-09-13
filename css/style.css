@@ -3124,6 +3124,17 @@ select:focus {
     font-size: clamp(1.7rem, 4vw, 2.4rem);
 }
 
+.meeting-reading-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.meeting-reading-title-row .btn-secondary {
+    flex: 0 0 auto;
+}
+
 .meeting-reading-meta {
     display: flex;
     flex-wrap: wrap;
@@ -3409,6 +3420,14 @@ select:focus {
 
 #selectActivityModal {
     z-index: 1100;
+}
+
+#sharePlanningModal {
+    z-index: 1300;
+}
+
+#sharePlanningModal .modal-actions {
+    gap: 10px;
 }
 
 .modal-content {

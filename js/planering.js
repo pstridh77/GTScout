@@ -279,6 +279,11 @@ function isSharedPlanningView() {
     return new URLSearchParams(window.location.search).has("share");
 }
 
+function getSharedMeetingId() {
+    if (!isSharedPlanningView()) return "";
+    return new URLSearchParams(window.location.search).get("meeting") || "";
+}
+
 function canEditGroup(group) {
     if (isSharedPlanningView()) return false;
     const auth = window.GTScoutAuth;
@@ -1097,6 +1102,8 @@ async function shareGroup(id) {
     const modal = document.getElementById("sharePlanningModal");
     const urlInput = document.getElementById("sharePlanningUrl");
     const status = document.getElementById("sharePlanningStatus");
+    document.getElementById("sharePlanningTitle").textContent = "Dela planering";
+    modal.querySelector(".share-planning-description").textContent = "Alla som har länken kan visa planeringen i skrivskyddat läge.";
     urlInput.value = shareUrl.href;
     status.textContent = "";
     modal.classList.remove("hidden");
@@ -1109,6 +1116,35 @@ async function shareGroup(id) {
     }
 }
 
+
+async function shareMeeting(groupId, meetingId) {
+    if (isSharedPlanningView()) return;
+    const group = groups.find(item => item.id === groupId);
+    const meeting = normalizeMeetingList(group?.meetings || []).find(item => item.id === meetingId);
+    if (!group || !meeting || group.local_only || !window.GTScoutPlanningSync?.canWrite?.()) return;
+    if (!group.share_token) {
+        group.share_token = crypto.randomUUID();
+        saveGroups();
+    }
+    const shareUrl = new URL("planering.html", window.location.href);
+    shareUrl.searchParams.set("share", group.share_token);
+    shareUrl.searchParams.set("meeting", meeting.id);
+    const modal = document.getElementById("sharePlanningModal");
+    const urlInput = document.getElementById("sharePlanningUrl");
+    const status = document.getElementById("sharePlanningStatus");
+    document.getElementById("sharePlanningTitle").textContent = "Dela möte";
+    modal.querySelector(".share-planning-description").textContent = "Alla som har länken kan visa just det här mötet i läsvyn.";
+    urlInput.value = shareUrl.href;
+    status.textContent = "";
+    modal.classList.remove("hidden");
+    urlInput.select();
+    try {
+        await navigator.clipboard.writeText(shareUrl.href);
+        status.textContent = "Länken har kopierats. Du kan också markera den och kopiera manuellt.";
+    } catch {
+        status.textContent = "Markera länken och kopiera den manuellt.";
+    }
+}
 
 function loadBadgeNotesForTransfer() {
     try {
@@ -2022,6 +2058,9 @@ function populateGroupFilterOptions() {
 }
 
 function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = new Set()) {
+    /*
+                            <button class="btn-secondary share-overview-group-btn" type="button" data-group-id="${group.id}" aria-label="Dela översikt" title="Dela översikt"${group.local_only || !window.GTScoutPlanningSync?.canWrite?.() ? " disabled" : ""} onclick="shareGroupOverview(${group.id})"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7.27,19.5 12,19.5C17.27,19.5 21.27,16.39 23,12C21.27,7.61 17.27,4.5 12,4.5M12,17C9.24,17 7,14.76 7,12C7,9.24 9.24,7 12,7C14.76,7 17,9.24 17,12C17,14.76 14.76,17 12,17M12,9C10.34,9 9,10.34 9,12C9,13.66 10.34,15 12,15C13.66,15 15,13.66 15,12C15,10.34 13.66,9 12,9Z" /></svg></button>
+    */
     const preservedOpenActivityGroupIds = new Set(
         [...document.querySelectorAll("#planningGrid .planned-activities[open]")]
             .map(details => details.closest(".group-badges")?.dataset.groupId)
@@ -2056,6 +2095,17 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
     if (visibleGroups.length === 0) {
         grid.innerHTML = '<p class="no-results">Inga planeringar matchar filtret.</p>';
         return;
+    }
+
+    const sharedMeetingId = getSharedMeetingId();
+    if (sharedMeetingId && visibleGroups.length === 1) {
+        const sharedGroup = visibleGroups[0];
+        const sharedMeeting = normalizeMeetingList(sharedGroup.meetings || []).find(item => item.id === sharedMeetingId);
+        if (sharedMeeting) {
+            grid.innerHTML = "";
+            openMeetingReadingView(sharedGroup.id, sharedMeeting.id);
+            return;
+        }
     }
 
     // Group plannings by scout level
@@ -2114,6 +2164,7 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                         <span class="group-planning-meta">År ${planningYear !== null ? planningYear : "-"} · ${planningTerm || "Termin -"}${group.visibility === "private" ? ` · <span class="planning-visibility-badge" title="Privat – endast synlig för ägare och admin">${getPlanningVisibilityIcon("private")}</span>` : group.visibility === "kar_view" ? ` · <span class="planning-visibility-badge" title="Skrivskyddad – bara ägare och admin kan redigera">${getPlanningVisibilityIcon("kar_view")}</span>` : ""}</span>
                     </div>
                     <div class="group-card-actions">
+                        <button class="btn-secondary share-overview-group-btn" type="button" data-group-id="${group.id}" aria-label="Dela översikt" title="Dela översikt"${group.local_only || !window.GTScoutPlanningSync?.canWrite?.() ? " disabled" : ""}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17.27,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5M12,17C9.24,17 7,14.76 7,12C7,9.24 9.24,7 12,7C14.76,7 17,9.24 17,12C17,14.76 14.76,17 12,17M12,9C10.34,9 9,10.34 9,12C9,13.66 10.34,15 12,15C13.66,15 15,13.66 15,12C15,10.34 13.66,9 12,9Z" /></svg></button>
                         <button class="btn-secondary share-group-btn" type="button" data-group-id="${group.id}" aria-label="Dela planering" title="Dela planering"${group.local_only || !window.GTScoutPlanningSync?.canWrite?.() ? " disabled" : ""}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,16.08C17.24,16.08 16.54,16.38 16,16.85L8.91,12.74C8.96,12.5 9,12.25 9,12C9,11.75 8.96,11.5 8.91,11.26L15.92,7.17C16.47,7.66 17.2,7.97 18,7.97C19.66,7.97 21,6.63 21,4.97C21,3.31 19.66,1.97 18,1.97C16.34,1.97 15,3.31 15,4.97C15,5.22 15.04,5.47 15.09,5.71L8.08,9.8C7.53,9.31 6.8,9 6,9C4.34,9 3,10.34 3,12C3,13.66 4.34,15 6,15C6.8,15 7.53,14.69 8.08,14.2L15.17,18.31C15.12,18.54 15,18.77 15,19C15,20.66 16.34,22 18,22C19.66,22 21,20.66 21,19C21,17.34 19.66,16.08 18,16.08Z" /></svg></button>
                         <button class="btn-secondary print-group-btn" type="button" data-group-id="${group.id}" aria-label="Skriv ut ${escapeHtml(group.name)}" title="Skriv ut ${escapeHtml(group.name)}"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,3H6V7H18M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8M16,19H8V14H16M19,13A1,1 0 1,1 20,12A1,1 0 0,1 19,13Z" /></svg></button>
                         <button class="btn-secondary edit-group-btn" type="button" data-group-id="${group.id}"${canEditGroup(group) ? "" : " disabled aria-disabled=\"true\" title=\"Endast ledare och administratörer kan redigera denna planering\""}>Redigera</button>
@@ -2124,6 +2175,7 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                     ${renderGroupBadges(group, activeOpenActivityGroupIds, activeOpenMeetingGroupIds)}
                 </div>
                 `;
+                card.querySelector(".share-overview-group-btn")?.remove();
                 card.querySelector(".edit-group-btn").addEventListener("click", () => openGroupEditor(group.id));
                 card.querySelector(".share-group-btn").addEventListener("click", () => shareGroup(group.id));
                 card.querySelector(".print-group-btn").addEventListener("click", () => openPdfSelection(group.id));
@@ -2856,10 +2908,14 @@ function openMeetingReadingView(groupId, meetingId) {
         ["Reflektion", "Samla gruppen och prata kort om mötet och det ni har gjort."],
         ["Avslutningsceremoni", "Tacka för idag, markera ett tydligt slut och berätta vad som händer nästa gång."]
     ];
+    const canShare = !isSharedPlanningView() && !group.local_only && window.GTScoutPlanningSync?.canWrite?.();
     view.innerHTML = `
         <header class="meeting-reading-header">
             <p class="meeting-reading-kicker">${escapeHtml(group.name || group.level || "Planering")}</p>
-            <h2 id="meetingReadingTitle">Träff ${escapeHtml(meeting.week || "-")}</h2>
+            <div class="meeting-reading-title-row">
+                <h2 id="meetingReadingTitle">Träff ${escapeHtml(meeting.week || "-")}</h2>
+                ${canShare ? `<button id="meetingReadingShareBtn" class="btn-secondary meeting-reading-share-btn" type="button" aria-label="Dela möte" title="Dela möte"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,16.08C17.24,16.08 16.54,16.38 16,16.85L8.91,12.74C8.96,12.5 9,12.25 8.91,11.26L15.92,7.17C16.47,7.66 17.2,7.97 18,7.97C19.66,7.97 21,6.63 21,4.97C21,3.31 19.66,1.97 18,1.97C16.34,1.97 15,3.31 15,4.97C15,5.22 15.04,5.47 15.09,5.71L8.08,9.8C7.53,9.31 6.8,9 6,9C4.34,9 3,10.34 3,12C3,13.66 4.34,15 6,15C6.8,15 7.53,14.69 8.08,14.2L15.17,18.31C15.12,18.54 15,18.77 15,19C15,20.66 16.34,22 18,22C19.66,22 21,20.66 21,19C21,17.34 19.66,16.08 18,16.08Z" /></svg></button>` : ""}
+            </div>
             <div class="meeting-reading-meta">
                 ${meeting.date ? `<span>${escapeHtml(meeting.date)}</span>` : ""}
                 ${meeting.location ? `<span>${escapeHtml(meeting.location)}</span>` : ""}
@@ -2871,6 +2927,12 @@ function openMeetingReadingView(groupId, meetingId) {
         ${badges.length > 0 ? `<div class="meeting-reading-badges" aria-label="Märken">${badges.map(badge => `<div><img src="${escapeHtml(resolveImage(badge.bild))}" alt=""><span>${escapeHtml(badge.namn)}</span></div>`).join("")}</div>` : ""}
         <div class="meeting-reading-sections">${sections.map(([title, text, content]) => `<section><h3>${title}</h3><p>${text}</p>${content || ""}</section>`).join("")}</div>
     `;
+    const meetingShareButton = view.querySelector("#meetingReadingShareBtn");
+    const planningShareIcon = document.querySelector(".share-group-btn svg");
+    if (meetingShareButton && planningShareIcon) {
+        meetingShareButton.replaceChildren(planningShareIcon.cloneNode(true));
+    }
+    meetingShareButton?.addEventListener("click", () => shareMeeting(group.id, meeting.id));
     modal.classList.remove("hidden");
 }
 
@@ -3570,6 +3632,7 @@ document.getElementById("copySharePlanningBtn").addEventListener("click", async 
     try {
         await navigator.clipboard.writeText(urlInput.value);
         status.textContent = "Länken har kopierats.";
+        sharePlanningModal.classList.add("hidden");
     } catch {
         status.textContent = "Kopiering kunde inte göras automatiskt. Markera länken och kopiera den manuellt.";
     }
