@@ -2177,7 +2177,24 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
     document.querySelectorAll(".edit-meeting-btn, .view-meeting-btn").forEach(btn => {
         btn.addEventListener("click", e => {
             e.stopPropagation();
-            openMeetingModal(btn.dataset.groupId, btn.dataset.meetingId, btn.classList.contains("view-meeting-btn"));
+            if (btn.classList.contains("view-meeting-btn")) {
+                openMeetingReadingView(btn.dataset.groupId, btn.dataset.meetingId);
+                return;
+            }
+            openMeetingModal(btn.dataset.groupId, btn.dataset.meetingId);
+        });
+    });
+
+    document.querySelectorAll(".planned-meeting").forEach(meetingCard => {
+        const open = () => openMeetingReadingView(meetingCard.dataset.groupId, meetingCard.dataset.meetingId);
+        meetingCard.addEventListener("click", event => {
+            if (event.target.closest("button, a, input, select, textarea")) return;
+            open();
+        });
+        meetingCard.addEventListener("keydown", event => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            open();
         });
     });
 
@@ -2248,7 +2265,7 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
                     .filter(Boolean),
                 Array.isArray(group.badges) ? group.badges : []
             );
-            return `<div class="planned-meeting" data-group-id="${group.id}" data-meeting-id="${meeting.id}">
+            return `<div class="planned-meeting" data-group-id="${group.id}" data-meeting-id="${meeting.id}" role="button" tabindex="0" aria-label="Visa träff ${escapeHtml(meeting.week || "-")}">
                     <div class="planned-meeting-header">
                         <strong>Träff ${escapeHtml(meeting.week || "-")}</strong>
                         <div class="planned-meeting-tools">
@@ -2807,6 +2824,56 @@ function renderMeetingLabels(group, activityId) {
         : `<span class="activity-meeting-links activity-meeting-links--empty">Inte utlagd på någon träff</span>`;
 }
 
+function openMeetingReadingView(groupId, meetingId) {
+    const group = groups.find(item => item.id === groupId);
+    const meeting = normalizeMeetingList(group?.meetings || []).find(item => item.id === meetingId);
+    const modal = document.getElementById("meetingReadingModal");
+    const view = document.getElementById("meetingReadingView");
+    if (!group || !meeting || !modal || !view) return;
+
+    const badges = getMeetingBadgeIds(meeting)
+        .map(badgeId => allMarken.find(item => item.id === badgeId))
+        .filter(Boolean);
+    const renderActivity = (activityId, kind) => {
+        const activity = allAktiviteter.find(item => item.id === activityId);
+        if (!activity) return `<p class="meeting-reading-missing">${kind} saknas (${escapeHtml(activityId)})</p>`;
+        const responsibleMap = kind === "Lek" ? meeting.gameResponsible : meeting.activityResponsible;
+        return `<article class="meeting-reading-activity">
+            <div class="meeting-reading-activity-heading">
+                <h4>${escapeHtml(activity.namn)}</h4>
+                ${responsibleMap?.[activity.id] ? `<span>Ansvarig: ${escapeHtml(responsibleMap[activity.id])}</span>` : ""}
+            </div>
+            ${activity.beskrivning ? `<p>${renderLinkedText(activity.beskrivning)}</p>` : ""}
+            ${formatActivityTime(activity) ? `<p><strong>Tid:</strong> ${escapeHtml(formatActivityTime(activity))}</p>` : ""}
+            ${Array.isArray(activity.material) && activity.material.length > 0 ? `<p><strong>Material:</strong> ${escapeHtml(activity.material.join(", "))}</p>` : ""}
+            ${activity.genomforande ? `<p><strong>Genomförande:</strong> ${renderLinkedText(activity.genomforande)}</p>` : ""}
+        </article>`;
+    };
+    const sections = [
+        ["Inledningsceremoni", "Välkomna scouterna och skapa en tydlig start på mötet."],
+        ["Lek", "Ha roligt, lär känna varandra och få upp rörelsen.", (meeting.games || []).map(id => renderActivity(id, "Lek")).join("")],
+        ["Aktivitet", "Mötets planerade innehåll.", (meeting.activities || []).map(id => renderActivity(id, "Aktivitet")).join("")],
+        ["Reflektion", "Samla gruppen och prata kort om mötet och det ni har gjort."],
+        ["Avslutningsceremoni", "Tacka för idag, markera ett tydligt slut och berätta vad som händer nästa gång."]
+    ];
+    view.innerHTML = `
+        <header class="meeting-reading-header">
+            <p class="meeting-reading-kicker">${escapeHtml(group.name || group.level || "Planering")}</p>
+            <h2 id="meetingReadingTitle">Träff ${escapeHtml(meeting.week || "-")}</h2>
+            <div class="meeting-reading-meta">
+                ${meeting.date ? `<span>${escapeHtml(meeting.date)}</span>` : ""}
+                ${meeting.location ? `<span>${escapeHtml(meeting.location)}</span>` : ""}
+                ${meeting.responsible ? `<span>Ansvarig: ${escapeHtml(meeting.responsible)}</span>` : ""}
+                ${calculateSunsetTime(meeting.date) ? `<span>${SUNSET_ICON_SVG}${escapeHtml(calculateSunsetTime(meeting.date))}</span>` : ""}
+            </div>
+        </header>
+        ${meeting.notes ? `<div class="meeting-reading-notes"><strong>Anteckning</strong><p>${renderLinkedText(meeting.notes)}</p></div>` : ""}
+        ${badges.length > 0 ? `<div class="meeting-reading-badges" aria-label="Märken">${badges.map(badge => `<div><img src="${escapeHtml(resolveImage(badge.bild))}" alt=""><span>${escapeHtml(badge.namn)}</span></div>`).join("")}</div>` : ""}
+        <div class="meeting-reading-sections">${sections.map(([title, text, content]) => `<section><h3>${title}</h3><p>${text}</p>${content || ""}</section>`).join("")}</div>
+    `;
+    modal.classList.remove("hidden");
+}
+
 function openMeetingModal(groupId, meetingId = null, readOnly = false) {
     const modal = document.getElementById("meetingModal");
     const group = groups.find(item => item.id === groupId);
@@ -3116,6 +3183,7 @@ function bindMeetingModalActions() {
     const modal = document.getElementById("meetingModal");
     const seriesModal = document.getElementById("meetingSeriesModal");
     document.getElementById("closeMeetingModal").addEventListener("click", () => modal.classList.add("hidden"));
+    document.getElementById("closeMeetingReadingModal")?.addEventListener("click", () => document.getElementById("meetingReadingModal")?.classList.add("hidden"));
     modal.addEventListener("click", event => {
         if (event.target === modal) modal.classList.add("hidden");
     });

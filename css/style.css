@@ -3090,6 +3090,147 @@ select:focus {
     color: #003660;
 }
 
+.planned-meeting[role="button"] {
+    cursor: pointer;
+}
+
+.planned-meeting[role="button"]:focus-visible {
+    outline: 3px solid #f2b233;
+    outline-offset: 2px;
+}
+
+.meeting-reading-content {
+    max-width: 820px;
+    padding: 30px clamp(18px, 4vw, 42px) 38px;
+}
+
+.meeting-reading-header {
+    padding: 8px 0 22px;
+    border-bottom: 3px solid #f2b233;
+}
+
+.meeting-reading-kicker {
+    margin: 0 0 5px;
+    color: #64748b;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.meeting-reading-header h2 {
+    margin: 0;
+    color: #003660;
+    font-size: clamp(1.7rem, 4vw, 2.4rem);
+}
+
+.meeting-reading-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    margin-top: 10px;
+    color: #536477;
+    font-size: 0.9rem;
+}
+
+.meeting-reading-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.meeting-reading-notes {
+    margin: 20px 0 0;
+    padding: 14px 16px;
+    border-left: 4px solid #f2b233;
+    background: #fff9e8;
+    color: #334155;
+}
+
+.meeting-reading-notes p,
+.meeting-reading-sections > section > p {
+    margin: 6px 0 0;
+    line-height: 1.55;
+}
+
+.meeting-reading-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 22px 0 4px;
+}
+
+.meeting-reading-badges > div {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #003660;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.meeting-reading-badges img {
+    width: 38px;
+    height: 38px;
+    object-fit: contain;
+}
+
+.meeting-reading-sections {
+    display: grid;
+    gap: 18px;
+    margin-top: 22px;
+}
+
+.meeting-reading-sections > section {
+    padding: 17px 18px;
+    border: 1px solid #dbe4ed;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.meeting-reading-sections h3 {
+    margin: 0;
+    color: #003660;
+    font-size: 1.1rem;
+}
+
+.meeting-reading-activity {
+    margin-top: 13px;
+    padding: 13px 14px;
+    border-left: 3px solid #7ba7c7;
+    background: white;
+}
+
+.meeting-reading-activity-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.meeting-reading-activity h4 {
+    margin: 0;
+    color: #003660;
+    font-size: 0.98rem;
+}
+
+.meeting-reading-activity-heading span {
+    color: #536477;
+    font-size: 0.8rem;
+}
+
+.meeting-reading-activity p {
+    margin: 7px 0 0;
+    color: #405568;
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+.meeting-reading-missing {
+    margin: 10px 0 0;
+    color: #b42318;
+}
+
 .planned-meeting-header {
     display: flex;
     align-items: center;
