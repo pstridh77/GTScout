@@ -1047,6 +1047,7 @@ let activeActivityPickerBadge = null;
 function createActivityPickerPopup() {
     const picker = document.createElement("div");
     picker.className = "detail-popup hidden";
+    picker.style.zIndex = "1550";
     picker.innerHTML = `
         <div class="detail-popup-content activity-picker-content">
             <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
