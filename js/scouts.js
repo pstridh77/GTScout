@@ -4,6 +4,8 @@ const SCOUT_STATUS_LABELS = {
     completed: "Klar"
 };
 const SCOUT_STATUS_ORDER = ["not_started", "in_progress", "completed"];
+const REPEATABLE_BADGE_IDS = new Set(["100_scout"]);
+const REPEATABLE_BADGE_TARGET = 5;
 const scoutSearch = document.getElementById("scoutSearch");
 const scoutYearFilter = document.getElementById("scoutYearFilter");
 const scoutTableHead = document.getElementById("scoutsTableHead");
@@ -57,6 +59,11 @@ function renderScouts() {
         <th scope="row"><span class="scout-name">${escapeScoutHtml(scout.namn)}</span></th>
         <td>${escapeScoutHtml(scout.fodelsear)}</td>
         ${scoutBadges.map(badge => {
+            if (REPEATABLE_BADGE_IDS.has(badge.id)) {
+                const count = Number(scout.counts?.[badge.id]) || 0;
+                const completed = count >= REPEATABLE_BADGE_TARGET;
+                return `<td><button class="scout-status scout-count-status${completed ? " scout-count-status--gold" : ""}" type="button" data-scout-id="${scout.id}" data-badge-id="${escapeScoutHtml(badge.id)}" aria-label="${escapeScoutHtml(scout.namn)} – ${escapeScoutHtml(badge.namn)}: ${completed ? "Guld" : `${count} av ${REPEATABLE_BADGE_TARGET}`}" title="${completed ? "Guld" : `Öka antal (${count}/${REPEATABLE_BADGE_TARGET})`}">${completed ? "Guld" : `${count}/${REPEATABLE_BADGE_TARGET}`}</button></td>`;
+            }
             const status = scout.statuses?.[badge.id] || "not_started";
             return `<td><button class="scout-status scout-status--${status}" type="button" data-scout-id="${scout.id}" data-badge-id="${escapeScoutHtml(badge.id)}" aria-label="${escapeScoutHtml(scout.namn)} – ${escapeScoutHtml(badge.namn)}: ${SCOUT_STATUS_LABELS[status]}" title="${SCOUT_STATUS_LABELS[status]}">${status === "completed" ? "✓" : status === "in_progress" ? "•" : "–"}</button></td>`;
         }).join("")}
@@ -65,6 +72,11 @@ function renderScouts() {
     document.querySelectorAll(".scout-status").forEach(button => button.addEventListener("click", () => {
         const scout = scoutData.find(item => item.id === button.dataset.scoutId);
         if (!scout) return;
+        if (REPEATABLE_BADGE_IDS.has(button.dataset.badgeId)) {
+            const count = Number(scout.counts?.[button.dataset.badgeId]) || 0;
+            window.GTScoutScouts.setCount(scout.id, button.dataset.badgeId, count >= REPEATABLE_BADGE_TARGET ? 0 : count + 1);
+            return;
+        }
         const current = scout.statuses?.[button.dataset.badgeId] || "not_started";
         window.GTScoutScouts.setStatus(scout.id, button.dataset.badgeId, getNextStatus(current));
     }));

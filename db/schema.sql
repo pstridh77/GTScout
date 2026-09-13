@@ -318,11 +318,16 @@ create table if not exists public.scout_badges (
     scout_id uuid not null references public.scouts(id) on delete cascade,
     badge_id text not null,
     status text not null default 'not_started',
+    antal integer not null default 0,
     updated_by uuid references public.profiles(id) on delete set null,
     updated_at timestamptz not null default now(),
     primary key (scout_id, badge_id),
-    constraint scout_badges_status_check check (status in ('not_started', 'in_progress', 'completed'))
+    constraint scout_badges_status_check check (status in ('not_started', 'in_progress', 'completed')),
+    constraint scout_badges_antal_check check (antal >= 0)
 );
+
+alter table public.scout_badges
+    add column if not exists antal integer not null default 0;
 
 create index if not exists scouts_kar_id_idx on public.scouts (kar_id);
 create index if not exists scouts_fodelsear_idx on public.scouts (fodelsear);

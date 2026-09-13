@@ -139,6 +139,23 @@ body {
     color: #287044;
 }
 
+.scout-count-status {
+    width: auto;
+    min-width: 48px;
+    padding: 0 6px;
+    border-radius: 7px;
+    background: #fff7d6;
+    border-color: #e6b84a;
+    color: #996b00;
+    font-size: 0.72rem;
+}
+
+.scout-count-status--gold {
+    background: #f7d36a;
+    border-color: #c18a00;
+    color: #694b00;
+}
+
 .scout-status:focus-visible,
 .scout-remove-btn:focus-visible {
     outline: 3px solid #f2b233;

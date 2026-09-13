@@ -31,14 +31,18 @@
         try {
             const [{ data: scoutRows, error: scoutError }, { data: badgeRows, error: badgeError }] = await Promise.all([
                 client().from("scouts").select("id, namn, fodelsear, aktiv").eq("kar_id", karId()).order("namn"),
-                client().from("scout_badges").select("scout_id, badge_id, status")
+                client().from("scout_badges").select("scout_id, badge_id, status, antal")
             ]);
             if (scoutError) throw scoutError;
             if (badgeError) throw badgeError;
             scouts = (scoutRows || []).map(scout => ({ ...scout, fodelsear: Number(scout.fodelsear), statuses: {} }));
             (badgeRows || []).forEach(row => {
                 const scout = scouts.find(item => item.id === row.scout_id);
-                if (scout) scout.statuses[row.badge_id] = row.status;
+                if (scout) {
+                    scout.statuses[row.badge_id] = row.status;
+                    scout.counts = scout.counts || {};
+                    scout.counts[row.badge_id] = Number(row.antal) || 0;
+                }
             });
             writeLocal();
         } catch (error) {
@@ -61,9 +65,19 @@
         }));
         const { error } = await client().from("scouts").upsert(rows, { onConflict: "id" });
         if (error) console.error("Kunde inte spara scouter", error);
-        const badgeRows = scouts.flatMap(scout => Object.entries(scout.statuses || {})
-            .filter(([, status]) => status && status !== "not_started")
-            .map(([badge_id, status]) => ({ scout_id: scout.id, badge_id, status, updated_by: auth().getUser()?.id || null })));
+        const badgeRows = scouts.flatMap(scout => {
+            const badgeIds = new Set([
+                ...Object.keys(scout.statuses || {}),
+                ...Object.keys(scout.counts || {})
+            ]);
+            return [...badgeIds].map(badge_id => ({
+                scout_id: scout.id,
+                badge_id,
+                status: scout.statuses?.[badge_id] || "not_started",
+                antal: Number(scout.counts?.[badge_id]) || 0,
+                updated_by: auth().getUser()?.id || null
+            }));
+        });
         const { error: badgeError } = await client().from("scout_badges").upsert(badgeRows, { onConflict: "scout_id,badge_id" });
         if (badgeError) console.error("Kunde inte spara märkesstatus", badgeError);
     }
@@ -102,7 +116,7 @@
         getAll: () => scouts,
         canWrite,
         add(scout) {
-            scouts.push({ ...scout, statuses: {} });
+            scouts.push({ ...scout, statuses: {}, counts: {} });
             notify();
         },
         remove(id) {
@@ -115,6 +129,18 @@
             scout.statuses = scout.statuses || {};
             if (status === "not_started") delete scout.statuses[badgeId];
             else scout.statuses[badgeId] = status;
+            notify();
+        },
+        setCount(scoutId, badgeId, count) {
+            const scout = scouts.find(item => item.id === scoutId);
+            if (!scout) return;
+            scout.counts = scout.counts || {};
+            const safeCount = Math.max(0, Math.floor(Number(count) || 0));
+            if (safeCount === 0) delete scout.counts[badgeId];
+            else scout.counts[badgeId] = safeCount;
+            scout.statuses = scout.statuses || {};
+            if (safeCount === 0) delete scout.statuses[badgeId];
+            else scout.statuses[badgeId] = safeCount >= 5 ? "completed" : "in_progress";
             notify();
         }
     };
