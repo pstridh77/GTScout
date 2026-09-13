@@ -299,6 +299,91 @@ create table if not exists public.badge_activities (
 create index if not exists badge_activities_badge_id_idx on public.badge_activities (badge_id);
 create index if not exists badge_activities_activity_id_idx on public.badge_activities (activity_id);
 
+-- ── Scoutspårning ───────────────────────────────────────────────────────────
+-- Enkel kårintern lista över scouter och deras märkesstatus.
+create table if not exists public.scouts (
+    id uuid primary key default gen_random_uuid(),
+    kar_id uuid not null references public.kar(id) on delete cascade,
+    medlemsnummer text,
+    namn text not null,
+    fodelsedatum date,
+    fodelsear integer not null,
+    aktiv boolean not null default true,
+    created_by uuid references public.profiles(id) on delete set null,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    constraint scouts_namn_not_blank check (length(trim(namn)) > 0),
+    constraint scouts_fodelsear_check check (fodelsear between 1900 and 2200)
+);
+
+create table if not exists public.scout_badges (
+    scout_id uuid not null references public.scouts(id) on delete cascade,
+    badge_id text not null,
+    status text not null default 'not_started',
+    antal integer not null default 0,
+    updated_by uuid references public.profiles(id) on delete set null,
+    updated_at timestamptz not null default now(),
+    primary key (scout_id, badge_id),
+    constraint scout_badges_status_check check (status in ('not_started', 'in_progress', 'completed')),
+    constraint scout_badges_antal_check check (antal >= 0)
+);
+
+alter table public.scout_badges
+    add column if not exists antal integer not null default 0;
+
+alter table public.scouts
+    add column if not exists medlemsnummer text;
+
+alter table public.scouts
+    add column if not exists fodelsedatum date;
+
+create unique index if not exists scouts_kar_medlemsnummer_idx
+    on public.scouts (kar_id, medlemsnummer)
+    where medlemsnummer is not null and medlemsnummer <> '';
+
+create index if not exists scouts_kar_id_idx on public.scouts (kar_id);
+create index if not exists scouts_fodelsear_idx on public.scouts (fodelsear);
+create index if not exists scout_badges_scout_id_idx on public.scout_badges (scout_id);
+
+drop trigger if exists scouts_touch_updated_at on public.scouts;
+create trigger scouts_touch_updated_at
+    before update on public.scouts
+    for each row execute function public.touch_updated_at();
+
+alter table public.scouts enable row level security;
+alter table public.scout_badges enable row level security;
+
+drop policy if exists "scouts_select_kar" on public.scouts;
+create policy "scouts_select_kar" on public.scouts
+    for select to authenticated
+    using (kar_id = public.current_user_kar_id());
+
+drop policy if exists "scouts_write_leader" on public.scouts;
+create policy "scouts_write_leader" on public.scouts
+    for all to authenticated
+    using (public.current_user_is_leader() and kar_id = public.current_user_kar_id())
+    with check (public.current_user_is_leader() and kar_id = public.current_user_kar_id());
+
+drop policy if exists "scout_badges_select_kar" on public.scout_badges;
+create policy "scout_badges_select_kar" on public.scout_badges
+    for select to authenticated
+    using (exists (
+        select 1 from public.scouts s
+        where s.id = scout_id and s.kar_id = public.current_user_kar_id()
+    ));
+
+drop policy if exists "scout_badges_write_leader" on public.scout_badges;
+create policy "scout_badges_write_leader" on public.scout_badges
+    for all to authenticated
+    using (public.current_user_is_leader() and exists (
+        select 1 from public.scouts s
+        where s.id = scout_id and s.kar_id = public.current_user_kar_id()
+    ))
+    with check (public.current_user_is_leader() and exists (
+        select 1 from public.scouts s
+        where s.id = scout_id and s.kar_id = public.current_user_kar_id()
+    ));
+
 drop trigger if exists badge_notes_touch_updated_at on public.badge_notes;
 create trigger badge_notes_touch_updated_at
     before update on public.badge_notes
