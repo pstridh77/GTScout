@@ -148,6 +148,7 @@ function updateScoutAccess() {
     scoutsContent.classList.toggle("hidden", !allowed);
     scoutsAccessDenied.classList.toggle("hidden", allowed);
     document.getElementById("importScoutsBtn").classList.toggle("hidden", !canDeleteScouts());
+    removeFilteredScoutsBtn.classList.toggle("hidden", !canDeleteScouts());
     if (allowed) renderAll();
 }
 
