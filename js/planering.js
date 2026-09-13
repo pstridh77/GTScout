@@ -1248,6 +1248,17 @@ function openPdfSelection(selectedGroupId = null) {
     document.getElementById("pdfSelectionModal").classList.remove("hidden");
 }
 
+function openMeetingPdfSelection(groupId, meetingId) {
+    if (!groups.some(group => group.id === groupId)) return;
+    meetingSelectionGroupId = groupId;
+    document.querySelector("input[name='meetingPrintMode'][value='detailed']").checked = true;
+    populateMeetingPlanningSelect();
+    meetingSelectionState = new Set([meetingId]);
+    renderMeetingSelectionList();
+    updatePrintSelectionMode();
+    document.getElementById("pdfSelectionModal").classList.remove("hidden");
+}
+
 function renderMeetingSelectionList() {
     const list = document.getElementById("meetingSelectionList");
     const group = groups.find(item => item.id === meetingSelectionGroupId);
@@ -2947,6 +2958,7 @@ function openMeetingReadingView(groupId, meetingId) {
             <p class="meeting-reading-kicker">${escapeHtml(group.name || group.level || "Planering")}</p>
             <div class="meeting-reading-title-row">
                 <h2 id="meetingReadingTitle">Träff ${escapeHtml(meeting.week || "-")}</h2>
+                <button id="meetingReadingPrintBtn" class="btn-secondary meeting-reading-print-btn" type="button" aria-label="Skriv ut möte" title="Skriv ut möte"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,3H6V7H18M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8M16,19H8V14H16M19,13A1,1 0 1,1 20,12A1,1 0 1,1 19,13Z" /></svg></button>
                 ${canShare ? `<button id="meetingReadingShareBtn" class="btn-secondary meeting-reading-share-btn" type="button" aria-label="Dela möte" title="Dela möte"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,16.08C17.24,16.08 16.54,16.38 16,16.85L8.91,12.74C8.96,12.5 9,12.25 8.91,11.26L15.92,7.17C16.47,7.66 17.2,7.97 18,7.97C19.66,7.97 21,6.63 21,4.97C21,3.31 19.66,1.97 18,1.97C16.34,1.97 15,3.31 15,4.97C15,5.22 15.04,5.47 15.09,5.71L8.08,9.8C7.53,9.31 6.8,9 6,9C4.34,9 3,10.34 3,12C3,13.66 4.34,15 6,15C6.8,15 7.53,14.69 8.08,14.2L15.17,18.31C15.12,18.54 15,18.77 15,19C15,20.66 16.34,22 18,22C19.66,22 21,20.66 21,19C21,17.34 19.66,16.08 18,16.08Z" /></svg></button>` : ""}
             </div>
             <div class="meeting-reading-meta">
@@ -2960,6 +2972,26 @@ function openMeetingReadingView(groupId, meetingId) {
         ${badges.length > 0 ? `<div class="meeting-reading-badges" aria-label="Märken">${badges.map(badge => `<div><img src="${escapeHtml(new URL(badge.bild, window.location.href).href)}" alt=""><span>${escapeHtml(badge.namn)}</span></div>`).join("")}</div>` : ""}
         <div class="meeting-reading-sections">${sections.map(([key, title, text, content]) => `<section class="meeting-reading-section${sectionStatuses[key] ? " meeting-reading-section--completed" : ""}" data-section-key="${key}" role="button" tabindex="0" aria-pressed="${Boolean(sectionStatuses[key])}" aria-label="${sectionStatuses[key] ? "Markera " : "Markera "} ${escapeHtml(title)} ${sectionStatuses[key] ? "som ej klar" : "som klar"}"><div class="meeting-reading-section-heading"><h3>${title}</h3><span class="meeting-reading-section-status">${sectionStatuses[key] ? "Klar" : ""}</span></div><p>${text}</p>${content || ""}</section>`).join("")}</div>
     `;
+    view.querySelectorAll(".meeting-reading-badges > div").forEach((badgeElement, index) => {
+        const badge = badges[index];
+        if (!badge) return;
+        badgeElement.classList.add("meeting-reading-badge");
+        badgeElement.dataset.badgeId = badge.id;
+        badgeElement.setAttribute("role", "button");
+        badgeElement.setAttribute("tabindex", "0");
+        badgeElement.setAttribute("aria-label", `Visa märket ${badge.namn}`);
+        const openBadge = () => showBadgeDetail(badge);
+        badgeElement.addEventListener("click", event => {
+            event.stopPropagation();
+            openBadge();
+        });
+        badgeElement.addEventListener("keydown", event => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            event.stopPropagation();
+            openBadge();
+        });
+    });
     view.querySelectorAll(".meeting-reading-section").forEach(section => {
         const toggle = () => {
             const completed = toggleMeetingSectionStatus(group.id, meeting.id, section.dataset.sectionKey);
@@ -2984,6 +3016,12 @@ function openMeetingReadingView(groupId, meetingId) {
         meetingShareButton.replaceChildren(planningShareIcon.cloneNode(true));
     }
     meetingShareButton?.addEventListener("click", () => shareMeeting(group.id, meeting.id));
+    const meetingPrintButton = view.querySelector("#meetingReadingPrintBtn");
+    const planningPrintIcon = document.querySelector(".print-group-btn svg");
+    if (meetingPrintButton && planningPrintIcon) {
+        meetingPrintButton.replaceChildren(planningPrintIcon.cloneNode(true));
+    }
+    meetingPrintButton?.addEventListener("click", () => openMeetingPdfSelection(group.id, meeting.id));
     modal.classList.remove("hidden");
 }
 
@@ -4094,7 +4132,7 @@ const detailPopup = createDetailPopup();
 function createActivityDetailPopup() {
     const popup = document.createElement("div");
     popup.className = "detail-popup hidden";
-    popup.style.zIndex = "1300";
+    popup.style.zIndex = "1500";
     popup.innerHTML = `
         <div class="detail-popup-content activity-popup-content">
             <button class="close-popup" type="button" aria-label="Stäng">&times;</button>

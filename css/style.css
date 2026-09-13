@@ -2068,6 +2068,21 @@ select:focus {
     justify-content: center;
     z-index: 1000;
 }
+
+#detailPopup {
+    z-index: 1400;
+}
+
+.meeting-reading-badge {
+    cursor: pointer;
+}
+
+.meeting-reading-badge:focus-visible {
+    outline: 3px solid #f2b233;
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
 .detail-popup.hidden {
     display: none;
 }
@@ -3453,7 +3468,7 @@ select:focus {
 .modal.hidden { display: none; }
 
 #createActivityModal {
-    z-index: 1200;
+    z-index: 1600;
 }
 
 #selectActivityModal {
@@ -3462,6 +3477,10 @@ select:focus {
 
 #sharePlanningModal {
     z-index: 1300;
+}
+
+#pdfSelectionModal {
+    z-index: 1700;
 }
 
 #sharePlanningModal .modal-actions {
