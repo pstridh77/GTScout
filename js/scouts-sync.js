@@ -4,6 +4,7 @@
     let badges = {};
     let onChange = null;
     let loadedForKarId = null;
+    let loadedForUserId = null;
     let saveTimer = null;
     const pendingDeletions = new Set();
 
@@ -30,22 +31,33 @@
     async function load() {
         if (!canRead()) return;
         try {
-            const [{ data: scoutRows, error: scoutError }, { data: badgeRows, error: badgeError }] = await Promise.all([
-                client().from("scouts").select("id, kar_id, medlemsnummer, namn, fodelsedatum, fodelsear, aktiv, created_by, created_at").eq("kar_id", karId()).order("namn"),
-                client().from("scout_badges").select("scout_id, badge_id, status, antal, updated_by, updated_at")
-            ]);
+            const { data: scoutRows, error: scoutError } = await client()
+                .from("scouts")
+                .select("id, kar_id, medlemsnummer, namn, fodelsedatum, fodelsear, aktiv, created_by, created_at")
+                .eq("kar_id", karId())
+                .order("namn");
             if (scoutError) throw scoutError;
-            if (badgeError) throw badgeError;
             scouts = (scoutRows || []).map(scout => ({ ...scout, fodelsear: Number(scout.fodelsear), statuses: {} }));
-            (badgeRows || []).forEach(row => {
-                const scout = scouts.find(item => item.id === row.scout_id);
-                if (scout) {
-                    scout.statuses[row.badge_id] = row.status;
-                    scout.counts = scout.counts || {};
-                    scout.counts[row.badge_id] = Number(row.antal) || 0;
-                    scout.statusMeta = scout.statusMeta || {};
-                    scout.statusMeta[row.badge_id] = { updatedBy: row.updated_by || "", updatedAt: row.updated_at || "" };
+            let badgeRows = [];
+            if (scouts.length) {
+                const { data, error: badgeError } = await client()
+                    .from("scout_badges")
+                    .select("scout_id, badge_id, status, antal, updated_by, updated_at")
+                    .in("scout_id", scouts.map(scout => scout.id));
+                if (badgeError) {
+                    console.error("Kunde inte hämta scouternas märkesstatus", badgeError);
+                } else {
+                    badgeRows = data || [];
                 }
+            }
+            badgeRows.forEach(row => {
+                const scout = scouts.find(item => item.id === row.scout_id);
+                if (!scout) return;
+                scout.statuses[row.badge_id] = row.status;
+                scout.counts = scout.counts || {};
+                scout.counts[row.badge_id] = Number(row.antal) || 0;
+                scout.statusMeta = scout.statusMeta || {};
+                scout.statusMeta[row.badge_id] = { updatedBy: row.updated_by || "", updatedAt: row.updated_at || "" };
             });
             const updaterIds = [...new Set((badgeRows || []).map(row => row.updated_by).filter(Boolean))];
             if (updaterIds.length) {
@@ -128,12 +140,16 @@
     function onAuthChange() {
         if (!canRead()) {
             loadedForKarId = null;
+            loadedForUserId = null;
             scouts = [];
             onChange?.();
             return;
         }
-        if (loadedForKarId === karId()) return;
-        loadedForKarId = karId();
+        const currentKarId = karId();
+        const currentUserId = auth().getUser()?.id || null;
+        if (loadedForKarId === currentKarId && loadedForUserId === currentUserId) return;
+        loadedForKarId = currentKarId;
+        loadedForUserId = currentUserId;
         load();
     }
 
@@ -153,11 +169,14 @@
         },
         upsertMany(importedScouts) {
             importedScouts.forEach(importedScout => {
-                const existing = importedScout.medlemsnummer
+                const existing = importedScout.matchScoutId
+                    ? scouts.find(scout => scout.id === importedScout.matchScoutId)
+                    : importedScout.medlemsnummer
                     ? scouts.find(scout => scout.medlemsnummer === importedScout.medlemsnummer)
                     : null;
                 if (existing) {
                     existing.namn = importedScout.namn;
+                    existing.medlemsnummer = importedScout.medlemsnummer;
                     existing.fodelsedatum = importedScout.fodelsedatum;
                     existing.fodelsear = importedScout.fodelsear;
                     existing.aktiv = true;

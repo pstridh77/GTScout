@@ -62,6 +62,7 @@ let scoutData = [];
 let pendingScoutImport = [];
 let pendingScoutBatchUpdate = null;
 const collapsedScoutYears = new Set();
+let scoutYearCollapseInitialized = false;
 
 function updateScoutTableStickyOffset() {
     const siteHeader = document.querySelector(".site-header");
@@ -196,10 +197,23 @@ function parseBirthDate(value) {
     return { iso: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`, year };
 }
 
+function normalizeScoutName(value) {
+    return String(value || "").trim().replace(/\s+/g, " ").toLocaleLowerCase("sv-SE");
+}
+
+function findScoutImportMatches(rows) {
+    return rows.map(row => {
+        const candidates = scoutData.filter(scout => !scout.medlemsnummer
+            && Number(scout.fodelsear) === Number(row.fodelsear)
+            && normalizeScoutName(scout.namn) === normalizeScoutName(row.namn));
+        return { row, scout: candidates.length === 1 ? candidates[0] : null };
+    }).filter(match => match.scout);
+}
+
 function showScoutImportPreview(rows) {
     pendingScoutImport = rows;
     scoutImportPreview.innerHTML = `<table><thead><tr><th>Medlemsnummer</th><th>Namn</th><th>Födelsedatum</th></tr></thead><tbody>${rows.slice(0, 50).map(row => `<tr><td>${escapeScoutHtml(row.medlemsnummer)}</td><td>${escapeScoutHtml(row.namn)}</td><td>${escapeScoutHtml(row.fodelsedatum)}</td></tr>`).join("")}</tbody></table>`;
-    scoutImportStatus.textContent = `${rows.length} scouter hittades${rows.length > 50 ? " (visar de första 50)" : ""}. Befintliga matchas på medlemsnummer.`;
+    scoutImportStatus.textContent = `${rows.length} scouter hittades${rows.length > 50 ? " (visar de första 50)" : ""}. Befintliga matchas på medlemsnummer; manuella scouter kan matchas på namn och födelseår vid importen.`;
     confirmScoutImportBtn.disabled = rows.length === 0;
 }
 
@@ -237,6 +251,16 @@ function formatScoutBirthDate(value) {
     return `${match[1]}-${match[2]}-${match[3]}`;
 }
 
+function getScoutUpdaterName(meta) {
+    if (meta.updatedByName) return meta.updatedByName;
+    const currentUser = window.GTScoutAuth?.getUser?.();
+    const currentProfile = window.GTScoutAuth?.getProfile?.();
+    if (meta.updatedBy && meta.updatedBy === currentUser?.id) {
+        return currentProfile?.full_name || currentProfile?.email || currentUser.email || "Okänd användare";
+    }
+    return meta.updatedBy ? "Okänd användare" : "";
+}
+
 function getScoutBadgeStatus(scout, badge) {
     if (REPEATABLE_BADGE_IDS.has(badge.id)) {
         const count = Number(scout.counts?.[badge.id]) || 0;
@@ -266,7 +290,8 @@ function openScoutDetail(scoutId) {
     ].map(([label, value]) => `<div class="scout-detail-info-item"><dt>${escapeScoutHtml(label)}</dt><dd>${label === "Scoutnet-id" ? value : escapeScoutHtml(value)}</dd></div>`).join("");
     const renderBadgeSection = (title, badges) => badges.length ? `<section class="scout-detail-badge-section"><h3>${title}</h3><div class="scout-detail-badge-list">${badges.map(badge => {
             const meta = scout.statusMeta?.[badge.id] || {};
-            return `<article class="scout-detail-badge"><img src="${escapeScoutHtml(badge.bild)}" alt=""><div><strong>${escapeScoutHtml(badge.namn)}</strong><span>${escapeScoutHtml(getScoutBadgeStatus(scout, badge))}</span><small>Registrerat ${escapeScoutHtml(formatScoutDate(meta.updatedAt))}${meta.updatedByName ? ` av ${escapeScoutHtml(meta.updatedByName)}` : meta.updatedBy ? ` av ${escapeScoutHtml(meta.updatedBy)}` : ""}</small></div></article>`;
+                const updaterName = getScoutUpdaterName(meta);
+                return `<article class="scout-detail-badge"><img src="${escapeScoutHtml(badge.bild)}" alt=""><div><strong>${escapeScoutHtml(badge.namn)}</strong><span>${escapeScoutHtml(getScoutBadgeStatus(scout, badge))}</span><small>Registrerat ${escapeScoutHtml(formatScoutDate(meta.updatedAt))}${updaterName ? ` av ${escapeScoutHtml(updaterName)}` : ""}</small></div></article>`;
         }).join("")}</div></section>` : "";
     const startedBadges = trackedBadges.filter(badge => scout.statuses?.[badge.id] === "in_progress" || (REPEATABLE_BADGE_IDS.has(badge.id) && scout.statuses?.[badge.id] !== "completed"));
     const completedBadges = trackedBadges.filter(badge => scout.statuses?.[badge.id] === "completed");
@@ -430,7 +455,7 @@ function getVisibleScouts() {
         const matchesActivity = activityFilter === "all" || (activityFilter === "inactive" ? scout.aktiv === false : scout.aktiv !== false);
         return matchesName && matchesYear && matchesActivity;
     }).sort((left, right) => {
-        const yearDifference = Number(left.fodelsear) - Number(right.fodelsear);
+        const yearDifference = Number(right.fodelsear) - Number(left.fodelsear);
         return yearDifference || left.namn.localeCompare(right.namn, "sv");
     });
 }
@@ -493,6 +518,10 @@ function renderAll() {
         return;
     }
     scoutData = window.GTScoutScouts?.getAll?.() || [];
+    if (!scoutYearCollapseInitialized) {
+        scoutData.map(scout => String(scout.fodelsear)).forEach(year => collapsedScoutYears.add(year));
+        scoutYearCollapseInitialized = true;
+    }
     updateYearFilter();
     updateBadgeFilterDropdowns();
     renderScoutHeader();
@@ -545,7 +574,20 @@ scoutCsvInput.addEventListener("change", async event => {
 });
 confirmScoutImportBtn.addEventListener("click", () => {
     if (!pendingScoutImport.length) return;
-    window.GTScoutScouts.upsertMany(pendingScoutImport);
+    const matches = findScoutImportMatches(pendingScoutImport);
+    let rowsToImport = pendingScoutImport;
+    if (matches.length) {
+        const matchNames = matches.map(({ row, scout }) => `${scout.namn} (${row.medlemsnummer})`).join(", ");
+        const shouldUpdate = confirm(`CSV-filen matchar redan skapade scouter på namn och födelseår:\n\n${matchNames}\n\nVill du uppdatera dessa scouter med medlemsnummer och födelsedatum från CSV-filen?\n\nVälj Avbryt om de matchade raderna ska lämnas orörda.`);
+        if (shouldUpdate) {
+            const matchedRows = new Map(matches.map(({ row, scout }) => [row, { ...row, matchScoutId: scout.id }]));
+            rowsToImport = pendingScoutImport.map(row => matchedRows.get(row) || row);
+        } else {
+            const matchedRows = new Set(matches.map(({ row }) => row));
+            rowsToImport = pendingScoutImport.filter(row => !matchedRows.has(row));
+        }
+    }
+    if (rowsToImport.length) window.GTScoutScouts.upsertMany(rowsToImport);
     pendingScoutImport = [];
     scoutImportModal.classList.add("hidden");
 });
