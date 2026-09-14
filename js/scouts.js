@@ -48,6 +48,8 @@ const scoutDetailBadges = document.getElementById("scoutDetailBadges");
 const scoutDetailActions = document.getElementById("scoutDetailActions");
 const showInactiveScouts = document.getElementById("showInactiveScouts");
 const inactiveScoutsFilter = document.getElementById("inactiveScoutsFilter");
+const scoutActivityFilter = document.getElementById("scoutActivityFilter");
+const scoutActivityFilterField = document.getElementById("scoutActivityFilterField");
 const scoutCsvInput = document.getElementById("scoutCsvInput");
 const scoutImportModal = document.getElementById("scoutImportModal");
 const scoutImportPreview = document.getElementById("scoutImportPreview");
@@ -421,10 +423,12 @@ function handleYearFilterChange(event) {
 function getVisibleScouts() {
     const search = scoutSearch.value.trim().toLowerCase();
     const selectedYears = [...scoutYearDropdownMenu.querySelectorAll("input:checked")].map(input => input.value);
+    const activityFilter = showInactiveScouts?.checked && canDeleteScouts() ? scoutActivityFilter.value : "active";
     return scoutData.filter(scout => {
         const matchesName = !search || scout.namn.toLowerCase().includes(search);
         const matchesYear = selectedYears.includes("Alla") || selectedYears.length === 0 || selectedYears.includes(String(scout.fodelsear));
-        return matchesName && matchesYear && (showInactiveScouts?.checked && canDeleteScouts() ? true : scout.aktiv !== false);
+        const matchesActivity = activityFilter === "all" || (activityFilter === "inactive" ? scout.aktiv === false : scout.aktiv !== false);
+        return matchesName && matchesYear && matchesActivity;
     }).sort((left, right) => {
         const yearDifference = Number(left.fodelsear) - Number(right.fodelsear);
         return yearDifference || left.namn.localeCompare(right.namn, "sv");
@@ -434,6 +438,7 @@ function getVisibleScouts() {
 function renderScouts() {
     const visible = getVisibleScouts();
     inactiveScoutsFilter.classList.toggle("hidden", !canDeleteScouts());
+    scoutActivityFilterField.classList.toggle("hidden", !canDeleteScouts() || !showInactiveScouts.checked);
     removeFilteredScoutsBtn.disabled = !canDeleteScouts() || visible.length === 0;
     removeFilteredScoutsBtn.textContent = visible.length > 0 ? `Ta bort filtrerade (${visible.length})` : "Ta bort filtrerade";
     scoutEmpty.classList.toggle("hidden", scoutData.length > 0);
@@ -444,8 +449,8 @@ function renderScouts() {
         groups.get(year).push(scout);
         return groups;
     }, new Map());
-    const renderScoutRow = scout => `<tr>
-        <th scope="row"><button class="scout-name-button" type="button" data-scout-id="${escapeScoutHtml(scout.id)}"><span class="scout-name">${escapeScoutHtml(scout.namn)}</span></button></th>
+    const renderScoutRow = scout => `<tr class="${scout.aktiv === false ? "scout-row--inactive" : ""}">
+        <th scope="row"><button class="scout-name-button" type="button" data-scout-id="${escapeScoutHtml(scout.id)}"><span class="scout-name">${escapeScoutHtml(scout.namn)}${scout.aktiv === false ? ' <span class="scout-archived-label">Arkiverad</span>' : ""}</span></button></th>
         ${visibleBadges.map(badge => {
             if (REPEATABLE_BADGE_IDS.has(badge.id)) {
                 const count = Number(scout.counts?.[badge.id]) || 0;
@@ -583,7 +588,12 @@ document.getElementById("saveScoutBtn").addEventListener("click", () => {
     scoutModal.classList.add("hidden");
 });
 scoutSearch.addEventListener("input", () => { renderScoutHeader(); renderScouts(); });
-showInactiveScouts.addEventListener("change", () => { renderScoutHeader(); renderScouts(); });
+showInactiveScouts.addEventListener("change", () => {
+    if (!showInactiveScouts.checked) scoutActivityFilter.value = "all";
+    renderScoutHeader();
+    renderScouts();
+});
+scoutActivityFilter.addEventListener("change", () => { renderScoutHeader(); renderScouts(); });
 scoutBadgeSearch.addEventListener("input", () => { renderScoutHeader(); renderScouts(); });
 scoutActiveBadgeFilter.addEventListener("change", () => { renderScoutHeader(); renderScouts(); });
 removeFilteredScoutsBtn.addEventListener("click", () => {

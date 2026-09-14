@@ -110,7 +110,7 @@ body {
     grid-template-columns: minmax(220px, 1.2fr) minmax(150px, 0.75fr) minmax(180px, 0.9fr) minmax(180px, 0.9fr) minmax(220px, 1.2fr);
     grid-template-areas:
         "badge category target active active"
-        "search year . . ."
+        "search year inactive inactiveStatus ."
         "remove status status status status";
     align-items: end;
     gap: 14px;
@@ -161,6 +161,14 @@ body {
     white-space: normal;
 }
 
+.scouts-toolbar #inactiveScoutsFilter {
+    grid-area: inactive;
+}
+
+.scouts-toolbar #scoutActivityFilterField {
+    grid-area: inactiveStatus;
+}
+
 .scouts-toolbar .btn-danger {
     grid-area: remove;
     min-height: 40px;
@@ -187,6 +195,8 @@ body {
     .scouts-toolbar .filter-field:nth-of-type(5),
     .scouts-toolbar .filter-field,
     .scouts-toolbar .scout-active-filter,
+    .scouts-toolbar #inactiveScoutsFilter,
+    .scouts-toolbar #scoutActivityFilterField,
     .scouts-toolbar .btn-danger,
     .scouts-toolbar .planning-sync-status {
         grid-area: auto;
@@ -201,6 +211,7 @@ body {
     }
 
     .scouts-toolbar .scout-active-filter,
+    .scouts-toolbar #scoutActivityFilterField,
     .scouts-toolbar .btn-danger,
     .scouts-toolbar .planning-sync-status {
         grid-column: 1 / -1;
@@ -547,6 +558,34 @@ body {
 .scout-name-button:focus-visible {
     outline: 3px solid rgba(0, 54, 96, 0.35);
     outline-offset: 2px;
+}
+
+.scout-row--inactive > :first-child,
+.scout-row--inactive > td {
+    background: #f1f5f9 !important;
+    color: #7b8794;
+}
+
+.scout-row--inactive .scout-name-button {
+    color: #7b8794;
+}
+
+.scout-row--inactive .scout-status {
+    opacity: 0.55;
+    filter: grayscale(0.8);
+}
+
+.scout-archived-label {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 2px 6px;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    color: #64748b;
+    font-size: 0.68em;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    vertical-align: middle;
 }
 
 .scout-detail-badges {
