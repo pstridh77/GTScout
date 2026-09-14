@@ -169,11 +169,14 @@
         },
         upsertMany(importedScouts) {
             importedScouts.forEach(importedScout => {
-                const existing = importedScout.medlemsnummer
+                const existing = importedScout.matchScoutId
+                    ? scouts.find(scout => scout.id === importedScout.matchScoutId)
+                    : importedScout.medlemsnummer
                     ? scouts.find(scout => scout.medlemsnummer === importedScout.medlemsnummer)
                     : null;
                 if (existing) {
                     existing.namn = importedScout.namn;
+                    existing.medlemsnummer = importedScout.medlemsnummer;
                     existing.fodelsedatum = importedScout.fodelsedatum;
                     existing.fodelsear = importedScout.fodelsear;
                     existing.aktiv = true;

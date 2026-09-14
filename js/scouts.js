@@ -197,10 +197,23 @@ function parseBirthDate(value) {
     return { iso: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`, year };
 }
 
+function normalizeScoutName(value) {
+    return String(value || "").trim().replace(/\s+/g, " ").toLocaleLowerCase("sv-SE");
+}
+
+function findScoutImportMatches(rows) {
+    return rows.map(row => {
+        const candidates = scoutData.filter(scout => !scout.medlemsnummer
+            && Number(scout.fodelsear) === Number(row.fodelsear)
+            && normalizeScoutName(scout.namn) === normalizeScoutName(row.namn));
+        return { row, scout: candidates.length === 1 ? candidates[0] : null };
+    }).filter(match => match.scout);
+}
+
 function showScoutImportPreview(rows) {
     pendingScoutImport = rows;
     scoutImportPreview.innerHTML = `<table><thead><tr><th>Medlemsnummer</th><th>Namn</th><th>Födelsedatum</th></tr></thead><tbody>${rows.slice(0, 50).map(row => `<tr><td>${escapeScoutHtml(row.medlemsnummer)}</td><td>${escapeScoutHtml(row.namn)}</td><td>${escapeScoutHtml(row.fodelsedatum)}</td></tr>`).join("")}</tbody></table>`;
-    scoutImportStatus.textContent = `${rows.length} scouter hittades${rows.length > 50 ? " (visar de första 50)" : ""}. Befintliga matchas på medlemsnummer.`;
+    scoutImportStatus.textContent = `${rows.length} scouter hittades${rows.length > 50 ? " (visar de första 50)" : ""}. Befintliga matchas på medlemsnummer; manuella scouter kan matchas på namn och födelseår vid importen.`;
     confirmScoutImportBtn.disabled = rows.length === 0;
 }
 
@@ -562,7 +575,20 @@ scoutCsvInput.addEventListener("change", async event => {
 });
 confirmScoutImportBtn.addEventListener("click", () => {
     if (!pendingScoutImport.length) return;
-    window.GTScoutScouts.upsertMany(pendingScoutImport);
+    const matches = findScoutImportMatches(pendingScoutImport);
+    let rowsToImport = pendingScoutImport;
+    if (matches.length) {
+        const matchNames = matches.map(({ row, scout }) => `${scout.namn} (${row.medlemsnummer})`).join(", ");
+        const shouldUpdate = confirm(`CSV-filen matchar redan skapade scouter på namn och födelseår:\n\n${matchNames}\n\nVill du uppdatera dessa scouter med medlemsnummer och födelsedatum från CSV-filen?\n\nVälj Avbryt om de matchade raderna ska lämnas orörda.`);
+        if (shouldUpdate) {
+            const matchedRows = new Map(matches.map(({ row, scout }) => [row, { ...row, matchScoutId: scout.id }]));
+            rowsToImport = pendingScoutImport.map(row => matchedRows.get(row) || row);
+        } else {
+            const matchedRows = new Set(matches.map(({ row }) => row));
+            rowsToImport = pendingScoutImport.filter(row => !matchedRows.has(row));
+        }
+    }
+    if (rowsToImport.length) window.GTScoutScouts.upsertMany(rowsToImport);
     pendingScoutImport = [];
     scoutImportModal.classList.add("hidden");
 });
