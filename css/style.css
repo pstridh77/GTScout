@@ -273,6 +273,10 @@ body {
     cursor: not-allowed;
 }
 
+#scoutBatchConfirmModal .modal-actions {
+    gap: 10px;
+}
+
 .scout-table-top-scroll > div {
     height: 1px;
 }

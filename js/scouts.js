@@ -37,6 +37,10 @@ const scoutTableTopScrollContent = document.getElementById("scoutTableTopScrollC
 const scoutEmpty = document.getElementById("scoutsEmpty");
 const scoutModal = document.getElementById("scoutModal");
 const scoutModalStatus = document.getElementById("scoutModalStatus");
+const scoutBatchConfirmModal = document.getElementById("scoutBatchConfirmModal");
+const scoutBatchConfirmMessage = document.getElementById("scoutBatchConfirmMessage");
+const cancelScoutBatchConfirmBtn = document.getElementById("cancelScoutBatchConfirmBtn");
+const confirmScoutBatchConfirmBtn = document.getElementById("confirmScoutBatchConfirmBtn");
 const scoutCsvInput = document.getElementById("scoutCsvInput");
 const scoutImportModal = document.getElementById("scoutImportModal");
 const scoutImportPreview = document.getElementById("scoutImportPreview");
@@ -47,6 +51,7 @@ const scoutsAccessDenied = document.getElementById("scoutsAccessDenied");
 let scoutBadges = [];
 let scoutData = [];
 let pendingScoutImport = [];
+let pendingScoutBatchUpdate = null;
 const collapsedScoutYears = new Set();
 
 function updateScoutTableStickyOffset() {
@@ -241,12 +246,13 @@ function advanceBadgeForVisibleScouts(badgeId) {
     const visibleScouts = getVisibleScouts().filter(scout => !collapsedScoutYears.has(String(scout.fodelsear)));
     if (!visibleScouts.length) return;
     if (REPEATABLE_BADGE_IDS.has(badgeId)) {
-        if (!confirm(`Öka markeringen ett steg för ${visibleScouts.length} filtrerade scouter?`)) return;
-        window.GTScoutScouts.setCountMany(visibleScouts.map(scout => ({
-            scoutId: scout.id,
-            badgeId,
-            count: ((Number(scout.counts?.[badgeId]) || 0) + 1) % (REPEATABLE_BADGE_TARGET + 1)
-        })));
+        confirmScoutBatchUpdate(`Öka markeringen ett steg för ${visibleScouts.length} filtrerade scouter?`, () => {
+            window.GTScoutScouts.setCountMany(visibleScouts.map(scout => ({
+                scoutId: scout.id,
+                badgeId,
+                count: ((Number(scout.counts?.[badgeId]) || 0) + 1) % (REPEATABLE_BADGE_TARGET + 1)
+            })));
+        });
         return;
     }
     const hasNotStarted = visibleScouts.some(scout => (scout.statuses?.[badgeId] || "not_started") === "not_started");
@@ -257,12 +263,20 @@ function advanceBadgeForVisibleScouts(badgeId) {
         return hasNotStarted ? status === "not_started" : hasInProgress ? status === "in_progress" : status === "completed";
     });
     const actionLabel = nextStatus === "in_progress" ? "markera som pågår" : nextStatus === "completed" ? "markera som klara" : "återställa";
-    if (!confirm(`Vill du ${actionLabel} ${scoutsToUpdate.length} filtrerade scouter?`)) return;
-    window.GTScoutScouts.setStatusMany(scoutsToUpdate.map(scout => ({
-        scoutId: scout.id,
-        badgeId,
-        status: nextStatus
-    })));
+    confirmScoutBatchUpdate(`Vill du ${actionLabel} ${scoutsToUpdate.length} filtrerade scouter?`, () => {
+        window.GTScoutScouts.setStatusMany(scoutsToUpdate.map(scout => ({
+            scoutId: scout.id,
+            badgeId,
+            status: nextStatus
+        })));
+    });
+}
+
+function confirmScoutBatchUpdate(message, update) {
+    pendingScoutBatchUpdate = update;
+    scoutBatchConfirmMessage.textContent = message;
+    scoutBatchConfirmModal.classList.remove("hidden");
+    confirmScoutBatchConfirmBtn.focus();
 }
 
 function badgeHasStatus(badge) {
@@ -466,6 +480,21 @@ document.getElementById("addScoutBtn").addEventListener("click", () => {
 });
 document.getElementById("closeScoutModal").addEventListener("click", () => scoutModal.classList.add("hidden"));
 scoutModal.addEventListener("click", event => { if (event.target === scoutModal) scoutModal.classList.add("hidden"); });
+cancelScoutBatchConfirmBtn.addEventListener("click", () => {
+    pendingScoutBatchUpdate = null;
+    scoutBatchConfirmModal.classList.add("hidden");
+});
+confirmScoutBatchConfirmBtn.addEventListener("click", () => {
+    const update = pendingScoutBatchUpdate;
+    pendingScoutBatchUpdate = null;
+    scoutBatchConfirmModal.classList.add("hidden");
+    update?.();
+});
+scoutBatchConfirmModal.addEventListener("click", event => {
+    if (event.target !== scoutBatchConfirmModal) return;
+    pendingScoutBatchUpdate = null;
+    scoutBatchConfirmModal.classList.add("hidden");
+});
 document.getElementById("saveScoutBtn").addEventListener("click", () => {
     const name = document.getElementById("scoutName").value.trim();
     const birthYear = Number.parseInt(document.getElementById("scoutBirthYear").value, 10);
