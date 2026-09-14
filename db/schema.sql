@@ -350,6 +350,25 @@ create trigger scouts_touch_updated_at
     before update on public.scouts
     for each row execute function public.touch_updated_at();
 
+create or replace function public.prevent_scout_reactivation_by_leader()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+    if not old.aktiv and new.aktiv and public.current_user_role() <> 'admin' then
+        raise exception 'Endast administratör kan återaktivera en scout';
+    end if;
+    return new;
+end;
+$$;
+
+drop trigger if exists scouts_prevent_reactivation on public.scouts;
+create trigger scouts_prevent_reactivation
+    before update on public.scouts
+    for each row execute function public.prevent_scout_reactivation_by_leader();
+
 alter table public.scouts enable row level security;
 alter table public.scout_badges enable row level security;
 
@@ -436,6 +455,20 @@ create policy "profiles_select_kar_admin" on public.profiles
                 or kar_id = public.current_user_kar_id()
                 or requested_kar_id = public.current_user_kar_id()
             )
+        )
+    );
+
+drop policy if exists "profiles_select_scout_badge_registrars" on public.profiles;
+create policy "profiles_select_scout_badge_registrars" on public.profiles
+    for select to authenticated
+    using (
+        public.current_user_is_leader()
+        and exists (
+            select 1
+            from public.scout_badges sb
+            join public.scouts s on s.id = sb.scout_id
+            where sb.updated_by = profiles.id
+              and s.kar_id = public.current_user_kar_id()
         )
     );
 
