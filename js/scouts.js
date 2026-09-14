@@ -84,6 +84,7 @@ function updateScoutStickyHeader() {
     const table = document.querySelector(".scouts-table-wrap .scouts-table");
     if (!scoutStickyHeader || !table) return;
     const clonedTable = table.cloneNode(true);
+    clonedTable.tHead?.removeAttribute("id");
     clonedTable.querySelector("tbody")?.remove();
     scoutStickyHeader.replaceChildren(clonedTable);
     if (scoutTableTopScrollContent) scoutTableTopScrollContent.style.width = `${table.offsetWidth}px`;
@@ -227,9 +228,37 @@ function renderScoutHeader() {
         else targetGroups.push({ name: target, count: 1 });
     });
     const targetHeader = `<tr class="scout-target-row"><th></th>${targetGroups.map(group => `<th class="scout-target-group--${SCOUT_TARGET_CLASS_NAMES[group.name] || "default"}" colspan="${group.count}">${escapeScoutHtml(group.name)}</th>`).join("")}<th></th></tr>`;
-    const badgeHeader = `<tr><th>Scout</th>${badges.map(badge => `<th class="scout-badge-heading" title="${escapeScoutHtml(badge.namn)}" aria-label="${escapeScoutHtml(badge.namn)}"><img src="${escapeScoutHtml(badge.bild)}" alt=""></th>`).join("")}<th aria-label="Åtgärder"></th></tr>`;
+    const badgeHeader = `<tr><th class="scout-name-heading">Scout</th>${badges.map(badge => `<th class="scout-badge-heading"><button class="scout-badge-bulk-action" type="button" data-badge-id="${escapeScoutHtml(badge.id)}" title="Ändra status för alla filtrerade scouter: ${escapeScoutHtml(badge.namn)}" aria-label="Ändra status för alla filtrerade scouter: ${escapeScoutHtml(badge.namn)}"><img src="${escapeScoutHtml(badge.bild)}" alt=""></button></th>`).join("")}<th aria-label="Åtgärder"></th></tr>`;
     scoutTableHead.innerHTML = targetHeader + badgeHeader;
     updateScoutStickyHeader();
+}
+
+function advanceBadgeForVisibleScouts(badgeId) {
+    const visibleScouts = getVisibleScouts();
+    if (!visibleScouts.length) return;
+    if (REPEATABLE_BADGE_IDS.has(badgeId)) {
+        if (!confirm(`Öka markeringen ett steg för ${visibleScouts.length} filtrerade scouter?`)) return;
+        window.GTScoutScouts.setCountMany(visibleScouts.map(scout => ({
+            scoutId: scout.id,
+            badgeId,
+            count: ((Number(scout.counts?.[badgeId]) || 0) + 1) % (REPEATABLE_BADGE_TARGET + 1)
+        })));
+        return;
+    }
+    const hasNotStarted = visibleScouts.some(scout => (scout.statuses?.[badgeId] || "not_started") === "not_started");
+    const hasInProgress = visibleScouts.some(scout => scout.statuses?.[badgeId] === "in_progress");
+    const nextStatus = hasNotStarted ? "in_progress" : hasInProgress ? "completed" : "not_started";
+    const scoutsToUpdate = visibleScouts.filter(scout => {
+        const status = scout.statuses?.[badgeId] || "not_started";
+        return hasNotStarted ? status === "not_started" : hasInProgress ? status === "in_progress" : status === "completed";
+    });
+    const actionLabel = nextStatus === "in_progress" ? "markera som pågår" : nextStatus === "completed" ? "markera som klara" : "återställa";
+    if (!confirm(`Vill du ${actionLabel} ${scoutsToUpdate.length} filtrerade scouter?`)) return;
+    window.GTScoutScouts.setStatusMany(scoutsToUpdate.map(scout => ({
+        scoutId: scout.id,
+        badgeId,
+        status: nextStatus
+    })));
 }
 
 function badgeHasStatus(badge) {
@@ -455,6 +484,11 @@ scoutYearDropdownBtn.addEventListener("click", event => {
     scoutYearDropdownBtn.setAttribute("aria-expanded", String(!isOpen));
 });
 document.addEventListener("click", event => {
+    const badgeAction = event.target.closest(".scout-badge-bulk-action");
+    if (badgeAction) {
+        advanceBadgeForVisibleScouts(badgeAction.dataset.badgeId);
+        return;
+    }
     if (!scoutYearDropdown.contains(event.target)) {
         scoutYearDropdownMenu.classList.add("hidden");
         scoutYearDropdownBtn.setAttribute("aria-expanded", "false");

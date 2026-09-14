@@ -170,6 +170,16 @@
             else scout.statuses[badgeId] = status;
             notify();
         },
+        setStatusMany(updates) {
+            updates.forEach(({ scoutId, badgeId, status }) => {
+                const scout = scouts.find(item => item.id === scoutId);
+                if (!scout) return;
+                scout.statuses = scout.statuses || {};
+                if (status === "not_started") delete scout.statuses[badgeId];
+                else scout.statuses[badgeId] = status;
+            });
+            notify();
+        },
         setCount(scoutId, badgeId, count) {
             const scout = scouts.find(item => item.id === scoutId);
             if (!scout) return;
@@ -180,6 +190,20 @@
             scout.statuses = scout.statuses || {};
             if (safeCount === 0) delete scout.statuses[badgeId];
             else scout.statuses[badgeId] = safeCount >= 5 ? "completed" : "in_progress";
+            notify();
+        },
+        setCountMany(updates) {
+            updates.forEach(({ scoutId, badgeId, count }) => {
+                const scout = scouts.find(item => item.id === scoutId);
+                if (!scout) return;
+                scout.counts = scout.counts || {};
+                const safeCount = Math.max(0, Math.floor(Number(count) || 0));
+                if (safeCount === 0) delete scout.counts[badgeId];
+                else scout.counts[badgeId] = safeCount;
+                scout.statuses = scout.statuses || {};
+                if (safeCount === 0) delete scout.statuses[badgeId];
+                else scout.statuses[badgeId] = safeCount >= 5 ? "completed" : "in_progress";
+            });
             notify();
         }
     };

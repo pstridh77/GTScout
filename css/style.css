@@ -365,6 +365,10 @@ body {
     top: auto;
 }
 
+.scout-sticky-header .scout-badge-bulk-action {
+    pointer-events: auto;
+}
+
 .scouts-table thead .scout-target-row th {
     height: 28px;
     padding: 6px 8px;
@@ -376,6 +380,12 @@ body {
     letter-spacing: 0.03em;
     text-align: center;
     white-space: nowrap;
+}
+
+.scout-name-heading {
+    font-size: 0.95rem !important;
+    font-weight: 800;
+    letter-spacing: 0;
 }
 
 .scouts-table thead .scout-target-row .scout-target-group--familjescouting {
@@ -441,6 +451,26 @@ body {
     height: 34px;
     margin: 0 auto;
     object-fit: contain;
+}
+
+.scout-badge-bulk-action {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.scout-badge-bulk-action:focus-visible {
+    outline: 3px solid rgba(0, 54, 96, 0.35);
+    outline-offset: 2px;
+}
+
+.scout-badge-bulk-action:hover img {
+    transform: scale(1.08);
 }
 
 .scout-status {
