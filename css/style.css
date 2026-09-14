@@ -110,7 +110,7 @@ body {
     grid-template-columns: minmax(220px, 1.2fr) minmax(150px, 0.75fr) minmax(180px, 0.9fr) minmax(180px, 0.9fr) minmax(220px, 1.2fr);
     grid-template-areas:
         "badge category target active active"
-        "search year . . ."
+        "search year inactive inactiveStatus ."
         "remove status status status status";
     align-items: end;
     gap: 14px;
@@ -161,6 +161,14 @@ body {
     white-space: normal;
 }
 
+.scouts-toolbar #inactiveScoutsFilter {
+    grid-area: inactive;
+}
+
+.scouts-toolbar #scoutActivityFilterField {
+    grid-area: inactiveStatus;
+}
+
 .scouts-toolbar .btn-danger {
     grid-area: remove;
     min-height: 40px;
@@ -187,6 +195,8 @@ body {
     .scouts-toolbar .filter-field:nth-of-type(5),
     .scouts-toolbar .filter-field,
     .scouts-toolbar .scout-active-filter,
+    .scouts-toolbar #inactiveScoutsFilter,
+    .scouts-toolbar #scoutActivityFilterField,
     .scouts-toolbar .btn-danger,
     .scouts-toolbar .planning-sync-status {
         grid-area: auto;
@@ -201,6 +211,7 @@ body {
     }
 
     .scouts-toolbar .scout-active-filter,
+    .scouts-toolbar #scoutActivityFilterField,
     .scouts-toolbar .btn-danger,
     .scouts-toolbar .planning-sync-status {
         grid-column: 1 / -1;
@@ -525,6 +536,147 @@ body {
     max-width: 220px;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.scout-name-button {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.scout-name-button:hover .scout-name {
+    text-decoration: underline;
+}
+
+.scout-name-button:focus-visible {
+    outline: 3px solid rgba(0, 54, 96, 0.35);
+    outline-offset: 2px;
+}
+
+.scout-row--inactive > :first-child,
+.scout-row--inactive > td {
+    background: #f1f5f9 !important;
+    color: #7b8794;
+}
+
+.scout-row--inactive .scout-name-button {
+    color: #7b8794;
+}
+
+.scout-row--inactive .scout-status {
+    opacity: 0.55;
+    filter: grayscale(0.8);
+}
+
+.scout-archived-label {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 2px 6px;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    color: #64748b;
+    font-size: 0.68em;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    vertical-align: middle;
+}
+
+.scout-detail-badges {
+    display: grid;
+    gap: 8px;
+    margin: 16px 0;
+}
+
+.scout-detail-badge-section {
+    display: grid;
+    gap: 8px;
+}
+
+.scout-detail-badge-section h3 {
+    margin: 8px 0 0;
+    color: #003660;
+    font-size: 1rem;
+}
+
+.scout-detail-badge-list {
+    display: grid;
+    gap: 8px;
+}
+
+.scout-detail-info {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 18px;
+    margin: 16px 0 20px;
+    padding: 14px 16px;
+    border: 1px solid #d7e1eb;
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+.scout-detail-info-item {
+    min-width: 0;
+}
+
+.scout-detail-info-item dt {
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.scout-detail-info-item dd {
+    margin: 2px 0 0;
+    overflow-wrap: anywhere;
+    color: #003660;
+    font-weight: 600;
+}
+
+.scout-detail-info-item a {
+    color: #005a96;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+    .scout-detail-info {
+        grid-template-columns: 1fr;
+    }
+}
+
+.scout-detail-badge {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border: 1px solid #d7e1eb;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.scout-detail-badge img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+}
+
+.scout-detail-badge div {
+    display: grid;
+    gap: 2px;
+}
+
+.scout-detail-badge span,
+.scout-detail-badge small,
+.scout-detail-empty {
+    color: #64748b;
 }
 
 .scout-birth-year {

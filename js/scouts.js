@@ -41,6 +41,15 @@ const scoutBatchConfirmModal = document.getElementById("scoutBatchConfirmModal")
 const scoutBatchConfirmMessage = document.getElementById("scoutBatchConfirmMessage");
 const cancelScoutBatchConfirmBtn = document.getElementById("cancelScoutBatchConfirmBtn");
 const confirmScoutBatchConfirmBtn = document.getElementById("confirmScoutBatchConfirmBtn");
+const scoutDetailModal = document.getElementById("scoutDetailModal");
+const scoutDetailTitle = document.getElementById("scoutDetailTitle");
+const scoutDetailInfo = document.getElementById("scoutDetailInfo");
+const scoutDetailBadges = document.getElementById("scoutDetailBadges");
+const scoutDetailActions = document.getElementById("scoutDetailActions");
+const showInactiveScouts = document.getElementById("showInactiveScouts");
+const inactiveScoutsFilter = document.getElementById("inactiveScoutsFilter");
+const scoutActivityFilter = document.getElementById("scoutActivityFilter");
+const scoutActivityFilterField = document.getElementById("scoutActivityFilterField");
 const scoutCsvInput = document.getElementById("scoutCsvInput");
 const scoutImportModal = document.getElementById("scoutImportModal");
 const scoutImportPreview = document.getElementById("scoutImportPreview");
@@ -216,6 +225,72 @@ function canDeleteScouts() {
     return Boolean(window.GTScoutAuth?.isAdmin?.());
 }
 
+function formatScoutDate(value) {
+    if (!value) return "Okänt datum";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString("sv-SE", { dateStyle: "short", timeStyle: "short" });
+}
+
+function formatScoutBirthDate(value) {
+    const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) return "Inte angivet";
+    return `${match[1]}-${match[2]}-${match[3]}`;
+}
+
+function getScoutBadgeStatus(scout, badge) {
+    if (REPEATABLE_BADGE_IDS.has(badge.id)) {
+        const count = Number(scout.counts?.[badge.id]) || 0;
+        return count ? `${count}/${REPEATABLE_BADGE_TARGET}` : "Ej påbörjad";
+    }
+    return SCOUT_STATUS_LABELS[scout.statuses?.[badge.id] || "not_started"];
+}
+
+function openScoutDetail(scoutId) {
+    const scout = scoutData.find(item => item.id === scoutId);
+    if (!scout) return;
+    const trackedBadges = scoutBadges.filter(badge => {
+        const status = scout.statuses?.[badge.id];
+        return status === "in_progress" || status === "completed" || (REPEATABLE_BADGE_IDS.has(badge.id) && (Number(scout.counts?.[badge.id]) || 0) > 0);
+    });
+    scoutDetailTitle.textContent = scout.namn;
+    const scoutnetId = String(scout.medlemsnummer || "").trim();
+    const scoutnetValue = scoutnetId
+        ? `<a href="https://www.scoutnet.se/organisation/user/${encodeURIComponent(scoutnetId)}" target="_blank" rel="noreferrer">${escapeScoutHtml(scoutnetId)}</a>`
+        : "Inte angivet";
+    scoutDetailInfo.innerHTML = [
+        ["Scoutnet-id", scoutnetValue],
+        ["Födelsedatum", scout.fodelsedatum ? formatScoutBirthDate(scout.fodelsedatum) : `År ${scout.fodelsear}`],
+        ["Kårtillhörighet", scout.karName || window.GTScoutAuth?.getState?.()?.karName || "Inte angiven"],
+        ["Status", scout.aktiv === false ? "Arkiverad" : "Aktiv"],
+        ["Skapad av", scout.createdByName || scout.created_by || "Inte angivet"]
+    ].map(([label, value]) => `<div class="scout-detail-info-item"><dt>${escapeScoutHtml(label)}</dt><dd>${label === "Scoutnet-id" ? value : escapeScoutHtml(value)}</dd></div>`).join("");
+    const renderBadgeSection = (title, badges) => badges.length ? `<section class="scout-detail-badge-section"><h3>${title}</h3><div class="scout-detail-badge-list">${badges.map(badge => {
+            const meta = scout.statusMeta?.[badge.id] || {};
+            return `<article class="scout-detail-badge"><img src="${escapeScoutHtml(badge.bild)}" alt=""><div><strong>${escapeScoutHtml(badge.namn)}</strong><span>${escapeScoutHtml(getScoutBadgeStatus(scout, badge))}</span><small>Registrerat ${escapeScoutHtml(formatScoutDate(meta.updatedAt))}${meta.updatedByName ? ` av ${escapeScoutHtml(meta.updatedByName)}` : meta.updatedBy ? ` av ${escapeScoutHtml(meta.updatedBy)}` : ""}</small></div></article>`;
+        }).join("")}</div></section>` : "";
+    const startedBadges = trackedBadges.filter(badge => scout.statuses?.[badge.id] === "in_progress" || (REPEATABLE_BADGE_IDS.has(badge.id) && scout.statuses?.[badge.id] !== "completed"));
+    const completedBadges = trackedBadges.filter(badge => scout.statuses?.[badge.id] === "completed");
+    scoutDetailBadges.innerHTML = renderBadgeSection("Påbörjade märken", startedBadges)
+        + renderBadgeSection("Klara märken", completedBadges)
+        || "<p class=\"scout-detail-empty\">Inga påbörjade eller klara märken registrerade.</p>";
+    scoutDetailActions.innerHTML = "";
+    if (scout.aktiv !== false && canManageScouts()) {
+        scoutDetailActions.innerHTML = '<button class="btn-danger" type="button" id="deactivateScoutBtn" title="Dölj scouten från den vanliga listan. Endast administratör kan återaktivera scouten.">Arkivera scout</button>';
+        scoutDetailActions.querySelector("#deactivateScoutBtn").addEventListener("click", () => {
+            if (!confirm(`Inaktivera ${scout.namn}? Scouten döljs från listan.`)) return;
+            window.GTScoutScouts.setActive(scout.id, false);
+            scoutDetailModal.classList.add("hidden");
+        });
+    } else if (scout.aktiv === false && canDeleteScouts()) {
+        scoutDetailActions.innerHTML = '<button class="btn-primary" type="button" id="activateScoutBtn">Aktivera scout</button>';
+        scoutDetailActions.querySelector("#activateScoutBtn").addEventListener("click", () => {
+            window.GTScoutScouts.setActive(scout.id, true);
+            scoutDetailModal.classList.add("hidden");
+        });
+    }
+    scoutDetailModal.classList.remove("hidden");
+}
+
 function getNextStatus(status) {
     const index = SCOUT_STATUS_ORDER.indexOf(status || "not_started");
     return SCOUT_STATUS_ORDER[(index + 1) % SCOUT_STATUS_ORDER.length];
@@ -243,7 +318,7 @@ function renderScoutHeader() {
 }
 
 function advanceBadgeForVisibleScouts(badgeId) {
-    const visibleScouts = getVisibleScouts().filter(scout => !collapsedScoutYears.has(String(scout.fodelsear)));
+    const visibleScouts = getVisibleScouts().filter(scout => scout.aktiv !== false && !collapsedScoutYears.has(String(scout.fodelsear)));
     if (!visibleScouts.length) return;
     if (REPEATABLE_BADGE_IDS.has(badgeId)) {
         confirmScoutBatchUpdate(`Öka markeringen ett steg för ${visibleScouts.length} filtrerade scouter?`, () => {
@@ -348,10 +423,12 @@ function handleYearFilterChange(event) {
 function getVisibleScouts() {
     const search = scoutSearch.value.trim().toLowerCase();
     const selectedYears = [...scoutYearDropdownMenu.querySelectorAll("input:checked")].map(input => input.value);
+    const activityFilter = showInactiveScouts?.checked && canDeleteScouts() ? scoutActivityFilter.value : "active";
     return scoutData.filter(scout => {
         const matchesName = !search || scout.namn.toLowerCase().includes(search);
         const matchesYear = selectedYears.includes("Alla") || selectedYears.length === 0 || selectedYears.includes(String(scout.fodelsear));
-        return matchesName && matchesYear && scout.aktiv !== false;
+        const matchesActivity = activityFilter === "all" || (activityFilter === "inactive" ? scout.aktiv === false : scout.aktiv !== false);
+        return matchesName && matchesYear && matchesActivity;
     }).sort((left, right) => {
         const yearDifference = Number(left.fodelsear) - Number(right.fodelsear);
         return yearDifference || left.namn.localeCompare(right.namn, "sv");
@@ -360,6 +437,8 @@ function getVisibleScouts() {
 
 function renderScouts() {
     const visible = getVisibleScouts();
+    inactiveScoutsFilter.classList.toggle("hidden", !canDeleteScouts());
+    scoutActivityFilterField.classList.toggle("hidden", !canDeleteScouts() || !showInactiveScouts.checked);
     removeFilteredScoutsBtn.disabled = !canDeleteScouts() || visible.length === 0;
     removeFilteredScoutsBtn.textContent = visible.length > 0 ? `Ta bort filtrerade (${visible.length})` : "Ta bort filtrerade";
     scoutEmpty.classList.toggle("hidden", scoutData.length > 0);
@@ -370,8 +449,8 @@ function renderScouts() {
         groups.get(year).push(scout);
         return groups;
     }, new Map());
-    const renderScoutRow = scout => `<tr>
-        <th scope="row"><span class="scout-name">${escapeScoutHtml(scout.namn)}</span></th>
+    const renderScoutRow = scout => `<tr class="${scout.aktiv === false ? "scout-row--inactive" : ""}">
+        <th scope="row"><button class="scout-name-button" type="button" data-scout-id="${escapeScoutHtml(scout.id)}"><span class="scout-name">${escapeScoutHtml(scout.namn)}${scout.aktiv === false ? ' <span class="scout-archived-label">Arkiverad</span>' : ""}</span></button></th>
         ${visibleBadges.map(badge => {
             if (REPEATABLE_BADGE_IDS.has(badge.id)) {
                 const count = Number(scout.counts?.[badge.id]) || 0;
@@ -388,6 +467,7 @@ function renderScouts() {
         const yearRow = `<tr class="scout-year-group-row"><th><button class="scout-year-toggle" type="button" data-scout-year="${escapeScoutHtml(year)}" aria-expanded="${String(!isCollapsed)}"><span class="scout-year-toggle-icon" aria-hidden="true">${isCollapsed ? "▸" : "▾"}</span><span>${escapeScoutHtml(year)}</span><span class="scout-year-count">${scouts.length} scouter</span></button></th><td colspan="${visibleBadges.length + 1}"></td></tr>`;
         return yearRow + (isCollapsed ? "" : scouts.map(renderScoutRow).join(""));
     }).join("");
+    document.querySelectorAll(".scout-name-button").forEach(button => button.addEventListener("click", () => openScoutDetail(button.dataset.scoutId)));
     document.querySelectorAll(".scout-status").forEach(button => button.addEventListener("click", () => {
         const scout = scoutData.find(item => item.id === button.dataset.scoutId);
         if (!scout) return;
@@ -480,6 +560,8 @@ document.getElementById("addScoutBtn").addEventListener("click", () => {
 });
 document.getElementById("closeScoutModal").addEventListener("click", () => scoutModal.classList.add("hidden"));
 scoutModal.addEventListener("click", event => { if (event.target === scoutModal) scoutModal.classList.add("hidden"); });
+document.getElementById("closeScoutDetailModal").addEventListener("click", () => scoutDetailModal.classList.add("hidden"));
+scoutDetailModal.addEventListener("click", event => { if (event.target === scoutDetailModal) scoutDetailModal.classList.add("hidden"); });
 cancelScoutBatchConfirmBtn.addEventListener("click", () => {
     pendingScoutBatchUpdate = null;
     scoutBatchConfirmModal.classList.add("hidden");
@@ -506,6 +588,12 @@ document.getElementById("saveScoutBtn").addEventListener("click", () => {
     scoutModal.classList.add("hidden");
 });
 scoutSearch.addEventListener("input", () => { renderScoutHeader(); renderScouts(); });
+showInactiveScouts.addEventListener("change", () => {
+    if (!showInactiveScouts.checked) scoutActivityFilter.value = "all";
+    renderScoutHeader();
+    renderScouts();
+});
+scoutActivityFilter.addEventListener("change", () => { renderScoutHeader(); renderScouts(); });
 scoutBadgeSearch.addEventListener("input", () => { renderScoutHeader(); renderScouts(); });
 scoutActiveBadgeFilter.addEventListener("change", () => { renderScoutHeader(); renderScouts(); });
 removeFilteredScoutsBtn.addEventListener("click", () => {

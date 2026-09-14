@@ -31,8 +31,8 @@
         if (!canRead()) return;
         try {
             const [{ data: scoutRows, error: scoutError }, { data: badgeRows, error: badgeError }] = await Promise.all([
-                client().from("scouts").select("id, medlemsnummer, namn, fodelsedatum, fodelsear, aktiv").eq("kar_id", karId()).order("namn"),
-                client().from("scout_badges").select("scout_id, badge_id, status, antal")
+                client().from("scouts").select("id, kar_id, medlemsnummer, namn, fodelsedatum, fodelsear, aktiv, created_by, created_at").eq("kar_id", karId()).order("namn"),
+                client().from("scout_badges").select("scout_id, badge_id, status, antal, updated_by, updated_at")
             ]);
             if (scoutError) throw scoutError;
             if (badgeError) throw badgeError;
@@ -43,8 +43,24 @@
                     scout.statuses[row.badge_id] = row.status;
                     scout.counts = scout.counts || {};
                     scout.counts[row.badge_id] = Number(row.antal) || 0;
+                    scout.statusMeta = scout.statusMeta || {};
+                    scout.statusMeta[row.badge_id] = { updatedBy: row.updated_by || "", updatedAt: row.updated_at || "" };
                 }
             });
+            const updaterIds = [...new Set((badgeRows || []).map(row => row.updated_by).filter(Boolean))];
+            if (updaterIds.length) {
+                const { data: profiles } = await client().from("profiles").select("id, full_name, email").in("id", updaterIds);
+                const profileNames = new Map((profiles || []).map(profile => [profile.id, profile.full_name || profile.email || profile.id]));
+                scouts.forEach(scout => Object.values(scout.statusMeta || {}).forEach(meta => { meta.updatedByName = profileNames.get(meta.updatedBy) || ""; }));
+            }
+            const creatorIds = [...new Set(scouts.map(scout => scout.created_by).filter(Boolean))];
+            if (creatorIds.length) {
+                const { data: creators } = await client().from("profiles").select("id, full_name, email").in("id", creatorIds);
+                const creatorNames = new Map((creators || []).map(profile => [profile.id, profile.full_name || profile.email || profile.id]));
+                scouts.forEach(scout => { scout.createdByName = creatorNames.get(scout.created_by) || ""; });
+            }
+            const { data: kar } = await client().from("kar").select("id, namn").eq("id", karId()).maybeSingle();
+            scouts.forEach(scout => { scout.karName = kar?.namn || ""; });
             writeLocal();
         } catch (error) {
             console.error("Kunde inte hämta scouter", error);
@@ -78,7 +94,7 @@
                 badge_id,
                 status: scout.statuses?.[badge_id] || "not_started",
                 antal: Number(scout.counts?.[badge_id]) || 0,
-                updated_by: auth().getUser()?.id || null
+                updated_by: scout.statusMeta?.[badge_id]?.updatedBy || auth().getUser()?.id || null
             }));
         });
         const { error: badgeError } = await client().from("scout_badges").upsert(badgeRows, { onConflict: "scout_id,badge_id" });
@@ -168,6 +184,8 @@
             scout.statuses = scout.statuses || {};
             if (status === "not_started") delete scout.statuses[badgeId];
             else scout.statuses[badgeId] = status;
+            scout.statusMeta = scout.statusMeta || {};
+            scout.statusMeta[badgeId] = { updatedBy: auth().getUser()?.id || "", updatedAt: new Date().toISOString() };
             notify();
         },
         setStatusMany(updates) {
@@ -177,6 +195,8 @@
                 scout.statuses = scout.statuses || {};
                 if (status === "not_started") delete scout.statuses[badgeId];
                 else scout.statuses[badgeId] = status;
+                scout.statusMeta = scout.statusMeta || {};
+                scout.statusMeta[badgeId] = { updatedBy: auth().getUser()?.id || "", updatedAt: new Date().toISOString() };
             });
             notify();
         },
@@ -190,6 +210,8 @@
             scout.statuses = scout.statuses || {};
             if (safeCount === 0) delete scout.statuses[badgeId];
             else scout.statuses[badgeId] = safeCount >= 5 ? "completed" : "in_progress";
+            scout.statusMeta = scout.statusMeta || {};
+            scout.statusMeta[badgeId] = { updatedBy: auth().getUser()?.id || "", updatedAt: new Date().toISOString() };
             notify();
         },
         setCountMany(updates) {
@@ -203,8 +225,19 @@
                 scout.statuses = scout.statuses || {};
                 if (safeCount === 0) delete scout.statuses[badgeId];
                 else scout.statuses[badgeId] = safeCount >= 5 ? "completed" : "in_progress";
+                scout.statusMeta = scout.statusMeta || {};
+                scout.statusMeta[badgeId] = { updatedBy: auth().getUser()?.id || "", updatedAt: new Date().toISOString() };
             });
             notify();
+        },
+        setActive(scoutId, active) {
+            const scout = scouts.find(item => item.id === scoutId);
+            if (!scout) return false;
+            if (active && !auth()?.isAdmin?.()) return false;
+            if (!active && !canWrite()) return false;
+            scout.aktiv = Boolean(active);
+            notify();
+            return true;
         }
     };
 })();
