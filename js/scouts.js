@@ -47,6 +47,7 @@ const scoutsAccessDenied = document.getElementById("scoutsAccessDenied");
 let scoutBadges = [];
 let scoutData = [];
 let pendingScoutImport = [];
+const collapsedScoutYears = new Set();
 
 function updateScoutTableStickyOffset() {
     const siteHeader = document.querySelector(".site-header");
@@ -217,6 +218,9 @@ function getNextStatus(status) {
 
 function renderScoutHeader() {
     const badges = getVisibleScoutBadges();
+    const visibleScouts = getVisibleScouts();
+    const visibleYears = [...new Set(visibleScouts.map(scout => String(scout.fodelsear)))];
+    const allYearsCollapsed = visibleYears.length > 0 && visibleYears.every(year => collapsedScoutYears.has(year));
     const targetGroups = [];
     badges.forEach(badge => {
         const targets = Array.isArray(badge.malgrupp) ? badge.malgrupp : [badge.malgrupp || "Övrigt"];
@@ -227,14 +231,14 @@ function renderScoutHeader() {
         if (previous?.name === target) previous.count += 1;
         else targetGroups.push({ name: target, count: 1 });
     });
-    const targetHeader = `<tr class="scout-target-row"><th></th>${targetGroups.map(group => `<th class="scout-target-group--${SCOUT_TARGET_CLASS_NAMES[group.name] || "default"}" colspan="${group.count}">${escapeScoutHtml(group.name)}</th>`).join("")}<th></th></tr>`;
-    const badgeHeader = `<tr><th class="scout-name-heading">Scout</th>${badges.map(badge => `<th class="scout-badge-heading"><button class="scout-badge-bulk-action" type="button" data-badge-id="${escapeScoutHtml(badge.id)}" title="Ändra status för alla filtrerade scouter: ${escapeScoutHtml(badge.namn)}" aria-label="Ändra status för alla filtrerade scouter: ${escapeScoutHtml(badge.namn)}"><img src="${escapeScoutHtml(badge.bild)}" alt=""></button></th>`).join("")}<th aria-label="Åtgärder"></th></tr>`;
+    const targetHeader = `<tr class="scout-target-row"><th class="scout-year-collapse-cell"><button class="scout-year-collapse-toggle" type="button" aria-expanded="${String(!allYearsCollapsed)}"${visibleYears.length ? "" : " disabled"}>${allYearsCollapsed ? "Visa" : "Fäll ihop"}</button></th>${targetGroups.map(group => `<th class="scout-target-group--${SCOUT_TARGET_CLASS_NAMES[group.name] || "default"}" colspan="${group.count}">${escapeScoutHtml(group.name)}</th>`).join("")}<th></th></tr>`;
+    const badgeHeader = `<tr><th class="scout-name-heading">Namn</th>${badges.map(badge => `<th class="scout-badge-heading"><button class="scout-badge-bulk-action" type="button" data-badge-id="${escapeScoutHtml(badge.id)}" title="Ändra status för alla filtrerade scouter: ${escapeScoutHtml(badge.namn)}" aria-label="Ändra status för alla filtrerade scouter: ${escapeScoutHtml(badge.namn)}"><img src="${escapeScoutHtml(badge.bild)}" alt=""></button></th>`).join("")}<th aria-label="Åtgärder"></th></tr>`;
     scoutTableHead.innerHTML = targetHeader + badgeHeader;
     updateScoutStickyHeader();
 }
 
 function advanceBadgeForVisibleScouts(badgeId) {
-    const visibleScouts = getVisibleScouts();
+    const visibleScouts = getVisibleScouts().filter(scout => !collapsedScoutYears.has(String(scout.fodelsear)));
     if (!visibleScouts.length) return;
     if (REPEATABLE_BADGE_IDS.has(badgeId)) {
         if (!confirm(`Öka markeringen ett steg för ${visibleScouts.length} filtrerade scouter?`)) return;
@@ -323,6 +327,7 @@ function handleYearFilterChange(event) {
         allInput.checked = false;
     }
     updateYearFilter();
+    renderScoutHeader();
     renderScouts();
 }
 
@@ -345,8 +350,14 @@ function renderScouts() {
     removeFilteredScoutsBtn.textContent = visible.length > 0 ? `Ta bort filtrerade (${visible.length})` : "Ta bort filtrerade";
     scoutEmpty.classList.toggle("hidden", scoutData.length > 0);
     const visibleBadges = getVisibleScoutBadges();
-    scoutTableBody.innerHTML = visible.map(scout => `<tr>
-        <th scope="row"><span class="scout-name">${escapeScoutHtml(scout.namn)} <span class="scout-birth-year">${escapeScoutHtml(scout.fodelsear)}</span></span></th>
+    const scoutsByYear = visible.reduce((groups, scout) => {
+        const year = String(scout.fodelsear);
+        if (!groups.has(year)) groups.set(year, []);
+        groups.get(year).push(scout);
+        return groups;
+    }, new Map());
+    const renderScoutRow = scout => `<tr>
+        <th scope="row"><span class="scout-name">${escapeScoutHtml(scout.namn)}</span></th>
         ${visibleBadges.map(badge => {
             if (REPEATABLE_BADGE_IDS.has(badge.id)) {
                 const count = Number(scout.counts?.[badge.id]) || 0;
@@ -357,7 +368,12 @@ function renderScouts() {
             return `<td><button class="scout-status scout-status--${status}" type="button" data-scout-id="${scout.id}" data-badge-id="${escapeScoutHtml(badge.id)}" aria-label="${escapeScoutHtml(scout.namn)} – ${escapeScoutHtml(badge.namn)}: ${SCOUT_STATUS_LABELS[status]}" title="${SCOUT_STATUS_LABELS[status]}">${status === "completed" ? "✓" : status === "in_progress" ? "•" : "–"}</button></td>`;
         }).join("")}
         <td>${canDeleteScouts() ? `<button class="scout-remove-btn" type="button" data-scout-id="${scout.id}" aria-label="Ta bort ${escapeScoutHtml(scout.namn)}" title="Ta bort scout">&times;</button>` : ""}</td>
-    </tr>`).join("");
+    </tr>`;
+    scoutTableBody.innerHTML = [...scoutsByYear].map(([year, scouts]) => {
+        const isCollapsed = collapsedScoutYears.has(year);
+        const yearRow = `<tr class="scout-year-group-row"><th><button class="scout-year-toggle" type="button" data-scout-year="${escapeScoutHtml(year)}" aria-expanded="${String(!isCollapsed)}"><span class="scout-year-toggle-icon" aria-hidden="true">${isCollapsed ? "▸" : "▾"}</span><span>${escapeScoutHtml(year)}</span><span class="scout-year-count">${scouts.length} scouter</span></button></th><td colspan="${visibleBadges.length + 1}"></td></tr>`;
+        return yearRow + (isCollapsed ? "" : scouts.map(renderScoutRow).join(""));
+    }).join("");
     document.querySelectorAll(".scout-status").forEach(button => button.addEventListener("click", () => {
         const scout = scoutData.find(item => item.id === button.dataset.scoutId);
         if (!scout) return;
@@ -460,7 +476,7 @@ document.getElementById("saveScoutBtn").addEventListener("click", () => {
     window.GTScoutScouts.add({ id: crypto.randomUUID(), namn: name, fodelsear: birthYear, aktiv: true });
     scoutModal.classList.add("hidden");
 });
-scoutSearch.addEventListener("input", renderScouts);
+scoutSearch.addEventListener("input", () => { renderScoutHeader(); renderScouts(); });
 scoutBadgeSearch.addEventListener("input", () => { renderScoutHeader(); renderScouts(); });
 scoutActiveBadgeFilter.addEventListener("change", () => { renderScoutHeader(); renderScouts(); });
 removeFilteredScoutsBtn.addEventListener("click", () => {
@@ -484,9 +500,31 @@ scoutYearDropdownBtn.addEventListener("click", event => {
     scoutYearDropdownBtn.setAttribute("aria-expanded", String(!isOpen));
 });
 document.addEventListener("click", event => {
+    const yearCollapseAction = event.target.closest(".scout-year-collapse-toggle");
+    if (yearCollapseAction) {
+        const visibleScouts = getVisibleScouts();
+        const years = [...new Set(visibleScouts.map(scout => String(scout.fodelsear)))];
+        const allCollapsed = years.length > 0 && years.every(year => collapsedScoutYears.has(year));
+        years.forEach(year => {
+            if (allCollapsed) collapsedScoutYears.delete(year);
+            else collapsedScoutYears.add(year);
+        });
+        renderScoutHeader();
+        renderScouts();
+        return;
+    }
     const badgeAction = event.target.closest(".scout-badge-bulk-action");
     if (badgeAction) {
         advanceBadgeForVisibleScouts(badgeAction.dataset.badgeId);
+        return;
+    }
+    const yearToggle = event.target.closest(".scout-year-toggle");
+    if (yearToggle) {
+        const year = yearToggle.dataset.scoutYear;
+        if (collapsedScoutYears.has(year)) collapsedScoutYears.delete(year);
+        else collapsedScoutYears.add(year);
+        renderScoutHeader();
+        renderScouts();
         return;
     }
     if (!scoutYearDropdown.contains(event.target)) {

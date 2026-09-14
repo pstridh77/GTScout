@@ -234,6 +234,45 @@ body {
     background: #f3f4f6;
 }
 
+.scout-year-collapse-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 0;
+    border: 0;
+    background: transparent;
+    color: #003660;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.scouts-table thead .scout-target-row .scout-year-collapse-cell {
+    text-align: left;
+}
+
+.scout-year-collapse-toggle::after {
+    display: inline-block;
+    flex: 0 0 7px;
+    width: 7px;
+    height: 7px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    content: "";
+    transform: rotate(225deg) translate(-1px, -1px);
+    transition: transform 0.15s ease;
+}
+
+.scout-year-collapse-toggle[aria-expanded="false"]::after {
+    transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.scout-year-collapse-toggle:disabled {
+    color: #8aa2b5;
+    cursor: not-allowed;
+}
+
 .scout-table-top-scroll > div {
     height: 1px;
 }
@@ -369,6 +408,10 @@ body {
     pointer-events: auto;
 }
 
+.scout-sticky-header .scout-year-collapse-toggle {
+    pointer-events: auto;
+}
+
 .scouts-table thead .scout-target-row th {
     height: 28px;
     padding: 6px 8px;
@@ -386,6 +429,7 @@ body {
     font-size: 0.95rem !important;
     font-weight: 800;
     letter-spacing: 0;
+    text-align: left !important;
 }
 
 .scouts-table thead .scout-target-row .scout-target-group--familjescouting {
@@ -420,6 +464,56 @@ body {
 
 .scouts-table tbody th {
     text-align: left;
+}
+
+.scouts-table .scout-year-group-row > th {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    padding: 0;
+    background: #eef5fb;
+    text-align: left;
+}
+
+.scouts-table .scout-year-group-row > td {
+    padding: 0;
+    background: #eef5fb;
+}
+
+.scout-year-toggle {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 38px;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 0;
+    background: transparent;
+    color: #003660;
+    font: inherit;
+    font-weight: 800;
+    text-align: left;
+    cursor: pointer;
+}
+
+.scout-year-toggle:hover {
+    background: #dbeaf5;
+}
+
+.scout-year-toggle:focus-visible {
+    outline: 3px solid rgba(0, 54, 96, 0.35);
+    outline-offset: -3px;
+}
+
+.scout-year-toggle-icon {
+    width: 12px;
+    text-align: center;
+}
+
+.scout-year-count {
+    color: #64748b;
+    font-size: 0.82em;
+    font-weight: 600;
 }
 
 .scout-name {
