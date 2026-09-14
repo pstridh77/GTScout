@@ -32,6 +32,8 @@ const scoutCategoryDropdownMenu = document.getElementById("scoutCategoryDropdown
 const scoutTableHead = document.getElementById("scoutsTableHead");
 const scoutTableBody = document.getElementById("scoutsTableBody");
 const scoutStickyHeader = document.getElementById("scoutStickyHeader");
+const scoutTableTopScroll = document.getElementById("scoutTableTopScroll");
+const scoutTableTopScrollContent = document.getElementById("scoutTableTopScrollContent");
 const scoutEmpty = document.getElementById("scoutsEmpty");
 const scoutModal = document.getElementById("scoutModal");
 const scoutModalStatus = document.getElementById("scoutModalStatus");
@@ -60,7 +62,7 @@ function syncScoutStickyHeader() {
 
     const tableRect = table.getBoundingClientRect();
     const tableWrapRect = tableWrap.getBoundingClientRect();
-    const stickyTop = siteHeader.getBoundingClientRect().bottom + 2;
+    const stickyTop = siteHeader.getBoundingClientRect().bottom + (scoutTableTopScroll?.offsetHeight || 0) + 2;
     const headerHeight = table.tHead?.getBoundingClientRect().height || 0;
     const shouldShow = tableRect.top <= stickyTop && tableRect.bottom > stickyTop + headerHeight;
 
@@ -84,6 +86,15 @@ function updateScoutStickyHeader() {
     const clonedTable = table.cloneNode(true);
     clonedTable.querySelector("tbody")?.remove();
     scoutStickyHeader.replaceChildren(clonedTable);
+    if (scoutTableTopScrollContent) scoutTableTopScrollContent.style.width = `${table.offsetWidth}px`;
+    syncScoutStickyHeader();
+}
+
+function syncScoutTableScroll(source) {
+    const tableWrap = document.querySelector(".scouts-table-wrap");
+    if (!tableWrap || !scoutTableTopScroll) return;
+    if (source !== tableWrap) tableWrap.scrollLeft = source.scrollLeft;
+    if (source !== scoutTableTopScroll) scoutTableTopScroll.scrollLeft = source.scrollLeft;
     syncScoutStickyHeader();
 }
 
@@ -463,6 +474,7 @@ window.addEventListener("resize", () => {
     updateScoutTableStickyOffset();
     updateScoutStickyHeader();
 });
-document.querySelector(".scouts-table-wrap")?.addEventListener("scroll", syncScoutStickyHeader, { passive: true });
+document.querySelector(".scouts-table-wrap")?.addEventListener("scroll", event => syncScoutTableScroll(event.currentTarget), { passive: true });
+scoutTableTopScroll?.addEventListener("scroll", event => syncScoutTableScroll(event.currentTarget), { passive: true });
 updateScoutTableStickyOffset();
 loadScoutBadges();
