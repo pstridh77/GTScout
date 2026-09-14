@@ -62,6 +62,7 @@ let scoutData = [];
 let pendingScoutImport = [];
 let pendingScoutBatchUpdate = null;
 const collapsedScoutYears = new Set();
+let scoutYearCollapseInitialized = false;
 
 function updateScoutTableStickyOffset() {
     const siteHeader = document.querySelector(".site-header");
@@ -237,6 +238,16 @@ function formatScoutBirthDate(value) {
     return `${match[1]}-${match[2]}-${match[3]}`;
 }
 
+function getScoutUpdaterName(meta) {
+    if (meta.updatedByName) return meta.updatedByName;
+    const currentUser = window.GTScoutAuth?.getUser?.();
+    const currentProfile = window.GTScoutAuth?.getProfile?.();
+    if (meta.updatedBy && meta.updatedBy === currentUser?.id) {
+        return currentProfile?.full_name || currentProfile?.email || currentUser.email || "Okänd användare";
+    }
+    return meta.updatedBy ? "Okänd användare" : "";
+}
+
 function getScoutBadgeStatus(scout, badge) {
     if (REPEATABLE_BADGE_IDS.has(badge.id)) {
         const count = Number(scout.counts?.[badge.id]) || 0;
@@ -266,7 +277,8 @@ function openScoutDetail(scoutId) {
     ].map(([label, value]) => `<div class="scout-detail-info-item"><dt>${escapeScoutHtml(label)}</dt><dd>${label === "Scoutnet-id" ? value : escapeScoutHtml(value)}</dd></div>`).join("");
     const renderBadgeSection = (title, badges) => badges.length ? `<section class="scout-detail-badge-section"><h3>${title}</h3><div class="scout-detail-badge-list">${badges.map(badge => {
             const meta = scout.statusMeta?.[badge.id] || {};
-            return `<article class="scout-detail-badge"><img src="${escapeScoutHtml(badge.bild)}" alt=""><div><strong>${escapeScoutHtml(badge.namn)}</strong><span>${escapeScoutHtml(getScoutBadgeStatus(scout, badge))}</span><small>Registrerat ${escapeScoutHtml(formatScoutDate(meta.updatedAt))}${meta.updatedByName ? ` av ${escapeScoutHtml(meta.updatedByName)}` : meta.updatedBy ? ` av ${escapeScoutHtml(meta.updatedBy)}` : ""}</small></div></article>`;
+                const updaterName = getScoutUpdaterName(meta);
+                return `<article class="scout-detail-badge"><img src="${escapeScoutHtml(badge.bild)}" alt=""><div><strong>${escapeScoutHtml(badge.namn)}</strong><span>${escapeScoutHtml(getScoutBadgeStatus(scout, badge))}</span><small>Registrerat ${escapeScoutHtml(formatScoutDate(meta.updatedAt))}${updaterName ? ` av ${escapeScoutHtml(updaterName)}` : ""}</small></div></article>`;
         }).join("")}</div></section>` : "";
     const startedBadges = trackedBadges.filter(badge => scout.statuses?.[badge.id] === "in_progress" || (REPEATABLE_BADGE_IDS.has(badge.id) && scout.statuses?.[badge.id] !== "completed"));
     const completedBadges = trackedBadges.filter(badge => scout.statuses?.[badge.id] === "completed");
@@ -430,8 +442,9 @@ function getVisibleScouts() {
         const matchesActivity = activityFilter === "all" || (activityFilter === "inactive" ? scout.aktiv === false : scout.aktiv !== false);
         return matchesName && matchesYear && matchesActivity;
     }).sort((left, right) => {
-        const yearDifference = Number(left.fodelsear) - Number(right.fodelsear);
-        return yearDifference || left.namn.localeCompare(right.namn, "sv");
+        const leftBirthDate = left.fodelsedatum || (left.fodelsear ? `${left.fodelsear}-01-01` : "0000-00-00");
+        const rightBirthDate = right.fodelsedatum || (right.fodelsear ? `${right.fodelsear}-01-01` : "0000-00-00");
+        return rightBirthDate.localeCompare(leftBirthDate) || left.namn.localeCompare(right.namn, "sv");
     });
 }
 
@@ -493,6 +506,10 @@ function renderAll() {
         return;
     }
     scoutData = window.GTScoutScouts?.getAll?.() || [];
+    if (!scoutYearCollapseInitialized) {
+        scoutData.map(scout => String(scout.fodelsear)).forEach(year => collapsedScoutYears.add(year));
+        scoutYearCollapseInitialized = true;
+    }
     updateYearFilter();
     updateBadgeFilterDropdowns();
     renderScoutHeader();
