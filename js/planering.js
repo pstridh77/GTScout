@@ -39,7 +39,7 @@ function toggleMeetingSectionStatus(groupId, meetingId, sectionKey) {
 
 const DEFAULT_PLANNINGS_FALLBACK = [
     {
-        level: "Familjescouting",
+        level: "Familjescouter",
         plans: [
             { name: "\u00c5r 1 HT", badges: ["varme", "smaka", "utforska"] },
             { name: "\u00c5r 2 VT", badges: ["leka", "pyssla", "ny_i_naturen"] }
@@ -2011,7 +2011,8 @@ async function loadDefaultPlannings() {
 function normalizeTargetGroup(group) {
     const rawGroup = String(group ?? "").trim();
     const map = {
-        "familjescouting": "Familjescouting",
+        "familjescouting": "Familjescouter",
+        "familjescouter": "Familjescouter",
         "spårare": "Spårare",
         "upptäckare": "Upptäckare",
         "upptackare": "Upptäckare",
@@ -2048,7 +2049,7 @@ function getBadgeNote(badgeId) {
 
 function getLevelIcon(level) {
     const iconMap = {
-        "Familjescouting": "./images/icons/familjescout.png",
+        "Familjescouter": "./images/icons/familjescout.png",
         "Spårare": "./images/icons/sparare.png",
         "Upptäckare": "./images/icons/upptackare.png",
         "Äventyrare": "./images/icons/aventyrare.png",
@@ -2060,7 +2061,7 @@ function getLevelIcon(level) {
 
 // ── Render planning grid ───────────────────────────────────────────────────
 
-const TARGET_GROUP_ORDER = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
+const TARGET_GROUP_ORDER = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
 
 function populateGroupFilterOptions() {
     const yearFilter = document.getElementById("groupYearFilter");
@@ -2473,7 +2474,7 @@ function openGroupEditor(groupId) {
     document.getElementById("groupYear").value = Number.isFinite(getGroupYearValue(group)) ? getGroupYearValue(group) : "";
     document.getElementById("groupTerm").value = getGroupTermValue(group) || "";
     document.getElementById("groupNote").value = typeof group.note === "string" ? group.note : "";
-    document.getElementById("groupLevel").value = group.level || "Familjescouting";
+    document.getElementById("groupLevel").value = group.level || "Familjescouter";
 
     const visibilitySelect = document.getElementById("groupVisibility");
     visibilitySelect.value = group.visibility || "kar_edit";
@@ -2828,7 +2829,7 @@ function normalizeMeetingBadgeIds(value) {
 
 function sortBadgesForDisplay(badges, preferredOrder = []) {
     const preferredIndex = new Map(preferredOrder.map((badgeId, index) => [badgeId, index]));
-    const targetGroupOrder = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
+    const targetGroupOrder = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
     return [...badges].sort((left, right) => {
         const leftPriority = preferredIndex.has(left.id) ? preferredIndex.get(left.id) : Number.MAX_SAFE_INTEGER;
         const rightPriority = preferredIndex.has(right.id) ? preferredIndex.get(right.id) : Number.MAX_SAFE_INTEGER;
@@ -3667,7 +3668,7 @@ function addDefaultPlanningForLevel(level, yearCount) {
 }
 
 document.getElementById("openDefaultPlanningBtn").addEventListener("click", () => {
-    const selectedLevel = document.getElementById("groupLevel").value || "Familjescouting";
+    const selectedLevel = document.getElementById("groupLevel").value || "Familjescouter";
     populateDefaultPlanningTemplates();
     populateDefaultPlanningLevels(selectedLevel);
     updateDefaultPlanningYearOptions(defaultPlanningLevel.value);
@@ -3684,7 +3685,7 @@ defaultPlanningModal.addEventListener("click", e => {
 });
 
 document.getElementById("saveDefaultPlanningBtn").addEventListener("click", () => {
-    const selectedLevel = defaultPlanningLevel.value || "Familjescouting";
+    const selectedLevel = defaultPlanningLevel.value || "Familjescouter";
     const selectedYearCount = defaultPlanningYearCount?.value;
     addDefaultPlanningForLevel(selectedLevel, selectedYearCount);
     defaultPlanningModal.classList.add("hidden");
@@ -3692,7 +3693,7 @@ document.getElementById("saveDefaultPlanningBtn").addEventListener("click", () =
 });
 
 defaultPlanningLevel.addEventListener("change", () => {
-    updateDefaultPlanningYearOptions(defaultPlanningLevel.value || "Familjescouting");
+    updateDefaultPlanningYearOptions(defaultPlanningLevel.value || "Familjescouter");
 });
 
 defaultPlanningTemplate.addEventListener("change", () => {
@@ -4037,7 +4038,7 @@ function openBadgePicker(groupId) {
 }
 
 function populatePickerFilters() {
-    const targetGroupOrder = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
+    const targetGroupOrder = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
     const targetGroups = [...new Set(allMarken.flatMap(getTargetGroups))]
         .sort((a, b) => {
             const ia = targetGroupOrder.indexOf(a);
@@ -4204,7 +4205,7 @@ function showBadgeDetail(marke, planningId = null) {
         ? ""
         : ' disabled aria-disabled="true" title="Endast kårens administratör kan ändra kårmärket"';
     const iconMap = {
-        "Familjescouting": "./images/icons/familjescout.png",
+        "Familjescouter": "./images/icons/familjescout.png",
         "Sp\u00e5rare": "./images/icons/sparare.png",
         "Uppt\u00e4ckare": "./images/icons/upptackare.png",
         "\u00c4ventyrare": "./images/icons/aventyrare.png",

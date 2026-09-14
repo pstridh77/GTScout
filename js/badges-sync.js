@@ -7,7 +7,7 @@
     const MAX_IMAGE_BYTES = 100 * 1024;
     const MAX_IMAGE_DIMENSION = 128;
     const DEFAULT_TYPES = ["Intressemärke", "Deltagandemärke", "Bevismärke"];
-    const TARGET_GROUPS = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
+    const TARGET_GROUPS = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
 
     let badges = [];
     let loaded = false;

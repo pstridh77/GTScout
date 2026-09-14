@@ -107,7 +107,11 @@ body {
 
 .scouts-toolbar {
     display: grid;
-    grid-template-columns: repeat(5, minmax(150px, 1fr) ) auto;
+    grid-template-columns: minmax(220px, 1.2fr) minmax(150px, 0.75fr) minmax(180px, 0.9fr) minmax(180px, 0.9fr) minmax(220px, 1.2fr);
+    grid-template-areas:
+        "badge category target active active"
+        "search year . . ."
+        "remove status status status status";
     align-items: end;
     gap: 14px;
     margin-bottom: 18px;
@@ -122,10 +126,17 @@ body {
     width: 100%;
 }
 
+.scouts-toolbar .filter-field:nth-of-type(1) { grid-area: search; }
+.scouts-toolbar .filter-field:nth-of-type(2) { grid-area: year; }
+.scouts-toolbar .filter-field:nth-of-type(3) { grid-area: target; }
+.scouts-toolbar .filter-field:nth-of-type(4) { grid-area: category; }
+.scouts-toolbar .filter-field:nth-of-type(5) { grid-area: badge; }
+
 .scouts-toolbar .multi-select-dropdown,
 .scouts-toolbar .multi-select-trigger,
 .scouts-toolbar input[type="search"] {
     width: 100%;
+    min-width: 0;
     box-sizing: border-box;
 }
 
@@ -135,10 +146,12 @@ body {
 }
 
 .scouts-toolbar .planning-sync-status {
+    grid-area: status;
     margin-bottom: 10px;
 }
 
 .scout-active-filter {
+    grid-area: active;
     display: inline-flex;
     align-items: center;
     gap: 7px;
@@ -149,6 +162,7 @@ body {
 }
 
 .scouts-toolbar .btn-danger {
+    grid-area: remove;
     min-height: 40px;
     max-width: 150px;
     line-height: 1.15;
@@ -163,11 +177,19 @@ body {
 @media (max-width: 1100px) {
     .scouts-toolbar {
         grid-template-columns: repeat(3, minmax(160px, 1fr));
+        grid-template-areas: none;
     }
 
+    .scouts-toolbar .filter-field:nth-of-type(1),
+    .scouts-toolbar .filter-field:nth-of-type(2),
+    .scouts-toolbar .filter-field:nth-of-type(3),
+    .scouts-toolbar .filter-field:nth-of-type(4),
+    .scouts-toolbar .filter-field:nth-of-type(5),
+    .scouts-toolbar .filter-field,
     .scouts-toolbar .scout-active-filter,
     .scouts-toolbar .btn-danger,
     .scouts-toolbar .planning-sync-status {
+        grid-area: auto;
         grid-column: span 1;
     }
 }
@@ -188,10 +210,9 @@ body {
 .scouts-table-wrap {
     width: 100%;
     max-width: 100%;
-    max-height: min(620px, calc(100vh - 320px));
     min-height: 180px;
-    overflow-x: scroll;
-    overflow-y: auto;
+    overflow-x: auto;
+    overflow-y: visible;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x;
     overscroll-behavior-x: contain;
@@ -199,6 +220,65 @@ body {
     border-radius: 10px;
     background: white;
     box-shadow: 0 8px 24px rgba(0, 54, 96, 0.06);
+}
+
+.scout-table-top-scroll {
+    position: sticky;
+    top: calc(var(--scout-table-sticky-top, 146px) + 2px);
+    z-index: 10;
+    width: 100%;
+    height: 14px;
+    margin-bottom: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: #f3f4f6;
+}
+
+.scout-year-collapse-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 0;
+    border: 0;
+    background: transparent;
+    color: #003660;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.scouts-table thead .scout-target-row .scout-year-collapse-cell {
+    text-align: left;
+}
+
+.scout-year-collapse-toggle::after {
+    display: inline-block;
+    flex: 0 0 7px;
+    width: 7px;
+    height: 7px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    content: "";
+    transform: rotate(225deg) translate(-1px, -1px);
+    transition: transform 0.15s ease;
+}
+
+.scout-year-collapse-toggle[aria-expanded="false"]::after {
+    transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.scout-year-collapse-toggle:disabled {
+    color: #8aa2b5;
+    cursor: not-allowed;
+}
+
+#scoutBatchConfirmModal .modal-actions {
+    gap: 10px;
+}
+
+.scout-table-top-scroll > div {
+    height: 1px;
 }
 
 .scouts-table-wrap::-webkit-scrollbar {
@@ -223,11 +303,7 @@ body {
 }
 
 .scout-name-column {
-    width: 180px;
-}
-
-.scout-year-column {
-    width: 92px;
+    width: 220px;
 }
 
 .scouts-table th,
@@ -238,8 +314,7 @@ body {
     white-space: nowrap;
 }
 
-.scouts-table tr > :first-child,
-.scouts-table tr > :nth-child(2) {
+.scouts-table tr > :first-child {
     position: sticky;
     z-index: 2;
     background: white;
@@ -247,28 +322,16 @@ body {
 }
 
 .scouts-table tr > :first-child {
-    width: 180px;
-    min-width: 180px;
-    max-width: 180px;
-}
-
-.scouts-table tr > :nth-child(2) {
-    width: 92px;
-    min-width: 92px;
-    max-width: 92px;
+    width: 220px;
+    min-width: 220px;
+    max-width: 220px;
 }
 
 .scouts-table tr > :first-child {
     left: 0;
 }
 
-.scouts-table tr > :nth-child(2) {
-    left: 180px;
-    box-shadow: 3px 0 8px rgba(0, 54, 96, 0.08);
-}
-
-.scouts-table thead tr > :first-child,
-.scouts-table thead tr > :nth-child(2) {
+.scouts-table thead tr > :first-child {
     background: #eef5fb;
     z-index: 4;
 }
@@ -281,33 +344,37 @@ body {
     left: 0;
 }
 
-.scouts-table thead tr:nth-child(2) > :nth-child(2) {
-    left: 180px;
-}
-
-.scouts-table tbody tr > :first-child,
-.scouts-table tbody tr > :nth-child(2) {
+.scouts-table tbody tr > :first-child {
     background: white;
 }
 
 .scouts-table thead th {
-    position: sticky;
+    position: static;
     background: #eef5fb;
     font-size: 0.78rem;
 }
 
+.scouts-table thead tr > :first-child {
+    position: sticky;
+    top: auto;
+}
+
+.scouts-table thead tr:first-child > :first-child,
+.scouts-table thead tr:nth-child(2) > :first-child {
+    top: auto;
+}
+
 .scouts-table thead tr:first-child th {
-    top: 0;
+    top: calc(var(--scout-table-sticky-top, 146px) + 2px);
     z-index: 5;
 }
 
 .scouts-table thead tr:nth-child(2) th {
-    top: 40px;
+    top: calc(var(--scout-table-sticky-top, 146px) + 42px);
     z-index: 5;
 }
 
-.scouts-table thead tr > :first-child,
-.scouts-table thead tr > :nth-child(2) {
+.scouts-table thead tr > :first-child {
     z-index: 7;
     background: #eef5fb;
 }
@@ -316,10 +383,37 @@ body {
     background: #eef5fb;
 }
 
-.scouts-table thead tr:nth-child(2) > th:first-child,
-.scouts-table thead tr:nth-child(2) > th:nth-child(2) {
+.scouts-table thead tr:nth-child(2) > th:first-child {
     z-index: 8 !important;
     background: #eef5fb !important;
+}
+
+.scout-sticky-header {
+    position: fixed;
+    z-index: 9;
+    overflow: hidden;
+    pointer-events: none;
+    background: #eef5fb;
+    box-shadow: 0 3px 8px rgba(0, 54, 96, 0.12);
+}
+
+.scout-sticky-header .scouts-table {
+    margin: 0;
+}
+
+.scout-sticky-header .scouts-table thead th,
+.scout-sticky-header .scouts-table tr > :first-child {
+    position: static;
+    left: auto;
+    top: auto;
+}
+
+.scout-sticky-header .scout-badge-bulk-action {
+    pointer-events: auto;
+}
+
+.scout-sticky-header .scout-year-collapse-toggle {
+    pointer-events: auto;
 }
 
 .scouts-table thead .scout-target-row th {
@@ -333,6 +427,13 @@ body {
     letter-spacing: 0.03em;
     text-align: center;
     white-space: nowrap;
+}
+
+.scout-name-heading {
+    font-size: 0.95rem !important;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-align: left !important;
 }
 
 .scouts-table thead .scout-target-row .scout-target-group--familjescouting {
@@ -365,35 +466,80 @@ body {
     color: #003660;
 }
 
-.scouts-table tbody th,
-.scouts-table tbody td:first-of-type {
+.scouts-table tbody th {
     text-align: left;
+}
+
+.scouts-table .scout-year-group-row > th {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    padding: 0;
+    background: #eef5fb;
+    text-align: left;
+}
+
+.scouts-table .scout-year-group-row > td {
+    padding: 0;
+    background: #eef5fb;
+}
+
+.scout-year-toggle {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 38px;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 0;
+    background: transparent;
+    color: #003660;
+    font: inherit;
+    font-weight: 800;
+    text-align: left;
+    cursor: pointer;
+}
+
+.scout-year-toggle:hover {
+    background: #dbeaf5;
+}
+
+.scout-year-toggle:focus-visible {
+    outline: 3px solid rgba(0, 54, 96, 0.35);
+    outline-offset: -3px;
+}
+
+.scout-year-toggle-icon {
+    width: 12px;
+    text-align: center;
+}
+
+.scout-year-count {
+    color: #64748b;
+    font-size: 0.82em;
+    font-weight: 600;
 }
 
 .scout-name {
     display: block;
-    max-width: 180px;
+    max-width: 220px;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.scout-badge-heading span {
-    display: block;
-    max-width: 82px;
-    margin: 0 auto;
-    overflow: hidden;
-    line-height: 1.08;
-    white-space: normal;
-    overflow-wrap: anywhere;
+.scout-birth-year {
+    color: #64748b;
+    font-size: 0.8em;
+    font-weight: 600;
 }
 
 .scout-badge-heading {
     width: 78px;
     min-width: 78px;
     max-width: 78px;
-    height: 112px;
-    padding: 8px 6px 10px !important;
-    vertical-align: bottom;
+    height: 54px;
+    padding: 8px 6px !important;
+    vertical-align: middle;
     box-sizing: border-box;
 }
 
@@ -401,8 +547,28 @@ body {
     display: block;
     width: 34px;
     height: 34px;
-    margin: 0 auto 7px;
+    margin: 0 auto;
     object-fit: contain;
+}
+
+.scout-badge-bulk-action {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.scout-badge-bulk-action:focus-visible {
+    outline: 3px solid rgba(0, 54, 96, 0.35);
+    outline-offset: 2px;
+}
+
+.scout-badge-bulk-action:hover img {
+    transform: scale(1.08);
 }
 
 .scout-status {

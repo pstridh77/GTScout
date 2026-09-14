@@ -6,10 +6,10 @@ const SCOUT_STATUS_LABELS = {
 const SCOUT_STATUS_ORDER = ["not_started", "in_progress", "completed"];
 const REPEATABLE_BADGE_IDS = new Set(["100_scout"]);
 const REPEATABLE_BADGE_TARGET = 5;
-const SCOUT_BADGE_TARGET_ORDER = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
+const SCOUT_BADGE_TARGET_ORDER = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
 const SCOUT_BADGE_TYPE_ORDER = ["Intressemärke", "Bevismärke", "Deltagarmärke"];
 const SCOUT_TARGET_CLASS_NAMES = {
-    Familjescouting: "familjescouting",
+    Familjescouter: "familjescouting",
     Spårare: "sparare",
     Upptäckare: "upptackare",
     Äventyrare: "aventyrare",
@@ -31,9 +31,16 @@ const scoutCategoryDropdownBtn = document.getElementById("scoutCategoryDropdownB
 const scoutCategoryDropdownMenu = document.getElementById("scoutCategoryDropdownMenu");
 const scoutTableHead = document.getElementById("scoutsTableHead");
 const scoutTableBody = document.getElementById("scoutsTableBody");
+const scoutStickyHeader = document.getElementById("scoutStickyHeader");
+const scoutTableTopScroll = document.getElementById("scoutTableTopScroll");
+const scoutTableTopScrollContent = document.getElementById("scoutTableTopScrollContent");
 const scoutEmpty = document.getElementById("scoutsEmpty");
 const scoutModal = document.getElementById("scoutModal");
 const scoutModalStatus = document.getElementById("scoutModalStatus");
+const scoutBatchConfirmModal = document.getElementById("scoutBatchConfirmModal");
+const scoutBatchConfirmMessage = document.getElementById("scoutBatchConfirmMessage");
+const cancelScoutBatchConfirmBtn = document.getElementById("cancelScoutBatchConfirmBtn");
+const confirmScoutBatchConfirmBtn = document.getElementById("confirmScoutBatchConfirmBtn");
 const scoutCsvInput = document.getElementById("scoutCsvInput");
 const scoutImportModal = document.getElementById("scoutImportModal");
 const scoutImportPreview = document.getElementById("scoutImportPreview");
@@ -44,6 +51,59 @@ const scoutsAccessDenied = document.getElementById("scoutsAccessDenied");
 let scoutBadges = [];
 let scoutData = [];
 let pendingScoutImport = [];
+let pendingScoutBatchUpdate = null;
+const collapsedScoutYears = new Set();
+
+function updateScoutTableStickyOffset() {
+    const siteHeader = document.querySelector(".site-header");
+    if (siteHeader) document.documentElement.style.setProperty("--scout-table-sticky-top", `${siteHeader.offsetHeight}px`);
+}
+
+function syncScoutStickyHeader() {
+    const table = document.querySelector(".scouts-table-wrap .scouts-table");
+    const tableWrap = document.querySelector(".scouts-table-wrap");
+    const siteHeader = document.querySelector(".site-header");
+    const clonedTable = scoutStickyHeader?.querySelector("table");
+    if (!table || !tableWrap || !siteHeader || !clonedTable) return;
+
+    const tableRect = table.getBoundingClientRect();
+    const tableWrapRect = tableWrap.getBoundingClientRect();
+    const stickyTop = siteHeader.getBoundingClientRect().bottom + (scoutTableTopScroll?.offsetHeight || 0) + 2;
+    const headerHeight = table.tHead?.getBoundingClientRect().height || 0;
+    const shouldShow = tableRect.top <= stickyTop && tableRect.bottom > stickyTop + headerHeight;
+
+    scoutStickyHeader.classList.toggle("hidden", !shouldShow);
+    if (!shouldShow) return;
+
+    scoutStickyHeader.style.top = `${stickyTop}px`;
+    scoutStickyHeader.style.left = `${tableWrapRect.left}px`;
+    scoutStickyHeader.style.width = `${tableWrap.clientWidth}px`;
+    scoutStickyHeader.style.height = `${headerHeight}px`;
+    clonedTable.style.width = `${table.offsetWidth}px`;
+    clonedTable.style.transform = `translateX(${-tableWrap.scrollLeft}px)`;
+    clonedTable.querySelectorAll("tr > :first-child").forEach(cell => {
+        cell.style.transform = `translateX(${tableWrap.scrollLeft}px)`;
+    });
+}
+
+function updateScoutStickyHeader() {
+    const table = document.querySelector(".scouts-table-wrap .scouts-table");
+    if (!scoutStickyHeader || !table) return;
+    const clonedTable = table.cloneNode(true);
+    clonedTable.tHead?.removeAttribute("id");
+    clonedTable.querySelector("tbody")?.remove();
+    scoutStickyHeader.replaceChildren(clonedTable);
+    if (scoutTableTopScrollContent) scoutTableTopScrollContent.style.width = `${table.offsetWidth}px`;
+    syncScoutStickyHeader();
+}
+
+function syncScoutTableScroll(source) {
+    const tableWrap = document.querySelector(".scouts-table-wrap");
+    if (!tableWrap || !scoutTableTopScroll) return;
+    if (source !== tableWrap) tableWrap.scrollLeft = source.scrollLeft;
+    if (source !== scoutTableTopScroll) scoutTableTopScroll.scrollLeft = source.scrollLeft;
+    syncScoutStickyHeader();
+}
 
 function getScoutBadgeSortTarget(badge) {
     const targets = Array.isArray(badge.malgrupp) ? badge.malgrupp : [badge.malgrupp || "Övrigt"];
@@ -163,6 +223,9 @@ function getNextStatus(status) {
 
 function renderScoutHeader() {
     const badges = getVisibleScoutBadges();
+    const visibleScouts = getVisibleScouts();
+    const visibleYears = [...new Set(visibleScouts.map(scout => String(scout.fodelsear)))];
+    const allYearsCollapsed = visibleYears.length > 0 && visibleYears.every(year => collapsedScoutYears.has(year));
     const targetGroups = [];
     badges.forEach(badge => {
         const targets = Array.isArray(badge.malgrupp) ? badge.malgrupp : [badge.malgrupp || "Övrigt"];
@@ -173,9 +236,47 @@ function renderScoutHeader() {
         if (previous?.name === target) previous.count += 1;
         else targetGroups.push({ name: target, count: 1 });
     });
-    const targetHeader = `<tr class="scout-target-row"><th colspan="2"></th>${targetGroups.map(group => `<th class="scout-target-group--${SCOUT_TARGET_CLASS_NAMES[group.name] || "default"}" colspan="${group.count}">${escapeScoutHtml(group.name)}</th>`).join("")}<th></th></tr>`;
-    const badgeHeader = `<tr><th>Scout</th><th>Födelseår</th>${badges.map(badge => `<th class="scout-badge-heading" title="${escapeScoutHtml(badge.namn)}"><img src="${escapeScoutHtml(badge.bild)}" alt=""><span>${escapeScoutHtml(badge.namn)}</span></th>`).join("")}<th aria-label="Åtgärder"></th></tr>`;
+    const targetHeader = `<tr class="scout-target-row"><th class="scout-year-collapse-cell"><button class="scout-year-collapse-toggle" type="button" aria-expanded="${String(!allYearsCollapsed)}"${visibleYears.length ? "" : " disabled"}>${allYearsCollapsed ? "Visa" : "Fäll ihop"}</button></th>${targetGroups.map(group => `<th class="scout-target-group--${SCOUT_TARGET_CLASS_NAMES[group.name] || "default"}" colspan="${group.count}">${escapeScoutHtml(group.name)}</th>`).join("")}<th></th></tr>`;
+    const badgeHeader = `<tr><th class="scout-name-heading">Namn</th>${badges.map(badge => `<th class="scout-badge-heading"><button class="scout-badge-bulk-action" type="button" data-badge-id="${escapeScoutHtml(badge.id)}" title="Ändra status för alla filtrerade scouter: ${escapeScoutHtml(badge.namn)}" aria-label="Ändra status för alla filtrerade scouter: ${escapeScoutHtml(badge.namn)}"><img src="${escapeScoutHtml(badge.bild)}" alt=""></button></th>`).join("")}<th aria-label="Åtgärder"></th></tr>`;
     scoutTableHead.innerHTML = targetHeader + badgeHeader;
+    updateScoutStickyHeader();
+}
+
+function advanceBadgeForVisibleScouts(badgeId) {
+    const visibleScouts = getVisibleScouts().filter(scout => !collapsedScoutYears.has(String(scout.fodelsear)));
+    if (!visibleScouts.length) return;
+    if (REPEATABLE_BADGE_IDS.has(badgeId)) {
+        confirmScoutBatchUpdate(`Öka markeringen ett steg för ${visibleScouts.length} filtrerade scouter?`, () => {
+            window.GTScoutScouts.setCountMany(visibleScouts.map(scout => ({
+                scoutId: scout.id,
+                badgeId,
+                count: ((Number(scout.counts?.[badgeId]) || 0) + 1) % (REPEATABLE_BADGE_TARGET + 1)
+            })));
+        });
+        return;
+    }
+    const hasNotStarted = visibleScouts.some(scout => (scout.statuses?.[badgeId] || "not_started") === "not_started");
+    const hasInProgress = visibleScouts.some(scout => scout.statuses?.[badgeId] === "in_progress");
+    const nextStatus = hasNotStarted ? "in_progress" : hasInProgress ? "completed" : "not_started";
+    const scoutsToUpdate = visibleScouts.filter(scout => {
+        const status = scout.statuses?.[badgeId] || "not_started";
+        return hasNotStarted ? status === "not_started" : hasInProgress ? status === "in_progress" : status === "completed";
+    });
+    const actionLabel = nextStatus === "in_progress" ? "markera som pågår" : nextStatus === "completed" ? "markera som klara" : "återställa";
+    confirmScoutBatchUpdate(`Vill du ${actionLabel} ${scoutsToUpdate.length} filtrerade scouter?`, () => {
+        window.GTScoutScouts.setStatusMany(scoutsToUpdate.map(scout => ({
+            scoutId: scout.id,
+            badgeId,
+            status: nextStatus
+        })));
+    });
+}
+
+function confirmScoutBatchUpdate(message, update) {
+    pendingScoutBatchUpdate = update;
+    scoutBatchConfirmMessage.textContent = message;
+    scoutBatchConfirmModal.classList.remove("hidden");
+    confirmScoutBatchConfirmBtn.focus();
 }
 
 function badgeHasStatus(badge) {
@@ -209,7 +310,11 @@ function renderBadgeFilterDropdown(menu, button, values, allLabel, selectedValue
 }
 
 function updateBadgeFilterDropdowns() {
-    const targets = [...new Set(scoutBadges.flatMap(badge => Array.isArray(badge.malgrupp) ? badge.malgrupp : [badge.malgrupp || "Övrigt"]))].sort((a, b) => a.localeCompare(b, "sv"));
+    const targets = [...new Set(scoutBadges.flatMap(badge => Array.isArray(badge.malgrupp) ? badge.malgrupp : [badge.malgrupp || "Övrigt"]))].sort((left, right) => {
+        const leftIndex = SCOUT_BADGE_TARGET_ORDER.indexOf(left);
+        const rightIndex = SCOUT_BADGE_TARGET_ORDER.indexOf(right);
+        return (leftIndex < 0 ? SCOUT_BADGE_TARGET_ORDER.length : leftIndex) - (rightIndex < 0 ? SCOUT_BADGE_TARGET_ORDER.length : rightIndex) || left.localeCompare(right, "sv");
+    });
     const categories = [...new Set(scoutBadges.map(badge => badge.kategori || "Övrigt"))].sort((a, b) => a.localeCompare(b, "sv"));
     const selectedTargets = [...scoutTargetDropdownMenu.querySelectorAll("input:checked")].map(input => input.value).filter(value => value !== "Alla");
     const selectedCategories = [...scoutCategoryDropdownMenu.querySelectorAll("input:checked")].map(input => input.value).filter(value => value !== "Alla");
@@ -236,6 +341,7 @@ function handleYearFilterChange(event) {
         allInput.checked = false;
     }
     updateYearFilter();
+    renderScoutHeader();
     renderScouts();
 }
 
@@ -258,9 +364,14 @@ function renderScouts() {
     removeFilteredScoutsBtn.textContent = visible.length > 0 ? `Ta bort filtrerade (${visible.length})` : "Ta bort filtrerade";
     scoutEmpty.classList.toggle("hidden", scoutData.length > 0);
     const visibleBadges = getVisibleScoutBadges();
-    scoutTableBody.innerHTML = visible.map(scout => `<tr>
+    const scoutsByYear = visible.reduce((groups, scout) => {
+        const year = String(scout.fodelsear);
+        if (!groups.has(year)) groups.set(year, []);
+        groups.get(year).push(scout);
+        return groups;
+    }, new Map());
+    const renderScoutRow = scout => `<tr>
         <th scope="row"><span class="scout-name">${escapeScoutHtml(scout.namn)}</span></th>
-        <td>${escapeScoutHtml(scout.fodelsear)}</td>
         ${visibleBadges.map(badge => {
             if (REPEATABLE_BADGE_IDS.has(badge.id)) {
                 const count = Number(scout.counts?.[badge.id]) || 0;
@@ -271,7 +382,12 @@ function renderScouts() {
             return `<td><button class="scout-status scout-status--${status}" type="button" data-scout-id="${scout.id}" data-badge-id="${escapeScoutHtml(badge.id)}" aria-label="${escapeScoutHtml(scout.namn)} – ${escapeScoutHtml(badge.namn)}: ${SCOUT_STATUS_LABELS[status]}" title="${SCOUT_STATUS_LABELS[status]}">${status === "completed" ? "✓" : status === "in_progress" ? "•" : "–"}</button></td>`;
         }).join("")}
         <td>${canDeleteScouts() ? `<button class="scout-remove-btn" type="button" data-scout-id="${scout.id}" aria-label="Ta bort ${escapeScoutHtml(scout.namn)}" title="Ta bort scout">&times;</button>` : ""}</td>
-    </tr>`).join("");
+    </tr>`;
+    scoutTableBody.innerHTML = [...scoutsByYear].map(([year, scouts]) => {
+        const isCollapsed = collapsedScoutYears.has(year);
+        const yearRow = `<tr class="scout-year-group-row"><th><button class="scout-year-toggle" type="button" data-scout-year="${escapeScoutHtml(year)}" aria-expanded="${String(!isCollapsed)}"><span class="scout-year-toggle-icon" aria-hidden="true">${isCollapsed ? "▸" : "▾"}</span><span>${escapeScoutHtml(year)}</span><span class="scout-year-count">${scouts.length} scouter</span></button></th><td colspan="${visibleBadges.length + 1}"></td></tr>`;
+        return yearRow + (isCollapsed ? "" : scouts.map(renderScoutRow).join(""));
+    }).join("");
     document.querySelectorAll(".scout-status").forEach(button => button.addEventListener("click", () => {
         const scout = scoutData.find(item => item.id === button.dataset.scoutId);
         if (!scout) return;
@@ -364,6 +480,21 @@ document.getElementById("addScoutBtn").addEventListener("click", () => {
 });
 document.getElementById("closeScoutModal").addEventListener("click", () => scoutModal.classList.add("hidden"));
 scoutModal.addEventListener("click", event => { if (event.target === scoutModal) scoutModal.classList.add("hidden"); });
+cancelScoutBatchConfirmBtn.addEventListener("click", () => {
+    pendingScoutBatchUpdate = null;
+    scoutBatchConfirmModal.classList.add("hidden");
+});
+confirmScoutBatchConfirmBtn.addEventListener("click", () => {
+    const update = pendingScoutBatchUpdate;
+    pendingScoutBatchUpdate = null;
+    scoutBatchConfirmModal.classList.add("hidden");
+    update?.();
+});
+scoutBatchConfirmModal.addEventListener("click", event => {
+    if (event.target !== scoutBatchConfirmModal) return;
+    pendingScoutBatchUpdate = null;
+    scoutBatchConfirmModal.classList.add("hidden");
+});
 document.getElementById("saveScoutBtn").addEventListener("click", () => {
     const name = document.getElementById("scoutName").value.trim();
     const birthYear = Number.parseInt(document.getElementById("scoutBirthYear").value, 10);
@@ -374,7 +505,7 @@ document.getElementById("saveScoutBtn").addEventListener("click", () => {
     window.GTScoutScouts.add({ id: crypto.randomUUID(), namn: name, fodelsear: birthYear, aktiv: true });
     scoutModal.classList.add("hidden");
 });
-scoutSearch.addEventListener("input", renderScouts);
+scoutSearch.addEventListener("input", () => { renderScoutHeader(); renderScouts(); });
 scoutBadgeSearch.addEventListener("input", () => { renderScoutHeader(); renderScouts(); });
 scoutActiveBadgeFilter.addEventListener("change", () => { renderScoutHeader(); renderScouts(); });
 removeFilteredScoutsBtn.addEventListener("click", () => {
@@ -398,6 +529,33 @@ scoutYearDropdownBtn.addEventListener("click", event => {
     scoutYearDropdownBtn.setAttribute("aria-expanded", String(!isOpen));
 });
 document.addEventListener("click", event => {
+    const yearCollapseAction = event.target.closest(".scout-year-collapse-toggle");
+    if (yearCollapseAction) {
+        const visibleScouts = getVisibleScouts();
+        const years = [...new Set(visibleScouts.map(scout => String(scout.fodelsear)))];
+        const allCollapsed = years.length > 0 && years.every(year => collapsedScoutYears.has(year));
+        years.forEach(year => {
+            if (allCollapsed) collapsedScoutYears.delete(year);
+            else collapsedScoutYears.add(year);
+        });
+        renderScoutHeader();
+        renderScouts();
+        return;
+    }
+    const badgeAction = event.target.closest(".scout-badge-bulk-action");
+    if (badgeAction) {
+        advanceBadgeForVisibleScouts(badgeAction.dataset.badgeId);
+        return;
+    }
+    const yearToggle = event.target.closest(".scout-year-toggle");
+    if (yearToggle) {
+        const year = yearToggle.dataset.scoutYear;
+        if (collapsedScoutYears.has(year)) collapsedScoutYears.delete(year);
+        else collapsedScoutYears.add(year);
+        renderScoutHeader();
+        renderScouts();
+        return;
+    }
     if (!scoutYearDropdown.contains(event.target)) {
         scoutYearDropdownMenu.classList.add("hidden");
         scoutYearDropdownBtn.setAttribute("aria-expanded", "false");
@@ -412,4 +570,12 @@ document.addEventListener("click", event => {
 document.getElementById("openScoutLoginBtn").addEventListener("click", () => window.GTScoutAuth?.openLogin?.());
 window.GTScoutAuth?.onChange(updateScoutAccess);
 window.GTScoutBadges?.init({ onChange: loadScoutBadges });
+window.addEventListener("scroll", syncScoutStickyHeader, { passive: true });
+window.addEventListener("resize", () => {
+    updateScoutTableStickyOffset();
+    updateScoutStickyHeader();
+});
+document.querySelector(".scouts-table-wrap")?.addEventListener("scroll", event => syncScoutTableScroll(event.currentTarget), { passive: true });
+scoutTableTopScroll?.addEventListener("scroll", event => syncScoutTableScroll(event.currentTarget), { passive: true });
+updateScoutTableStickyOffset();
 loadScoutBadges();

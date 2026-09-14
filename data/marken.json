@@ -5,7 +5,7 @@
         "bild":  "images/marken/varme.png",
         "kategori":  "Eld",
         "malgrupp":  [
-                         "Familjescouting"
+                         "Familjescouter"
                      ],
         "inledning":  "Genom att jobba med intressemärket Värme övar du på att bli trygg vid eld.",
         "kriterier":  [
@@ -129,7 +129,7 @@
         "bild":  "images/marken/smaka.png",
         "kategori":  "Mat",
         "malgrupp":  [
-                         "Familjescouting"
+                         "Familjescouter"
                      ],
         "inledning":  "I märket Smaka utmanar du dig själv att våga prova nya smaker. Märket Smaka är det första i en märkesstegring om mat.",
         "kriterier":  [
@@ -355,7 +355,7 @@
         "bild":  "images/marken/utforska.png",
         "kategori":  "Navigering",
         "malgrupp":  [
-                         "Familjescouting"
+                         "Familjescouter"
                      ],
         "inledning":  "Märket Utforska är det första i en märkesstegring. Syftet med märket är att du ska känna dig trygg i skogen på dagen.",
         "kriterier":  [
@@ -496,7 +496,7 @@
         "bild":  "images/marken/aj.png",
         "kategori":  "Sjukvård",
         "malgrupp":  [
-                         "Familjescouting"
+                         "Familjescouter"
                      ],
         "inledning":  "Märket Aj är det första i en märkesstegring om sjukvård. Genom märket får du lära dig vad du kan göra om du eller en kompis gör sig illa.",
         "kriterier":  [
@@ -651,7 +651,7 @@
         "bild":  "images/marken/minipatrullen.png",
         "kategori":  "Samarbete",
         "malgrupp":  [
-                         "Familjescouting"
+                         "Familjescouter"
                      ],
         "inledning":  "Märket Minipatrullen är det första i en serie om att vara med andra och att samarbeta. Genom att jobba med det här märket får du prova på hur det är att vara i en patrull.",
         "kriterier":  [
@@ -733,7 +733,7 @@
         "bild":  "images/marken/pyssla.png",
         "kategori":  "Skapande",
         "malgrupp":  [
-                         "Familjescouting"
+                         "Familjescouter"
                      ],
         "inledning":  "Märket Pyssla är det första i en serie om skapande. I det här märket får du pyssla med material från naturen.",
         "kriterier":  [
@@ -913,7 +913,7 @@
         "bild":  "images/marken/sno.png",
         "kategori":  "Vara ute säkert",
         "malgrupp":  [
-                         "Familjescouting"
+                         "Familjescouter"
                      ],
         "inledning":  "Märket Snö är det första i en serie om att vara ute säkert i olika förhållanden. Genom att jobba med det här märket får du både leka och lära dig hur du är säker i snön.",
         "kriterier":  [
@@ -974,7 +974,7 @@
         "bild":  "images/marken/ny_i_naturen.png",
         "kategori":  "Natur",
         "malgrupp":  [
-                         "Familjescouting"
+                         "Familjescouter"
                      ],
         "inledning":  "Märket Ny i naturen är det första i en serie om naturen. I det här märket lär du dig om några av de vanligaste insekterna och djuren runt oss, hur de bor och vad de äter. ",
         "kriterier":  [
@@ -1217,7 +1217,7 @@
         "bild":  "images/marken/leka.png",
         "kategori":  "Lek och tävling",
         "malgrupp":  [
-                         "Familjescouting"
+                         "Familjescouter"
                      ],
         "inledning":  "Märket Leka är det första i en serie om lek och tävling. I det här märket får du testa nya lekar ute i naturen.  ",
         "kriterier":  [
@@ -1479,7 +1479,7 @@
         "bild":  "images/marken/pa_ytan.png",
         "kategori":  "Vatten",
         "malgrupp":  [
-                         "Familjescouting"
+                         "Familjescouter"
                      ],
         "inledning":  "Märket På ytan är det första i en serie om vatten. I det här märket får du utforska vad som händer på ytan i en sjö eller ett vattendrag.",
         "kriterier":  [
@@ -2047,7 +2047,7 @@
         "bild":  "images/marken/kottmarket.png",
         "kategori":  "Specialmärken",
         "malgrupp":  [
-                         "Familjescouting"
+                         "Familjescouter"
                      ],
         "inledning": "Skogen är full av kottar och de går att använda på många olika sätt. Med detta märke visar du att du blivit en expert på kottar och dess användningsområden. ",
         "kriterier": [
@@ -2179,7 +2179,7 @@
         "bild":  "images/marken/froet.png",
         "kategori":  "Odling",
         "malgrupp":  [
-                         "Familjescouting"
+                         "Familjescouter"
                      ],
         "inledning": "Märket Fröet är det första i en märkesstegring om odling. I det här märket får du lära dig vad växter behöver för att leva.",
         "kriterier": ["Så ett frö, ta hand om det som växer och visa eller berätta vad som hänt med fröet från möte till möte.","Lär dig vad växter behöver för att leva (jord, sol, vatten, luft).","Tillverka någon typ av fågelmat av frön. Vilka frön tycker fåglar om?","Provsmaka olika frön. Vilka frön tycker du om?"],
@@ -2389,9 +2389,9 @@
         "bild":  "images/marken/familjescout_bla.png",
         "kategori":  "Deltagandemärke",
         "malgrupp":  [
-                         "Familjescouting"
+                         "Familjescouter"
                      ],
-        "inledning":"Deltagandemärke Familjescouting",
+        "inledning":"Deltagandemärke Familjescouter",
         "kriterier":  [
                          "Delta i en termins aktiviteter."
                      ],
@@ -2846,7 +2846,7 @@
         "bild":  "images/marken/100_scout.png",
         "kategori":  "Scouting",
         "malgrupp":  [
-                      "Familjescouting","Spårare","Upptäckare","Äventyrare","Utmanare","Rover"
+                      "Familjescouter","Spårare","Upptäckare","Äventyrare","Utmanare","Rover"
                      ],
         "inledning":"På Scouternas fredsdag, 21 september, har scouterna här i Sverige en kampanj som kallas 100% scout. Kampanjen går ut på att visa att man är scout i skolan, på jobbet eller på andra platser.",
         "kriterier":  [
@@ -2900,7 +2900,7 @@
         "bild":  "images/marken/hyx.png",
         "kategori":  "Scouting",
         "malgrupp":  [
-                      "Familjescouting","Spårare","Upptäckare","Äventyrare","Utmanare","Rover"
+                      "Familjescouter","Spårare","Upptäckare","Äventyrare","Utmanare","Rover"
                      ],
         "inledning":"Scouttävling som genomförs varje år av Hallands scoutdistrikt. Tävlingen är öppen för alla scouter i distriktet och genomförs vanligtvis i maj.",
         "kriterier":  [
