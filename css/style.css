@@ -107,7 +107,11 @@ body {
 
 .scouts-toolbar {
     display: grid;
-    grid-template-columns: repeat(5, minmax(150px, 1fr) ) auto;
+    grid-template-columns: minmax(220px, 1.2fr) minmax(150px, 0.75fr) minmax(180px, 0.9fr) minmax(180px, 0.9fr) minmax(220px, 1.2fr);
+    grid-template-areas:
+        "badge category target active active"
+        "search year . . ."
+        "remove status status status status";
     align-items: end;
     gap: 14px;
     margin-bottom: 18px;
@@ -122,10 +126,17 @@ body {
     width: 100%;
 }
 
+.scouts-toolbar .filter-field:nth-of-type(1) { grid-area: search; }
+.scouts-toolbar .filter-field:nth-of-type(2) { grid-area: year; }
+.scouts-toolbar .filter-field:nth-of-type(3) { grid-area: target; }
+.scouts-toolbar .filter-field:nth-of-type(4) { grid-area: category; }
+.scouts-toolbar .filter-field:nth-of-type(5) { grid-area: badge; }
+
 .scouts-toolbar .multi-select-dropdown,
 .scouts-toolbar .multi-select-trigger,
 .scouts-toolbar input[type="search"] {
     width: 100%;
+    min-width: 0;
     box-sizing: border-box;
 }
 
@@ -135,10 +146,12 @@ body {
 }
 
 .scouts-toolbar .planning-sync-status {
+    grid-area: status;
     margin-bottom: 10px;
 }
 
 .scout-active-filter {
+    grid-area: active;
     display: inline-flex;
     align-items: center;
     gap: 7px;
@@ -149,6 +162,7 @@ body {
 }
 
 .scouts-toolbar .btn-danger {
+    grid-area: remove;
     min-height: 40px;
     max-width: 150px;
     line-height: 1.15;
@@ -163,11 +177,19 @@ body {
 @media (max-width: 1100px) {
     .scouts-toolbar {
         grid-template-columns: repeat(3, minmax(160px, 1fr));
+        grid-template-areas: none;
     }
 
+    .scouts-toolbar .filter-field:nth-of-type(1),
+    .scouts-toolbar .filter-field:nth-of-type(2),
+    .scouts-toolbar .filter-field:nth-of-type(3),
+    .scouts-toolbar .filter-field:nth-of-type(4),
+    .scouts-toolbar .filter-field:nth-of-type(5),
+    .scouts-toolbar .filter-field,
     .scouts-toolbar .scout-active-filter,
     .scouts-toolbar .btn-danger,
     .scouts-toolbar .planning-sync-status {
+        grid-area: auto;
         grid-column: span 1;
     }
 }

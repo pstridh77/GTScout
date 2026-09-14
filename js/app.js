@@ -218,7 +218,7 @@ const PLANNING_STORAGE_KEY = "gtscout_planering";
 const BADGE_NOTES_STORAGE_KEY = "gtscout_badge_notes";
 const CUSTOM_ACTIVITIES_STORAGE_KEY = "gtscout_custom_activities";
 const CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY = "gtscout_custom_badge_activities";
-const TARGET_GROUP_ORDER = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
+const TARGET_GROUP_ORDER = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
 const expandedBadgeStacks = new Set();
 const filters = {
     search: "",
@@ -429,8 +429,8 @@ function normalizeTargetGroup(group) {
     const rawGroup = String(group ?? "").trim();
     const normalizedGroup = rawGroup.toLowerCase();
     const targetGroupMap = {
-        "familjescouting": "Familjescouting",
-        "familjescouter": "Familjescouting",
+        "familjescouting": "Familjescouter",
+        "familjescouter": "Familjescouter",
         "spårare": "Spårare",
         "upptäckare": "Upptäckare",
         "upptackare": "Upptäckare",
@@ -512,7 +512,7 @@ function loadPlannings() {
 
 function getPlanningIconPath(level) {
     const iconMap = {
-        "Familjescouting": "./images/icons/familjescout.png",
+        "Familjescouter": "./images/icons/familjescout.png",
         "Spårare": "./images/icons/sparare.png",
         "Upptäckare": "./images/icons/upptackare.png",
         "Äventyrare": "./images/icons/aventyrare.png",
@@ -806,7 +806,7 @@ function renderMarken(marken) {
             slot.className = "target-group-slot";
             const targetGroupLabel = document.createElement("h3");
             const targetGroupClass = {
-                Familjescouting: "familjescouting",
+                Familjescouter: "familjescouting",
                 Spårare: "sparare",
                 Upptäckare: "upptackare",
                 Äventyrare: "aventyrare",
@@ -1226,7 +1226,7 @@ function openPlanningPicker(marke) {
     const status = planningPickerPopup.querySelector(".planning-picker-status");
     status.textContent = "";
     const targetGroups = [...new Set(plannings.map(planning => planning.level).filter(Boolean))];
-    const targetGroupOrder = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
+    const targetGroupOrder = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
     targetGroups.sort((a, b) => {
         const indexA = targetGroupOrder.indexOf(a);
         const indexB = targetGroupOrder.indexOf(b);
@@ -1660,7 +1660,7 @@ async function deleteCustomActivity(activity, sourcePopup = null) {
 
 function getCategoryIconPaths(marke) {
     const iconMap = {
-        "familjescouting": "./images/icons/familjescout.png",
+        "familjescouter": "./images/icons/familjescout.png",
         "spårare": "./images/icons/sparare.png",
         "upptäckare": "./images/icons/upptackare.png",
         "äventyrare": "./images/icons/aventyrare.png",

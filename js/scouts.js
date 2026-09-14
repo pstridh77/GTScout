@@ -6,10 +6,10 @@ const SCOUT_STATUS_LABELS = {
 const SCOUT_STATUS_ORDER = ["not_started", "in_progress", "completed"];
 const REPEATABLE_BADGE_IDS = new Set(["100_scout"]);
 const REPEATABLE_BADGE_TARGET = 5;
-const SCOUT_BADGE_TARGET_ORDER = ["Familjescouting", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
+const SCOUT_BADGE_TARGET_ORDER = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
 const SCOUT_BADGE_TYPE_ORDER = ["Intressemärke", "Bevismärke", "Deltagarmärke"];
 const SCOUT_TARGET_CLASS_NAMES = {
-    Familjescouting: "familjescouting",
+    Familjescouter: "familjescouting",
     Spårare: "sparare",
     Upptäckare: "upptackare",
     Äventyrare: "aventyrare",
@@ -209,7 +209,11 @@ function renderBadgeFilterDropdown(menu, button, values, allLabel, selectedValue
 }
 
 function updateBadgeFilterDropdowns() {
-    const targets = [...new Set(scoutBadges.flatMap(badge => Array.isArray(badge.malgrupp) ? badge.malgrupp : [badge.malgrupp || "Övrigt"]))].sort((a, b) => a.localeCompare(b, "sv"));
+    const targets = [...new Set(scoutBadges.flatMap(badge => Array.isArray(badge.malgrupp) ? badge.malgrupp : [badge.malgrupp || "Övrigt"]))].sort((left, right) => {
+        const leftIndex = SCOUT_BADGE_TARGET_ORDER.indexOf(left);
+        const rightIndex = SCOUT_BADGE_TARGET_ORDER.indexOf(right);
+        return (leftIndex < 0 ? SCOUT_BADGE_TARGET_ORDER.length : leftIndex) - (rightIndex < 0 ? SCOUT_BADGE_TARGET_ORDER.length : rightIndex) || left.localeCompare(right, "sv");
+    });
     const categories = [...new Set(scoutBadges.map(badge => badge.kategori || "Övrigt"))].sort((a, b) => a.localeCompare(b, "sv"));
     const selectedTargets = [...scoutTargetDropdownMenu.querySelectorAll("input:checked")].map(input => input.value).filter(value => value !== "Alla");
     const selectedCategories = [...scoutCategoryDropdownMenu.querySelectorAll("input:checked")].map(input => input.value).filter(value => value !== "Alla");
