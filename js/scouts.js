@@ -31,6 +31,7 @@ const scoutCategoryDropdownBtn = document.getElementById("scoutCategoryDropdownB
 const scoutCategoryDropdownMenu = document.getElementById("scoutCategoryDropdownMenu");
 const scoutTableHead = document.getElementById("scoutsTableHead");
 const scoutTableBody = document.getElementById("scoutsTableBody");
+const scoutStickyHeader = document.getElementById("scoutStickyHeader");
 const scoutEmpty = document.getElementById("scoutsEmpty");
 const scoutModal = document.getElementById("scoutModal");
 const scoutModalStatus = document.getElementById("scoutModalStatus");
@@ -48,6 +49,42 @@ let pendingScoutImport = [];
 function updateScoutTableStickyOffset() {
     const siteHeader = document.querySelector(".site-header");
     if (siteHeader) document.documentElement.style.setProperty("--scout-table-sticky-top", `${siteHeader.offsetHeight}px`);
+}
+
+function syncScoutStickyHeader() {
+    const table = document.querySelector(".scouts-table-wrap .scouts-table");
+    const tableWrap = document.querySelector(".scouts-table-wrap");
+    const siteHeader = document.querySelector(".site-header");
+    const clonedTable = scoutStickyHeader?.querySelector("table");
+    if (!table || !tableWrap || !siteHeader || !clonedTable) return;
+
+    const tableRect = table.getBoundingClientRect();
+    const tableWrapRect = tableWrap.getBoundingClientRect();
+    const stickyTop = siteHeader.getBoundingClientRect().bottom + 2;
+    const headerHeight = table.tHead?.getBoundingClientRect().height || 0;
+    const shouldShow = tableRect.top <= stickyTop && tableRect.bottom > stickyTop + headerHeight;
+
+    scoutStickyHeader.classList.toggle("hidden", !shouldShow);
+    if (!shouldShow) return;
+
+    scoutStickyHeader.style.top = `${stickyTop}px`;
+    scoutStickyHeader.style.left = `${tableWrapRect.left}px`;
+    scoutStickyHeader.style.width = `${tableWrap.clientWidth}px`;
+    scoutStickyHeader.style.height = `${headerHeight}px`;
+    clonedTable.style.width = `${table.offsetWidth}px`;
+    clonedTable.style.transform = `translateX(${-tableWrap.scrollLeft}px)`;
+    clonedTable.querySelectorAll("tr > :first-child").forEach(cell => {
+        cell.style.transform = `translateX(${tableWrap.scrollLeft}px)`;
+    });
+}
+
+function updateScoutStickyHeader() {
+    const table = document.querySelector(".scouts-table-wrap .scouts-table");
+    if (!scoutStickyHeader || !table) return;
+    const clonedTable = table.cloneNode(true);
+    clonedTable.querySelector("tbody")?.remove();
+    scoutStickyHeader.replaceChildren(clonedTable);
+    syncScoutStickyHeader();
 }
 
 function getScoutBadgeSortTarget(badge) {
@@ -178,9 +215,10 @@ function renderScoutHeader() {
         if (previous?.name === target) previous.count += 1;
         else targetGroups.push({ name: target, count: 1 });
     });
-    const targetHeader = `<tr class="scout-target-row"><th colspan="2"></th>${targetGroups.map(group => `<th class="scout-target-group--${SCOUT_TARGET_CLASS_NAMES[group.name] || "default"}" colspan="${group.count}">${escapeScoutHtml(group.name)}</th>`).join("")}<th></th></tr>`;
-    const badgeHeader = `<tr><th>Scout</th><th>Födelseår</th>${badges.map(badge => `<th class="scout-badge-heading" title="${escapeScoutHtml(badge.namn)}" aria-label="${escapeScoutHtml(badge.namn)}"><img src="${escapeScoutHtml(badge.bild)}" alt=""></th>`).join("")}<th aria-label="Åtgärder"></th></tr>`;
+    const targetHeader = `<tr class="scout-target-row"><th></th>${targetGroups.map(group => `<th class="scout-target-group--${SCOUT_TARGET_CLASS_NAMES[group.name] || "default"}" colspan="${group.count}">${escapeScoutHtml(group.name)}</th>`).join("")}<th></th></tr>`;
+    const badgeHeader = `<tr><th>Scout</th>${badges.map(badge => `<th class="scout-badge-heading" title="${escapeScoutHtml(badge.namn)}" aria-label="${escapeScoutHtml(badge.namn)}"><img src="${escapeScoutHtml(badge.bild)}" alt=""></th>`).join("")}<th aria-label="Åtgärder"></th></tr>`;
     scoutTableHead.innerHTML = targetHeader + badgeHeader;
+    updateScoutStickyHeader();
 }
 
 function badgeHasStatus(badge) {
@@ -268,8 +306,7 @@ function renderScouts() {
     scoutEmpty.classList.toggle("hidden", scoutData.length > 0);
     const visibleBadges = getVisibleScoutBadges();
     scoutTableBody.innerHTML = visible.map(scout => `<tr>
-        <th scope="row"><span class="scout-name">${escapeScoutHtml(scout.namn)}</span></th>
-        <td>${escapeScoutHtml(scout.fodelsear)}</td>
+        <th scope="row"><span class="scout-name">${escapeScoutHtml(scout.namn)} <span class="scout-birth-year">${escapeScoutHtml(scout.fodelsear)}</span></span></th>
         ${visibleBadges.map(badge => {
             if (REPEATABLE_BADGE_IDS.has(badge.id)) {
                 const count = Number(scout.counts?.[badge.id]) || 0;
@@ -421,6 +458,11 @@ document.addEventListener("click", event => {
 document.getElementById("openScoutLoginBtn").addEventListener("click", () => window.GTScoutAuth?.openLogin?.());
 window.GTScoutAuth?.onChange(updateScoutAccess);
 window.GTScoutBadges?.init({ onChange: loadScoutBadges });
-window.addEventListener("resize", updateScoutTableStickyOffset);
+window.addEventListener("scroll", syncScoutStickyHeader, { passive: true });
+window.addEventListener("resize", () => {
+    updateScoutTableStickyOffset();
+    updateScoutStickyHeader();
+});
+document.querySelector(".scouts-table-wrap")?.addEventListener("scroll", syncScoutStickyHeader, { passive: true });
 updateScoutTableStickyOffset();
 loadScoutBadges();
