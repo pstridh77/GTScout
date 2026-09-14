@@ -45,6 +45,11 @@ let scoutBadges = [];
 let scoutData = [];
 let pendingScoutImport = [];
 
+function updateScoutTableStickyOffset() {
+    const siteHeader = document.querySelector(".site-header");
+    if (siteHeader) document.documentElement.style.setProperty("--scout-table-sticky-top", `${siteHeader.offsetHeight}px`);
+}
+
 function getScoutBadgeSortTarget(badge) {
     const targets = Array.isArray(badge.malgrupp) ? badge.malgrupp : [badge.malgrupp || "Övrigt"];
     return targets
@@ -174,7 +179,7 @@ function renderScoutHeader() {
         else targetGroups.push({ name: target, count: 1 });
     });
     const targetHeader = `<tr class="scout-target-row"><th colspan="2"></th>${targetGroups.map(group => `<th class="scout-target-group--${SCOUT_TARGET_CLASS_NAMES[group.name] || "default"}" colspan="${group.count}">${escapeScoutHtml(group.name)}</th>`).join("")}<th></th></tr>`;
-    const badgeHeader = `<tr><th>Scout</th><th>Födelseår</th>${badges.map(badge => `<th class="scout-badge-heading" title="${escapeScoutHtml(badge.namn)}"><img src="${escapeScoutHtml(badge.bild)}" alt=""><span>${escapeScoutHtml(badge.namn)}</span></th>`).join("")}<th aria-label="Åtgärder"></th></tr>`;
+    const badgeHeader = `<tr><th>Scout</th><th>Födelseår</th>${badges.map(badge => `<th class="scout-badge-heading" title="${escapeScoutHtml(badge.namn)}" aria-label="${escapeScoutHtml(badge.namn)}"><img src="${escapeScoutHtml(badge.bild)}" alt=""></th>`).join("")}<th aria-label="Åtgärder"></th></tr>`;
     scoutTableHead.innerHTML = targetHeader + badgeHeader;
 }
 
@@ -416,4 +421,6 @@ document.addEventListener("click", event => {
 document.getElementById("openScoutLoginBtn").addEventListener("click", () => window.GTScoutAuth?.openLogin?.());
 window.GTScoutAuth?.onChange(updateScoutAccess);
 window.GTScoutBadges?.init({ onChange: loadScoutBadges });
+window.addEventListener("resize", updateScoutTableStickyOffset);
+updateScoutTableStickyOffset();
 loadScoutBadges();
