@@ -455,9 +455,8 @@ function getVisibleScouts() {
         const matchesActivity = activityFilter === "all" || (activityFilter === "inactive" ? scout.aktiv === false : scout.aktiv !== false);
         return matchesName && matchesYear && matchesActivity;
     }).sort((left, right) => {
-        const leftBirthDate = left.fodelsedatum || (left.fodelsear ? `${left.fodelsear}-01-01` : "0000-00-00");
-        const rightBirthDate = right.fodelsedatum || (right.fodelsear ? `${right.fodelsear}-01-01` : "0000-00-00");
-        return rightBirthDate.localeCompare(leftBirthDate) || left.namn.localeCompare(right.namn, "sv");
+        const yearDifference = Number(right.fodelsear) - Number(left.fodelsear);
+        return yearDifference || left.namn.localeCompare(right.namn, "sv");
     });
 }
 
