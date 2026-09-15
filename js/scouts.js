@@ -237,7 +237,7 @@ function canDeleteScouts() {
 function formatScoutDate(value) {
     if (!value) return "Okänt datum";
     const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString("sv-SE", { dateStyle: "short", timeStyle: "short" });
+    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString("sv-SE", { dateStyle: "short" });
 }
 
 function getScoutUpdaterName(meta) {
@@ -282,15 +282,23 @@ function openScoutDetail(scoutId) {
         + renderBadgeSection("Klara märken", completedBadges)
         || "<p class=\"scout-detail-empty\">Inga påbörjade eller klara märken registrerade.</p>";
     scoutDetailActions.innerHTML = "";
+    if (canDeleteScouts()) {
+        scoutDetailActions.innerHTML += '<button class="btn-danger scout-detail-delete-btn" type="button" id="deleteScoutBtn" title="Ta bort scouten permanent, inklusive all märkesstatus.">Ta bort</button>';
+        scoutDetailActions.querySelector("#deleteScoutBtn").addEventListener("click", () => {
+            if (!confirm(`Ta bort ${scout.namn}? Märkesstatusen tas också bort.`)) return;
+            window.GTScoutScouts.remove(scout.id);
+            scoutDetailModal.classList.add("hidden");
+        });
+    }
     if (scout.aktiv !== false && canManageScouts()) {
-        scoutDetailActions.innerHTML = '<button class="btn-danger" type="button" id="deactivateScoutBtn" title="Dölj scouten från den vanliga listan. Endast administratör kan återaktivera scouten.">Arkivera scout</button>';
+        scoutDetailActions.innerHTML += '<button class="btn-danger" type="button" id="deactivateScoutBtn" title="Dölj scouten från den vanliga listan. Endast administratör kan återaktivera scouten.">Arkivera scout</button>';
         scoutDetailActions.querySelector("#deactivateScoutBtn").addEventListener("click", () => {
             if (!confirm(`Inaktivera ${scout.namn}? Scouten döljs från listan.`)) return;
             window.GTScoutScouts.setActive(scout.id, false);
             scoutDetailModal.classList.add("hidden");
         });
     } else if (scout.aktiv === false && canDeleteScouts()) {
-        scoutDetailActions.innerHTML = '<button class="btn-primary" type="button" id="activateScoutBtn">Aktivera scout</button>';
+        scoutDetailActions.innerHTML += '<button class="btn-primary" type="button" id="activateScoutBtn">Aktivera scout</button>';
         scoutDetailActions.querySelector("#activateScoutBtn").addEventListener("click", () => {
             window.GTScoutScouts.setActive(scout.id, true);
             scoutDetailModal.classList.add("hidden");
@@ -319,8 +327,8 @@ function renderScoutHeader() {
         if (previous?.name === target) previous.count += 1;
         else targetGroups.push({ name: target, count: 1 });
     });
-    const targetHeader = `<tr class="scout-target-row"><th class="scout-year-collapse-cell"><button class="scout-year-collapse-toggle" type="button" aria-expanded="${String(!allYearsCollapsed)}"${visibleYears.length ? "" : " disabled"}>${allYearsCollapsed ? "Visa" : "Fäll ihop"}</button></th>${targetGroups.map(group => `<th class="scout-target-group--${SCOUT_TARGET_CLASS_NAMES[group.name] || "default"}" colspan="${group.count}">${escapeScoutHtml(group.name)}</th>`).join("")}<th></th></tr>`;
-    const badgeHeader = `<tr><th class="scout-name-heading">Namn</th>${badges.map(badge => `<th class="scout-badge-heading"><button class="scout-badge-bulk-action" type="button" data-badge-id="${escapeScoutHtml(badge.id)}" title="Ändra status för alla filtrerade scouter: ${escapeScoutHtml(badge.namn)}" aria-label="Ändra status för alla filtrerade scouter: ${escapeScoutHtml(badge.namn)}"><img src="${escapeScoutHtml(badge.bild)}" alt=""></button></th>`).join("")}<th aria-label="Åtgärder"></th></tr>`;
+    const targetHeader = `<tr class="scout-target-row"><th class="scout-year-collapse-cell"><button class="scout-year-collapse-toggle" type="button" aria-expanded="${String(!allYearsCollapsed)}"${visibleYears.length ? "" : " disabled"}>${allYearsCollapsed ? "Visa" : "Fäll ihop"}</button></th>${targetGroups.map(group => `<th class="scout-target-group--${SCOUT_TARGET_CLASS_NAMES[group.name] || "default"}" colspan="${group.count}">${escapeScoutHtml(group.name)}</th>`).join("")}</tr>`;
+    const badgeHeader = `<tr><th class="scout-name-heading">Namn</th>${badges.map(badge => `<th class="scout-badge-heading"><button class="scout-badge-bulk-action" type="button" data-badge-id="${escapeScoutHtml(badge.id)}" title="Ändra status för alla filtrerade scouter: ${escapeScoutHtml(badge.namn)}" aria-label="Ändra status för alla filtrerade scouter: ${escapeScoutHtml(badge.namn)}"><img src="${escapeScoutHtml(badge.bild)}" alt=""></button></th>`).join("")}</tr>`;
     scoutTableHead.innerHTML = targetHeader + badgeHeader;
     updateScoutStickyHeader();
 }
@@ -468,11 +476,10 @@ function renderScouts() {
             const status = scout.statuses?.[badge.id] || "not_started";
             return `<td><button class="scout-status scout-status--${status}" type="button" data-scout-id="${scout.id}" data-badge-id="${escapeScoutHtml(badge.id)}" aria-label="${escapeScoutHtml(scout.namn)} – ${escapeScoutHtml(badge.namn)}: ${SCOUT_STATUS_LABELS[status]}" title="${SCOUT_STATUS_LABELS[status]}">${status === "completed" ? "✓" : status === "in_progress" ? "•" : "–"}</button></td>`;
         }).join("")}
-        <td>${canDeleteScouts() ? `<button class="scout-remove-btn" type="button" data-scout-id="${scout.id}" aria-label="Ta bort ${escapeScoutHtml(scout.namn)}" title="Ta bort scout">&times;</button>` : ""}</td>
     </tr>`;
     scoutTableBody.innerHTML = [...scoutsByYear].map(([year, scouts]) => {
         const isCollapsed = collapsedScoutYears.has(year);
-        const yearRow = `<tr class="scout-year-group-row"><th><button class="scout-year-toggle" type="button" data-scout-year="${escapeScoutHtml(year)}" aria-expanded="${String(!isCollapsed)}"><span class="scout-year-toggle-icon" aria-hidden="true">${isCollapsed ? "▸" : "▾"}</span><span>${escapeScoutHtml(year)}</span><span class="scout-year-count">${scouts.length} scouter</span></button></th><td colspan="${visibleBadges.length + 1}"></td></tr>`;
+        const yearRow = `<tr class="scout-year-group-row"><th><button class="scout-year-toggle" type="button" data-scout-year="${escapeScoutHtml(year)}" aria-expanded="${String(!isCollapsed)}"><span class="scout-year-toggle-icon" aria-hidden="true">${isCollapsed ? "▸" : "▾"}</span><span>${escapeScoutHtml(year)}</span><span class="scout-year-count">${scouts.length} scouter</span></button></th><td colspan="${visibleBadges.length}"></td></tr>`;
         return yearRow + (isCollapsed ? "" : scouts.map(renderScoutRow).join(""));
     }).join("");
     document.querySelectorAll(".scout-name-button").forEach(button => button.addEventListener("click", () => openScoutDetail(button.dataset.scoutId)));
@@ -486,10 +493,6 @@ function renderScouts() {
         }
         const current = scout.statuses?.[button.dataset.badgeId] || "not_started";
         window.GTScoutScouts.setStatus(scout.id, button.dataset.badgeId, getNextStatus(current));
-    }));
-    document.querySelectorAll(".scout-remove-btn").forEach(button => button.addEventListener("click", () => {
-        const scout = scoutData.find(item => item.id === button.dataset.scoutId);
-        if (scout && confirm(`Ta bort ${scout.namn}? Märkesstatusen tas också bort.`)) window.GTScoutScouts.remove(scout.id);
     }));
 }
 

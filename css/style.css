@@ -765,26 +765,9 @@ body {
     color: #694b00;
 }
 
-.scout-status:focus-visible,
-.scout-remove-btn:focus-visible {
+.scout-status:focus-visible {
     outline: 3px solid #f2b233;
     outline-offset: 2px;
-}
-
-.scout-remove-btn {
-    width: 24px;
-    height: 24px;
-    padding: 0;
-    border: 0;
-    border-radius: 50%;
-    background: transparent;
-    color: #b42318;
-    font-size: 1.1rem;
-    cursor: pointer;
-}
-
-.scout-remove-btn:hover {
-    background: #fee2e2;
 }
 
 .scouts-empty {
@@ -4516,6 +4499,10 @@ select:focus {
 }
 
 .modal-actions { display: flex; justify-content: flex-end; }
+
+.scout-detail-delete-btn {
+    margin-right: auto;
+}
 .modal-actions--split { justify-content: space-between; }
 .group-modal-actions { gap: 12px; }
 .group-modal-actions #removeGroupBtn { margin-right: auto; }
