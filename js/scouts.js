@@ -166,35 +166,31 @@ function parseCsv(text) {
     if (rows.length < 2) throw new Error("CSV-filen saknar data.");
     const headers = rows.shift().map(normalizeCsvHeader);
     const indexOf = name => headers.indexOf(name);
-    const memberIndex = indexOf("medlemsnummer");
     const firstNameIndex = indexOf("fornamn");
     const lastNameIndex = indexOf("efternamn");
     const birthDateIndex = indexOf("fodelsedatum");
-    if ([memberIndex, firstNameIndex, lastNameIndex, birthDateIndex].some(index => index < 0)) {
-        throw new Error("CSV-filen måste ha kolumnerna Medlemsnummer, Förnamn, Efternamn och Födelsedatum.");
+    if ([firstNameIndex, lastNameIndex, birthDateIndex].some(index => index < 0)) {
+        throw new Error("CSV-filen måste ha kolumnerna Förnamn, Efternamn och Födelsedatum.");
     }
     return rows.map(values => {
-        const birthDate = parseBirthDate(values[birthDateIndex]);
         return {
-            medlemsnummer: values[memberIndex],
             namn: `${values[firstNameIndex]} ${values[lastNameIndex]}`.trim(),
-            fodelsedatum: birthDate.iso,
-            fodelsear: birthDate.year,
+            fodelsear: parseBirthYear(values[birthDateIndex]),
             aktiv: true
         };
-    }).filter(row => row.medlemsnummer && row.namn && row.fodelsear);
+    }).filter(row => row.namn && row.fodelsear);
 }
 
-function parseBirthDate(value) {
+function parseBirthYear(value) {
     const raw = String(value || "").trim();
     let match = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/) || raw.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
-    if (!match) return { iso: "", year: 0 };
+    if (!match) return 0;
     const year = match[1].length === 4 ? Number(match[1]) : Number(match[3]);
     const month = match[1].length === 4 ? Number(match[2]) : Number(match[2]);
     const day = match[1].length === 4 ? Number(match[3]) : Number(match[1]);
     const date = new Date(Date.UTC(year, month - 1, day));
-    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return { iso: "", year: 0 };
-    return { iso: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`, year };
+    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return 0;
+    return year;
 }
 
 function normalizeScoutName(value) {
@@ -203,8 +199,7 @@ function normalizeScoutName(value) {
 
 function findScoutImportMatches(rows) {
     return rows.map(row => {
-        const candidates = scoutData.filter(scout => !scout.medlemsnummer
-            && Number(scout.fodelsear) === Number(row.fodelsear)
+        const candidates = scoutData.filter(scout => Number(scout.fodelsear) === Number(row.fodelsear)
             && normalizeScoutName(scout.namn) === normalizeScoutName(row.namn));
         return { row, scout: candidates.length === 1 ? candidates[0] : null };
     }).filter(match => match.scout);
@@ -212,8 +207,8 @@ function findScoutImportMatches(rows) {
 
 function showScoutImportPreview(rows) {
     pendingScoutImport = rows;
-    scoutImportPreview.innerHTML = `<table><thead><tr><th>Medlemsnummer</th><th>Namn</th><th>Födelsedatum</th></tr></thead><tbody>${rows.slice(0, 50).map(row => `<tr><td>${escapeScoutHtml(row.medlemsnummer)}</td><td>${escapeScoutHtml(row.namn)}</td><td>${escapeScoutHtml(row.fodelsedatum)}</td></tr>`).join("")}</tbody></table>`;
-    scoutImportStatus.textContent = `${rows.length} scouter hittades${rows.length > 50 ? " (visar de första 50)" : ""}. Befintliga matchas på medlemsnummer; manuella scouter kan matchas på namn och födelseår vid importen.`;
+    scoutImportPreview.innerHTML = `<table><thead><tr><th>Namn</th><th>Födelseår</th></tr></thead><tbody>${rows.slice(0, 50).map(row => `<tr><td>${escapeScoutHtml(row.namn)}</td><td>${escapeScoutHtml(row.fodelsear)}</td></tr>`).join("")}</tbody></table>`;
+    scoutImportStatus.textContent = `${rows.length} scouter hittades${rows.length > 50 ? " (visar de första 50)" : ""}. Befintliga matchas på namn och födelseår.`;
     confirmScoutImportBtn.disabled = rows.length === 0;
 }
 
@@ -223,7 +218,7 @@ function canManageScouts() {
 }
 
 function canViewScouts() {
-    return Boolean(window.GTScoutAuth?.isSignedIn?.() && window.GTScoutAuth?.isLeader?.());
+    return Boolean(window.GTScoutAuth?.isSignedIn?.() && window.GTScoutAuth?.canReadScouts?.());
 }
 
 function updateScoutAccess() {
@@ -243,12 +238,6 @@ function formatScoutDate(value) {
     if (!value) return "Okänt datum";
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString("sv-SE", { dateStyle: "short", timeStyle: "short" });
-}
-
-function formatScoutBirthDate(value) {
-    const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (!match) return "Inte angivet";
-    return `${match[1]}-${match[2]}-${match[3]}`;
 }
 
 function getScoutUpdaterName(meta) {
@@ -277,17 +266,11 @@ function openScoutDetail(scoutId) {
         return status === "in_progress" || status === "completed" || (REPEATABLE_BADGE_IDS.has(badge.id) && (Number(scout.counts?.[badge.id]) || 0) > 0);
     });
     scoutDetailTitle.textContent = scout.namn;
-    const scoutnetId = String(scout.medlemsnummer || "").trim();
-    const scoutnetValue = scoutnetId
-        ? `<a href="https://www.scoutnet.se/organisation/user/${encodeURIComponent(scoutnetId)}" target="_blank" rel="noreferrer">${escapeScoutHtml(scoutnetId)}</a>`
-        : "Inte angivet";
     scoutDetailInfo.innerHTML = [
-        ["Scoutnet-id", scoutnetValue],
-        ["Födelsedatum", scout.fodelsedatum ? formatScoutBirthDate(scout.fodelsedatum) : `År ${scout.fodelsear}`],
+        ["Födelseår", scout.fodelsear || "Inte angivet"],
         ["Kårtillhörighet", scout.karName || window.GTScoutAuth?.getState?.()?.karName || "Inte angiven"],
-        ["Status", scout.aktiv === false ? "Arkiverad" : "Aktiv"],
-        ["Skapad av", scout.createdByName || scout.created_by || "Inte angivet"]
-    ].map(([label, value]) => `<div class="scout-detail-info-item"><dt>${escapeScoutHtml(label)}</dt><dd>${label === "Scoutnet-id" ? value : escapeScoutHtml(value)}</dd></div>`).join("");
+        ["Status", scout.aktiv === false ? "Arkiverad" : "Aktiv"]
+    ].map(([label, value]) => `<div class="scout-detail-info-item"><dt>${escapeScoutHtml(label)}</dt><dd>${escapeScoutHtml(value)}</dd></div>`).join("");
     const renderBadgeSection = (title, badges) => badges.length ? `<section class="scout-detail-badge-section"><h3>${title}</h3><div class="scout-detail-badge-list">${badges.map(badge => {
             const meta = scout.statusMeta?.[badge.id] || {};
                 const updaterName = getScoutUpdaterName(meta);
@@ -577,8 +560,8 @@ confirmScoutImportBtn.addEventListener("click", () => {
     const matches = findScoutImportMatches(pendingScoutImport);
     let rowsToImport = pendingScoutImport;
     if (matches.length) {
-        const matchNames = matches.map(({ row, scout }) => `${scout.namn} (${row.medlemsnummer})`).join(", ");
-        const shouldUpdate = confirm(`CSV-filen matchar redan skapade scouter på namn och födelseår:\n\n${matchNames}\n\nVill du uppdatera dessa scouter med medlemsnummer och födelsedatum från CSV-filen?\n\nVälj Avbryt om de matchade raderna ska lämnas orörda.`);
+        const matchNames = matches.map(({ scout }) => scout.namn).join(", ");
+        const shouldUpdate = confirm(`CSV-filen matchar redan skapade scouter på namn och födelseår:\n\n${matchNames}\n\nVill du uppdatera dessa scouter med födelseår från CSV-filen?\n\nVälj Avbryt om de matchade raderna ska lämnas orörda.`);
         if (shouldUpdate) {
             const matchedRows = new Map(matches.map(({ row, scout }) => [row, { ...row, matchScoutId: scout.id }]));
             rowsToImport = pendingScoutImport.map(row => matchedRows.get(row) || row);

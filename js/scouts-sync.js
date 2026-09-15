@@ -11,13 +11,16 @@
     const auth = () => window.GTScoutAuth;
     const client = () => auth()?.getClient() || null;
     const karId = () => auth()?.getState?.().karId || null;
-    const canRead = () => Boolean(client() && auth()?.isSignedIn?.() && karId() && auth()?.isLeader?.());
-    const canWrite = () => canRead() && auth()?.isLeader?.();
+    const canRead = () => Boolean(client() && auth()?.isSignedIn?.() && karId() && auth()?.canReadScouts?.());
+    const canWrite = () => canRead() && auth()?.canWriteScouts?.();
 
     function readLocal() {
         try {
             const value = JSON.parse(localStorage.getItem(STORAGE_KEY));
-            return Array.isArray(value) ? value : [];
+            if (!Array.isArray(value)) return [];
+            const sanitized = value.map(({ fodelsedatum, medlemsnummer, created_by, createdByName, ...scout }) => scout);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
+            return sanitized;
         } catch {
             return [];
         }
@@ -33,7 +36,7 @@
         try {
             const { data: scoutRows, error: scoutError } = await client()
                 .from("scouts")
-                .select("id, kar_id, medlemsnummer, namn, fodelsedatum, fodelsear, aktiv, created_by, created_at")
+                .select("id, kar_id, namn, fodelsear, aktiv, arkiverad_at, created_at")
                 .eq("kar_id", karId())
                 .order("namn");
             if (scoutError) throw scoutError;
@@ -65,12 +68,6 @@
                 const profileNames = new Map((profiles || []).map(profile => [profile.id, profile.full_name || profile.email || profile.id]));
                 scouts.forEach(scout => Object.values(scout.statusMeta || {}).forEach(meta => { meta.updatedByName = profileNames.get(meta.updatedBy) || ""; }));
             }
-            const creatorIds = [...new Set(scouts.map(scout => scout.created_by).filter(Boolean))];
-            if (creatorIds.length) {
-                const { data: creators } = await client().from("profiles").select("id, full_name, email").in("id", creatorIds);
-                const creatorNames = new Map((creators || []).map(profile => [profile.id, profile.full_name || profile.email || profile.id]));
-                scouts.forEach(scout => { scout.createdByName = creatorNames.get(scout.created_by) || ""; });
-            }
             const { data: kar } = await client().from("kar").select("id, namn").eq("id", karId()).maybeSingle();
             scouts.forEach(scout => { scout.karName = kar?.namn || ""; });
             writeLocal();
@@ -87,12 +84,10 @@
         const rows = scouts.map(scout => ({
             id: scout.id,
             kar_id: karId(),
-            medlemsnummer: scout.medlemsnummer || null,
             namn: scout.namn,
-            fodelsedatum: scout.fodelsedatum || null,
             fodelsear: scout.fodelsear,
             aktiv: scout.aktiv !== false,
-            created_by: auth().getUser()?.id || null
+            arkiverad_at: scout.aktiv === false ? scout.arkiverad_at || new Date().toISOString() : null,
         }));
         const { error } = await client().from("scouts").upsert(rows, { onConflict: "id" });
         if (error) console.error("Kunde inte spara scouter", error);
@@ -162,6 +157,7 @@
             onChange?.();
         },
         getAll: () => scouts,
+        canRead,
         canWrite,
         add(scout) {
             scouts.push({ ...scout, statuses: {}, counts: {} });
@@ -171,15 +167,12 @@
             importedScouts.forEach(importedScout => {
                 const existing = importedScout.matchScoutId
                     ? scouts.find(scout => scout.id === importedScout.matchScoutId)
-                    : importedScout.medlemsnummer
-                    ? scouts.find(scout => scout.medlemsnummer === importedScout.medlemsnummer)
                     : null;
                 if (existing) {
                     existing.namn = importedScout.namn;
-                    existing.medlemsnummer = importedScout.medlemsnummer;
-                    existing.fodelsedatum = importedScout.fodelsedatum;
                     existing.fodelsear = importedScout.fodelsear;
                     existing.aktiv = true;
+                    existing.arkiverad_at = null;
                 } else {
                     scouts.push({ ...importedScout, id: crypto.randomUUID(), statuses: {}, counts: {} });
                 }
@@ -255,6 +248,7 @@
             if (active && !auth()?.isAdmin?.()) return false;
             if (!active && !canWrite()) return false;
             scout.aktiv = Boolean(active);
+            scout.arkiverad_at = active ? null : new Date().toISOString();
             notify();
             return true;
         }

@@ -970,7 +970,56 @@ body {
 }
 
 .admin-row--user {
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(110px, 1fr) minmax(110px, 1fr) auto auto auto;
+    grid-template-areas:
+        "name name name name delete"
+        "role kar permissions permissions save";
+    padding: 10px;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+}
+
+.admin-row--user > :nth-child(1) {
+    grid-area: name;
+}
+
+.admin-row--user > :nth-child(2) {
+    grid-area: role;
+}
+
+.admin-row--user > :nth-child(3) {
+    grid-area: kar;
+}
+
+.admin-row--user > :nth-child(4) {
+    grid-area: permissions;
+}
+
+.admin-row--user > :nth-child(5) {
+    grid-area: save;
+}
+
+.admin-row--user > :nth-child(6) {
+    grid-area: delete;
+}
+
+.admin-permissions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.admin-permission {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    color: #003660;
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+
+.admin-permission input {
+    margin: 0;
 }
 
 .admin-row input,

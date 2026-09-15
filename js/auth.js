@@ -77,7 +77,7 @@
 
         const { data, error } = await client
             .from("profiles")
-            .select("id, email, full_name, role, kar_id")
+            .select("id, email, full_name, role, scout_read, scout_write, kar_id")
             .eq("id", session.user.id)
             .maybeSingle();
 
@@ -346,6 +346,13 @@
         const status = document.getElementById("authStatus");
         const button = document.getElementById("authActionBtn");
         const environments = document.querySelectorAll(".database-environment");
+        const canAccessScouts = Boolean(session?.user && (
+            getRole() === ROLES.ADMIN
+            || (getRole() === ROLES.LEADER && (profile?.scout_read || profile?.scout_write))
+        ));
+        document.querySelectorAll("[data-scout-navigation]").forEach(link => {
+            link.classList.toggle("hidden", !canAccessScouts);
+        });
         if (!status || !button) return;
 
         const current = state();
@@ -435,6 +442,8 @@
         isSignedIn: () => Boolean(session?.user),
         isLeader: () => [ROLES.LEADER, ROLES.ADMIN].includes(getRole()),
         isAdmin: () => getRole() === ROLES.ADMIN,
+        canReadScouts: () => getRole() === ROLES.ADMIN || (getRole() === ROLES.LEADER && Boolean(profile?.scout_read || profile?.scout_write)),
+        canWriteScouts: () => getRole() === ROLES.ADMIN || (getRole() === ROLES.LEADER && Boolean(profile?.scout_write)),
         signIn,
         signUp,
         signOut,
