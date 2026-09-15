@@ -1012,14 +1012,18 @@ body {
 .admin-permission {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 6px;
     color: #003660;
-    font-size: 0.78rem;
+    font-size: inherit;
+    font-weight: inherit;
     white-space: nowrap;
 }
 
 .admin-permission input {
+    width: 18px;
+    height: 18px;
     margin: 0;
+    accent-color: #003660;
 }
 
 .admin-row input,
@@ -1077,9 +1081,19 @@ body {
 
 @media (max-width: 600px) {
     .admin-row,
-    .admin-row--user,
     .admin-add-row {
         grid-template-columns: 1fr;
+    }
+
+    .admin-row--user {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "name"
+            "role"
+            "kar"
+            "permissions"
+            "save"
+            "delete";
     }
 }
 

@@ -147,8 +147,9 @@
         const role = row.querySelector("[data-field='role']").value;
         const karValue = row.querySelector("[data-field='kar']").value;
         const canHaveScoutPermissions = role !== "gast";
-        const scoutWrite = canHaveScoutPermissions && row.querySelector("[data-field='scout-write']").checked;
-        const scoutRead = canHaveScoutPermissions && (row.querySelector("[data-field='scout-read']").checked || scoutWrite);
+        const scoutAccess = canHaveScoutPermissions && row.querySelector("[data-field='scout-access']").checked;
+        const scoutRead = scoutAccess;
+        const scoutWrite = scoutAccess;
 
         if (id === auth().getUser()?.id && role !== "admin") {
             setMessage("Du kan inte ta bort din egen adminroll.", true);
@@ -272,8 +273,7 @@
                     `).join("")}
                 </select>
                 <span class="admin-permissions" aria-label="Behörighet till scoutregister">
-                    <label class="admin-permission" title="Läs scoutregister"><input type="checkbox" data-field="scout-read" ${profile.scout_read || profile.scout_write || profile.role === "admin" ? "checked" : ""} ${profile.role === "gast" ? "disabled" : ""}> Läs</label>
-                    <label class="admin-permission" title="Skriv scoutregister"><input type="checkbox" data-field="scout-write" ${profile.scout_write || profile.role === "admin" ? "checked" : ""} ${profile.role === "gast" ? "disabled" : ""}> Skriv</label>
+                    <label class="admin-permission"><input type="checkbox" data-field="scout-access" title="Ger läs- och skrivåtkomst till scoutregistret" ${profile.scout_read || profile.scout_write || profile.role === "admin" ? "checked" : ""} ${profile.role === "gast" ? "disabled" : ""}> Scouter</label>
                 </span>
                 <button class="btn-secondary" type="button" data-action="save-profile" data-id="${escapeHtml(profile.id)}">Spara</button>
                 ${viewerIsSystemAdmin || profile.kar_id === ownKarId
@@ -301,18 +301,12 @@
     function onUserListChange(event) {
         const row = event.target.closest("[data-profile-row]");
         if (!row) return;
-        const scoutRead = row.querySelector("[data-field='scout-read']");
-        const scoutWrite = row.querySelector("[data-field='scout-write']");
+        const scoutAccess = row.querySelector("[data-field='scout-access']");
         if (event.target.dataset.field === "role") {
             const isGuest = event.target.value === "gast";
-            scoutRead.disabled = isGuest;
-            scoutWrite.disabled = isGuest;
-            if (isGuest) {
-                scoutRead.checked = false;
-                scoutWrite.checked = false;
-            }
+            scoutAccess.disabled = isGuest;
+            if (isGuest) scoutAccess.checked = false;
         }
-        if (event.target.dataset.field === "scout-write" && event.target.checked) scoutRead.checked = true;
     }
 
     async function refresh(message) {
