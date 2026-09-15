@@ -3285,6 +3285,8 @@ select:focus {
 }
 
 .site-menu-item {
+    display: block;
+    width: 100%;
     padding: 9px 12px;
     border-radius: 8px;
     color: #003660;
@@ -3386,6 +3388,8 @@ select:focus {
 }
 
 .planning-menu-item {
+    display: block;
+    width: 100%;
     border: 0;
     border-radius: 8px;
     padding: 9px 12px;
