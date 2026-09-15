@@ -174,6 +174,28 @@ as $$
     select public.current_user_role() = 'admin' and public.current_user_kar_id() is null;
 $$;
 
+-- Används i profiles_update_self för att jämföra oförändrade värden utan att
+-- fråga profiles-tabellen direkt (annars uppstår rekursiv RLS-utvärdering).
+create or replace function public.current_user_scout_read()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+    select scout_read from public.profiles where id = auth.uid();
+$$;
+
+create or replace function public.current_user_scout_write()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+    select scout_write from public.profiles where id = auth.uid();
+$$;
+
 -- Konton måste tas bort från auth.users, inte bara från profiltabellen.
 create or replace function public.delete_user_by_admin(target_user_id uuid)
 returns void
@@ -579,8 +601,8 @@ create policy "profiles_update_self" on public.profiles
     with check (
         id = auth.uid()
         and role = public.current_user_role()
-        and scout_read is not distinct from (select scout_read from public.profiles where id = auth.uid())
-        and scout_write is not distinct from (select scout_write from public.profiles where id = auth.uid())
+        and scout_read is not distinct from public.current_user_scout_read()
+        and scout_write is not distinct from public.current_user_scout_write()
         and kar_id is not distinct from public.current_user_kar_id()
     );
 
