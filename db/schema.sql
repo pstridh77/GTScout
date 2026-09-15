@@ -24,6 +24,8 @@ create table if not exists public.profiles (
     email text not null,
     full_name text,
     role public.user_role not null default 'gast',
+    scout_read boolean not null default false,
+    scout_write boolean not null default false,
     kar_id uuid references public.kar(id) on delete set null,
     requested_kar_id uuid references public.kar(id) on delete set null,
     created_at timestamptz not null default now(),
@@ -32,6 +34,29 @@ create table if not exists public.profiles (
 
 alter table public.profiles
     add column if not exists requested_kar_id uuid references public.kar(id) on delete set null;
+
+alter table public.profiles
+    add column if not exists scout_read boolean not null default false;
+
+alter table public.profiles
+    add column if not exists scout_write boolean not null default false;
+
+update public.profiles
+set scout_read = false,
+    scout_write = false
+where role = 'gast';
+
+do $$
+begin
+    if not exists (
+        select 1 from pg_constraint where conname = 'profiles_scout_permissions_role_check'
+    ) then
+        alter table public.profiles
+            add constraint profiles_scout_permissions_role_check
+            check (role <> 'gast' or (not scout_read and not scout_write));
+    end if;
+end
+$$;
 
 create index if not exists profiles_kar_id_idx on public.profiles (kar_id);
 create index if not exists profiles_requested_kar_id_idx on public.profiles (requested_kar_id);
@@ -106,6 +131,36 @@ security definer
 set search_path = public
 as $$
     select public.current_user_role() in ('ledare', 'admin');
+$$;
+
+-- Administratörer har alltid åtkomst. För övriga användare måste den tilldelas
+-- uttryckligen av en administratör i samma kår.
+create or replace function public.current_user_can_read_scouts()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+    select public.current_user_role() = 'admin'
+        or (
+            public.current_user_role() = 'ledare'
+            and coalesce((select scout_read or scout_write from public.profiles where id = auth.uid()), false)
+        );
+$$;
+
+create or replace function public.current_user_can_write_scouts()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+    select public.current_user_role() = 'admin'
+        or (
+            public.current_user_role() = 'ledare'
+            and coalesce((select scout_write from public.profiles where id = auth.uid()), false)
+        );
 $$;
 
 -- En admin utan egen kårtillhörighet är systemadmin och hanterar alla kårer.
@@ -419,18 +474,18 @@ alter table public.scout_badges enable row level security;
 drop policy if exists "scouts_select_kar" on public.scouts;
 create policy "scouts_select_kar" on public.scouts
     for select to authenticated
-    using (kar_id = public.current_user_kar_id());
+    using (public.current_user_can_read_scouts() and kar_id = public.current_user_kar_id());
 
 drop policy if exists "scouts_write_leader" on public.scouts;
 create policy "scouts_write_leader" on public.scouts
     for all to authenticated
-    using (public.current_user_is_leader() and kar_id = public.current_user_kar_id())
-    with check (public.current_user_is_leader() and kar_id = public.current_user_kar_id());
+    using (public.current_user_can_write_scouts() and kar_id = public.current_user_kar_id())
+    with check (public.current_user_can_write_scouts() and kar_id = public.current_user_kar_id());
 
 drop policy if exists "scout_badges_select_kar" on public.scout_badges;
 create policy "scout_badges_select_kar" on public.scout_badges
     for select to authenticated
-    using (exists (
+    using (public.current_user_can_read_scouts() and exists (
         select 1 from public.scouts s
         where s.id = scout_id and s.kar_id = public.current_user_kar_id()
     ));
@@ -438,11 +493,11 @@ create policy "scout_badges_select_kar" on public.scout_badges
 drop policy if exists "scout_badges_write_leader" on public.scout_badges;
 create policy "scout_badges_write_leader" on public.scout_badges
     for all to authenticated
-    using (public.current_user_is_leader() and exists (
+    using (public.current_user_can_write_scouts() and exists (
         select 1 from public.scouts s
         where s.id = scout_id and s.kar_id = public.current_user_kar_id()
     ))
-    with check (public.current_user_is_leader() and exists (
+    with check (public.current_user_can_write_scouts() and exists (
         select 1 from public.scouts s
         where s.id = scout_id and s.kar_id = public.current_user_kar_id()
     ));
@@ -524,6 +579,8 @@ create policy "profiles_update_self" on public.profiles
     with check (
         id = auth.uid()
         and role = public.current_user_role()
+        and scout_read is not distinct from (select scout_read from public.profiles where id = auth.uid())
+        and scout_write is not distinct from (select scout_write from public.profiles where id = auth.uid())
         and kar_id is not distinct from public.current_user_kar_id()
     );
 

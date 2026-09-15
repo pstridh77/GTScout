@@ -218,7 +218,7 @@ function canManageScouts() {
 }
 
 function canViewScouts() {
-    return Boolean(window.GTScoutAuth?.isSignedIn?.() && window.GTScoutAuth?.isLeader?.());
+    return Boolean(window.GTScoutAuth?.isSignedIn?.() && window.GTScoutAuth?.canReadScouts?.());
 }
 
 function updateScoutAccess() {

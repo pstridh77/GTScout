@@ -11,8 +11,8 @@
     const auth = () => window.GTScoutAuth;
     const client = () => auth()?.getClient() || null;
     const karId = () => auth()?.getState?.().karId || null;
-    const canRead = () => Boolean(client() && auth()?.isSignedIn?.() && karId() && auth()?.isLeader?.());
-    const canWrite = () => canRead() && auth()?.isLeader?.();
+    const canRead = () => Boolean(client() && auth()?.isSignedIn?.() && karId() && auth()?.canReadScouts?.());
+    const canWrite = () => canRead() && auth()?.canWriteScouts?.();
 
     function readLocal() {
         try {
@@ -157,6 +157,7 @@
             onChange?.();
         },
         getAll: () => scouts,
+        canRead,
         canWrite,
         add(scout) {
             scouts.push({ ...scout, statuses: {}, counts: {} });

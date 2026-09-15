@@ -72,6 +72,7 @@
         document.getElementById("adminAddKarBtn").addEventListener("click", addKar);
         document.getElementById("adminKarList").addEventListener("click", onKarListClick);
         document.getElementById("adminUserList").addEventListener("click", onUserListClick);
+        document.getElementById("adminUserList").addEventListener("change", onUserListChange);
 
         return modal;
     }
@@ -84,7 +85,7 @@
 
         const [karResult, profileResult] = await Promise.all([
             db.from("kar").select("id, namn, ort").order("namn"),
-            db.from("profiles").select("id, email, full_name, role, kar_id, requested_kar_id").order("email")
+            db.from("profiles").select("id, email, full_name, role, scout_read, scout_write, kar_id, requested_kar_id").order("email")
         ]);
 
         if (karResult.error) throw karResult.error;
@@ -145,6 +146,9 @@
         if (!row) return;
         const role = row.querySelector("[data-field='role']").value;
         const karValue = row.querySelector("[data-field='kar']").value;
+        const canHaveScoutPermissions = role !== "gast";
+        const scoutWrite = canHaveScoutPermissions && row.querySelector("[data-field='scout-write']").checked;
+        const scoutRead = canHaveScoutPermissions && (row.querySelector("[data-field='scout-read']").checked || scoutWrite);
 
         if (id === auth().getUser()?.id && role !== "admin") {
             setMessage("Du kan inte ta bort din egen adminroll.", true);
@@ -158,7 +162,7 @@
 
         const { error } = await client()
             .from("profiles")
-            .update({ role, kar_id: karValue || null, requested_kar_id: null })
+            .update({ role, scout_read: scoutRead, scout_write: scoutWrite, kar_id: karValue || null, requested_kar_id: null })
             .eq("id", id);
         if (error) {
             setMessage(error.message, true);
@@ -267,6 +271,10 @@
                         <option value="${escapeHtml(kar.id)}" ${profile.kar_id === kar.id ? "selected" : ""}>${escapeHtml(kar.namn)}</option>
                     `).join("")}
                 </select>
+                <span class="admin-permissions" aria-label="Behörighet till scoutregister">
+                    <label class="admin-permission" title="Läs scoutregister"><input type="checkbox" data-field="scout-read" ${profile.scout_read || profile.scout_write || profile.role === "admin" ? "checked" : ""} ${profile.role === "gast" ? "disabled" : ""}> Läs</label>
+                    <label class="admin-permission" title="Skriv scoutregister"><input type="checkbox" data-field="scout-write" ${profile.scout_write || profile.role === "admin" ? "checked" : ""} ${profile.role === "gast" ? "disabled" : ""}> Skriv</label>
+                </span>
                 <button class="btn-secondary" type="button" data-action="save-profile" data-id="${escapeHtml(profile.id)}">Spara</button>
                 ${viewerIsSystemAdmin || profile.kar_id === ownKarId
                     ? `<button class="btn-danger" type="button" data-action="delete-profile" data-id="${escapeHtml(profile.id)}">Ta bort</button>`
@@ -288,6 +296,23 @@
         if (!button) return;
         if (button.dataset.action === "save-profile") saveProfile(button.dataset.id);
         if (button.dataset.action === "delete-profile") deleteProfile(button.dataset.id);
+    }
+
+    function onUserListChange(event) {
+        const row = event.target.closest("[data-profile-row]");
+        if (!row) return;
+        const scoutRead = row.querySelector("[data-field='scout-read']");
+        const scoutWrite = row.querySelector("[data-field='scout-write']");
+        if (event.target.dataset.field === "role") {
+            const isGuest = event.target.value === "gast";
+            scoutRead.disabled = isGuest;
+            scoutWrite.disabled = isGuest;
+            if (isGuest) {
+                scoutRead.checked = false;
+                scoutWrite.checked = false;
+            }
+        }
+        if (event.target.dataset.field === "scout-write" && event.target.checked) scoutRead.checked = true;
     }
 
     async function refresh(message) {
