@@ -71,6 +71,7 @@
         document.getElementById("adminCloseBtn").addEventListener("click", closeModal);
         document.getElementById("adminAddKarBtn").addEventListener("click", addKar);
         document.getElementById("adminKarList").addEventListener("click", onKarListClick);
+        document.getElementById("adminKarList").addEventListener("input", onKarListChange);
         document.getElementById("adminUserList").addEventListener("click", onUserListClick);
         document.getElementById("adminUserList").addEventListener("change", onUserListChange);
 
@@ -210,7 +211,7 @@
             <div class="admin-row" data-kar-row="${escapeHtml(kar.id)}">
                 <input type="text" data-field="namn" value="${escapeHtml(kar.namn)}" aria-label="Kårens namn">
                 <input type="text" data-field="ort" value="${escapeHtml(kar.ort || "")}" placeholder="Ort" aria-label="Ort">
-                <button class="btn-secondary" type="button" data-action="save-kar" data-id="${escapeHtml(kar.id)}">Spara</button>
+                <button class="btn-secondary" type="button" data-action="save-kar" data-id="${escapeHtml(kar.id)}" disabled>Spara</button>
                 ${canManageAll ? `<button class="btn-danger" type="button" data-action="delete-kar" data-id="${escapeHtml(kar.id)}">Ta bort</button>` : ""}
             </div>
         `).join("");
@@ -275,7 +276,7 @@
                 <span class="admin-permissions" aria-label="Behörighet till scoutregister">
                     <label class="admin-permission"><input type="checkbox" data-field="scout-access" title="Ger läs- och skrivåtkomst till scoutregistret" ${profile.scout_read || profile.scout_write || profile.role === "admin" ? "checked" : ""} ${profile.role === "gast" ? "disabled" : ""}> Scouter</label>
                 </span>
-                <button class="btn-secondary" type="button" data-action="save-profile" data-id="${escapeHtml(profile.id)}">Spara</button>
+                <button class="btn-secondary" type="button" data-action="save-profile" data-id="${escapeHtml(profile.id)}" disabled>Spara</button>
                 ${viewerIsSystemAdmin || profile.kar_id === ownKarId
                     ? `<button class="btn-danger" type="button" data-action="delete-profile" data-id="${escapeHtml(profile.id)}">Ta bort</button>`
                     : ""}
@@ -289,6 +290,13 @@
         if (!button) return;
         if (button.dataset.action === "save-kar") saveKar(button.dataset.id);
         if (button.dataset.action === "delete-kar") deleteKar(button.dataset.id);
+    }
+
+    function onKarListChange(event) {
+        const row = event.target.closest("[data-kar-row]");
+        if (!row) return;
+        const saveBtn = row.querySelector("[data-action='save-kar']");
+        if (saveBtn) saveBtn.disabled = false;
     }
 
     function onUserListClick(event) {
@@ -307,6 +315,8 @@
             scoutAccess.disabled = isGuest;
             if (isGuest) scoutAccess.checked = false;
         }
+        const saveBtn = row.querySelector("[data-action='save-profile']");
+        if (saveBtn) saveBtn.disabled = false;
     }
 
     async function refresh(message) {
