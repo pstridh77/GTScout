@@ -291,7 +291,6 @@ create table if not exists public.badge_activities (
     kar_id uuid not null references public.kar(id) on delete cascade,
     badge_id text not null,
     activity_id text not null references public.aktiviteter(id) on delete cascade,
-    created_by uuid references public.profiles(id) on delete set null,
     created_at timestamptz not null default now(),
     primary key (kar_id, badge_id, activity_id)
 );
@@ -304,12 +303,10 @@ create index if not exists badge_activities_activity_id_idx on public.badge_acti
 create table if not exists public.scouts (
     id uuid primary key default gen_random_uuid(),
     kar_id uuid not null references public.kar(id) on delete cascade,
-    medlemsnummer text,
     namn text not null,
-    fodelsedatum date,
     fodelsear integer not null,
     aktiv boolean not null default true,
-    created_by uuid references public.profiles(id) on delete set null,
+    arkiverad_at timestamptz,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
     constraint scouts_namn_not_blank check (length(trim(namn)) > 0),
@@ -332,14 +329,26 @@ alter table public.scout_badges
     add column if not exists antal integer not null default 0;
 
 alter table public.scouts
-    add column if not exists medlemsnummer text;
+    drop column if exists fodelsedatum;
 
 alter table public.scouts
-    add column if not exists fodelsedatum date;
+    drop column if exists medlemsnummer;
 
-create unique index if not exists scouts_kar_medlemsnummer_idx
-    on public.scouts (kar_id, medlemsnummer)
-    where medlemsnummer is not null and medlemsnummer <> '';
+alter table public.scouts
+    drop column if exists created_by;
+
+alter table public.scouts
+    add column if not exists arkiverad_at timestamptz;
+
+update public.scouts
+set arkiverad_at = updated_at
+where not aktiv and arkiverad_at is null;
+
+update public.scouts
+set arkiverad_at = null
+where aktiv;
+
+drop index if exists scouts_kar_medlemsnummer_idx;
 
 create index if not exists scouts_kar_id_idx on public.scouts (kar_id);
 create index if not exists scouts_fodelsear_idx on public.scouts (fodelsear);
@@ -368,6 +377,41 @@ drop trigger if exists scouts_prevent_reactivation on public.scouts;
 create trigger scouts_prevent_reactivation
     before update on public.scouts
     for each row execute function public.prevent_scout_reactivation_by_leader();
+
+create or replace function public.purge_archived_scouts()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    deleted_count integer;
+begin
+    delete from public.scouts
+    where not aktiv
+      and arkiverad_at is not null
+      and arkiverad_at < now() - interval '1 year';
+    get diagnostics deleted_count = row_count;
+    return deleted_count;
+end;
+$$;
+
+revoke all on function public.purge_archived_scouts() from public;
+grant execute on function public.purge_archived_scouts() to service_role;
+
+create extension if not exists pg_cron with schema extensions;
+do $$
+begin
+    if exists (select 1 from cron.job where jobname = 'purge-archived-scouts') then
+        perform cron.unschedule(jobid) from cron.job where jobname = 'purge-archived-scouts';
+    end if;
+    perform cron.schedule(
+        'purge-archived-scouts',
+        '15 3 * * *',
+        'select public.purge_archived_scouts();'
+    );
+end
+$$;
 
 alter table public.scouts enable row level security;
 alter table public.scout_badges enable row level security;
