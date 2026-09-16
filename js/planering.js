@@ -3520,25 +3520,86 @@ function toggleBadgeInGroup(groupId, badgeId) {
 }
 // ── Group filters ─────────────────────────────────────────────────────
 
-document.getElementById("groupSearchInput").addEventListener("input", e => {
+const groupSearchInput = document.getElementById("groupSearchInput");
+const groupLevelFilter = document.getElementById("groupLevelFilter");
+const groupYearFilter = document.getElementById("groupYearFilter");
+const groupTermFilter = document.getElementById("groupTermFilter");
+const groupFilterToggleBtn = document.getElementById("filterToggleBtn");
+const groupFiltersVisibilityToggle = document.getElementById("filtersVisibilityToggle");
+const groupFilterCount = document.getElementById("filterCount");
+const groupAdvancedFilters = document.getElementById("advancedFilters");
+const groupClearFiltersBtn = document.getElementById("clearFiltersBtn");
+const groupCloseFiltersBtn = document.getElementById("closeFiltersBtn");
+const groupFiltersArea = document.querySelector(".planning-filters");
+
+groupSearchInput.addEventListener("input", e => {
     groupFilters.search = e.target.value;
+    updateGroupFilterCount();
     renderPlanning();
 });
 
-document.getElementById("groupLevelFilter").addEventListener("change", e => {
+groupLevelFilter.addEventListener("change", e => {
     groupFilters.level = e.target.value;
+    updateGroupFilterCount();
     renderPlanning();
 });
 
-document.getElementById("groupYearFilter").addEventListener("change", e => {
+groupYearFilter.addEventListener("change", e => {
     groupFilters.year = e.target.value;
+    updateGroupFilterCount();
     renderPlanning();
 });
 
-document.getElementById("groupTermFilter").addEventListener("change", e => {
+groupTermFilter.addEventListener("change", e => {
     groupFilters.term = e.target.value;
+    updateGroupFilterCount();
     renderPlanning();
 });
+
+function updateGroupFilterCount() {
+    if (!groupFilterCount) return;
+    const activeCount = [
+        groupFilters.search.trim() !== "",
+        groupFilters.level !== "Alla",
+        groupFilters.year !== "Alla",
+        groupFilters.term !== "Alla"
+    ].filter(Boolean).length;
+    groupFilterCount.textContent = activeCount > 0 ? `(${activeCount})` : "";
+    if (groupClearFiltersBtn) groupClearFiltersBtn.disabled = activeCount === 0;
+}
+
+groupFilterToggleBtn?.addEventListener("click", () => {
+    const isOpen = groupAdvancedFilters.classList.toggle("advanced-filters--open");
+    groupFilterToggleBtn.setAttribute("aria-expanded", String(isOpen));
+    if (isOpen && window.matchMedia("(max-width: 600px)").matches) {
+        groupFiltersArea?.scrollIntoView({ block: "start" });
+    }
+});
+
+groupCloseFiltersBtn?.addEventListener("click", () => {
+    groupAdvancedFilters.classList.remove("advanced-filters--open");
+    groupFilterToggleBtn?.setAttribute("aria-expanded", "false");
+});
+
+groupClearFiltersBtn?.addEventListener("click", () => {
+    groupSearchInput.value = "";
+    groupLevelFilter.value = "Alla";
+    groupYearFilter.value = "Alla";
+    groupTermFilter.value = "Alla";
+    groupFilters = { search: "", level: "Alla", year: "Alla", term: "Alla" };
+    updateGroupFilterCount();
+    renderPlanning();
+});
+
+groupFiltersVisibilityToggle?.addEventListener("click", () => {
+    const isHidden = groupFiltersArea?.classList.toggle("filters--hidden") ?? false;
+    const label = isHidden ? "Visa sökfält och filter" : "Dölj sökfält och filter";
+    groupFiltersVisibilityToggle.setAttribute("aria-label", label);
+    groupFiltersVisibilityToggle.setAttribute("title", label);
+    groupFiltersVisibilityToggle.setAttribute("aria-pressed", String(isHidden));
+});
+
+updateGroupFilterCount();
 // ── Group modal ────────────────────────────────────────────────────────────
 
 const defaultPlanningModal = document.getElementById("defaultPlanningModal");
@@ -3797,6 +3858,7 @@ function updatePlanningStickyOffset() {
     const siteHeader = document.querySelector(".site-header");
     if (!siteHeader) return;
 
+    document.documentElement.style.setProperty("--site-header-height", `${siteHeader.offsetHeight}px`);
     const stickyTop = siteHeader.offsetHeight + 4;
     document.documentElement.style.setProperty("--planning-sticky-top", `${stickyTop}px`);
 }

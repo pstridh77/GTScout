@@ -27,6 +27,10 @@
             <a href="planering.html" class="nav-link active">Planering</a>
             <a href="scouter.html" class="nav-link hidden" data-scout-navigation>Scouter</a>
             </nav>
+            <div class="library-header-actions">
+            <button id="filtersVisibilityToggle" class="filters-visibility-toggle" type="button" aria-label="Visa sökfält och filter" aria-pressed="true" title="Visa sökfält och filter">
+                <span class="filters-visibility-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" /></svg></span>
+            </button>
             <div class="planning-actions-menu">
                 <button id="planningActionsBtn" class="header-menu-button" type="button" aria-label="Meny" aria-expanded="false" title="Meny">
                     <span></span><span></span><span></span>
@@ -67,6 +71,7 @@
                     <div class="site-menu-version-note">v1.0.0 (2026-08-30)</div>
                 </div>
             </div>
+            </div>
         </div>
     </header>
 
@@ -84,35 +89,42 @@
         <span id="planningSyncStatus" class="planning-sync-status hidden" role="status" aria-live="polite"></span>
     </div>
 
-    <div class="planning-filters">
+    <div class="planning-filters filters filters--hidden" aria-label="Filtrera planeringar">
         <label class="filter-field search-field">
             <span>Sök planering</span>
             <input id="groupSearchInput" type="text" placeholder="Sök efter planering...">
         </label>
-        <label class="filter-field">
-            <span>Målgrupp</span>
-            <select id="groupLevelFilter">
-                <option value="Alla">Alla målgrupper</option>
-                <option value="Familjescouter">Familjescouter</option>
-                <option value="Spårare">Spårare</option>
-                <option value="Upptäckare">Upptäckare</option>
-                <option value="Äventyrare">Äventyrare</option>
-                <option value="Utmanare">Utmanare</option>
-                <option value="Rover">Rover</option>
-            </select>
-        </label>
-        <label class="filter-field">
-            <span>År</span>
-            <select id="groupYearFilter">
-                <option value="Alla">Alla år</option>
-            </select>
-        </label>
-        <label class="filter-field">
-            <span>Termin</span>
-            <select id="groupTermFilter">
-                <option value="Alla">Alla terminer</option>
-            </select>
-        </label>
+
+        <button id="filterToggleBtn" class="filter-toggle-button" type="button" aria-expanded="false" aria-controls="advancedFilters">Filter <span id="filterCount" aria-hidden="true"></span></button>
+
+        <div id="advancedFilters" class="advanced-filters">
+            <label class="filter-field">
+                <span>Målgrupp</span>
+                <select id="groupLevelFilter">
+                    <option value="Alla">Alla målgrupper</option>
+                    <option value="Familjescouter">Familjescouter</option>
+                    <option value="Spårare">Spårare</option>
+                    <option value="Upptäckare">Upptäckare</option>
+                    <option value="Äventyrare">Äventyrare</option>
+                    <option value="Utmanare">Utmanare</option>
+                    <option value="Rover">Rover</option>
+                </select>
+            </label>
+            <label class="filter-field">
+                <span>År</span>
+                <select id="groupYearFilter">
+                    <option value="Alla">Alla år</option>
+                </select>
+            </label>
+            <label class="filter-field">
+                <span>Termin</span>
+                <select id="groupTermFilter">
+                    <option value="Alla">Alla terminer</option>
+                </select>
+            </label>
+            <button id="clearFiltersBtn" class="clear-filters-button" type="button" disabled>Rensa filter</button>
+            <button id="closeFiltersBtn" class="close-filters-button" type="button">Stäng</button>
+        </div>
     </div>
 
     <main id="planningGrid"></main>
