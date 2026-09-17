@@ -3232,10 +3232,9 @@ select:focus {
         grid-row: 2;
     }
 
-    .site-header--planning .planning-actions-menu {
+    .site-header--planning .library-header-actions {
         grid-column: 2;
         grid-row: 1;
-        width: auto;
         justify-self: end;
         display: flex;
     }
