@@ -361,6 +361,45 @@ create trigger custom_badges_touch_updated_at
     before update on public.custom_badges
     for each row execute function public.touch_updated_at();
 
+create or replace function public.get_shared_badge(requested_id text)
+returns table (
+    id text,
+    kar_id uuid,
+    namn text,
+    kategori text,
+    malgrupp text[],
+    inledning text,
+    kriterier text[],
+    program text[],
+    typ text,
+    bild text,
+    is_active boolean
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+    select
+        badge.id,
+        badge.kar_id,
+        badge.namn,
+        badge.kategori,
+        badge.malgrupp,
+        badge.inledning,
+        badge.kriterier,
+        badge.program,
+        badge.typ,
+        badge.bild,
+        badge.is_active
+    from public.custom_badges badge
+    where badge.id = requested_id
+      and badge.is_active = true;
+$$;
+
+revoke all on function public.get_shared_badge(text) from public;
+grant execute on function public.get_shared_badge(text) to anon, authenticated;
+
 -- Kårspecifika kopplingar mellan märken och aktiviteter. Aktiviteten kan ägas
 -- av vilken kår som helst (delad aktivitetsbank) – behörigheten för länken
 -- avgörs av länkens egen kar_id, se RLS-policyn nedan.

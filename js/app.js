@@ -196,6 +196,8 @@ let baseMarken = [];
 let allMarken = [];
 let allAktiviteter = [];
 let activePopupBadge = null;
+const sharedBadgeIdFromUrl = new URLSearchParams(window.location.search).get("badge");
+let sharedBadgeOpened = false;
 const collapsedCategories = new Set();
 try {
     const storedCategoryState = JSON.parse(localStorage.getItem(CATEGORY_COLLAPSE_STORAGE_KEY));
@@ -237,18 +239,16 @@ async function loadMarken() {
         const marken = await markenResponse.json();
         await Promise.all([
             window.GTScoutActivities?.ensureLoaded?.(),
-            window.GTScoutBadges?.ensureLoaded?.()
+            sharedBadgeIdFromUrl
+                ? window.GTScoutBadges?.ensureSharedBadgeLoaded?.(sharedBadgeIdFromUrl)
+                : window.GTScoutBadges?.ensureLoaded?.()
         ]);
         const syncedActivities = window.GTScoutActivities?.getAllActivities?.() || [];
         baseMarken = marken;
         allMarken = [...baseMarken, ...(window.GTScoutBadges?.getAllBadges?.() || [])];
         allAktiviteter = syncedActivities.length ? syncedActivities : loadCustomActivities();
         renderMarken(allMarken);
-        const sharedBadgeId = new URLSearchParams(window.location.search).get("badge");
-        if (sharedBadgeId) {
-            const sharedBadge = allMarken.find(marke => marke.id === sharedBadgeId);
-            if (sharedBadge) showPopup(sharedBadge);
-        }
+        openSharedBadgeFromUrl();
     } catch (error) {
         console.error("Failed to load marken.json", error);
         const details = document.getElementById("details");
@@ -256,6 +256,14 @@ async function loadMarken() {
             details.innerHTML = "<p>Data kunde inte laddas. Kontrollera filen data/marken.json och kör sidan via en webserver.</p>";
         }
     }
+}
+
+function openSharedBadgeFromUrl() {
+    if (!sharedBadgeIdFromUrl || sharedBadgeOpened) return;
+    const sharedBadge = allMarken.find(marke => String(marke.id) === sharedBadgeIdFromUrl);
+    if (!sharedBadge) return;
+    sharedBadgeOpened = true;
+    showPopup(sharedBadge);
 }
 
 function loadCustomActivities() {
@@ -955,6 +963,7 @@ const popup = createPopup();
 function createBadgeSharePopup() {
     const sharePopup = document.createElement("div");
     sharePopup.className = "detail-popup hidden";
+    sharePopup.style.zIndex = "1450";
     sharePopup.innerHTML = `
         <div class="detail-popup-content">
             <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
@@ -1884,5 +1893,6 @@ window.GTScoutBadges?.init({
         if (baseMarken.length === 0) return;
         allMarken = [...baseMarken, ...window.GTScoutBadges.getAllBadges()];
         renderMarken(allMarken);
+        openSharedBadgeFromUrl();
     }
 });

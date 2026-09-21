@@ -14,6 +14,7 @@
     let loadPromise = null;
     let initialized = false;
     let editingBadge = null;
+    let sharedBadgeId = null;
     let getAvailableTypes = () => [];
     let getAvailableCategories = () => [];
     const listeners = new Set();
@@ -160,7 +161,7 @@
     }
 
     async function reload() {
-        if (!client() || !auth()?.isSignedIn() || !getKarId()) {
+        if (!client()) {
             badges = [];
             loaded = true;
             updateActionVisibility();
@@ -169,15 +170,28 @@
         }
 
         try {
-            const { data, error } = await client()
-                .from("custom_badges")
-                .select("id, kar_id, namn, kategori, malgrupp, inledning, kriterier, program, typ, bild, is_active")
-                .eq("kar_id", getKarId())
-                .eq("is_active", true)
-                .order("namn");
+            let rows = [];
+            if (auth()?.isSignedIn() && getKarId()) {
+                const { data, error } = await client()
+                    .from("custom_badges")
+                    .select("id, kar_id, namn, kategori, malgrupp, inledning, kriterier, program, typ, bild, is_active")
+                    .eq("kar_id", getKarId())
+                    .eq("is_active", true)
+                    .order("namn");
 
-            if (error) throw error;
-            badges = (data || []).map(normalizeBadge);
+                if (error) throw error;
+                rows = data || [];
+            }
+
+            if (sharedBadgeId && !rows.some(badge => String(badge.id) === sharedBadgeId)) {
+                const { data, error } = await client().rpc("get_shared_badge", {
+                    requested_id: sharedBadgeId
+                });
+                if (error) throw error;
+                rows.push(...(data || []));
+            }
+
+            badges = rows.map(normalizeBadge);
         } catch (error) {
             console.error("Kunde inte hämta kårens märken", error);
             badges = [];
@@ -196,6 +210,12 @@
             });
         }
         return loadPromise;
+    }
+
+    function ensureSharedBadgeLoaded(badgeId) {
+        sharedBadgeId = String(badgeId || "").trim() || null;
+        loaded = false;
+        return ensureLoaded();
     }
 
     async function saveBadge(badge) {
@@ -486,6 +506,7 @@
             ensureLoaded();
         },
         ensureLoaded,
+        ensureSharedBadgeLoaded,
         reload,
         getAllBadges,
         canWrite,
