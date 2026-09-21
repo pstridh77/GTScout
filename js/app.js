@@ -239,7 +239,9 @@ async function loadMarken() {
         const marken = await markenResponse.json();
         await Promise.all([
             window.GTScoutActivities?.ensureLoaded?.(),
-            window.GTScoutBadges?.ensureLoaded?.()
+            sharedBadgeIdFromUrl
+                ? window.GTScoutBadges?.ensureSharedBadgeLoaded?.(sharedBadgeIdFromUrl)
+                : window.GTScoutBadges?.ensureLoaded?.()
         ]);
         const syncedActivities = window.GTScoutActivities?.getAllActivities?.() || [];
         baseMarken = marken;
