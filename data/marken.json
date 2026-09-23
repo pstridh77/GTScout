@@ -2841,6 +2841,27 @@
         "Typ":  "Bevismärke"
     },
     {
+        "id":  "kustske",
+        "namn":  "Kustskeppare",
+        "bild":  "images/marken/kustskeppare.png",
+        "kategori":  "Bevismärke",
+        "malgrupp":  [
+                         "Utmanare","Rover"
+                     ],
+        "inledning":"Bevismärket Kustskeppare är utformat efter Nämnden för båtlivsutbildnings Kustskepparintyg och visar att du har genomgått utbildning för kustskepparintyg. Märket får tas efter godkänd certifiering enligt Nämnden för båtlivsutbildnings rutiner. Det visar andra scouter att du har ett godkänt intyg.",
+        "kriterier":  [
+                         "Ha blivit godkänd i din certifiering som Kustkeppare av Nämnden för båtlivsutbildning.",
+                         "Ha förarintyg och praktisk erfarenhet av att föra fram en båt.",
+                         "Ha teoretiska kunskaper om sjövägsregler, navigation, båtlivskunskap.",
+                         "Ha kunskaper om att framföra en båt i dagsljus, mörker och nedsatt sikt samt i skyddade och oskyddade farvatten.",
+                         "Kunna föra en båt som har en längd på 12 meter eller mer i kombination med en bredd om 4 meter eller mer."
+                     ],
+        "program":  [
+                        "Scouterna"
+                    ],
+        "Typ":  "Bevismärke"
+    },
+    {
         "id":  "100_scout",
         "namn":  "100% Scout",
         "bild":  "images/marken/100_scout.png",
