@@ -21,8 +21,9 @@ body {
 .cookbook-toolbar { display: grid; grid-template-columns: minmax(240px, 1.5fr) minmax(170px, .8fr) minmax(170px, .8fr) auto; align-items: end; gap: 14px; margin-bottom: 24px; padding: 15px; border: 1px solid #d7e1eb; border-radius: 10px; background: #f8fafc; }
 .cookbook-toolbar .filter-field { min-width: 0; }
 .recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); align-items: start; gap: 18px; }
-.recipe-card { display: flex; flex-direction: column; min-height: 300px; box-sizing: border-box; padding: 22px; border: 1px solid #d7e1eb; border-radius: 10px; background: #fff; box-shadow: 0 7px 22px rgba(0, 54, 96, .06); }
+.recipe-card { position: relative; display: flex; flex-direction: column; min-height: 300px; box-sizing: border-box; padding: 22px; border: 1px solid #d7e1eb; border-radius: 10px; background: #fff; box-shadow: 0 7px 22px rgba(0, 54, 96, .06); }
 .recipe-card-top, .recipe-meta, .recipe-card-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.recipe-card-top { padding-right: 52px; }
 .recipe-category { color: #176b72; font-size: .76rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .recipe-difficulty { padding: 4px 8px; border-radius: 4px; background: #eef5fb; color: #536477; font-size: .75rem; font-weight: 700; }
 .recipe-difficulty--enkel { background: #e4f3ed; color: #176b72; }
@@ -43,6 +44,8 @@ body {
 .recipe-details ul { margin: 0; padding-left: 20px; }
 .recipe-details p { margin: 0; white-space: normal; }
 .recipe-card-actions { justify-content: flex-end; margin-top: 16px; }
+.recipe-share-icon-btn { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.recipe-share-icon-btn svg { width: 28px; height: 28px; }
 .cookbook-empty { padding: 48px 20px; color: #64748b; text-align: center; }
 .recipe-form-grid { display: grid; grid-template-columns: 2fr 1.3fr 1fr 1fr; gap: 12px; }
 .recipe-ingredients-field > span { display: block; margin-bottom: 8px; }

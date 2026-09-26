@@ -90,6 +90,17 @@
         </div>
     </div>
 
+    <div id="recipeShareModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="recipeShareTitle">
+        <div class="modal-content">
+            <button id="closeRecipeShareModal" class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2 id="recipeShareTitle">Dela recept</h2>
+            <p>Alla som har länken kan visa receptet.</p>
+            <label class="modal-field"><span>Länk</span><input id="recipeShareUrl" type="text" readonly aria-label="Länk till receptet"></label>
+            <p id="recipeShareStatus" class="detail-planning-status" role="status"></p>
+            <div class="modal-actions"><button id="copyRecipeShareBtn" class="btn-primary" type="button">Kopiera länk</button><button id="cancelRecipeShareBtn" class="btn-secondary" type="button">Stäng</button></div>
+        </div>
+    </div>
+
     <footer class="site-footer" aria-label="Sidfot och version">
         <div class="site-footer-content"><span class="site-footer-title">GTScout</span><span class="site-footer-dot" aria-hidden="true">•</span><span class="site-footer-version">Scoutkokbok</span><span class="site-footer-dot" aria-hidden="true">•</span><span id="databaseEnvironment" class="database-environment"></span></div>
     </footer>
