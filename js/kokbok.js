@@ -60,7 +60,7 @@ function formatAmount(quantity, unit) {
     if (unit === "cl" && quantity >= 100) { normalizedQuantity = quantity / 100; normalizedUnit = "l"; }
     if (unit === "dl" && quantity > 10) { normalizedQuantity = quantity / 10; normalizedUnit = "l"; }
     if (unit === "mg" && quantity >= 1000) { normalizedQuantity = quantity / 1000; normalizedUnit = "g"; }
-    if (["g", "gram"].includes(unit) && quantity > 1000) { normalizedQuantity = quantity / 1000; normalizedUnit = "kg"; }
+    if (["g", "gram"].includes(unit) && quantity >= 1000) { normalizedQuantity = quantity / 1000; normalizedUnit = "kg"; }
     const rounded = Math.round(normalizedQuantity * 100) / 100;
     return `${String(rounded).replace(".", ",")}${normalizedUnit ? ` ${normalizedUnit}` : ""}`;
 }
@@ -81,30 +81,10 @@ function scaleIngredientAmount(row, recipe, targetServings) {
     const points = RECIPE_SCALE_OPTIONS
         .map(servings => ({ servings, parsed: parseAmount(row.mangder?.[String(servings)]) }))
         .filter(point => point.parsed);
-    if (points.length < 2) {
-        const point = points[0];
-        return point ? scaleAmount("", row.mangder[String(point.servings)], point.servings, targetServings) : "";
-    }
+    if (!points.length) return "";
 
-    let lower;
-    let upper;
-    if (targetServings <= points[0].servings) {
-        [lower, upper] = points.slice(0, 2);
-    } else if (targetServings >= points[points.length - 1].servings) {
-        [lower, upper] = points.slice(-2);
-    } else {
-        for (let index = 1; index < points.length; index += 1) {
-            if (points[index].servings >= targetServings) {
-                lower = points[index - 1];
-                upper = points[index];
-                break;
-            }
-        }
-    }
-
-    const ratio = (targetServings - lower.servings) / (upper.servings - lower.servings);
-    const quantity = lower.parsed.quantity + (upper.parsed.quantity - lower.parsed.quantity) * ratio;
-    return formatAmount(quantity, lower.parsed.unit || upper.parsed.unit);
+    const base = [...points].reverse().find(point => point.servings <= targetServings) || points[0];
+    return formatAmount(base.parsed.quantity * targetServings / base.servings, base.parsed.unit);
 }
 
 function parseLegacyIngredient(value) {
