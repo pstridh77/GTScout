@@ -84,20 +84,22 @@ function scaleAmount(amount, baseAmount, baseServings, targetServings) {
 
 function toComparableAmount(parsed) {
     const unit = parsed.unit;
-    const volumeFactors = { ml: 1, cl: 10, dl: 100, l: 1000 };
+    const culinaryVolumeFactors = { krm: 1, tsk: 5, msk: 15, ml: 1, cl: 10, dl: 100, l: 1000 };
     const weightFactors = { mg: 1, g: 1000, gram: 1000, kg: 1000000 };
-    const spoonFactors = { krm: 1, tsk: 3, msk: 9 };
-    if (volumeFactors[unit]) return { category: "volume", value: parsed.quantity * volumeFactors[unit], unit };
+    if (culinaryVolumeFactors[unit]) return { category: "culinary-volume", value: parsed.quantity * culinaryVolumeFactors[unit], unit };
     if (weightFactors[unit]) return { category: "weight", value: parsed.quantity * weightFactors[unit], unit };
-    if (spoonFactors[unit]) return { category: "spoon", value: parsed.quantity * spoonFactors[unit], unit };
     return { category: `unit:${unit}`, value: parsed.quantity, unit };
 }
 
 function formatComparableAmount(value, comparable) {
+    if (comparable.category === "culinary-volume") {
+        const displayUnit = value >= 1000 ? "l" : value > 50 ? "dl" : value >= 15 ? "msk" : value >= 5 ? "tsk" : "krm";
+        const displayFactors = { krm: 1, tsk: 5, msk: 15, dl: 100, l: 1000 };
+        return formatAmount(value / displayFactors[displayUnit], displayUnit);
+    }
     const volumeFactors = { ml: 1, cl: 10, dl: 100, l: 1000 };
     const weightFactors = { mg: 1, g: 1000, gram: 1000, kg: 1000000 };
-    const spoonFactors = { krm: 1, tsk: 3, msk: 9 };
-    const factors = comparable.category === "volume" ? volumeFactors : comparable.category === "weight" ? weightFactors : comparable.category === "spoon" ? spoonFactors : null;
+    const factors = comparable.category === "volume" ? volumeFactors : comparable.category === "weight" ? weightFactors : null;
     const quantity = factors ? value / factors[comparable.unit] : value;
     return formatAmount(quantity, comparable.unit);
 }
@@ -105,7 +107,7 @@ function formatComparableAmount(value, comparable) {
 function scaleIngredientAmount(row, recipe, targetServings) {
     const exactAmount = row.mangder?.[String(targetServings)];
     const exactParsed = parseAmount(exactAmount);
-    if (exactAmount) return exactParsed ? formatAmount(exactParsed.quantity, exactParsed.unit) : exactAmount;
+    if (exactAmount) return exactParsed ? formatComparableAmount(toComparableAmount(exactParsed).value, toComparableAmount(exactParsed)) : exactAmount;
 
     const points = RECIPE_SCALE_OPTIONS
         .map(servings => {
