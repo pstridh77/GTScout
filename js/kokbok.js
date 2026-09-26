@@ -65,7 +65,12 @@ function formatAmount(quantity, unit) {
     if (unit === "dl" && quantity > 10) { normalizedQuantity = quantity / 10; normalizedUnit = "l"; }
     if (unit === "mg" && quantity >= 1000) { normalizedQuantity = quantity / 1000; normalizedUnit = "g"; }
     if (["g", "gram"].includes(unit) && quantity >= 1000) { normalizedQuantity = quantity / 1000; normalizedUnit = "kg"; }
-    const rounded = Math.round(normalizedQuantity * 100) / 100;
+    if (normalizedUnit === "gram") normalizedUnit = "g";
+    const rounded = normalizedUnit === "g"
+        ? Math.round(normalizedQuantity / 10) * 10
+        : ["krm", "tsk", "msk"].includes(normalizedUnit)
+            ? Math.round(normalizedQuantity * 2) / 2
+            : Math.round(normalizedQuantity * 10) / 10;
     return `${String(rounded).replace(".", ",")}${normalizedUnit ? ` ${normalizedUnit}` : ""}`;
 }
 
@@ -77,18 +82,64 @@ function scaleAmount(amount, baseAmount, baseServings, targetServings) {
     return formatAmount(base.quantity * targetServings / baseServings, base.unit);
 }
 
+function toComparableAmount(parsed) {
+    const unit = parsed.unit;
+    const volumeFactors = { ml: 1, cl: 10, dl: 100, l: 1000 };
+    const weightFactors = { mg: 1, g: 1000, gram: 1000, kg: 1000000 };
+    const spoonFactors = { krm: 1, tsk: 3, msk: 9 };
+    if (volumeFactors[unit]) return { category: "volume", value: parsed.quantity * volumeFactors[unit], unit };
+    if (weightFactors[unit]) return { category: "weight", value: parsed.quantity * weightFactors[unit], unit };
+    if (spoonFactors[unit]) return { category: "spoon", value: parsed.quantity * spoonFactors[unit], unit };
+    return { category: `unit:${unit}`, value: parsed.quantity, unit };
+}
+
+function formatComparableAmount(value, comparable) {
+    const volumeFactors = { ml: 1, cl: 10, dl: 100, l: 1000 };
+    const weightFactors = { mg: 1, g: 1000, gram: 1000, kg: 1000000 };
+    const spoonFactors = { krm: 1, tsk: 3, msk: 9 };
+    const factors = comparable.category === "volume" ? volumeFactors : comparable.category === "weight" ? weightFactors : comparable.category === "spoon" ? spoonFactors : null;
+    const quantity = factors ? value / factors[comparable.unit] : value;
+    return formatAmount(quantity, comparable.unit);
+}
+
 function scaleIngredientAmount(row, recipe, targetServings) {
     const exactAmount = row.mangder?.[String(targetServings)];
     const exactParsed = parseAmount(exactAmount);
     if (exactAmount) return exactParsed ? formatAmount(exactParsed.quantity, exactParsed.unit) : exactAmount;
 
     const points = RECIPE_SCALE_OPTIONS
-        .map(servings => ({ servings, parsed: parseAmount(row.mangder?.[String(servings)]) }))
-        .filter(point => point.parsed);
+        .map(servings => {
+            const parsed = parseAmount(row.mangder?.[String(servings)]);
+            return parsed ? { servings, parsed, comparable: toComparableAmount(parsed) } : null;
+        })
+        .filter(point => point?.comparable)
+        .filter((point, _, all) => point.comparable.category === all[0].comparable.category);
     if (!points.length) return "";
 
-    const base = [...points].reverse().find(point => point.servings <= targetServings) || points[0];
-    return formatAmount(base.parsed.quantity * targetServings / base.servings, base.parsed.unit);
+    if (points.length === 1) {
+        const point = points[0];
+        return formatComparableAmount(point.comparable.value * targetServings / point.servings, point.comparable);
+    }
+
+    let lower = points[0];
+    let upper = points[1];
+    if (targetServings <= points[0].servings) {
+        [lower, upper] = points.slice(0, 2);
+    } else if (targetServings >= points[points.length - 1].servings) {
+        [lower, upper] = points.slice(-2);
+    } else {
+        for (let index = 1; index < points.length; index += 1) {
+            if (points[index].servings >= targetServings) {
+                lower = points[index - 1];
+                upper = points[index];
+                break;
+            }
+        }
+    }
+
+    const ratio = (targetServings - lower.servings) / (upper.servings - lower.servings);
+    const value = lower.comparable.value + (upper.comparable.value - lower.comparable.value) * ratio;
+    return formatComparableAmount(value, lower.comparable);
 }
 
 function parseLegacyIngredient(value) {
