@@ -2304,6 +2304,7 @@ select:focus {
 .badge-share-icon-btn svg {
     width: 28px;
     height: 28px;
+    flex: 0 0 28px;
 }
 
 .badge-popup-owner-badge {
