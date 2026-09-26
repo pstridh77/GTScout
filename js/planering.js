@@ -1749,7 +1749,6 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 ? "Gullbrandstorps Scoutkårs Ledarplanering"
                 : "Gullbrandstorps Scoutkårs Planeringsöversikt";
 
-    printWindow.addEventListener("load", () => printWindow.print(), { once: true });
     printWindow.document.open();
     printWindow.document.write(`<!DOCTYPE html>
         <html lang="sv">
@@ -1856,10 +1855,18 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             </header>`}
             ${planningSections || "<p>Inga planeringar valdes.</p>"}
             <p class="created">Exporterad ${escapeHtml(new Date().toLocaleDateString("sv-SE"))}</p>
+            <script>
+                window.addEventListener("load", () => {
+                    window.focus();
+                    setTimeout(() => window.print(), 0);
+                }, { once: true });
+                window.addEventListener("afterprint", () => {
+                    setTimeout(() => window.close(), 0);
+                }, { once: true });
+            </script>
         </body>
         </html>`);
     printWindow.document.close();
-    printWindow.focus();
 }
 
 function getImportedPlanningName(name, level) {
@@ -4462,4 +4469,3 @@ window.GTScoutPlanningSync?.init({
 window.GTScoutNotes?.init({
     onChange: () => renderPlanning()
 });
-
