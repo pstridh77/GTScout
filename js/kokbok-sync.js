@@ -11,6 +11,7 @@
     const canRead = () => Boolean(client());
     const canWrite = () => !auth()?.isSignedIn?.() || (canRead() && auth()?.isLeader?.());
     const canSync = () => Boolean(canRead() && auth()?.isLeader?.());
+    const canEdit = () => canSync();
 
     function normalize(recipe) {
         return {
@@ -92,6 +93,7 @@
         init(config) { onChange = config?.onChange || null; recipes = canRead() ? readLocal() : readLocal(); auth()?.onChange(onAuthChange); onChange?.(recipes); onAuthChange(); },
         getAll: () => recipes.map(recipe => ({ ...recipe, ingredienser: [...recipe.ingredienser] })),
         canWrite,
+        canEdit,
         save,
         remove,
         reload: load

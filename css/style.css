@@ -21,7 +21,7 @@ body {
 .cookbook-toolbar { display: grid; grid-template-columns: minmax(240px, 1.5fr) minmax(170px, .8fr) minmax(170px, .8fr) auto; align-items: end; gap: 14px; margin-bottom: 24px; padding: 15px; border: 1px solid #d7e1eb; border-radius: 10px; background: #f8fafc; }
 .cookbook-toolbar .filter-field { min-width: 0; }
 .recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); align-items: start; gap: 18px; }
-.recipe-card { position: relative; display: flex; flex-direction: column; min-height: 300px; box-sizing: border-box; padding: 22px; border: 1px solid #d7e1eb; border-radius: 10px; background: #fff; box-shadow: 0 7px 22px rgba(0, 54, 96, .06); }
+.recipe-card { position: relative; display: flex; flex-direction: column; box-sizing: border-box; padding: 22px; border: 1px solid #d7e1eb; border-radius: 10px; background: #fff; box-shadow: 0 7px 22px rgba(0, 54, 96, .06); cursor: pointer; }
 .recipe-card-top, .recipe-meta, .recipe-card-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .recipe-card-top { padding-right: 52px; }
 .recipe-category { color: #176b72; font-size: .76rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
@@ -29,21 +29,26 @@ body {
 .recipe-difficulty--enkel { background: #e4f3ed; color: #176b72; }
 .recipe-difficulty--avancerad { background: #fff0d1; color: #8a5a00; }
 .recipe-card h2 { margin: 18px 0 8px; color: #003660; font-size: 1.35rem; }
-.recipe-description { min-height: 44px; margin: 0; color: #536477; line-height: 1.5; }
-.recipe-meta { justify-content: flex-start; margin: 20px 0 12px; }
+.recipe-description { margin: 0; color: #536477; line-height: 1.5; }
+.recipe-meta { display: none; justify-content: flex-start; margin: 20px 0 12px; }
 .recipe-meta div { padding-right: 16px; border-right: 1px solid #d7e1eb; }
 .recipe-meta div:last-child { border-right: 0; }
 .recipe-meta dt { color: #64748b; font-size: .72rem; text-transform: uppercase; }
 .recipe-meta dd { margin: 3px 0 0; color: #003660; font-weight: 700; }
-.recipe-serving-control { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; color: #536477; font-size: .84rem; font-weight: 700; }
+.recipe-serving-control { display: none; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; color: #536477; font-size: .84rem; font-weight: 700; }
 .recipe-serving-control input { width: 132px; box-sizing: border-box; padding: 7px 9px; border: 1px solid #c8d5e1; border-radius: 5px; background: #fff; color: #003660; font: inherit; }
-.recipe-card details { margin-top: auto; border-top: 1px solid #e5e7eb; padding-top: 12px; }
-.recipe-card summary { cursor: pointer; color: #176b72; font-weight: 700; }
+.recipe-card details { margin-top: 0; border-top: 0; padding-top: 0; }
+.recipe-card summary { display: none; cursor: pointer; color: #176b72; font-weight: 700; }
 .recipe-details { color: #34495e; line-height: 1.55; }
 .recipe-details h3 { margin: 16px 0 6px; color: #003660; font-size: .95rem; }
 .recipe-details ul { margin: 0; padding-left: 20px; }
 .recipe-details p { margin: 0; white-space: normal; }
-.recipe-card-actions { justify-content: flex-end; margin-top: 16px; }
+.recipe-card-actions { display: contents; }
+.recipe-card-actions [data-edit-recipe] { display: none; }
+.recipe-card:has(details[open]) .recipe-meta,
+.recipe-card:has(details[open]) .recipe-serving-control { display: flex; }
+.recipe-card:has(details[open]) .recipe-card-actions [data-edit-recipe] { display: inline-flex; align-self: flex-end; margin-top: 16px; }
+.recipe-card:has(details[open]) details { margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 12px; cursor: default; }
 .recipe-share-icon-btn { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
 .recipe-share-icon-btn svg { width: 28px; height: 28px; flex: 0 0 28px; }
 .cookbook-empty { padding: 48px 20px; color: #64748b; text-align: center; }
