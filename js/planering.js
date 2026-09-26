@@ -1856,12 +1856,49 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             ${planningSections || "<p>Inga planeringar valdes.</p>"}
             <p class="created">Exporterad ${escapeHtml(new Date().toLocaleDateString("sv-SE"))}</p>
             <script>
-                window.addEventListener("load", () => {
-                    window.focus();
-                    setTimeout(() => window.print(), 0);
-                }, { once: true });
-                window.addEventListener("afterprint", () => {
+                let printFlowFinished = false;
+                let printFlowStarted = false;
+                let awaitingPrintCompletion = false;
+                let printDialogShown = false;
+                const closePrintWindow = () => {
+                    if (printFlowFinished) return;
+                    printFlowFinished = true;
+                    window.removeEventListener("blur", handlePrintBlur);
+                    window.removeEventListener("focus", handlePrintFocus);
+                    document.removeEventListener("visibilitychange", handleVisibilityChange);
                     setTimeout(() => window.close(), 0);
+                };
+                const handlePrintBlur = () => {
+                    if (awaitingPrintCompletion) printDialogShown = true;
+                };
+                const handlePrintFocus = () => {
+                    if (awaitingPrintCompletion && printDialogShown) closePrintWindow();
+                };
+                const handleVisibilityChange = () => {
+                    if (document.visibilityState === "hidden") {
+                        awaitingPrintCompletion = true;
+                        printDialogShown = true;
+                    } else if (awaitingPrintCompletion && printDialogShown) {
+                        closePrintWindow();
+                    }
+                };
+                const startPrintFlow = () => {
+                    if (printFlowStarted) return;
+                    printFlowStarted = true;
+                    window.focus();
+                    setTimeout(() => {
+                        awaitingPrintCompletion = true;
+                        window.print();
+                    }, 0);
+                };
+                window.addEventListener("blur", handlePrintBlur);
+                window.addEventListener("focus", handlePrintFocus);
+                document.addEventListener("visibilitychange", handleVisibilityChange);
+                document.addEventListener("DOMContentLoaded", startPrintFlow, { once: true });
+                window.addEventListener("load", startPrintFlow, { once: true });
+                if (document.readyState !== "loading") startPrintFlow();
+                window.addEventListener("afterprint", () => {
+                    if (printDialogShown) closePrintWindow();
                 }, { once: true });
             </script>
         </body>
