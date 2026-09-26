@@ -13,6 +13,43 @@ body {
     color:#003660;
 }
 
+.cookbook-page { width: min(100% - 32px, 1280px); margin: 34px auto 54px; }
+.cookbook-hero { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 26px; padding: 30px 34px; border-radius: 10px; background: linear-gradient(120deg, #003660 0%, #176b72 68%, #e0a83a 160%); color: #fff; }
+.cookbook-kicker { margin: 0 0 8px; color: #b8e0d6; font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.cookbook-hero h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1; }
+.cookbook-hero p:last-child { max-width: 560px; margin: 12px 0 0; color: #e2f3ee; line-height: 1.5; }
+.cookbook-toolbar { display: grid; grid-template-columns: minmax(240px, 1.5fr) minmax(170px, .8fr) minmax(170px, .8fr) auto; align-items: end; gap: 14px; margin-bottom: 24px; padding: 15px; border: 1px solid #d7e1eb; border-radius: 10px; background: #f8fafc; }
+.cookbook-toolbar .filter-field { min-width: 0; }
+.recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+.recipe-card { display: flex; flex-direction: column; min-height: 300px; padding: 22px; border: 1px solid #d7e1eb; border-radius: 10px; background: #fff; box-shadow: 0 7px 22px rgba(0, 54, 96, .06); }
+.recipe-card-top, .recipe-meta, .recipe-card-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.recipe-category { color: #176b72; font-size: .76rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.recipe-difficulty { padding: 4px 8px; border-radius: 4px; background: #eef5fb; color: #536477; font-size: .75rem; font-weight: 700; }
+.recipe-difficulty--enkel { background: #e4f3ed; color: #176b72; }
+.recipe-difficulty--avancerad { background: #fff0d1; color: #8a5a00; }
+.recipe-card h2 { margin: 18px 0 8px; color: #003660; font-size: 1.35rem; }
+.recipe-description { min-height: 44px; margin: 0; color: #536477; line-height: 1.5; }
+.recipe-meta { justify-content: flex-start; margin: 20px 0 12px; }
+.recipe-meta div { padding-right: 16px; border-right: 1px solid #d7e1eb; }
+.recipe-meta div:last-child { border-right: 0; }
+.recipe-meta dt { color: #64748b; font-size: .72rem; text-transform: uppercase; }
+.recipe-meta dd { margin: 3px 0 0; color: #003660; font-weight: 700; }
+.recipe-serving-control { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; color: #536477; font-size: .84rem; font-weight: 700; }
+.recipe-serving-control select { min-width: 132px; padding: 7px 9px; border: 1px solid #c8d5e1; border-radius: 5px; background: #fff; color: #003660; font: inherit; }
+.recipe-card details { margin-top: auto; border-top: 1px solid #e5e7eb; padding-top: 12px; }
+.recipe-card summary { cursor: pointer; color: #176b72; font-weight: 700; }
+.recipe-details { color: #34495e; line-height: 1.55; }
+.recipe-details h3 { margin: 16px 0 6px; color: #003660; font-size: .95rem; }
+.recipe-details ul { margin: 0; padding-left: 20px; }
+.recipe-details p { margin: 0; white-space: normal; }
+.recipe-card-actions { justify-content: flex-end; margin-top: 16px; }
+.cookbook-empty { padding: 48px 20px; color: #64748b; text-align: center; }
+.recipe-form-grid { display: grid; grid-template-columns: 2fr 1.3fr .7fr 1fr 1fr; gap: 12px; }
+.modal-actions-spacer { flex: 1; }
+.recipe-modal-content form { display: flex; flex-direction: column; gap: 4px; }
+@media (max-width: 800px) { .cookbook-hero { align-items: flex-start; flex-direction: column; } .cookbook-toolbar { grid-template-columns: 1fr 1fr; } .cookbook-toolbar .planning-sync-status { grid-column: 1 / -1; } .recipe-form-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .cookbook-page { width: min(100% - 20px, 1280px); margin-top: 20px; } .cookbook-hero { padding: 24px; } .cookbook-toolbar, .recipe-form-grid { grid-template-columns: 1fr; } .recipe-card { padding: 18px; } }
+
 .scouts-page {
     width: min(100% - 32px, 1400px);
     margin: 32px auto 48px;
