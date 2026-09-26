@@ -1749,7 +1749,6 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 ? "Gullbrandstorps Scoutkårs Ledarplanering"
                 : "Gullbrandstorps Scoutkårs Planeringsöversikt";
 
-    printWindow.addEventListener("load", () => printWindow.print(), { once: true });
     printWindow.document.open();
     printWindow.document.write(`<!DOCTYPE html>
         <html lang="sv">
@@ -1856,10 +1855,55 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             </header>`}
             ${planningSections || "<p>Inga planeringar valdes.</p>"}
             <p class="created">Exporterad ${escapeHtml(new Date().toLocaleDateString("sv-SE"))}</p>
+            <script>
+                let printFlowFinished = false;
+                let printFlowStarted = false;
+                let awaitingPrintCompletion = false;
+                let printDialogShown = false;
+                const closePrintWindow = () => {
+                    if (printFlowFinished) return;
+                    printFlowFinished = true;
+                    window.removeEventListener("blur", handlePrintBlur);
+                    window.removeEventListener("focus", handlePrintFocus);
+                    document.removeEventListener("visibilitychange", handleVisibilityChange);
+                    setTimeout(() => window.close(), 0);
+                };
+                const handlePrintBlur = () => {
+                    if (awaitingPrintCompletion) printDialogShown = true;
+                };
+                const handlePrintFocus = () => {
+                    if (awaitingPrintCompletion && printDialogShown) closePrintWindow();
+                };
+                const handleVisibilityChange = () => {
+                    if (document.visibilityState === "hidden") {
+                        awaitingPrintCompletion = true;
+                        printDialogShown = true;
+                    } else if (awaitingPrintCompletion && printDialogShown) {
+                        closePrintWindow();
+                    }
+                };
+                const startPrintFlow = () => {
+                    if (printFlowStarted) return;
+                    printFlowStarted = true;
+                    window.focus();
+                    setTimeout(() => {
+                        awaitingPrintCompletion = true;
+                        window.print();
+                    }, 0);
+                };
+                window.addEventListener("blur", handlePrintBlur);
+                window.addEventListener("focus", handlePrintFocus);
+                document.addEventListener("visibilitychange", handleVisibilityChange);
+                document.addEventListener("DOMContentLoaded", startPrintFlow, { once: true });
+                window.addEventListener("load", startPrintFlow, { once: true });
+                if (document.readyState !== "loading") startPrintFlow();
+                window.addEventListener("afterprint", () => {
+                    closePrintWindow();
+                }, { once: true });
+            </script>
         </body>
         </html>`);
     printWindow.document.close();
-    printWindow.focus();
 }
 
 function getImportedPlanningName(name, level) {
@@ -4462,4 +4506,3 @@ window.GTScoutPlanningSync?.init({
 window.GTScoutNotes?.init({
     onChange: () => renderPlanning()
 });
-
