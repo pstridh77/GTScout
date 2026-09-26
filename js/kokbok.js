@@ -158,10 +158,10 @@ function getIngredientRows(recipe) {
 
 function renderIngredientEditor(rows) {
     const editor = document.getElementById("recipeIngredientsEditor");
-    editor.replaceChildren(...rows.map(row => {
+    editor.replaceChildren(...rows.map((row, index) => {
         const element = document.createElement("div");
         element.className = "recipe-ingredient-row";
-        element.innerHTML = `<input class="recipe-ingredient-name" data-ingredient-name type="text" placeholder="Ingrediens" value="${escapeRecipeHtml(row.namn)}" required><div class="recipe-ingredient-amounts">${RECIPE_SCALE_OPTIONS.map(servings => `<label><span>${servings}</span><input data-ingredient-amount="${servings}" type="text" placeholder="-" value="${escapeRecipeHtml(row.mangder?.[String(servings)] || "")}"></label>`).join("")}</div><button class="recipe-remove-ingredient" data-remove-ingredient type="button" aria-label="Ta bort ingrediens">&times;</button>`;
+        element.innerHTML = `<input class="recipe-ingredient-name" data-ingredient-name type="text" placeholder="Ingrediens" value="${escapeRecipeHtml(row.namn)}" required><div class="recipe-ingredient-amounts">${RECIPE_SCALE_OPTIONS.map(servings => `<label><span>${servings}</span><input data-ingredient-amount="${servings}" type="text" placeholder="-" value="${escapeRecipeHtml(row.mangder?.[String(servings)] || "")}"></label>`).join("")}</div><div class="recipe-ingredient-actions"><button class="recipe-move-ingredient" data-move-ingredient="up" type="button" aria-label="Flytta ${escapeRecipeHtml(row.namn)} upp"${index === 0 ? " disabled" : ""}>&uarr;</button><button class="recipe-move-ingredient" data-move-ingredient="down" type="button" aria-label="Flytta ${escapeRecipeHtml(row.namn)} ner"${index === rows.length - 1 ? " disabled" : ""}>&darr;</button><button class="recipe-remove-ingredient" data-remove-ingredient type="button" aria-label="Ta bort ingrediens">&times;</button></div>`;
         return element;
     }));
 }
@@ -231,6 +231,7 @@ function renderRecipes() {
 function openRecipeModal(recipe = null) {
     editingRecipeId = recipe?.id || null;
     document.getElementById("recipeModalTitle").textContent = recipe ? "Redigera recept" : "Lägg till recept";
+    document.getElementById("recipeCreateWarning").classList.toggle("hidden", window.GTScoutCookbook.canEdit?.());
     document.getElementById("recipeName").value = recipe?.namn || "";
     document.getElementById("recipeCategory").value = recipe?.kategori || "";
     document.getElementById("recipeTime").value = recipe?.tid || "";
@@ -284,9 +285,17 @@ document.getElementById("addIngredientBtn").addEventListener("click", () => {
     document.querySelector("[data-ingredient-name]:last-of-type")?.focus();
 });
 document.getElementById("recipeIngredientsEditor").addEventListener("click", event => {
-    if (!event.target.closest("[data-remove-ingredient]")) return;
     const rows = readIngredientRows();
     const row = event.target.closest(".recipe-ingredient-row");
+    const moveButton = event.target.closest("[data-move-ingredient]");
+    if (moveButton && row) {
+        const index = [...row.parentElement.children].indexOf(row);
+        const nextIndex = moveButton.dataset.moveIngredient === "up" ? index - 1 : index + 1;
+        if (nextIndex >= 0 && nextIndex < rows.length) [rows[index], rows[nextIndex]] = [rows[nextIndex], rows[index]];
+        renderIngredientEditor(rows);
+        return;
+    }
+    if (!event.target.closest("[data-remove-ingredient]") || !row) return;
     const index = [...row.parentElement.children].indexOf(row);
     rows.splice(index, 1);
     renderIngredientEditor(rows.length ? rows : [{ namn: "", mangder: { "4": "" } }]);
