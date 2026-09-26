@@ -10,7 +10,6 @@ const recipeSyncStatus = document.getElementById("recipeSyncStatus");
 let editingRecipeId = null;
 let recipes = [];
 const RECIPE_SCALE_OPTIONS = [4, 10, 25, 50, 100];
-const RECIPE_SERVING_OPTIONS = Array.from({ length: 30 }, (_, index) => (index + 1) * 5);
 const recipeServingSelections = new Map();
 
 function escapeRecipeHtml(value) {
@@ -74,6 +73,40 @@ function scaleAmount(amount, baseAmount, baseServings, targetServings) {
     return formatAmount(base.quantity * targetServings / baseServings, base.unit);
 }
 
+function scaleIngredientAmount(row, recipe, targetServings) {
+    const exactAmount = row.mangder?.[String(targetServings)];
+    const exactParsed = parseAmount(exactAmount);
+    if (exactAmount) return exactParsed ? formatAmount(exactParsed.quantity, exactParsed.unit) : exactAmount;
+
+    const points = RECIPE_SCALE_OPTIONS
+        .map(servings => ({ servings, parsed: parseAmount(row.mangder?.[String(servings)]) }))
+        .filter(point => point.parsed);
+    if (points.length < 2) {
+        const point = points[0];
+        return point ? scaleAmount("", row.mangder[String(point.servings)], point.servings, targetServings) : "";
+    }
+
+    let lower;
+    let upper;
+    if (targetServings <= points[0].servings) {
+        [lower, upper] = points.slice(0, 2);
+    } else if (targetServings >= points[points.length - 1].servings) {
+        [lower, upper] = points.slice(-2);
+    } else {
+        for (let index = 1; index < points.length; index += 1) {
+            if (points[index].servings >= targetServings) {
+                lower = points[index - 1];
+                upper = points[index];
+                break;
+            }
+        }
+    }
+
+    const ratio = (targetServings - lower.servings) / (upper.servings - lower.servings);
+    const quantity = lower.parsed.quantity + (upper.parsed.quantity - lower.parsed.quantity) * ratio;
+    return formatAmount(quantity, lower.parsed.unit || upper.parsed.unit);
+}
+
 function parseLegacyIngredient(value) {
     const text = String(value || "").trim();
     const match = text.match(/^(\d+(?:[.,]\d+)?(?:\s+\d+\/\d+)?|\d+\/\d+)\s*(ml|cl|dl|l|liter|mg|g|gram|kg|krm|tsk|msk|st)?\s+(.+)$/i);
@@ -109,7 +142,7 @@ function readIngredientRows() {
 
 function getRecipeTargetServings(recipe) {
     const selected = recipeServingSelections.get(recipe.id);
-    return RECIPE_SERVING_OPTIONS.includes(selected) ? selected : (RECIPE_SERVING_OPTIONS.includes(recipe.portioner) ? recipe.portioner : 4);
+    return Number.isFinite(selected) && selected >= 4 ? selected : (Number(recipe.portioner) >= 4 ? Number(recipe.portioner) : 4);
 }
 
 function renderRecipes() {
@@ -119,9 +152,8 @@ function renderRecipes() {
         const card = document.createElement("article");
         card.className = "recipe-card";
         const targetServings = getRecipeTargetServings(recipe);
-        const servingOptions = RECIPE_SERVING_OPTIONS.map(servings => `<option value="${servings}"${servings === targetServings ? " selected" : ""}>${servings} personer</option>`).join("");
-        const scaledIngredients = getIngredientRows(recipe).map(row => `${scaleAmount(row.mangder?.[String(targetServings)], row.mangder?.[String(recipe.portioner)] || row.mangder?.["4"], recipe.portioner, targetServings)} ${row.namn}`.trim());
-        card.innerHTML = `<div class="recipe-card-top"><span class="recipe-category">${escapeRecipeHtml(recipe.kategori)}</span><span class="recipe-difficulty recipe-difficulty--${recipe.svarighet.toLocaleLowerCase("sv-SE")}">${escapeRecipeHtml(recipe.svarighet)}</span></div><h2>${escapeRecipeHtml(recipe.namn)}</h2><p class="recipe-description">${escapeRecipeHtml(recipe.beskrivning || "Ett recept för scoutköket.")}</p><dl class="recipe-meta"><div><dt>Portioner</dt><dd>${targetServings}</dd></div><div><dt>Tid</dt><dd>${escapeRecipeHtml(recipe.tid || "- ")}</dd></div></dl><label class="recipe-serving-control"><span>Visa recept för</span><select data-recipe-servings="${recipe.id}" aria-label="Visa ${escapeRecipeHtml(recipe.namn)} för antal personer">${servingOptions}</select></label><details><summary>Visa recept</summary><div class="recipe-details"><h3>Ingredienser</h3><ul>${scaledIngredients.map(item => `<li>${escapeRecipeHtml(item)}</li>`).join("")}</ul><h3>Gör så här</h3><p>${escapeRecipeHtml(recipe.instruktioner).replace(/\n/g, "<br>")}</p></div></details><div class="recipe-card-actions"><button class="btn-secondary" type="button" data-edit-recipe="${recipe.id}">Redigera</button></div>`;
+        const scaledIngredients = getIngredientRows(recipe).map(row => `${scaleIngredientAmount(row, recipe, targetServings)} ${row.namn}`.trim());
+        card.innerHTML = `<div class="recipe-card-top"><span class="recipe-category">${escapeRecipeHtml(recipe.kategori)}</span><span class="recipe-difficulty recipe-difficulty--${recipe.svarighet.toLocaleLowerCase("sv-SE")}">${escapeRecipeHtml(recipe.svarighet)}</span></div><h2>${escapeRecipeHtml(recipe.namn)}</h2><p class="recipe-description">${escapeRecipeHtml(recipe.beskrivning || "Ett recept för scoutköket.")}</p><dl class="recipe-meta"><div><dt>Portioner</dt><dd>${targetServings}</dd></div><div><dt>Tid</dt><dd>${escapeRecipeHtml(recipe.tid || "- ")}</dd></div></dl><label class="recipe-serving-control"><span>Visa recept för</span><input data-recipe-servings="${recipe.id}" aria-label="Visa ${escapeRecipeHtml(recipe.namn)} för antal personer" type="number" min="4" step="1" value="${targetServings}"></label><details><summary>Visa recept</summary><div class="recipe-details"><h3>Ingredienser</h3><ul>${scaledIngredients.map(item => `<li>${escapeRecipeHtml(item)}</li>`).join("")}</ul><h3>Gör så här</h3><p>${escapeRecipeHtml(recipe.instruktioner).replace(/\n/g, "<br>")}</p></div></details><div class="recipe-card-actions"><button class="btn-secondary" type="button" data-edit-recipe="${recipe.id}">Redigera</button></div>`;
         return card;
     }));
 }

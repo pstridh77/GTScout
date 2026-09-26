@@ -35,7 +35,7 @@ body {
 .recipe-meta dt { color: #64748b; font-size: .72rem; text-transform: uppercase; }
 .recipe-meta dd { margin: 3px 0 0; color: #003660; font-weight: 700; }
 .recipe-serving-control { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; color: #536477; font-size: .84rem; font-weight: 700; }
-.recipe-serving-control select { min-width: 132px; padding: 7px 9px; border: 1px solid #c8d5e1; border-radius: 5px; background: #fff; color: #003660; font: inherit; }
+.recipe-serving-control input { width: 132px; box-sizing: border-box; padding: 7px 9px; border: 1px solid #c8d5e1; border-radius: 5px; background: #fff; color: #003660; font: inherit; }
 .recipe-card details { margin-top: auto; border-top: 1px solid #e5e7eb; padding-top: 12px; }
 .recipe-card summary { cursor: pointer; color: #176b72; font-weight: 700; }
 .recipe-details { color: #34495e; line-height: 1.55; }
