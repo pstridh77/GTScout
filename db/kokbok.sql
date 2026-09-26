@@ -9,6 +9,7 @@ create table if not exists public.kokbok_recept (
     kategori text not null default 'Övrigt',
     beskrivning text,
     ingredienser text[] not null default '{}',
+    ingredienser_skalningar jsonb not null default '[]'::jsonb,
     instruktioner text not null default '',
     portioner integer not null default 4 check (portioner > 0),
     tid text,
@@ -17,6 +18,9 @@ create table if not exists public.kokbok_recept (
     updated_at timestamptz not null default now(),
     constraint kokbok_recept_namn_not_blank check (length(trim(namn)) > 0)
 );
+
+alter table public.kokbok_recept
+    add column if not exists ingredienser_skalningar jsonb not null default '[]'::jsonb;
 
 create table if not exists public.kokbok_recept_kategorier (
     recept_id uuid not null references public.kokbok_recept(id) on delete cascade,

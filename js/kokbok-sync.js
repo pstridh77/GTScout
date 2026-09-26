@@ -19,6 +19,7 @@
             kategori: String(recipe?.kategori || "Övrigt").trim(),
             beskrivning: String(recipe?.beskrivning || "").trim(),
             ingredienser: Array.isArray(recipe?.ingredienser) ? recipe.ingredienser.map(String).map(value => value.trim()).filter(Boolean) : [],
+            ingredienser_skalningar: Array.isArray(recipe?.ingredienser_skalningar) ? recipe.ingredienser_skalningar.map(item => ({ namn: String(item?.namn || "").trim(), mangder: item?.mangder && typeof item.mangder === "object" ? Object.fromEntries(Object.entries(item.mangder).map(([key, value]) => [key, String(value || "").trim()]).filter(([, value]) => value)) : {} })).filter(item => item.namn) : [],
             instruktioner: String(recipe?.instruktioner || "").trim(),
             portioner: Math.max(1, Number(recipe?.portioner) || 4),
             tid: String(recipe?.tid || "").trim(),
@@ -47,7 +48,7 @@
     async function load() {
         if (!canRead()) return;
         try {
-            const { data, error } = await client().from("kokbok_recept").select("id, kar_id, created_by, namn, kategori, beskrivning, ingredienser, instruktioner, portioner, tid, svarighet, created_at, updated_at").order("namn");
+            const { data, error } = await client().from("kokbok_recept").select("id, kar_id, created_by, namn, kategori, beskrivning, ingredienser, ingredienser_skalningar, instruktioner, portioner, tid, svarighet, created_at, updated_at").order("namn");
             if (error) throw error;
             recipes = (data || []).map(normalize);
             writeLocal();
@@ -64,7 +65,7 @@
         if (index === -1) recipes.push(next); else recipes[index] = next;
         writeLocal();
         if (!canSync()) return { localOnly: true, recipe: next };
-        const row = { id: next.id, kar_id: karId(), created_by: next.created_by, namn: next.namn, kategori: next.kategori || null, beskrivning: next.beskrivning || null, ingredienser: next.ingredienser, instruktioner: next.instruktioner, portioner: next.portioner, tid: next.tid || null, svarighet: next.svarighet };
+        const row = { id: next.id, kar_id: karId(), created_by: next.created_by, namn: next.namn, kategori: next.kategori || null, beskrivning: next.beskrivning || null, ingredienser: next.ingredienser, ingredienser_skalningar: next.ingredienser_skalningar, instruktioner: next.instruktioner, portioner: next.portioner, tid: next.tid || null, svarighet: next.svarighet };
         const { error } = await client().from("kokbok_recept").upsert(row, { onConflict: "id" });
         if (error) throw error;
         return { recipe: next };

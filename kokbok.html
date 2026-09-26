@@ -73,12 +73,11 @@
                 <div class="recipe-form-grid">
                     <label class="modal-field"><span>Namn</span><input id="recipeName" type="text" maxlength="120" required></label>
                     <label class="modal-field"><span>Kategori</span><input id="recipeCategory" type="text" maxlength="60" list="recipeCategories" placeholder="t.ex. Middag eller Fika"><datalist id="recipeCategories"></datalist></label>
-                    <label class="modal-field"><span>Portioner</span><input id="recipeServings" type="number" min="1" max="999" step="1" value="4"></label>
                     <label class="modal-field"><span>Tid</span><input id="recipeTime" type="text" maxlength="60" placeholder="t.ex. 25 minuter"></label>
                     <label class="modal-field"><span>Svårighet</span><select id="recipeDifficulty"><option>Enkel</option><option>Medel</option><option>Avancerad</option></select></label>
                 </div>
                 <label class="modal-field"><span>Beskrivning</span><textarea id="recipeDescription" rows="2" maxlength="500" placeholder="Kort om när receptet passar."></textarea></label>
-                <label class="modal-field"><span>Ingredienser, en per rad</span><textarea id="recipeIngredients" rows="7" required placeholder="4 potatisar&#10;1 gul lök&#10;Salt och peppar"></textarea></label>
+                <div class="modal-field recipe-ingredients-field"><span>Ingredienser och mängder per skala</span><div id="recipeIngredientsEditor" class="recipe-ingredients-editor"></div><button id="addIngredientBtn" class="btn-secondary recipe-add-ingredient" type="button">+ Lägg till ingrediens</button></div>
                 <label class="modal-field"><span>Gör så här</span><textarea id="recipeInstructions" rows="8" required placeholder="Beskriv stegen i ordning."></textarea></label>
                 <p id="recipeFormStatus" class="detail-planning-status" role="status"></p>
                 <div class="modal-actions">
