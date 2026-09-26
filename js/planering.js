@@ -1898,7 +1898,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 window.addEventListener("load", startPrintFlow, { once: true });
                 if (document.readyState !== "loading") startPrintFlow();
                 window.addEventListener("afterprint", () => {
-                    if (printDialogShown) closePrintWindow();
+                    closePrintWindow();
                 }, { once: true });
             </script>
         </body>
