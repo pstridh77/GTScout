@@ -45,7 +45,7 @@ body {
 .recipe-details p { margin: 0; white-space: normal; }
 .recipe-card-actions { justify-content: flex-end; margin-top: 16px; }
 .recipe-share-icon-btn { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
-.recipe-share-icon-btn svg { width: 28px; height: 28px; }
+.recipe-share-icon-btn svg { width: 28px; height: 28px; flex: 0 0 28px; }
 .cookbook-empty { padding: 48px 20px; color: #64748b; text-align: center; }
 .recipe-form-grid { display: grid; grid-template-columns: 2fr 1.3fr 1fr 1fr; gap: 12px; }
 .recipe-ingredients-field > span { display: block; margin-bottom: 8px; }
