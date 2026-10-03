@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arrangemang – GTScout</title>
+    <link rel="icon" type="image/png" href="images/marken/koda.png">
+    <link rel="shortcut icon" type="image/png" href="images/marken/koda.png">
+    <link rel="apple-touch-icon" href="images/marken/koda.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="site-header site-header--planning site-header--arrangements">
+        <div class="utility-bar">
+            <span class="utility-spacer" aria-hidden="true"></span>
+            <nav class="utility-nav" aria-label="Externa länkar">
+                <a href="https://www.scouterna.se/" target="_blank" rel="noreferrer">Scouterna</a>
+                <a href="https://www.scoutnet.se/" target="_blank" rel="noreferrer">Scoutnet</a>
+                <a href="https://www.scoutshop.se/" target="_blank" rel="noreferrer">Scoutshop</a>
+            </nav>
+            <div id="authArea" class="auth-area"></div>
+        </div>
+        <div class="header-main">
+            <a class="site-brand" href="index.html" aria-label="Gullbrandstorps scoutkår">
+                <img src="images/icons/GTorp_banner.png" alt="Gullbrandstorps Scoutkår" class="site-brand-banner">
+            </a>
+            <nav class="main-nav" aria-label="Huvudnavigation">
+                <a href="index.html" class="nav-link">Märken</a>
+                <a href="planering.html" class="nav-link">Planering</a>
+                <a href="arrangemang.html" class="nav-link active" aria-current="page">Arrangemang</a>
+                <a href="kokbok.html" class="nav-link">Scoutrecept</a>
+                <a href="scouter.html" class="nav-link hidden" data-scout-navigation>Scouter</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="arrangements-page">
+        <section class="arrangements-heading" aria-labelledby="arrangementsTitle">
+            <div>
+                <p class="arrangements-kicker">Hajk · övernattning · läger</p>
+                <h1 id="arrangementsTitle">Arrangemang</h1>
+                <p>Samla datum, dagsprogram, mat och aktiviteter på ett ställe.</p>
+            </div>
+            <button id="addArrangementBtn" class="btn-primary" type="button">+ Nytt arrangemang</button>
+        </section>
+
+        <section class="arrangements-toolbar" aria-label="Filtrera arrangemang">
+            <label class="filter-field search-field">
+                <span>Sök arrangemang</span>
+                <input id="arrangementSearch" type="search" placeholder="Namn eller plats">
+            </label>
+            <label class="filter-field">
+                <span>Status</span>
+                <select id="arrangementStatusFilter">
+                    <option value="all">Alla statusar</option>
+                    <option value="planned">Planerade</option>
+                    <option value="completed">Genomförda</option>
+                    <option value="cancelled">Inställda</option>
+                </select>
+            </label>
+            <span id="arrangementSyncStatus" class="planning-sync-status" role="status" aria-live="polite"></span>
+        </section>
+
+        <div id="arrangementsEmpty" class="arrangements-empty hidden" role="status"></div>
+        <section id="arrangementsGrid" class="arrangements-grid" aria-label="Arrangemang"></section>
+    </main>
+
+    <div id="arrangementModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="arrangementModalTitle">
+        <form id="arrangementForm" class="modal-content modal-content--wide arrangement-form">
+            <button id="closeArrangementModal" class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2 id="arrangementModalTitle">Nytt arrangemang</h2>
+            <p id="arrangementLocalNotice" class="detail-note-warning hidden">Sparas lokalt i den här webbläsaren tills arrangemanget kan synkas.</p>
+
+            <div class="arrangement-form-grid">
+                <label class="modal-field arrangement-field-wide">
+                    <span>Namn</span>
+                    <input id="arrangementTitle" type="text" maxlength="120" required placeholder="Till exempel Vårhajk">
+                </label>
+                <fieldset class="arrangement-departments-field arrangement-field-wide">
+                    <legend>Avdelningar</legend>
+                    <p>Välj vilka avdelningar som deltar.</p>
+                    <div id="arrangementDepartments" class="arrangement-department-options"></div>
+                </fieldset>
+                <label class="modal-field">
+                    <span>Typ</span>
+                    <select id="arrangementType">
+                        <option>Hajk</option>
+                        <option>Övernattning</option>
+                        <option>Läger</option>
+                        <option>Utflykt</option>
+                        <option>Övrigt</option>
+                    </select>
+                </label>
+                <label class="modal-field">
+                    <span>Status</span>
+                    <select id="arrangementStatus">
+                        <option value="planned">Planerat</option>
+                        <option value="completed">Genomfört</option>
+                        <option value="cancelled">Inställt</option>
+                    </select>
+                </label>
+                <label class="modal-field">
+                    <span>Från</span>
+                    <input id="arrangementStartDate" type="date" required>
+                </label>
+                <label class="modal-field">
+                    <span>Till</span>
+                    <input id="arrangementEndDate" type="date" required>
+                </label>
+                <label class="modal-field">
+                    <span>Starttid</span>
+                    <input id="arrangementStartTime" type="time">
+                </label>
+                <label class="modal-field">
+                    <span>Sluttid</span>
+                    <input id="arrangementEndTime" type="time">
+                </label>
+                <label class="modal-field arrangement-field-wide">
+                    <span>Plats</span>
+                    <input id="arrangementLocation" type="text" maxlength="160" placeholder="Valfri plats">
+                </label>
+                <label class="modal-field arrangement-field-wide">
+                    <span>Koppla till terminsplanering (valfritt)</span>
+                    <select id="arrangementPlanningRef">
+                        <option value="">Ingen koppling</option>
+                    </select>
+                </label>
+            </div>
+
+            <section class="arrangement-agenda-editor" aria-labelledby="arrangementAgendaTitle">
+                <div class="arrangement-section-heading">
+                    <div>
+                        <h3 id="arrangementAgendaTitle">Dagsprogram</h3>
+                        <p>Markera om en post gäller alla avdelningar eller bara ett urval.</p>
+                    </div>
+                    <button id="addAgendaEntryBtn" class="btn-secondary" type="button">+ Lägg till post</button>
+                </div>
+                <div id="arrangementAgendaList" class="arrangement-agenda-list"></div>
+                <p id="arrangementAgendaEmpty" class="arrangement-agenda-empty">Inga programpunkter ännu.</p>
+            </section>
+
+            <label class="modal-field arrangement-field-wide">
+                <span>Anteckning efter arrangemanget</span>
+                <textarea id="arrangementAfterNotes" rows="4" placeholder="Vad fungerade bra? Vad vill ni göra annorlunda nästa gång?"></textarea>
+            </label>
+            <p id="arrangementFormStatus" class="detail-planning-status" role="status" aria-live="polite"></p>
+            <div class="modal-actions arrangement-form-actions">
+                <button id="deleteArrangementBtn" class="btn-danger hidden" type="button">Ta bort</button>
+                <span class="modal-actions-spacer"></span>
+                <button id="cancelArrangementBtn" class="btn-secondary" type="button">Avbryt</button>
+                <button id="saveArrangementBtn" class="btn-primary" type="submit">Spara arrangemang</button>
+            </div>
+        </form>
+    </div>
+
+    <footer class="site-footer" aria-label="Sidfot och version">
+        <div class="site-footer-content">
+            <span class="site-footer-title">GTScout</span>
+            <span class="site-footer-dot" aria-hidden="true">•</span>
+            <span class="site-footer-version">Arrangemang</span>
+            <span class="site-footer-dot" aria-hidden="true">•</span>
+            <span id="databaseEnvironment" class="database-environment"></span>
+        </div>
+    </footer>
+
+    <script src="js/supabase-config.js"></script>
+    <script src="js/supabase-config.local.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/activities-sync.js"></script>
+    <script src="js/kokbok-sync.js"></script>
+    <script src="js/arrangemang-sync.js"></script>
+    <script src="js/version.js"></script>
+    <script src="js/arrangemang.js"></script>
+</body>
+</html>

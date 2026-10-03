@@ -71,6 +71,117 @@ body {
 @media (max-width: 680px) { .recipe-ingredient-row { grid-template-columns: 1fr 34px; } .recipe-ingredient-row .recipe-ingredient-name { grid-column: 1 / -1; } .recipe-ingredient-amounts { grid-column: 1 / -1; } }
 @media (max-width: 520px) { .cookbook-page { width: min(100% - 20px, 1280px); margin-top: 20px; } .cookbook-hero { padding: 24px; } .cookbook-toolbar, .recipe-form-grid { grid-template-columns: 1fr; } .recipe-card { padding: 18px; } .recipe-ingredient-amounts { grid-template-columns: repeat(5, minmax(42px, 1fr)); gap: 3px; } }
 
+.arrangements-page { width: min(100% - 32px, 1240px); margin: 34px auto 54px; }
+.arrangements-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 26px; padding: 0 0 22px; border-bottom: 1px solid #cbd7dc; }
+.arrangements-heading h1 { margin: 0; color: #153c4a; font-size: 2.15rem; line-height: 1.1; }
+.arrangements-heading p:last-child { margin: 8px 0 0; color: #52636a; }
+.arrangements-kicker { margin: 0 0 8px; color: #a25235; font-size: .76rem; font-weight: 700; text-transform: uppercase; }
+.arrangements-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(170px, 240px) auto; align-items: end; gap: 14px; margin-bottom: 22px; }
+.arrangements-toolbar .filter-field { min-width: 0; }
+.arrangements-toolbar .planning-sync-status { justify-self: end; padding-bottom: 10px; color: #52636a; font-size: .82rem; }
+.arrangements-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); align-items: start; gap: 14px; }
+.arrangement-card { min-width: 0; padding: 18px; border: 1px solid #d1dbdc; border-top: 3px solid #4d8275; border-radius: 6px; background: #fff; }
+.arrangement-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.arrangement-card-type { margin: 0 0 6px; color: #a25235; font-size: .73rem; font-weight: 700; text-transform: uppercase; }
+.arrangement-card h2 { margin: 0; color: #153c4a; font-size: 1.22rem; overflow-wrap: anywhere; }
+.arrangement-status { flex: 0 0 auto; padding: 4px 7px; border-radius: 4px; background: #eef1f1; color: #52636a; font-size: .7rem; font-weight: 700; }
+.arrangement-status--planned { background: #e7f1ed; color: #24624e; }
+.arrangement-status--completed { background: #e5eef2; color: #315b6b; }
+.arrangement-status--cancelled { background: #f8eae5; color: #8e4634; }
+.arrangement-card-dates { margin: 14px 0 4px; color: #153c4a; font-weight: 700; }
+.arrangement-card-location, .arrangement-card-planning { margin: 5px 0; color: #52636a; font-size: .88rem; }
+.arrangement-card-agenda { display: grid; gap: 7px; margin: 15px 0 0; padding: 12px 0 0; border-top: 1px solid #e2e8e8; list-style: none; }
+.arrangement-card-agenda li { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; font-size: .84rem; }
+.arrangement-card-agenda time { color: #65767b; }
+.arrangement-card-agenda span { min-width: 0; color: #263c42; overflow-wrap: anywhere; }
+.arrangement-agenda-more, .arrangement-card-no-agenda { color: #65767b; font-size: .84rem; }
+.arrangement-card-no-agenda { margin: 14px 0 0; }
+.arrangement-card-actions { display: flex; align-items: center; gap: 8px; margin-top: 16px; padding-top: 12px; border-top: 1px solid #e2e8e8; }
+.arrangement-delete-icon, .agenda-entry-remove { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 1px solid #d7e1eb; border-radius: 5px; background: #fff; color: #8e4634; cursor: pointer; }
+.arrangement-delete-icon svg { width: 18px; height: 18px; }
+.arrangement-delete-icon:hover, .agenda-entry-remove:hover { background: #f8eae5; }
+.arrangements-empty { padding: 42px 20px; border-top: 1px solid #d1dbdc; color: #52636a; text-align: center; }
+.arrangement-form { display: flex; flex-direction: column; gap: 16px; }
+.arrangement-form h2 { margin: 0; color: #153c4a; }
+.arrangement-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.arrangement-field-wide { grid-column: 1 / -1; }
+.arrangement-form input, .arrangement-form select, .arrangement-form textarea { max-width: 100%; box-sizing: border-box; }
+.arrangement-departments-field { min-width: 0; margin: 0; padding: 12px; border: 1px solid #d1dbdc; border-radius: 5px; }
+.arrangement-departments-field legend { padding: 0 5px; color: #153c4a; font-size: .88rem; font-weight: 700; }
+.arrangement-departments-field p { margin: 0 0 9px; color: #65767b; font-size: .82rem; }
+.arrangement-department-options { display: flex; flex-wrap: wrap; gap: 7px; }
+.arrangement-department-choice { display: inline-flex; align-items: center; gap: 6px; min-width: 0; padding: 5px 8px; border: 1px solid #d1dbdc; border-radius: 4px; background: #fff; color: #263c42; font-size: .78rem; font-weight: 600; }
+.arrangement-department-choice input { width: 15px; height: 15px; margin: 0; accent-color: #286d60; }
+.arrangement-department-tag { display: inline-flex; align-items: center; padding: 4px 7px; border-radius: 3px; color: #fff; font-size: .7rem; font-weight: 700; }
+.department-tone-0 { --department-color: #3e9d38; --department-text: #fff; }
+.department-tone-1 { --department-color: #079dca; --department-text: #fff; }
+.department-tone-2 { --department-color: #c84c08; --department-text: #fff; }
+.department-tone-3 { --department-color: #ca0753; --department-text: #fff; }
+.department-tone-4 { --department-color: #b08a00; --department-text: #fff; }
+.department-tone-5 { --department-color: #5968a5; --department-text: #fff; }
+.arrangement-department-tag[class*="department-tone-"] { background: var(--department-color); color: var(--department-text); }
+.arrangement-participant-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.arrangement-card--wide { grid-column: 1 / -1; }
+.arrangement-schedule { display: grid; gap: 14px; margin-top: 15px; padding-top: 13px; border-top: 1px solid #dbe3e3; }
+.arrangement-day { min-width: 0; overflow-x: auto; }
+.arrangement-day + .arrangement-day { padding-top: 12px; border-top: 1px solid #dbe3e3; }
+.arrangement-day h3 { margin: 0 0 9px; color: #153c4a; font-size: .96rem; }
+.arrangement-schedule-header, .arrangement-schedule-row { display: grid; grid-template-columns: 54px minmax(0, 1fr); min-width: max-content; }
+.arrangement-schedule-header { align-items: end; margin-bottom: 4px; }
+.arrangement-schedule-header > span { padding: 5px 4px; color: #65767b; font-size: .68rem; font-weight: 700; text-transform: uppercase; }
+.arrangement-schedule-columns { display: grid; grid-template-columns: repeat(var(--department-count), minmax(100px, 1fr)); min-width: calc(var(--department-count) * 100px); }
+.arrangement-schedule-department { padding: 6px 7px; border-right: 1px solid rgba(255,255,255,.65); background: var(--department-color); color: var(--department-text); font-size: .72rem; font-weight: 700; overflow-wrap: anywhere; }
+.arrangement-schedule-row { border-top: 1px solid #dbe3e3; }
+.arrangement-schedule-row > time { padding: 7px 4px; color: #52636a; font-size: .72rem; font-weight: 700; white-space: nowrap; }
+.arrangement-schedule-shared { display: grid; grid-column: 2; gap: 1px; min-width: calc(var(--department-count) * 100px); }
+.arrangement-schedule-cell { display: grid; align-content: stretch; gap: 1px; min-width: 0; border-left: 1px solid #dbe3e3; background: #f0f3f2; }
+.arrangement-schedule-item { display: grid; align-content: center; gap: 2px; min-width: 0; min-height: 34px; padding: 5px 7px; border-right: 1px solid rgba(255,255,255,.55); color: var(--department-text); background: var(--department-color); font-size: .76rem; overflow-wrap: anywhere; }
+.arrangement-schedule-item strong { font-size: .75rem; }
+.arrangement-schedule-item small { font-size: .68rem; line-height: 1.3; }
+.arrangement-schedule-meal { font-size: .64rem; font-weight: 700; opacity: .9; }
+.arrangement-schedule-end { font-size: .67rem; font-weight: 700; }
+.arrangement-schedule-item--shared { grid-column: 1 / -1; --department-color: #123f60; --department-text: #fff; }
+.arrangement-day-empty { margin: 0; padding: 10px 0; color: #65767b; font-size: .82rem; }
+.arrangement-agenda-editor { padding-top: 14px; border-top: 1px solid #dbe3e3; }
+.arrangement-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.arrangement-section-heading h3 { margin: 0; color: #153c4a; font-size: 1.05rem; }
+.arrangement-section-heading p { margin: 5px 0 0; color: #65767b; font-size: .84rem; line-height: 1.4; }
+.arrangement-agenda-list { display: grid; gap: 10px; }
+.arrangement-agenda-entry { padding: 12px; border: 1px solid #d1dbdc; border-radius: 5px; background: #f7f9f8; }
+.arrangement-agenda-entry-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; color: #153c4a; }
+.arrangement-agenda-entry-top strong { min-width: 0; overflow-wrap: anywhere; }
+.agenda-entry-remove { width: 30px; height: 30px; flex: 0 0 30px; font-size: 1.2rem; }
+.arrangement-agenda-entry-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.agenda-entry-field { display: grid; min-width: 0; gap: 5px; color: #52636a; font-size: .76rem; font-weight: 700; }
+.agenda-entry-field input, .agenda-entry-field select { width: 100%; min-width: 0; padding: 8px; border: 1px solid #cbd7dc; border-radius: 4px; background: #fff; color: #153c4a; font: inherit; }
+.agenda-entry-title { grid-column: span 2; }
+.agenda-entry-notes { grid-column: span 2; }
+.agenda-entry-scope { display: grid; grid-column: 1 / -1; gap: 7px; color: #52636a; font-size: .76rem; font-weight: 700; }
+.agenda-shared-choice { display: inline-flex; align-items: center; gap: 6px; width: fit-content; color: #153c4a; }
+.agenda-shared-choice input { width: 15px; height: 15px; margin: 0; accent-color: #286d60; }
+.agenda-scope-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.agenda-scope-options .arrangement-department-choice { font-weight: 500; }
+.arrangement-agenda-empty { margin: 12px 0; color: #65767b; font-size: .86rem; }
+.arrangement-form-actions { margin-top: 0; }
+.arrangement-form-actions .btn-danger { margin-right: auto; }
+@media (max-width: 760px) {
+    .arrangements-toolbar { grid-template-columns: minmax(0, 1fr) minmax(150px, .7fr); }
+    .arrangements-toolbar .planning-sync-status { grid-column: 1 / -1; justify-self: start; padding: 0; }
+    .arrangement-agenda-entry-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .arrangement-card--wide { grid-column: 1 / -1; }
+}
+@media (max-width: 540px) {
+    .arrangements-page { width: min(100% - 20px, 1240px); margin-top: 22px; }
+    .arrangements-heading { align-items: flex-start; flex-direction: column; gap: 16px; }
+    .arrangements-heading h1 { font-size: 1.8rem; }
+    .arrangements-toolbar, .arrangement-form-grid { grid-template-columns: 1fr; }
+    .arrangement-field-wide { grid-column: auto; }
+    .arrangement-section-heading { align-items: flex-start; flex-direction: column; }
+    .arrangement-agenda-entry-grid { grid-template-columns: minmax(0, 1fr); }
+    .agenda-entry-title, .agenda-entry-notes { grid-column: auto; }
+    .arrangement-card-agenda li { grid-template-columns: 82px minmax(0, 1fr); gap: 6px; }
+}
+
 .scouts-page {
     width: min(100% - 32px, 1400px);
     margin: 32px auto 48px;
@@ -3289,6 +3400,19 @@ select:focus {
     .site-header--planning .main-nav {
         grid-column: 1 / -1;
         grid-row: 2;
+    }
+
+    .main-nav {
+        min-width: 0;
+        max-width: calc(100vw - 20px);
+        justify-content: flex-start;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+    }
+
+    .main-nav .nav-link {
+        flex: 0 0 auto;
+        white-space: nowrap;
     }
 
     .site-header--planning .library-header-actions {
