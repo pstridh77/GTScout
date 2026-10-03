@@ -37,11 +37,21 @@
                 source_type: ["recipe", "activity"].includes(entry.source_type) ? entry.source_type : "",
                 source_id: String(entry.source_id || ""),
                 shared: entry.shared !== false,
-                departments: Array.isArray(entry.departments) ? [...new Set(entry.departments.filter(department => departments.includes(department)))] : [],
+                departments: Array.isArray(entry.departments) ? [...new Set(entry.departments.filter(department => DEPARTMENTS.includes(department)))] : [],
                 title: String(entry.title || "").trim(),
                 notes: String(entry.notes || "").trim()
             };
         }).filter(entry => entry?.title) : [];
+        const responsibilities = Array.isArray(item.responsibilities) ? item.responsibilities.map(entry => {
+            const responsibility = {
+                id: String(entry?.id || crypto.randomUUID()),
+                person: String(entry?.person || "").trim(),
+                role: String(entry?.role || "").trim(),
+                role_description: String(entry?.role_description || "").trim(),
+                description: String(entry?.description || "").trim()
+            };
+            return responsibility;
+        }).filter(entry => entry.person || entry.role || entry.description) : [];
         return {
             id,
             title: String(item.title).trim(),
@@ -58,7 +68,9 @@
                 name: String(item.planning_ref.name || "")
             } : null,
             agenda,
-            after_notes: String(item.after_notes || "").trim(),
+            responsibilities,
+            notes: String(item.notes || "").trim(),
+            experience: String(item.experience || item.after_notes || "").trim(),
             created_by: item.created_by || null,
             local_only: Boolean(item.local_only),
             updated_at: String(item.updated_at || new Date().toISOString())
@@ -85,6 +97,7 @@
             ...item,
             departments: [...item.departments],
             agenda: item.agenda.map(entry => ({ ...entry, departments: [...entry.departments] })),
+            responsibilities: item.responsibilities.map(entry => ({ ...entry })),
             planning_ref: item.planning_ref ? { ...item.planning_ref } : null
         }));
     }

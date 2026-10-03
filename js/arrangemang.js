@@ -2,6 +2,9 @@ const arrangementsGrid = document.getElementById("arrangementsGrid");
 const arrangementsEmpty = document.getElementById("arrangementsEmpty");
 const arrangementModal = document.getElementById("arrangementModal");
 const arrangementForm = document.getElementById("arrangementForm");
+const arrangementResponsibilitiesList = document.getElementById("arrangementResponsibilitiesList");
+const arrangementResponsibilitiesEmpty = document.getElementById("arrangementResponsibilitiesEmpty");
+const roleLibraryStorageKey = "gtscout_arrangemang_roles";
 const arrangementAgendaList = document.getElementById("arrangementAgendaList");
 const arrangementAgendaEmpty = document.getElementById("arrangementAgendaEmpty");
 const arrangementSyncStatus = document.getElementById("arrangementSyncStatus");
@@ -10,9 +13,26 @@ let arrangements = [];
 let recipes = [];
 let activities = [];
 let draftAgenda = [];
+let draftResponsibilities = [];
 let planningOptions = [];
 const mealTypes = ["Frukost", "Lunch", "Mellanmål", "Middag", "Kvällsmål"];
 const departments = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
+let defaultRoleDefinitions = [];
+const defaultRoleDefinitionsLoaded = fetch("data/arrangemang-roller.json")
+    .then(response => {
+        if (!response.ok) throw new Error("Rollistan kunde inte hämtas.");
+        return response.json();
+    })
+    .then(roles => {
+        defaultRoleDefinitions = Array.isArray(roles)
+            ? roles.map(role => ({ name: String(role?.name || "").trim(), description: String(role?.description || "").trim() })).filter(role => role.name)
+            : [];
+        return defaultRoleDefinitions;
+    })
+    .catch(error => {
+        console.error("Kunde inte läsa standardroller för arrangemang", error);
+        return defaultRoleDefinitions;
+    });
 const statusLabels = { planned: "Planerat", completed: "Genomfört", cancelled: "Inställt" };
 
 function escapeArrangementHtml(value) {
@@ -55,6 +75,96 @@ function renderDepartmentOptions(selected = []) {
     ).join("");
 }
 
+function getCustomRoleDefinitions() {
+    try {
+        const stored = JSON.parse(localStorage.getItem(roleLibraryStorageKey) || "[]");
+        return Array.isArray(stored) ? stored.map(role => ({
+            name: String(role?.name || "").trim(),
+            description: String(role?.description || "").trim()
+        })).filter(role => role.name) : [];
+    } catch {
+        return [];
+    }
+}
+
+function getRoleDefinitions() {
+    const definitions = [...defaultRoleDefinitions, ...getCustomRoleDefinitions()];
+    arrangements.forEach(item => {
+        (item.responsibilities || []).forEach(entry => {
+            if (entry.role) definitions.push({ name: entry.role, description: entry.role_description || entry.description || "" });
+        });
+    });
+    const uniqueDefinitions = new Map();
+    definitions.forEach(role => {
+        const key = role.name.trim().toLocaleLowerCase("sv");
+        if (key && !uniqueDefinitions.has(key)) uniqueDefinitions.set(key, { name: role.name.trim(), description: role.description.trim() });
+    });
+    return [...uniqueDefinitions.values()];
+}
+
+function getRoleDefinition(name) {
+    return getRoleDefinitions().find(role => role.name === name) || null;
+}
+
+function getAssignedRoleCounts() {
+    const counts = new Map();
+    draftResponsibilities.forEach(entry => {
+        if (entry.role && entry.person.trim()) counts.set(entry.role, (counts.get(entry.role) || 0) + 1);
+    });
+    return counts;
+}
+
+function getNextUnassignedRole() {
+    const usedRoles = new Set(draftResponsibilities.map(entry => entry.role).filter(Boolean));
+    return getRoleDefinitions().find(role => !usedRoles.has(role.name)) || null;
+}
+
+function getRoleOptionLabel(role, count) {
+    if (!count) return role.name;
+    const assignedText = count === 1 ? "Tilldelad" : `Tilldelad (${count})`;
+    return `${role.name} · ${assignedText}`;
+}
+
+function renderResponsibilityList() {
+    const assignedRoleCounts = getAssignedRoleCounts();
+    const roleOptions = getRoleDefinitions().map(role => `<option value="${escapeArrangementHtml(role.name)}">${escapeArrangementHtml(getRoleOptionLabel(role, assignedRoleCounts.get(role.name) || 0))}</option>`).join("");
+    arrangementResponsibilitiesList.innerHTML = draftResponsibilities.map(entry =>
+        `<article class="arrangement-responsibility-entry" data-responsibility-id="${escapeArrangementHtml(entry.id)}" data-role-description="${escapeArrangementHtml(entry.role_description || "")}"><div class="arrangement-responsibility-entry-top"><strong>${escapeArrangementHtml(entry.person || "Ny ansvarspost")}${entry.role ? ` · ${escapeArrangementHtml(entry.role)}` : ""}</strong><button class="agenda-entry-remove" type="button" data-remove-responsibility="${escapeArrangementHtml(entry.id)}" aria-label="Ta bort ansvarspost" title="Ta bort ansvarspost">&times;</button></div><div class="arrangement-responsibility-grid"><label class="responsibility-field responsibility-field--role"><span>Roll</span><select data-responsibility-field="role">${roleOptions}<option value="">Fritextroll</option></select></label><label class="responsibility-field responsibility-field--person"><span>Ansvarig</span><input data-responsibility-field="person" type="text" maxlength="120" value="${escapeArrangementHtml(entry.person)}" placeholder="Namn" autocomplete="name"></label><label class="responsibility-field responsibility-field--description"><span>Rollbeskrivning/fritext</span><textarea data-responsibility-field="description" rows="2" maxlength="600" placeholder="Ansvar, samordning, tider och övriga detaljer">${escapeArrangementHtml(entry.description)}</textarea></label></div></article>`
+    ).join("");
+    arrangementResponsibilitiesList.querySelectorAll("[data-responsibility-field='role']").forEach(select => {
+        const row = select.closest(".arrangement-responsibility-entry");
+        select.value = draftResponsibilities.find(entry => entry.id === row.dataset.responsibilityId)?.role || "";
+    });
+    arrangementResponsibilitiesEmpty.classList.toggle("hidden", draftResponsibilities.length > 0);
+}
+
+function refreshAssignedRoleLabels() {
+    const assignedRoleCounts = getAssignedRoleCounts();
+    arrangementResponsibilitiesList.querySelectorAll("[data-responsibility-field='role'] option").forEach(option => {
+        if (!option.value) return;
+        const definition = getRoleDefinition(option.value);
+        if (definition) option.textContent = getRoleOptionLabel(definition, assignedRoleCounts.get(option.value) || 0);
+    });
+}
+
+function readResponsibilitiesFromDom() {
+    return [...arrangementResponsibilitiesList.querySelectorAll(".arrangement-responsibility-entry")].map(row => {
+        const value = field => row.querySelector(`[data-responsibility-field="${field}"]`)?.value.trim() || "";
+        const entry = {
+            id: row.dataset.responsibilityId,
+            person: value("person"),
+            role: value("role"),
+            role_description: row.dataset.roleDescription || "",
+            description: value("description")
+        };
+        return entry;
+    }).filter(entry => entry.person || entry.role || entry.description);
+}
+
+function syncDraftResponsibilities() {
+    draftResponsibilities = readResponsibilitiesFromDom();
+}
+
 function renderArrangementSchedule(item) {
     const selectedDepartments = item.departments?.length ? item.departments : departments;
     const departmentCount = selectedDepartments.length;
@@ -65,12 +175,12 @@ function renderArrangementSchedule(item) {
             const timeLabel = time || "Heldag";
             const rowEntries = entries.filter(entry => (entry.time || "") === time);
             const sharedEntries = rowEntries.filter(entry => entry.shared !== false);
-            const scopedEntries = rowEntries.filter(entry => entry.shared === false);
+            const scopedEntries = rowEntries.filter(entry => entry.shared === false && entry.departments.some(department => selectedDepartments.includes(department)));
             const sharedRow = sharedEntries.length
-                ? `<div class="arrangement-schedule-row arrangement-schedule-row--shared" style="--department-count:${departmentCount}"><time>${escapeArrangementHtml(timeLabel)}</time><div class="arrangement-schedule-shared">${sharedEntries.map(entry => renderScheduleEntry(entry)).join("")}</div></div>`
+                ? `<div class="arrangement-schedule-row arrangement-schedule-row--shared" style="--department-count:${departmentCount}"><time>${escapeArrangementHtml(timeLabel)}</time><div class="arrangement-schedule-shared">${sharedEntries.map(entry => renderScheduleEntry(entry, null, item.id, isArrangementEditable(item))).join("")}</div></div>`
                 : "";
             const departmentRow = scopedEntries.length
-                ? `<div class="arrangement-schedule-row"><time>${escapeArrangementHtml(timeLabel)}</time><div class="arrangement-schedule-columns" style="--department-count:${departmentCount}">${selectedDepartments.map(department => { const tone = departments.indexOf(department); return `<div class="arrangement-schedule-cell department-tone-${tone}">${scopedEntries.filter(entry => entry.departments.includes(department)).map(entry => renderScheduleEntry(entry, tone)).join("")}</div>`; }).join("")}</div></div>`
+                ? `<div class="arrangement-schedule-row"><time>${escapeArrangementHtml(timeLabel)}</time><div class="arrangement-schedule-columns" style="--department-count:${departmentCount}">${selectedDepartments.map(department => { const tone = departments.indexOf(department); return `<div class="arrangement-schedule-cell department-tone-${tone}">${scopedEntries.filter(entry => entry.departments.includes(department)).map(entry => renderScheduleEntry(entry, tone, item.id, isArrangementEditable(item))).join("")}</div>`; }).join("")}</div></div>`
                 : "";
             return sharedRow + departmentRow;
         }).join("");
@@ -80,12 +190,14 @@ function renderArrangementSchedule(item) {
     return `<div class="arrangement-schedule">${scheduleDays}</div>`;
 }
 
-function renderScheduleEntry(entry, departmentIndex = null) {
+function renderScheduleEntry(entry, departmentIndex = null, arrangementId = "", canEdit = false) {
     const tone = departmentIndex === null ? "arrangement-schedule-item--shared" : `department-tone-${departmentIndex}`;
     const meal = entry.kind === "meal" && entry.meal_type ? `<span class="arrangement-schedule-meal">${escapeArrangementHtml(entry.meal_type)}</span>` : "";
     const endTime = entry.end_time ? `<span class="arrangement-schedule-end">Slut ${escapeArrangementHtml(entry.end_time)}</span>` : "";
     const notes = entry.notes ? `<small>${escapeArrangementHtml(entry.notes)}</small>` : "";
-    return `<article class="arrangement-schedule-item ${tone}">${meal}<strong>${escapeArrangementHtml(entry.title)}</strong>${endTime}${notes}</article>`;
+    const actionLabel = entry.kind === "activity" ? "Redigera aktivitet" : entry.kind === "meal" ? "Redigera måltid" : "Redigera programpunkt";
+    const editAttributes = canEdit ? `data-edit-agenda="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(arrangementId)}" aria-label="${actionLabel}: ${escapeArrangementHtml(entry.title)}" title="Klicka för att redigera"` : "disabled aria-disabled=\"true\"";
+    return `<button type="button" class="arrangement-schedule-item ${tone}" ${editAttributes}>${meal}<strong>${escapeArrangementHtml(entry.title)}</strong>${endTime}${notes}</button>`;
 }
 
 function renderArrangements() {
@@ -100,11 +212,14 @@ function renderArrangements() {
         const participantTags = item.departments.map((department, index) => `<span class="arrangement-department-tag department-tone-${departments.indexOf(department)}">${escapeArrangementHtml(department)}</span>`).join("");
         const agendaHtml = item.agenda.length ? renderArrangementSchedule(item) : `<p class="arrangement-card-no-agenda">Inget dagsprogram tillagt.</p>`;
         const link = item.planning_ref?.name ? `<p class="arrangement-card-planning">Planering: ${escapeArrangementHtml(item.planning_ref.name)}</p>` : "";
+        const responsibilityHtml = item.responsibilities.length
+            ? `<details class="arrangement-responsibilities-summary"><summary>Ansvariga och roller (${item.responsibilities.length})</summary><div class="arrangement-responsibilities-summary-list">${item.responsibilities.map(entry => `<article class="arrangement-responsibility-summary-item"><h3>${escapeArrangementHtml(entry.person || "Ansvarspost")}</h3><p class="arrangement-responsibility-role">${escapeArrangementHtml(entry.role || "Fritextbeskrivning")}</p>${entry.description || entry.role_description ? `<p class="arrangement-responsibility-description">${escapeArrangementHtml(entry.description || entry.role_description)}</p>` : ""}</article>`).join("")}</div></details>`
+            : "";
         const cardWidth = item.departments.length > 2 ? " arrangement-card--wide" : "";
         const actions = isArrangementEditable(item)
             ? `<div class="arrangement-card-actions"><button class="btn-secondary" type="button" data-edit-arrangement="${escapeArrangementHtml(item.id)}">Redigera</button><button class="arrangement-delete-icon" type="button" data-delete-arrangement="${escapeArrangementHtml(item.id)}" aria-label="Ta bort ${escapeArrangementHtml(item.title)}" title="Ta bort arrangemang"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button></div>`
             : "";
-        return `<article class="arrangement-card${cardWidth}"><div class="arrangement-card-top"><div><p class="arrangement-card-type">${escapeArrangementHtml(item.type)}</p><h2>${escapeArrangementHtml(item.title)}</h2></div><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates">${escapeArrangementHtml(formatDateSpan(item))}${item.start_time ? ` · ${escapeArrangementHtml(item.start_time)}` : ""}${item.end_time ? `–${escapeArrangementHtml(item.end_time)}` : ""}</p>${item.location ? `<p class="arrangement-card-location">${escapeArrangementHtml(item.location)}</p>` : ""}<div class="arrangement-participant-tags">${participantTags}</div>${link}${agendaHtml}${actions}</article>`;
+        return `<article class="arrangement-card${cardWidth}"><div class="arrangement-card-top"><div><p class="arrangement-card-type">${escapeArrangementHtml(item.type)}</p><h2>${escapeArrangementHtml(item.title)}</h2></div><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates">${escapeArrangementHtml(formatDateSpan(item))}${item.start_time ? ` · ${escapeArrangementHtml(item.start_time)}` : ""}${item.end_time ? `–${escapeArrangementHtml(item.end_time)}` : ""}</p>${item.location ? `<p class="arrangement-card-location">${escapeArrangementHtml(item.location)}</p>` : ""}<div class="arrangement-participant-tags">${participantTags}</div>${link}${responsibilityHtml}${agendaHtml}${actions}</article>`;
     }).join("");
 
     arrangementsEmpty.classList.toggle("hidden", visible.length > 0);
@@ -148,8 +263,15 @@ function renderAgendaEditor() {
         const mealField = entry.kind === "meal" ? `<label class="agenda-entry-field"><span>Måltid</span><select data-agenda-field="meal_type">${mealTypes.map(type => `<option${entry.meal_type === type ? " selected" : ""}>${type}</option>`).join("")}</select></label>` : "";
         const sourceField = entry.kind === "program" ? "" : `<label class="agenda-entry-field"><span>${entry.kind === "meal" ? "Recept" : "Aktivitet"}</span><select data-agenda-field="source">${getCatalogOptions(entry.kind, entry.source_type, entry.source_id)}</select></label>`;
         const shared = entry.shared !== false;
-        const scopeOptions = selectedDepartments.map((department, index) => `<label class="arrangement-department-choice department-tone-${departments.indexOf(department)}"><input class="agenda-department-target" type="checkbox" value="${escapeArrangementHtml(department)}"${entry.departments?.includes(department) ? " checked" : ""}><span>${escapeArrangementHtml(department)}</span></label>`).join("");
-        const scopeField = `<div class="agenda-entry-scope"><span>Gäller</span><label class="agenda-shared-choice"><input data-agenda-field="shared" type="checkbox"${shared ? " checked" : ""}>Gemensamt för alla</label><div class="agenda-scope-options${shared ? " hidden" : ""}">${scopeOptions}</div></div>`;
+        const scopeOptions = departments.map(department => {
+            const isActive = selectedDepartments.includes(department);
+            const isChecked = entry.departments?.includes(department);
+            return `<label class="arrangement-department-choice department-tone-${departments.indexOf(department)}"><input class="agenda-department-target" type="checkbox" value="${escapeArrangementHtml(department)}"${isChecked ? " checked" : ""}${isActive ? "" : " disabled"}><span>${escapeArrangementHtml(department)}</span></label>`;
+        }).join("");
+        const inactiveScopeNote = !shared && entry.departments?.some(department => !selectedDepartments.includes(department))
+            ? `<small class="agenda-scope-hidden-note">Posten visas bara om dess avdelning väljs för arrangemanget.</small>`
+            : "";
+        const scopeField = `<div class="agenda-entry-scope"><span>Gäller</span><label class="agenda-shared-choice"><input data-agenda-field="shared" type="checkbox"${shared ? " checked" : ""}>Gemensamt för alla</label><div class="agenda-scope-options${shared ? " hidden" : ""}">${scopeOptions}</div>${inactiveScopeNote}</div>`;
         return `<article class="arrangement-agenda-entry" data-agenda-id="${escapeArrangementHtml(entry.id)}"><div class="arrangement-agenda-entry-top"><strong>${escapeArrangementHtml(entry.title || (entry.kind === "meal" ? "Måltid" : entry.kind === "activity" ? "Aktivitet" : "Programpunkt"))}</strong><button class="agenda-entry-remove" type="button" data-remove-agenda="${escapeArrangementHtml(entry.id)}" aria-label="Ta bort programpunkt" title="Ta bort programpunkt">&times;</button></div><div class="arrangement-agenda-entry-grid"><label class="agenda-entry-field"><span>Datum</span><input data-agenda-field="date" type="date" min="${escapeArrangementHtml(startDate)}" max="${escapeArrangementHtml(endDate)}" value="${escapeArrangementHtml(entry.date)}" required></label><label class="agenda-entry-field"><span>Start</span><input data-agenda-field="time" type="time" value="${escapeArrangementHtml(entry.time)}"></label><label class="agenda-entry-field"><span>Slut</span><input data-agenda-field="end_time" type="time" value="${escapeArrangementHtml(entry.end_time || "")}"></label><label class="agenda-entry-field"><span>Typ</span><select data-agenda-field="kind"><option value="meal"${entry.kind === "meal" ? " selected" : ""}>Mat</option><option value="activity"${entry.kind === "activity" ? " selected" : ""}>Aktivitet</option><option value="program"${entry.kind === "program" ? " selected" : ""}>Program</option></select></label>${mealField}${sourceField}<label class="agenda-entry-field agenda-entry-title"><span>Namn</span><input data-agenda-field="title" type="text" maxlength="160" value="${escapeArrangementHtml(entry.title)}" required placeholder="Till exempel lägerbål"></label><label class="agenda-entry-field agenda-entry-notes"><span>Anteckning</span><input data-agenda-field="notes" type="text" maxlength="240" value="${escapeArrangementHtml(entry.notes)}" placeholder="Valfri notering"></label>${scopeField}</div></article>`;
     }).join("");
     arrangementAgendaEmpty.classList.toggle("hidden", draftAgenda.length > 0);
@@ -181,7 +303,8 @@ function syncDraftAgenda() {
     draftAgenda = readAgendaFromDom();
 }
 
-function openArrangementEditor(item = null) {
+async function openArrangementEditor(item = null, focusAgendaId = "") {
+    await defaultRoleDefinitionsLoaded;
     const form = arrangementForm;
     form.dataset.arrangementId = item?.id || "";
     document.getElementById("arrangementModalTitle").textContent = item ? "Redigera arrangemang" : "Nytt arrangemang";
@@ -193,16 +316,28 @@ function openArrangementEditor(item = null) {
     document.getElementById("arrangementStartTime").value = item?.start_time || "";
     document.getElementById("arrangementEndTime").value = item?.end_time || "";
     document.getElementById("arrangementLocation").value = item?.location || "";
-    document.getElementById("arrangementAfterNotes").value = item?.after_notes || "";
+    document.getElementById("arrangementNotes").value = item?.notes || "";
+    document.getElementById("arrangementExperience").value = item?.experience || item?.after_notes || "";
     document.getElementById("arrangementFormStatus").textContent = "";
     document.getElementById("deleteArrangementBtn").classList.toggle("hidden", !item);
     document.getElementById("arrangementLocalNotice").classList.toggle("hidden", window.GTScoutArrangements?.canWrite());
     renderDepartmentOptions(item?.departments?.length ? item.departments : departments);
     populatePlanningOptions(item?.planning_ref?.id || "");
+    draftResponsibilities = (item?.responsibilities || []).map(entry => {
+        const roleDescription = entry.role_description || getRoleDefinition(entry.role)?.description || "";
+        return { ...entry, role_description: roleDescription, description: entry.description || roleDescription };
+    });
+    renderResponsibilityList();
     draftAgenda = (item?.agenda || []).map(entry => ({ ...entry }));
     renderAgendaEditor();
     arrangementModal.classList.remove("hidden");
-    document.getElementById("arrangementTitle").focus();
+    if (focusAgendaId) {
+        const row = [...arrangementAgendaList.querySelectorAll(".arrangement-agenda-entry")].find(entry => entry.dataset.agendaId === focusAgendaId);
+        row?.scrollIntoView({ block: "center" });
+        row?.querySelector('[data-agenda-field="title"]')?.focus();
+    } else {
+        document.getElementById("arrangementTitle").focus();
+    }
 }
 
 function updateSyncStatus() {
@@ -231,13 +366,21 @@ function readFormPayload() {
         departments: getSelectedArrangementDepartments(),
         planning_ref: planning ? { id: planning.id, name: planning.name } : null,
         agenda: readAgendaFromDom(),
-        after_notes: document.getElementById("arrangementAfterNotes").value.trim()
+        responsibilities: readResponsibilitiesFromDom(),
+        notes: document.getElementById("arrangementNotes").value.trim(),
+        experience: document.getElementById("arrangementExperience").value.trim()
     };
 }
 
 arrangementsGrid.addEventListener("click", async event => {
     const editButton = event.target.closest("[data-edit-arrangement]");
+    const agendaButton = event.target.closest("[data-edit-agenda]");
     const deleteButton = event.target.closest("[data-delete-arrangement]");
+    if (agendaButton) {
+        const item = arrangements.find(arrangement => arrangement.id === agendaButton.dataset.arrangementId);
+        if (item && isArrangementEditable(item)) openArrangementEditor(item, agendaButton.dataset.editAgenda);
+        return;
+    }
     if (editButton) {
         const item = arrangements.find(arrangement => arrangement.id === editButton.dataset.editArrangement);
         if (item && isArrangementEditable(item)) openArrangementEditor(item);
@@ -262,6 +405,86 @@ arrangementModal.addEventListener("click", event => {
     if (event.target === arrangementModal) arrangementModal.classList.add("hidden");
 });
 
+document.getElementById("addResponsibilityBtn").addEventListener("click", () => {
+    syncDraftResponsibilities();
+    const nextRole = getNextUnassignedRole();
+    draftResponsibilities.push({
+        id: crypto.randomUUID(),
+        person: "",
+        role: nextRole?.name || "",
+        role_description: nextRole?.description || "",
+        description: nextRole?.description || ""
+    });
+    renderResponsibilityList();
+    arrangementResponsibilitiesList.querySelector(".arrangement-responsibility-entry:last-child [data-responsibility-field='role']")?.focus();
+});
+
+arrangementResponsibilitiesList.addEventListener("input", () => {
+    syncDraftResponsibilities();
+    refreshAssignedRoleLabels();
+});
+arrangementResponsibilitiesList.addEventListener("change", event => {
+    const roleSelect = event.target.closest('[data-responsibility-field="role"]');
+    if (!roleSelect) return;
+    syncDraftResponsibilities();
+    const row = roleSelect.closest(".arrangement-responsibility-entry");
+    const responsibility = draftResponsibilities.find(entry => entry.id === row.dataset.responsibilityId);
+    if (!responsibility) return;
+    const definition = getRoleDefinition(responsibility.role);
+    responsibility.role_description = definition?.description || "";
+    responsibility.description = definition?.description || "";
+    row.dataset.roleDescription = responsibility.role_description;
+    row.querySelector('[data-responsibility-field="description"]').value = responsibility.description;
+    row.querySelector(".arrangement-responsibility-entry-top strong").textContent = `${responsibility.person || "Ny ansvarspost"}${responsibility.role ? ` · ${responsibility.role}` : ""}`;
+    refreshAssignedRoleLabels();
+});
+arrangementResponsibilitiesList.addEventListener("click", event => {
+    const removeButton = event.target.closest("[data-remove-responsibility]");
+    if (!removeButton) return;
+    syncDraftResponsibilities();
+    draftResponsibilities = draftResponsibilities.filter(entry => entry.id !== removeButton.dataset.removeResponsibility);
+    renderResponsibilityList();
+});
+
+const customRoleForm = document.getElementById("customRoleForm");
+const toggleRoleLibraryBtn = document.getElementById("toggleRoleLibraryBtn");
+toggleRoleLibraryBtn.addEventListener("click", () => {
+    const shouldShow = customRoleForm.classList.contains("hidden");
+    customRoleForm.classList.toggle("hidden", !shouldShow);
+    toggleRoleLibraryBtn.setAttribute("aria-expanded", String(shouldShow));
+    document.getElementById("customRoleStatus").textContent = "";
+    if (shouldShow) document.getElementById("customRoleName").focus();
+});
+
+document.getElementById("cancelCustomRoleBtn").addEventListener("click", () => {
+    customRoleForm.classList.add("hidden");
+    toggleRoleLibraryBtn.setAttribute("aria-expanded", "false");
+});
+
+document.getElementById("saveCustomRoleBtn").addEventListener("click", () => {
+    const name = document.getElementById("customRoleName").value.trim();
+    const description = document.getElementById("customRoleDescription").value.trim();
+    const status = document.getElementById("customRoleStatus");
+    if (!name) {
+        status.textContent = "Skriv ett namn på rollen.";
+        document.getElementById("customRoleName").focus();
+        return;
+    }
+    if (getRoleDefinitions().some(role => role.name.toLocaleLowerCase("sv") === name.toLocaleLowerCase("sv"))) {
+        status.textContent = "Rollen finns redan i listan.";
+        document.getElementById("customRoleName").focus();
+        return;
+    }
+    const customRoles = [...getCustomRoleDefinitions(), { name, description }];
+    localStorage.setItem(roleLibraryStorageKey, JSON.stringify(customRoles));
+    syncDraftResponsibilities();
+    renderResponsibilityList();
+    customRoleForm.classList.add("hidden");
+    toggleRoleLibraryBtn.setAttribute("aria-expanded", "false");
+    document.getElementById("customRoleName").value = "";
+    document.getElementById("customRoleDescription").value = "";
+});
+
 document.getElementById("addAgendaEntryBtn").addEventListener("click", () => {
     syncDraftAgenda();
     const startDate = document.getElementById("arrangementStartDate").value || new Date().toISOString().slice(0, 10);
@@ -271,13 +494,6 @@ document.getElementById("addAgendaEntryBtn").addEventListener("click", () => {
 
 document.getElementById("arrangementDepartments").addEventListener("change", () => {
     syncDraftAgenda();
-    const selected = getSelectedArrangementDepartments();
-    draftAgenda.forEach(entry => {
-        if (entry.shared === false) {
-            entry.departments = entry.departments.filter(department => selected.includes(department));
-            if (!entry.departments.length) entry.shared = true;
-        }
-    });
     renderAgendaEditor();
 });
 
@@ -348,8 +564,12 @@ arrangementForm.addEventListener("submit", async event => {
         status.textContent = "Slutdatum kan inte vara före startdatum.";
         return;
     }
-    if (payload.agenda.some(entry => !entry.title || entry.date < payload.start_date || entry.date > payload.end_date || (entry.shared === false && !entry.departments.length) || entry.departments.some(department => !payload.departments.includes(department)))) {
+    if (payload.agenda.some(entry => !entry.title || entry.date < payload.start_date || entry.date > payload.end_date || (entry.shared === false && !entry.departments.length) || entry.departments.some(department => !departments.includes(department)))) {
         status.textContent = "Kontrollera namn, tider och avdelningar för varje programpunkt.";
+        return;
+    }
+    if (payload.responsibilities.some(entry => entry.role ? !entry.person : !entry.description)) {
+        status.textContent = "Fyll i ansvarig för vald roll eller skriv en fritextbeskrivning.";
         return;
     }
     const existing = arrangements.find(item => item.id === payload.id);

@@ -81,6 +81,10 @@
                     <p>Välj vilka avdelningar som deltar.</p>
                     <div id="arrangementDepartments" class="arrangement-department-options"></div>
                 </fieldset>
+                <label class="modal-field arrangement-field-wide">
+                    <span>Anteckningar</span>
+                    <textarea id="arrangementNotes" rows="3" placeholder="Skriv sådant som är bra att ha samlat inför arrangemanget."></textarea>
+                </label>
                 <label class="modal-field">
                     <span>Typ</span>
                     <select id="arrangementType">
@@ -127,6 +131,27 @@
                 </label>
             </div>
 
+            <section class="arrangement-responsibilities-editor" aria-labelledby="arrangementResponsibilitiesTitle">
+                <div class="arrangement-section-heading">
+                    <div>
+                        <h3 id="arrangementResponsibilitiesTitle">Ansvariga och roller</h3>
+                        <p>Lägg till en post per roll. Samma person kan ha flera roller.</p>
+                    </div>
+                    <div class="arrangement-responsibility-actions">
+                        <button id="toggleRoleLibraryBtn" class="btn-secondary" type="button" aria-expanded="false" aria-controls="customRoleForm">+ Ny roll</button>
+                        <button id="addResponsibilityBtn" class="btn-primary" type="button">+ Lägg till ansvarig</button>
+                    </div>
+                </div>
+                <div id="customRoleForm" class="arrangement-role-form hidden">
+                    <label class="responsibility-field"><span>Rollnamn</span><input id="customRoleName" type="text" maxlength="120" placeholder="Till exempel Kommunikationsansvarig"></label>
+                    <label class="responsibility-field"><span>Standardbeskrivning</span><textarea id="customRoleDescription" rows="2" maxlength="600" placeholder="Vilket ansvarsområde hör till rollen?"></textarea></label>
+                    <div class="arrangement-role-form-actions"><button id="cancelCustomRoleBtn" class="btn-secondary" type="button">Avbryt</button><button id="saveCustomRoleBtn" class="btn-primary" type="button">Spara i rollistan</button></div>
+                    <p id="customRoleStatus" class="detail-planning-status" role="status" aria-live="polite"></p>
+                </div>
+                <div id="arrangementResponsibilitiesList" class="arrangement-responsibilities-list"></div>
+                <p id="arrangementResponsibilitiesEmpty" class="arrangement-responsibilities-empty">Inga ansvariga tillagda.</p>
+            </section>
+
             <section class="arrangement-agenda-editor" aria-labelledby="arrangementAgendaTitle">
                 <div class="arrangement-section-heading">
                     <div>
@@ -140,8 +165,8 @@
             </section>
 
             <label class="modal-field arrangement-field-wide">
-                <span>Anteckning efter arrangemanget</span>
-                <textarea id="arrangementAfterNotes" rows="4" placeholder="Vad fungerade bra? Vad vill ni göra annorlunda nästa gång?"></textarea>
+                <span>Erfarenheter efter arrangemanget</span>
+                <textarea id="arrangementExperience" rows="4" placeholder="Vad fungerade bra och vad vill ni ändra till nästa gång?"></textarea>
             </label>
             <p id="arrangementFormStatus" class="detail-planning-status" role="status" aria-live="polite"></p>
             <div class="modal-actions arrangement-form-actions">
