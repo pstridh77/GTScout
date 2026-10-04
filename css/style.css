@@ -150,10 +150,15 @@ body {
 .arrangement-schedule-slot:focus-visible { z-index: 1; outline: 2px solid #f2c94c; outline-offset: -2px; }
 .arrangement-schedule-slot:disabled { cursor: default; }
 .arrangement-schedule-event { z-index: 1; display: grid; grid-template-rows: minmax(0, 1fr); justify-self: start; align-self: stretch; width: var(--lane-width); min-width: 0; margin-left: var(--lane-offset); box-sizing: border-box; overflow: hidden; }
+.arrangement-schedule-event--dragging { z-index: 5; overflow: visible; opacity: .9; filter: drop-shadow(0 3px 5px rgba(0, 0, 0, .25)); }
 .arrangement-schedule-event--short .arrangement-schedule-item { padding: 0 4px; }
 .arrangement-schedule-event--short .arrangement-schedule-item strong { font-size: .63rem; line-height: 1; }
 .arrangement-schedule-event--short .arrangement-schedule-meal, .arrangement-schedule-event--short .arrangement-schedule-end, .arrangement-schedule-event--short .arrangement-schedule-notes { display: none; }
-.arrangement-schedule-item { display: grid; width: 100%; height: 100%; box-sizing: border-box; align-content: start; justify-items: center; gap: 2px; min-width: 0; min-height: 0; padding: 3px 7px; border: 0; border-top: 1px solid rgba(255,255,255,.8); border-right: 1px solid rgba(255,255,255,.55); color: var(--department-text); background: var(--department-color); font-family: inherit; font-size: .76rem; line-height: 1.15; text-align: center; overflow: hidden; overflow-wrap: anywhere; cursor: pointer; }
+.arrangement-schedule-item { position: relative; display: grid; width: 100%; height: 100%; box-sizing: border-box; align-content: start; justify-items: center; gap: 2px; min-width: 0; min-height: 0; padding: 3px 7px; border: 0; border-top: 1px solid rgba(255,255,255,.8); border-right: 1px solid rgba(255,255,255,.55); color: var(--department-text); background: var(--department-color); font-family: inherit; font-size: .76rem; line-height: 1.15; text-align: center; overflow: hidden; overflow-wrap: anywhere; cursor: pointer; }
+.arrangement-schedule-drag-handle { position: absolute; top: 2px; right: 3px; z-index: 2; width: 14px; height: 14px; border-radius: 3px; background-color: var(--department-color); background-image: radial-gradient(circle, currentColor 1px, transparent 1.2px); background-position: center; background-size: 4px 4px; opacity: .8; cursor: grab; touch-action: none; }
+.arrangement-schedule-resize-handle { position: absolute; right: 0; bottom: 0; left: 0; z-index: 2; height: 8px; cursor: ns-resize; touch-action: none; }
+.arrangement-schedule-resize-handle::after { position: absolute; bottom: 2px; left: 50%; width: 22px; height: 2px; border-radius: 2px; background: var(--department-text); content: ""; opacity: .75; transform: translateX(-50%); }
+.arrangement-schedule-item:hover .arrangement-schedule-drag-handle { opacity: 1; }
 .arrangement-schedule-item:hover:not(:disabled) { filter: brightness(1.08); }
 .arrangement-schedule-item:focus-visible { position: relative; z-index: 1; outline: 3px solid #f2c94c; outline-offset: -3px; }
 .arrangement-schedule-item:disabled { opacity: 1; cursor: default; }
@@ -220,6 +225,7 @@ body {
 .arrangement-action-toast { position: fixed; right: 20px; bottom: 20px; z-index: 1800; box-sizing: border-box; max-width: calc(100vw - 32px); padding: 12px 16px; border-left: 4px solid #286d60; border-radius: 6px; background: #fff; box-shadow: 0 6px 24px rgba(21, 60, 74, .2); color: #153c4a; font-size: .9rem; font-weight: 600; }
 .arrangement-action-toast--info { border-left-color: #b77a16; }
 .arrangement-action-toast--error { border-left-color: #b91c1c; color: #8e2020; }
+.schedule-gesture-preview { position: fixed; z-index: 1900; max-width: calc(100vw - 16px); padding: 5px 8px; border: 1px solid rgba(255, 255, 255, .35); border-radius: 4px; background: #153c4a; box-shadow: 0 3px 10px rgba(0, 0, 0, .22); color: #fff; font-size: .76rem; font-weight: 700; line-height: 1.2; pointer-events: none; white-space: nowrap; }
 @media (max-width: 760px) {
     .arrangements-toolbar { grid-template-columns: minmax(0, 1fr) minmax(150px, .7fr); }
     .arrangements-toolbar .planning-sync-status { grid-column: 1 / -1; justify-self: start; padding: 0; }

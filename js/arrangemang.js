@@ -6,6 +6,10 @@ const agendaEntryModal = document.getElementById("agendaEntryModal");
 const agendaEntryForm = document.getElementById("agendaEntryForm");
 const agendaEntryDialogFields = document.getElementById("agendaEntryDialogFields");
 const arrangementActionToast = document.getElementById("arrangementActionToast");
+const scheduleGesturePreview = document.createElement("div");
+scheduleGesturePreview.className = "schedule-gesture-preview hidden";
+scheduleGesturePreview.setAttribute("aria-hidden", "true");
+document.body.append(scheduleGesturePreview);
 const arrangementResponsibilitiesList = document.getElementById("arrangementResponsibilitiesList");
 const arrangementResponsibilitiesEmpty = document.getElementById("arrangementResponsibilitiesEmpty");
 const roleLibraryStorageKey = "gtscout_arrangemang_roles";
@@ -23,10 +27,14 @@ let activeAgendaEntryIsCopy = false;
 let activeAgendaEntryIsNew = false;
 let agendaEntryDialogTrigger = null;
 let arrangementToastTimer = null;
+let activeScheduleGesture = null;
+let suppressScheduleClickUntil = 0;
 let draftResponsibilities = [];
 let planningOptions = [];
 const mealTypes = ["Frukost", "Lunch", "Mellanmål", "Middag", "Kvällsmål"];
 const departments = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
+const scheduleSnapMinutes = 15;
+const scheduleMaxMinutes = 23 * 60 + 45;
 let defaultRoleDefinitions = [];
 const defaultRoleDefinitionsLoaded = fetch("data/arrangemang-roller.json")
     .then(response => {
@@ -61,6 +69,39 @@ function formatDateSpan(item) {
     const start = formatArrangementDate(item.start_date, false);
     const end = formatArrangementDate(item.end_date, false);
     return start === end ? start : `${start}–${end}`;
+}
+
+function parseScheduleTime(value) {
+    if (!/^\d{2}:\d{2}$/.test(value || "")) return null;
+    const [hours, minutes] = value.split(":").map(Number);
+    return hours * 60 + minutes;
+}
+
+function formatScheduleTime(minutes) {
+    const safeMinutes = Math.max(0, Math.min(scheduleMaxMinutes, minutes));
+    return `${String(Math.floor(safeMinutes / 60)).padStart(2, "0")}:${String(safeMinutes % 60).padStart(2, "0")}`;
+}
+
+function formatScheduleDuration(minutes) {
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    const parts = [];
+    if (hours) parts.push(`${hours} ${hours === 1 ? "timme" : "timmar"}`);
+    if (remainingMinutes) parts.push(`${remainingMinutes} ${remainingMinutes === 1 ? "minut" : "minuter"}`);
+    return parts.join(" ") || "0 minuter";
+}
+
+function showScheduleGesturePreview(event, label) {
+    scheduleGesturePreview.textContent = label;
+    scheduleGesturePreview.classList.remove("hidden");
+    const left = Math.max(8, Math.min(event.clientX + 12, window.innerWidth - scheduleGesturePreview.offsetWidth - 8));
+    const top = Math.max(8, event.clientY - scheduleGesturePreview.offsetHeight - 10);
+    scheduleGesturePreview.style.left = `${left}px`;
+    scheduleGesturePreview.style.top = `${top}px`;
+}
+
+function hideScheduleGesturePreview() {
+    scheduleGesturePreview.classList.add("hidden");
 }
 
 function showArrangementToast(message, type = "success") {
@@ -348,9 +389,12 @@ function renderScheduleEntry(entry, departmentIndex = null, arrangementId = "", 
     const mealType = entry.kind === "meal" && entry.meal_type ? ` (${escapeArrangementHtml(entry.meal_type)})` : "";
     const title = `${formattedTime ? `${escapeArrangementHtml(formattedTime)}: ` : ""}${escapeArrangementHtml(entry.title)}${mealType}`;
     const notes = entry.notes ? `<small class="arrangement-schedule-notes" title="${escapeArrangementHtml(entry.notes)}">${escapeArrangementHtml(entry.notes)}</small>` : "";
+    const gestureHandles = canEdit && parseScheduleTime(entry.time) !== null
+        ? `<span class="arrangement-schedule-drag-handle" data-agenda-drag-handle title="Dra för att flytta starttiden" aria-hidden="true"></span><span class="arrangement-schedule-resize-handle" data-agenda-resize-handle title="Dra för att ändra längden" aria-hidden="true"></span>`
+        : "";
     const actionLabel = entry.kind === "activity" ? "Redigera aktivitet" : entry.kind === "meal" ? "Redigera måltid" : "Redigera programpunkt";
-    const editAttributes = canEdit ? `data-edit-agenda="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(arrangementId)}" aria-label="${actionLabel}: ${escapeArrangementHtml(entry.title)}" title="Klicka för att redigera"` : "disabled aria-disabled=\"true\"";
-    return `<button type="button" class="arrangement-schedule-item ${tone}" ${editAttributes}><strong>${title}</strong>${notes}</button>`;
+    const editAttributes = canEdit ? `data-edit-agenda="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(arrangementId)}" aria-label="${actionLabel}: ${escapeArrangementHtml(entry.title)}" title="Klicka för att redigera. Dra i greppet för att flytta starttiden och i nederkanten för att ändra längden."` : "disabled aria-disabled=\"true\"";
+    return `<button type="button" class="arrangement-schedule-item ${tone}" ${editAttributes}><strong>${title}</strong>${notes}${gestureHandles}</button>`;
 }
 
 function renderArrangements() {
@@ -569,11 +613,133 @@ function readFormPayload() {
     };
 }
 
+async function saveScheduleGesture(arrangementId, entryId, changes) {
+    const arrangement = arrangements.find(item => item.id === arrangementId);
+    if (!arrangement || !isArrangementEditable(arrangement)) return;
+    const agenda = arrangement.agenda.map(entry => entry.id === entryId ? { ...entry, ...changes } : entry);
+    try {
+        const result = await window.GTScoutArrangements.save({ ...arrangement, agenda });
+        const message = result.error
+            ? "Tidsändringen sparades lokalt men kunde inte synkas."
+            : result.localOnly ? "Tidsändringen sparades lokalt." : "Tidsändringen har sparats.";
+        showArrangementToast(message, result.error ? "error" : result.localOnly ? "info" : "success");
+        arrangementSyncStatus.textContent = result.localOnly
+            ? result.error ? "Kunde inte nå databasen · ändringen finns lokalt" : "Sparas lokalt i den här webbläsaren"
+            : "Sparat i databasen";
+    } catch (error) {
+        showArrangementToast(error.message || "Kunde inte spara tidsändringen.", "error");
+        renderArrangements();
+    }
+}
+
+function clearScheduleGesture(gesture) {
+    hideScheduleGesturePreview();
+    gesture.wrapper.style.removeProperty("transform");
+    gesture.wrapper.style.removeProperty("height");
+    gesture.wrapper.style.removeProperty("overflow");
+    gesture.wrapper.classList.remove("arrangement-schedule-event--dragging");
+    if (gesture.card.hasPointerCapture(gesture.pointerId)) gesture.card.releasePointerCapture(gesture.pointerId);
+}
+
+arrangementsGrid.addEventListener("pointerdown", event => {
+    const handle = event.target.closest("[data-agenda-drag-handle], [data-agenda-resize-handle]");
+    if (!handle || event.button !== 0) return;
+    const card = handle.closest("[data-edit-agenda]");
+    const wrapper = card?.closest(".arrangement-schedule-event");
+    const arrangement = arrangements.find(item => item.id === card?.dataset.arrangementId);
+    const entry = arrangement?.agenda.find(item => item.id === card?.dataset.editAgenda);
+    const startMinutes = parseScheduleTime(entry?.time);
+    if (!card || !wrapper || !entry || startMinutes === null || !isArrangementEditable(arrangement)) return;
+    const parsedEnd = parseScheduleTime(entry.end_time);
+    const hasExplicitEnd = parsedEnd !== null && parsedEnd > startMinutes;
+    const endMinutes = Math.min(scheduleMaxMinutes, hasExplicitEnd ? parsedEnd : startMinutes + 60);
+    if (endMinutes <= startMinutes) return;
+    activeScheduleGesture = {
+        pointerId: event.pointerId,
+        mode: handle.matches("[data-agenda-resize-handle]") ? "resize" : "move",
+        card,
+        wrapper,
+        arrangementId: arrangement.id,
+        entryId: entry.id,
+        startY: event.clientY,
+        startMinutes,
+        endMinutes,
+        hasExplicitEnd,
+        moved: false,
+        changes: null
+    };
+    try {
+        card.setPointerCapture(event.pointerId);
+    } catch {
+        activeScheduleGesture = null;
+        return;
+    }
+    const initialPreview = activeScheduleGesture.mode === "resize"
+        ? formatScheduleDuration(endMinutes - startMinutes)
+        : `Start ${formatScheduleTime(startMinutes)}`;
+    showScheduleGesturePreview(event, initialPreview);
+    event.preventDefault();
+});
+
+arrangementsGrid.addEventListener("pointermove", event => {
+    const gesture = activeScheduleGesture;
+    if (!gesture || event.pointerId !== gesture.pointerId) return;
+    const deltaY = event.clientY - gesture.startY;
+    if (!gesture.moved && Math.abs(deltaY) < 6) return;
+    gesture.moved = true;
+    event.preventDefault();
+    const deltaMinutes = Math.round(deltaY / 12) * scheduleSnapMinutes;
+    gesture.wrapper.classList.add("arrangement-schedule-event--dragging");
+    if (gesture.mode === "move") {
+        const duration = gesture.endMinutes - gesture.startMinutes;
+        const nextStart = Math.max(0, Math.min(scheduleMaxMinutes - duration, gesture.startMinutes + deltaMinutes));
+        const appliedDelta = nextStart - gesture.startMinutes;
+        gesture.wrapper.style.transform = `translateY(${appliedDelta * 0.8}px)`;
+        gesture.changes = {
+            time: formatScheduleTime(nextStart),
+            end_time: gesture.hasExplicitEnd ? formatScheduleTime(nextStart + duration) : ""
+        };
+        showScheduleGesturePreview(event, `Start ${formatScheduleTime(nextStart)}`);
+    } else {
+        const nextEnd = Math.max(gesture.startMinutes + scheduleSnapMinutes, Math.min(scheduleMaxMinutes, gesture.endMinutes + deltaMinutes));
+        gesture.wrapper.style.height = `${(nextEnd - gesture.startMinutes) * 0.8}px`;
+        gesture.wrapper.style.overflow = "visible";
+        gesture.changes = { end_time: formatScheduleTime(nextEnd) };
+        showScheduleGesturePreview(event, formatScheduleDuration(nextEnd - gesture.startMinutes));
+    }
+});
+
+arrangementsGrid.addEventListener("pointerup", async event => {
+    const gesture = activeScheduleGesture;
+    if (!gesture || event.pointerId !== gesture.pointerId) return;
+    activeScheduleGesture = null;
+    const shouldSave = gesture.moved && gesture.changes && Object.entries(gesture.changes).some(([key, value]) => {
+        const previous = key === "time" ? formatScheduleTime(gesture.startMinutes)
+            : gesture.hasExplicitEnd ? formatScheduleTime(gesture.endMinutes) : "";
+        return value !== previous;
+    });
+    clearScheduleGesture(gesture);
+    if (!shouldSave) return;
+    suppressScheduleClickUntil = performance.now() + 100;
+    await saveScheduleGesture(gesture.arrangementId, gesture.entryId, gesture.changes);
+});
+
+arrangementsGrid.addEventListener("pointercancel", event => {
+    const gesture = activeScheduleGesture;
+    if (!gesture || event.pointerId !== gesture.pointerId) return;
+    activeScheduleGesture = null;
+    clearScheduleGesture(gesture);
+});
+
 arrangementsGrid.addEventListener("click", async event => {
     const editButton = event.target.closest("[data-edit-arrangement]");
     const agendaButton = event.target.closest("[data-edit-agenda]");
     const addAgendaButton = event.target.closest("[data-add-agenda]");
     const deleteButton = event.target.closest("[data-delete-arrangement]");
+    if (agendaButton && event.detail > 0 && performance.now() < suppressScheduleClickUntil) {
+        event.preventDefault();
+        return;
+    }
     if (addAgendaButton) {
         const item = arrangements.find(arrangement => arrangement.id === addAgendaButton.dataset.addAgendaArrangement);
         if (item && isArrangementEditable(item)) {
