@@ -35,6 +35,7 @@ let activeScheduleGesture = null;
 let suppressScheduleClickUntil = 0;
 const arrangementDayExpansion = new Map();
 const arrangementSchemaExpansion = new Set();
+const expandedArrangementIds = new Set();
 let draftResponsibilities = [];
 let planningOptions = [];
 const mealTypes = ["Frukost", "Lunch", "Mellanmål", "Middag", "Kvällsmål"];
@@ -443,11 +444,14 @@ function renderArrangements() {
                 return `<details class="arrangement-responsibility-summary-item" data-responsibility-id="${escapeArrangementHtml(entry.id)}"><summary><span class="arrangement-responsibility-summary-role">${escapeArrangementHtml(entry.role || "Övrig")}</span><span class="arrangement-responsibility-summary-separator" aria-hidden="true">:</span><span class="arrangement-responsibility-summary-person">${escapeArrangementHtml(entry.person || "Ansvarspost")}</span></summary><div class="arrangement-responsibility-summary-details"><div class="arrangement-responsibility-summary-info">${roleDescriptionHtml}${descriptionHtml}</div>${deleteResponsibilityButton}</div></details>`;
             }).join("") : `<p class="arrangement-responsibilities-empty">Inga ansvariga tillagda.</p>`}</div>${addResponsibilityButton}</details></div>`
             : "";
-        const cardWidth = item.departments.length > 2 ? " arrangement-card--wide" : "";
+        const detailsOpen = expandedArrangementIds.has(item.id);
+        const cardWidth = detailsOpen && item.departments.length > 2 ? " arrangement-card--wide" : "";
         const actions = isArrangementEditable(item)
             ? `<div class="arrangement-card-actions"><button class="btn-secondary" type="button" data-edit-arrangement="${escapeArrangementHtml(item.id)}">Redigera</button><button class="arrangement-delete-icon" type="button" data-delete-arrangement="${escapeArrangementHtml(item.id)}" aria-label="Ta bort ${escapeArrangementHtml(item.title)}" title="Ta bort arrangemang"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button></div>`
             : "";
-        return `<article class="arrangement-card${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}"><div class="arrangement-card-top"><div><p class="arrangement-card-type">${escapeArrangementHtml(item.type)}</p><h2>${escapeArrangementHtml(item.title)}</h2></div><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates">${escapeArrangementHtml(formatDateSpan(item))}${item.start_time ? ` · ${escapeArrangementHtml(item.start_time)}` : ""}${item.end_time ? `–${escapeArrangementHtml(item.end_time)}` : ""}</p>${item.location ? `<p class="arrangement-card-location">${escapeArrangementHtml(item.location)}</p>` : ""}<div class="arrangement-participant-tags">${participantTags}</div>${link}${responsibilityHtml}${agendaHtml}${actions}</article>`;
+        const notes = String(item.notes || "").trim();
+        const timeRange = [item.start_time, item.end_time].filter(Boolean).join("–");
+        return `<details class="arrangement-card${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${item.location ? `<p class="arrangement-card-location">${escapeArrangementHtml(item.location)}</p>` : ""}<div class="arrangement-participant-tags">${participantTags}</div></summary><div class="arrangement-card-details"><div class="arrangement-card-expanded-header"><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div>${link}<section class="arrangement-detail-notes"><h3>Anteckningar</h3><p>${notes ? escapeArrangementHtml(notes) : "Inga anteckningar."}</p></section>${responsibilityHtml}${agendaHtml}${actions}</div></details>`;
     }).join("");
 
     arrangementsEmpty.classList.toggle("hidden", visible.length > 0);
@@ -702,6 +706,12 @@ function clearScheduleGesture(gesture) {
 
 arrangementsGrid.addEventListener("toggle", event => {
     const day = event.target;
+    if (day.matches?.("details.arrangement-card[data-arrangement-id]")) {
+        if (day.open) expandedArrangementIds.add(day.dataset.arrangementId);
+        else expandedArrangementIds.delete(day.dataset.arrangementId);
+        day.classList.toggle("arrangement-card--wide", day.open && Number(day.dataset.departmentCount) > 2);
+        return;
+    }
     if (day.matches?.("details.arrangement-schedule[data-arrangement-id]")) {
         if (day.open) arrangementSchemaExpansion.add(day.dataset.arrangementId);
         else {
