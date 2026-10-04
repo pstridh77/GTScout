@@ -149,8 +149,8 @@ body {
 .arrangement-schedule-slot:not(:disabled):hover::after, .arrangement-schedule-slot:not(:disabled):focus-visible::after { opacity: .7; }
 .arrangement-schedule-slot:focus-visible { z-index: 1; outline: 2px solid #f2c94c; outline-offset: -2px; }
 .arrangement-schedule-slot:disabled { cursor: default; }
-.arrangement-schedule-event { z-index: 1; display: grid; grid-template-rows: minmax(0, 1fr); justify-self: start; align-self: stretch; width: var(--lane-width); min-width: 0; margin-left: var(--lane-offset); box-sizing: border-box; overflow: hidden; }
-.arrangement-schedule-event--dragging { z-index: 5; overflow: visible; opacity: .9; filter: drop-shadow(0 3px 5px rgba(0, 0, 0, .25)); }
+.arrangement-schedule-event { z-index: var(--event-z-index, 1); display: grid; grid-template-rows: minmax(0, 1fr); justify-self: start; align-self: stretch; width: var(--lane-width); min-width: 0; margin-left: var(--lane-offset); box-sizing: border-box; overflow: hidden; }
+.arrangement-schedule-event--dragging { z-index: 2000; overflow: visible; opacity: .9; filter: drop-shadow(0 3px 5px rgba(0, 0, 0, .25)); }
 .arrangement-schedule-event--short .arrangement-schedule-item { padding: 0 4px; }
 .arrangement-schedule-event--short .arrangement-schedule-item strong { font-size: .63rem; line-height: 1; }
 .arrangement-schedule-event--short .arrangement-schedule-meal, .arrangement-schedule-event--short .arrangement-schedule-end, .arrangement-schedule-event--short .arrangement-schedule-notes { display: none; }
@@ -4549,6 +4549,9 @@ select:focus {
 }
 
 .modal.hidden { display: none; }
+
+#arrangementModal,
+#agendaEntryModal { z-index: 3000; }
 
 #createActivityModal {
     z-index: 1600;

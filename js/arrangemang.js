@@ -373,7 +373,11 @@ function renderArrangementSchedule(item) {
             const card = renderScheduleEntry(event.entry, tone, item.id, isArrangementEditable(item));
             const durationMinutes = event.endMinutes - event.startMinutes;
             const durationClass = `${durationMinutes > 60 ? " arrangement-schedule-event--multi-hour" : ""}${event.startTime && durationMinutes < 60 ? " arrangement-schedule-event--short" : ""}`;
-            return `<div class="arrangement-schedule-event${durationClass}${event.department === null ? " arrangement-schedule-event--shared" : ""}" style="grid-column:${column};grid-row:${startRow}/${endRow};--lane-width:${width};--lane-offset:${offset}">${card}</div>`;
+            const departmentSpan = event.department === null
+                ? selectedDepartments.length
+                : Math.max(1, event.entry.departments.filter(department => selectedDepartments.includes(department)).length);
+            const stackingOrder = 1000 - departmentSpan * 100 + (event.department === null ? 0 : 1);
+            return `<div class="arrangement-schedule-event${durationClass}${event.department === null ? " arrangement-schedule-event--shared" : ""}" style="grid-column:${column};grid-row:${startRow}/${endRow};--lane-width:${width};--lane-offset:${offset};--event-z-index:${stackingOrder}">${card}</div>`;
         }).join("");
         const headers = selectedDepartments.map(department => `<span class="arrangement-schedule-department department-tone-${departments.indexOf(department)}">${escapeArrangementHtml(department)}</span>`).join("");
         const showScheduleGrid = scheduleEvents.length > 0 || entries.length === 0;
