@@ -178,6 +178,29 @@
         </form>
     </div>
 
+    <div id="agendaEntryModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="agendaEntryDialogTitle">
+        <form id="agendaEntryForm" class="modal-content modal-content--wide agenda-entry-dialog-content">
+            <button id="closeAgendaEntryModal" class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2 id="agendaEntryDialogTitle">Redigera programpunkt</h2>
+            <div id="agendaEntryDialogFields" class="arrangement-agenda-entry-grid"></div>
+            <p id="agendaEntryDialogStatus" class="detail-planning-status" role="status" aria-live="polite"></p>
+            <div class="modal-actions agenda-entry-dialog-actions">
+                <div class="agenda-entry-dialog-action-group">
+                    <button id="deleteAgendaEntryBtn" class="arrangement-delete-icon agenda-entry-dialog-delete" type="button" aria-label="Ta bort programpunkt" title="Ta bort programpunkt">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg>
+                    </button>
+                </div>
+                <div class="agenda-entry-dialog-action-group agenda-entry-dialog-action-group--primary">
+                    <button id="copyAgendaEntryBtn" class="btn-secondary" type="button">Kopiera</button>
+                    <button id="cancelAgendaEntryBtn" class="btn-secondary" type="button">Avbryt</button>
+                    <button id="saveAgendaEntryBtn" class="btn-primary" type="submit">Spara</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div id="arrangementActionToast" class="arrangement-action-toast hidden" role="status" aria-live="polite"></div>
+
     <footer class="site-footer" aria-label="Sidfot och version">
         <div class="site-footer-content">
             <span class="site-footer-title">GTScout</span>

@@ -1,12 +1,9 @@
 [
   {
-    "name": "Lägerchef",
+    "name": "Ansvarig/Lägerchef",
     "description": "Övergripande ledning, samordning och kontakt med arrangören."
   },
-  {
-    "name": "Avdelningsansvarig",
-    "description": "Planering, information och genomförande för den egna avdelningen."
-  },
+  
   {
     "name": "Familjescoutansvarig",
     "description": "Planering och samordning för familjescouternas deltagande."
@@ -32,43 +29,46 @@
     "description": "Planering och samordning för rovers deltagande."
   },
   {
-    "name": "Byggansvarig",
-    "description": "Planering och samordning av byggnation och lägerplats."
+    "name": "Matansvarig",
+    "description": "Planering, samordning och uppföljning av mat och måltider."
   },
   {
     "name": "Materialansvarig",
     "description": "Packning, material och inventering inför och under arrangemanget."
   },
   {
-    "name": "Matansvarig",
-    "description": "Planering, samordning och uppföljning av mat och måltider."
-  },
-  {
-    "name": "Ekonomiansvarig",
-    "description": "Budget, utlägg och ekonomisk uppföljning."
-  },
-  {
     "name": "Sjukvårdsansvarig",
     "description": "Övergripande ansvar för sjukvård, skador och sjukdom."
   },
   {
-    "name": "Vattenansvarig",
-    "description": "Tillgång till dricksvatten och rutiner för vattenhantering."
-  },
-  {
-    "name": "Gasansvarig",
-    "description": "Hantering, förvaring och kontroll av gasutrustning."
-  },
-  {
-    "name": "Brandskyddsansvarig",
+    "name": "Brandskyddsansvarig/Gasansvarig",
     "description": "Brandskydd, eldplatser och säkerhetsrutiner."
   },
   {
     "name": "Sop- och återvinningsansvarig",
     "description": "Sortering, sophantering och återvinning."
   },
+
   {
+    "name": "Aktivitetsansvarig",
+    "description": "Planering, information och genomförande av aktiviteter."
+  },
+  {
+    "name": "Byggansvarig",
+    "description": "Planering och samordning av byggnation och lägerplats."
+  },
+    
+  {
+    "name": "Vattenansvarig",
+    "description": "Tillgång till dricksvatten och rutiner för vattenhantering."
+  },
+  
+    {
     "name": "Transportansvarig",
     "description": "Samordning av transporter, fordon och tider."
+  },
+  {
+    "name": "Ekonomiansvarig",
+    "description": "Budget, utlägg och ekonomisk uppföljning."
   }
 ]
