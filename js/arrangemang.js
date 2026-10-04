@@ -29,6 +29,8 @@ let agendaEntryDialogTrigger = null;
 let arrangementToastTimer = null;
 let activeScheduleGesture = null;
 let suppressScheduleClickUntil = 0;
+const arrangementDayExpansion = new Map();
+const arrangementSchemaExpansion = new Set();
 let draftResponsibilities = [];
 let planningOptions = [];
 const mealTypes = ["Frukost", "Lunch", "Mellanmål", "Middag", "Kvällsmål"];
@@ -239,8 +241,14 @@ function renderArrangementSchedule(item) {
     const inferredEnd = agendaEnds.at(-1) || (agendaStarts.length ? addHour(scheduleStart) : "17:00");
     let scheduleEnd = isTime(item.end_time) ? item.end_time : inferredEnd || "17:00";
     if (scheduleEnd <= scheduleStart) scheduleEnd = addHour(scheduleStart) || "23:00";
+    const scheduleDateCount = arrangementDates(item.start_date, item.end_date).length;
+    const scheduleDateLabel = `${scheduleDateCount} ${scheduleDateCount === 1 ? "dag" : "dagar"}`;
+    const scheduleEntryLabel = `${item.agenda.length} ${item.agenda.length === 1 ? "programpunkt" : "programpunkter"}`;
+    const expandedDates = arrangementDayExpansion.get(item.id);
     const scheduleDays = arrangementDates(item.start_date, item.end_date).map(date => {
         const entries = item.agenda.filter(entry => entry.date === date);
+        const dayIsOpen = expandedDates ? expandedDates.has(date) : false;
+        const countLabel = entries.length === 1 ? "1 programpunkt" : `${entries.length} programpunkter`;
         const startTimes = entries.map(entry => entry.time).filter(isTime);
         const eventTimes = entries.flatMap(entry => {
             const startTime = isTime(entry.time) ? entry.time : "";
@@ -382,9 +390,10 @@ function renderArrangementSchedule(item) {
         const headers = selectedDepartments.map(department => `<span class="arrangement-schedule-department department-tone-${departments.indexOf(department)}">${escapeArrangementHtml(department)}</span>`).join("");
         const showScheduleGrid = scheduleEvents.length > 0 || entries.length === 0;
         const grid = showScheduleGrid ? `<div class="arrangement-schedule-grid" style="--department-count:${departmentCount};--schedule-rows:${timeRowHeights.join(" ")}">${timeLabels}${emptyCells}${eventMarkup}</div>` : `<p class="arrangement-day-empty">Inga programpunkter den här dagen.</p>`;
-        return `<section class="arrangement-day"><h3>${escapeArrangementHtml(formatArrangementDate(date))}</h3><div class="arrangement-schedule-header"><span>Tid</span><div class="arrangement-schedule-columns" style="--department-count:${departmentCount}">${headers}</div></div>${grid}</section>`;
+        return `<details class="arrangement-day" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-arrangement-date="${escapeArrangementHtml(date)}"${dayIsOpen ? " open" : ""}><summary class="arrangement-day-summary"><h3>${escapeArrangementHtml(formatArrangementDate(date))}</h3><span>${countLabel}</span></summary><div class="arrangement-day-content"><div class="arrangement-schedule-header"><span>Tid</span><div class="arrangement-schedule-columns" style="--department-count:${departmentCount}">${headers}</div></div>${grid}</div></details>`;
     }).join("");
-    return `<div class="arrangement-schedule">${scheduleDays}</div>`;
+    const isSchemaExpanded = arrangementSchemaExpansion.has(item.id);
+    return `<details class="arrangement-schedule" data-arrangement-id="${escapeArrangementHtml(item.id)}"${isSchemaExpanded ? " open" : ""}><summary class="arrangement-section-summary"><strong>Schema</strong><span>${scheduleDateLabel} · ${scheduleEntryLabel}</span></summary><div class="arrangement-schedule-days">${scheduleDays}</div></details>`;
 }
 
 function renderScheduleEntry(entry, departmentIndex = null, arrangementId = "", canEdit = false) {
@@ -411,10 +420,11 @@ function renderArrangements() {
 
     arrangementsGrid.innerHTML = visible.map(item => {
         const participantTags = item.departments.map((department, index) => `<span class="arrangement-department-tag department-tone-${departments.indexOf(department)}">${escapeArrangementHtml(department)}</span>`).join("");
-        const agendaHtml = item.agenda.length ? renderArrangementSchedule(item) : `<p class="arrangement-card-no-agenda">Inget dagsprogram tillagt.</p>`;
+        const agendaHtml = renderArrangementSchedule(item);
         const link = item.planning_ref?.name ? `<p class="arrangement-card-planning">Planering: ${escapeArrangementHtml(item.planning_ref.name)}</p>` : "";
+        const responsibilityCountLabel = item.responsibilities.length === 1 ? "1 roll" : `${item.responsibilities.length} roller`;
         const responsibilityHtml = item.responsibilities.length
-            ? `<details class="arrangement-responsibilities-summary"><summary>Ansvariga och roller (${item.responsibilities.length})</summary><div class="arrangement-responsibilities-summary-list">${item.responsibilities.map(entry => {
+            ? `<details class="arrangement-responsibilities-summary"><summary class="arrangement-section-summary"><strong>Ansvariga och roller</strong><span>${responsibilityCountLabel}</span></summary><div class="arrangement-responsibilities-summary-list">${item.responsibilities.map(entry => {
                 const roleDescription = String(entry.role_description || "").trim();
                 const description = String(entry.description || "").trim();
                 const roleDescriptionHtml = roleDescription ? `<p><strong>Rollbeskrivning</strong>${escapeArrangementHtml(roleDescription)}</p>` : "";
@@ -650,6 +660,24 @@ function clearScheduleGesture(gesture) {
     gesture.wrapper.classList.remove("arrangement-schedule-event--dragging");
     if (gesture.card.hasPointerCapture(gesture.pointerId)) gesture.card.releasePointerCapture(gesture.pointerId);
 }
+
+arrangementsGrid.addEventListener("toggle", event => {
+    const day = event.target;
+    if (day.matches?.("details.arrangement-schedule[data-arrangement-id]")) {
+        if (day.open) arrangementSchemaExpansion.add(day.dataset.arrangementId);
+        else {
+            arrangementSchemaExpansion.delete(day.dataset.arrangementId);
+            arrangementDayExpansion.delete(day.dataset.arrangementId);
+            day.querySelectorAll("details.arrangement-day[open]").forEach(openDay => { openDay.open = false; });
+        }
+        return;
+    }
+    if (!day.matches?.("details.arrangement-day[data-arrangement-id]")) return;
+    const openDates = new Set([...arrangementsGrid.querySelectorAll("details.arrangement-day[open]")]
+        .filter(openDay => openDay.dataset.arrangementId === day.dataset.arrangementId)
+        .map(openDay => openDay.dataset.arrangementDate));
+    arrangementDayExpansion.set(day.dataset.arrangementId, openDates);
+}, true);
 
 arrangementsGrid.addEventListener("pointerdown", event => {
     const handle = event.target.closest("[data-agenda-drag-handle], [data-agenda-resize-handle]");
