@@ -20,6 +20,7 @@ let draftAgenda = [];
 let activeAgendaArrangementId = "";
 let activeAgendaEntryId = "";
 let activeAgendaEntryIsCopy = false;
+let activeAgendaEntryIsNew = false;
 let agendaEntryDialogTrigger = null;
 let arrangementToastTimer = null;
 let draftResponsibilities = [];
@@ -185,11 +186,28 @@ function syncDraftResponsibilities() {
 function renderArrangementSchedule(item) {
     const selectedDepartments = item.departments?.length ? item.departments : departments;
     const departmentCount = selectedDepartments.length;
+    const isTime = time => /^\d{2}:\d{2}$/.test(time || "");
+    const addHour = time => {
+        const [hours, minutes] = time.split(":").map(Number);
+        const nextMinutes = hours * 60 + minutes + 60;
+        return nextMinutes < 1440 ? `${String(Math.floor(nextMinutes / 60)).padStart(2, "0")}:${String(nextMinutes % 60).padStart(2, "0")}` : "";
+    };
+    const agendaStarts = item.agenda.map(entry => entry.time).filter(isTime).sort();
+    const agendaEnds = item.agenda.map(entry => isTime(entry.end_time) && (!isTime(entry.time) || entry.end_time > entry.time) ? entry.end_time : isTime(entry.time) ? addHour(entry.time) : "").filter(isTime).sort();
+    const scheduleStart = isTime(item.start_time) ? item.start_time : agendaStarts[0] || "09:00";
+    const inferredEnd = agendaEnds.at(-1) || (agendaStarts.length ? addHour(scheduleStart) : "17:00");
+    let scheduleEnd = isTime(item.end_time) ? item.end_time : inferredEnd || "17:00";
+    if (scheduleEnd <= scheduleStart) scheduleEnd = addHour(scheduleStart) || "23:00";
     const scheduleDays = arrangementDates(item.start_date, item.end_date).map(date => {
         const entries = item.agenda.filter(entry => entry.date === date);
-        const isTime = time => /^\d{2}:\d{2}$/.test(time || "");
         const startTimes = entries.map(entry => entry.time).filter(isTime);
-        const eventTimes = entries.flatMap(entry => [entry.time, entry.end_time]).filter(isTime);
+        const eventTimes = entries.flatMap(entry => {
+            const startTime = isTime(entry.time) ? entry.time : "";
+            const endTime = isTime(entry.end_time) && (!startTime || entry.end_time > startTime)
+                ? entry.end_time
+                : startTime ? addHour(startTime) : "";
+            return [startTime, endTime];
+        }).filter(isTime);
         const timedMinutes = startTimes.map(time => {
             const [hours, minutes] = time.split(":").map(Number);
             return hours * 60 + minutes;
@@ -207,19 +225,40 @@ function renderArrangementSchedule(item) {
             }
         }
         const sortedTimes = [...times].sort((left, right) => left.localeCompare(right));
-        const timePoints = [...(entries.some(entry => !isTime(entry.time)) ? [""] : []), ...sortedTimes];
+        if (!entries.length) {
+            times.add(scheduleStart);
+            times.add(scheduleEnd);
+            const startMinutes = Number(scheduleStart.slice(0, 2)) * 60 + Number(scheduleStart.slice(3));
+            const endMinutes = Number(scheduleEnd.slice(0, 2)) * 60 + Number(scheduleEnd.slice(3));
+            for (let minute = Math.floor(startMinutes / 60) * 60 + 60; minute <= endMinutes; minute += 60) {
+                if (minute < 1440) times.add(`${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`);
+            }
+        }
+        const timePoints = [...(entries.some(entry => !isTime(entry.time)) ? [""] : []), ...[...times].sort((left, right) => left.localeCompare(right))];
+        const timeRowHeights = timePoints.map((time, index) => {
+            if (!isTime(time)) return "48px";
+            const nextTime = timePoints.slice(index + 1).find(isTime);
+            if (!nextTime) return "48px";
+            const currentMinutes = Number(time.slice(0, 2)) * 60 + Number(time.slice(3));
+            const nextMinutes = Number(nextTime.slice(0, 2)) * 60 + Number(nextTime.slice(3));
+            return `${((nextMinutes - currentMinutes) * 48 / 60).toFixed(2)}px`;
+        });
         const scheduleEvents = entries.flatMap(entry => {
             const startTime = isTime(entry.time) ? entry.time : "";
+            const endTime = isTime(entry.end_time) && (!startTime || entry.end_time > startTime)
+                ? entry.end_time
+                : startTime ? addHour(startTime) : "";
             const targets = entry.shared !== false
                 ? [{ key: "shared", department: null }]
                 : selectedDepartments.filter(department => entry.departments.includes(department)).map(department => ({ key: department, department }));
             const startMinutes = startTime ? Number(startTime.slice(0, 2)) * 60 + Number(startTime.slice(3)) : 0;
-            const endMinutes = isTime(entry.end_time) && entry.end_time > startTime
-                ? Number(entry.end_time.slice(0, 2)) * 60 + Number(entry.end_time.slice(3))
+            const endMinutes = isTime(endTime)
+                ? Number(endTime.slice(0, 2)) * 60 + Number(endTime.slice(3))
                 : startTime ? startMinutes + 60 : 1440;
             return targets.map(target => ({
                 entry,
                 startTime,
+                endTime,
                 department: target.department,
                 startMinutes,
                 endMinutes,
@@ -263,13 +302,24 @@ function renderArrangementSchedule(item) {
             });
             assignClusterLanes();
         });
-        const timeLabels = timePoints.map((time, index) => `<time class="arrangement-schedule-time" style="grid-column:1;grid-row:${index + 1}">${escapeArrangementHtml(time || "Heldag")}</time>`).join("");
-        const emptyCells = timePoints.map((time, rowIndex) => selectedDepartments.map((department, departmentIndex) => `<div class="arrangement-schedule-slot department-tone-${departments.indexOf(department)}" style="grid-column:${departmentIndex + 2};grid-row:${rowIndex + 1}" aria-hidden="true"></div>`).join("")).join("");
+        const timeLabels = timePoints.map((time, index) => {
+            const label = time ? time.endsWith(":00") ? time : "" : "Heldag";
+            const className = label ? "arrangement-schedule-time" : "arrangement-schedule-time-marker";
+            const element = label ? "time" : "span";
+            return `<${element} class="${className}" style="grid-column:1;grid-row:${index + 1}"${label ? "" : " aria-hidden=\"true\""}>${escapeArrangementHtml(label)}</${element}>`;
+        }).join("");
+        const canEditAgenda = isArrangementEditable(item);
+        const emptyCells = timePoints.map((time, rowIndex) => selectedDepartments.map((department, departmentIndex) => {
+            const timeLabel = time || "Heldag";
+            const addAttributes = canEditAgenda
+                ? `type="button" data-add-agenda data-add-agenda-arrangement="${escapeArrangementHtml(item.id)}" data-add-agenda-date="${escapeArrangementHtml(date)}" data-add-agenda-time="${escapeArrangementHtml(time)}" data-add-agenda-department="${escapeArrangementHtml(department)}" aria-label="Lägg till programpunkt ${escapeArrangementHtml(timeLabel)} för ${escapeArrangementHtml(department)}" title="Lägg till programpunkt"`
+                : `type="button" disabled aria-hidden="true"`;
+            return `<button ${addAttributes} class="arrangement-schedule-slot department-tone-${departments.indexOf(department)}" style="grid-column:${departmentIndex + 2};grid-row:${rowIndex + 1}"></button>`;
+        }).join("")).join("");
         const eventMarkup = scheduleEvents.map(event => {
             const startIndex = timePoints.indexOf(event.startTime);
             const startRow = startIndex + 1;
-            const endTime = isTime(event.entry.end_time) && (!isTime(event.startTime) || event.entry.end_time > event.startTime) ? event.entry.end_time : "";
-            const endIndex = endTime ? timePoints.indexOf(endTime) : -1;
+            const endIndex = event.endTime ? timePoints.indexOf(event.endTime) : -1;
             const endRow = endIndex > startIndex ? endIndex + 1 : startRow + 1;
             const departmentIndex = event.department === null ? -1 : selectedDepartments.indexOf(event.department);
             const column = departmentIndex < 0 ? "2 / -1" : String(departmentIndex + 2);
@@ -280,12 +330,13 @@ function renderArrangementSchedule(item) {
             const width = event.laneCount > 1 ? `calc(${laneWidth}% - ${(laneGap * (event.laneCount - 1) / event.laneCount).toFixed(2)}px)` : "100%";
             const offset = event.laneIndex ? `calc(${laneOffset}% + ${(event.laneIndex * laneGap / event.laneCount).toFixed(2)}px)` : "0px";
             const card = renderScheduleEntry(event.entry, tone, item.id, isArrangementEditable(item));
-            const durationClass = endRow - startRow > 1 ? " arrangement-schedule-event--multi-hour" : "";
+            const durationMinutes = event.endMinutes - event.startMinutes;
+            const durationClass = `${durationMinutes > 60 ? " arrangement-schedule-event--multi-hour" : ""}${event.startTime && durationMinutes < 60 ? " arrangement-schedule-event--short" : ""}`;
             return `<div class="arrangement-schedule-event${durationClass}${event.department === null ? " arrangement-schedule-event--shared" : ""}" style="grid-column:${column};grid-row:${startRow}/${endRow};--lane-width:${width};--lane-offset:${offset}">${card}</div>`;
         }).join("");
         const headers = selectedDepartments.map(department => `<span class="arrangement-schedule-department department-tone-${departments.indexOf(department)}">${escapeArrangementHtml(department)}</span>`).join("");
-        const hasVisibleEvents = scheduleEvents.length > 0;
-        const grid = hasVisibleEvents ? `<div class="arrangement-schedule-grid" style="--department-count:${departmentCount};--schedule-row-count:${timePoints.length}">${timeLabels}${emptyCells}${eventMarkup}</div>` : `<p class="arrangement-day-empty">Inga programpunkter den här dagen.</p>`;
+        const showScheduleGrid = scheduleEvents.length > 0 || entries.length === 0;
+        const grid = showScheduleGrid ? `<div class="arrangement-schedule-grid" style="--department-count:${departmentCount};--schedule-rows:${timeRowHeights.join(" ")}">${timeLabels}${emptyCells}${eventMarkup}</div>` : `<p class="arrangement-day-empty">Inga programpunkter den här dagen.</p>`;
         return `<section class="arrangement-day"><h3>${escapeArrangementHtml(formatArrangementDate(date))}</h3><div class="arrangement-schedule-header"><span>Tid</span><div class="arrangement-schedule-columns" style="--department-count:${departmentCount}">${headers}</div></div>${grid}</section>`;
     }).join("");
     return `<div class="arrangement-schedule">${scheduleDays}</div>`;
@@ -393,11 +444,11 @@ function renderAgendaEntryDialog(arrangement, entry, focusField = "title") {
         ? `<small class="agenda-scope-hidden-note">Posten visas bara om dess avdelning väljs för arrangemanget.</small>`
         : "";
     agendaEntryDialogFields.innerHTML = `<div class="agenda-entry-scope"><span>Målgrupp</span><label class="agenda-shared-choice"><input data-agenda-field="shared" type="checkbox"${shared ? " checked" : ""}>Gemensamt för alla</label><div class="agenda-scope-options${shared ? " agenda-scope-options--disabled" : ""}">${scopeOptions}</div>${inactiveScopeNote}</div><label class="agenda-entry-field agenda-entry-title"><span>Namn</span><input data-agenda-field="title" type="text" maxlength="160" value="${escapeArrangementHtml(entry.title)}" required placeholder="Till exempel lägerbål"></label><label class="agenda-entry-field"><span>Datum</span><input data-agenda-field="date" type="date" min="${escapeArrangementHtml(arrangement.start_date)}" max="${escapeArrangementHtml(arrangement.end_date)}" value="${escapeArrangementHtml(entry.date)}" required></label><label class="agenda-entry-field"><span>Start</span><input data-agenda-field="time" type="time" value="${escapeArrangementHtml(entry.time)}"></label><label class="agenda-entry-field"><span>Slut</span><input data-agenda-field="end_time" type="time" value="${escapeArrangementHtml(entry.end_time || "")}"></label><label class="agenda-entry-field"><span>Typ</span><select data-agenda-field="kind"><option value="meal"${entry.kind === "meal" ? " selected" : ""}>Mat</option><option value="activity"${entry.kind === "activity" ? " selected" : ""}>Aktivitet</option><option value="program"${entry.kind === "program" ? " selected" : ""}>Program</option></select></label>${mealField}${sourceField}<label class="agenda-entry-field agenda-entry-notes"><span>Anteckningar</span><textarea data-agenda-field="notes" rows="3" maxlength="240" placeholder="Skriv anteckningar">${escapeArrangementHtml(entry.notes)}</textarea></label>`;
-    document.getElementById("agendaEntryDialogTitle").textContent = activeAgendaEntryIsCopy ? "Kopiera programpunkt" : "Redigera programpunkt";
+    document.getElementById("agendaEntryDialogTitle").textContent = activeAgendaEntryIsCopy ? "Kopiera programpunkt" : activeAgendaEntryIsNew ? "Ny programpunkt" : "Redigera programpunkt";
     document.getElementById("agendaEntryDialogStatus").textContent = "";
-    document.getElementById("copyAgendaEntryBtn").classList.toggle("hidden", !isArrangementEditable(arrangement) || activeAgendaEntryIsCopy);
-    document.getElementById("deleteAgendaEntryBtn").classList.toggle("hidden", !isArrangementEditable(arrangement) || activeAgendaEntryIsCopy);
-    document.getElementById("saveAgendaEntryBtn").textContent = activeAgendaEntryIsCopy ? "Lägg till kopia" : "Spara";
+    document.getElementById("copyAgendaEntryBtn").classList.toggle("hidden", !isArrangementEditable(arrangement) || activeAgendaEntryIsCopy || activeAgendaEntryIsNew);
+    document.getElementById("deleteAgendaEntryBtn").classList.toggle("hidden", !isArrangementEditable(arrangement) || activeAgendaEntryIsCopy || activeAgendaEntryIsNew);
+    document.getElementById("saveAgendaEntryBtn").textContent = activeAgendaEntryIsCopy ? "Lägg till kopia" : activeAgendaEntryIsNew ? "Lägg till" : "Spara";
     agendaEntryModal.classList.remove("hidden");
     agendaEntryDialogFields.querySelector(`[data-agenda-field="${focusField}"]`)?.focus();
 }
@@ -520,12 +571,37 @@ function readFormPayload() {
 arrangementsGrid.addEventListener("click", async event => {
     const editButton = event.target.closest("[data-edit-arrangement]");
     const agendaButton = event.target.closest("[data-edit-agenda]");
+    const addAgendaButton = event.target.closest("[data-add-agenda]");
     const deleteButton = event.target.closest("[data-delete-arrangement]");
+    if (addAgendaButton) {
+        const item = arrangements.find(arrangement => arrangement.id === addAgendaButton.dataset.addAgendaArrangement);
+        if (item && isArrangementEditable(item)) {
+            activeAgendaEntryIsCopy = false;
+            activeAgendaEntryIsNew = true;
+            agendaEntryDialogTrigger = addAgendaButton;
+            renderAgendaEntryDialog(item, {
+                id: crypto.randomUUID(),
+                date: addAgendaButton.dataset.addAgendaDate,
+                time: addAgendaButton.dataset.addAgendaTime,
+                end_time: "",
+                kind: "program",
+                meal_type: "",
+                source_type: "",
+                source_id: "",
+                shared: false,
+                departments: [addAgendaButton.dataset.addAgendaDepartment],
+                title: "",
+                notes: ""
+            });
+        }
+        return;
+    }
     if (agendaButton) {
         const item = arrangements.find(arrangement => arrangement.id === agendaButton.dataset.arrangementId);
         const entry = item?.agenda.find(agendaEntry => agendaEntry.id === agendaButton.dataset.editAgenda);
         if (item && entry && isArrangementEditable(item)) {
             activeAgendaEntryIsCopy = false;
+            activeAgendaEntryIsNew = false;
             agendaEntryDialogTrigger = agendaButton;
             renderAgendaEntryDialog(item, entry);
         }
@@ -562,6 +638,7 @@ const closeAgendaEntryDialog = () => {
     activeAgendaArrangementId = "";
     activeAgendaEntryId = "";
     activeAgendaEntryIsCopy = false;
+    activeAgendaEntryIsNew = false;
     agendaEntryDialogTrigger = null;
     if (trigger?.isConnected) {
         trigger.focus();
@@ -782,14 +859,16 @@ agendaEntryForm.addEventListener("submit", async event => {
         return;
     }
     const entryExists = arrangement.agenda.some(item => item.id === entry.id);
-    if (activeAgendaEntryIsCopy ? entryExists : !entryExists) {
+    const shouldAddEntry = activeAgendaEntryIsCopy || activeAgendaEntryIsNew;
+    if (shouldAddEntry ? entryExists : !entryExists) {
         status.textContent = "Programpunkten kunde inte hittas längre.";
         return;
     }
-    const agenda = activeAgendaEntryIsCopy
+    const agenda = shouldAddEntry
         ? [...arrangement.agenda, entry]
         : arrangement.agenda.map(item => item.id === entry.id ? entry : item);
-    await saveAgendaEntryChanges(arrangement, agenda, activeAgendaEntryIsCopy ? "Kopian är tillagd." : "Programpunkten är sparad.");
+    const completionMessage = activeAgendaEntryIsCopy ? "Kopian är tillagd." : activeAgendaEntryIsNew ? "Programpunkten är tillagd." : "Programpunkten är sparad.";
+    await saveAgendaEntryChanges(arrangement, agenda, completionMessage);
 });
 
 document.getElementById("copyAgendaEntryBtn").addEventListener("click", () => {
@@ -797,6 +876,7 @@ document.getElementById("copyAgendaEntryBtn").addEventListener("click", () => {
     if (!arrangement || !isArrangementEditable(arrangement)) return;
     const copy = { ...readAgendaEntryDialog(), id: crypto.randomUUID() };
     activeAgendaEntryIsCopy = true;
+    activeAgendaEntryIsNew = false;
     renderAgendaEntryDialog(arrangement, copy);
 });
 
