@@ -414,7 +414,13 @@ function renderArrangements() {
         const agendaHtml = item.agenda.length ? renderArrangementSchedule(item) : `<p class="arrangement-card-no-agenda">Inget dagsprogram tillagt.</p>`;
         const link = item.planning_ref?.name ? `<p class="arrangement-card-planning">Planering: ${escapeArrangementHtml(item.planning_ref.name)}</p>` : "";
         const responsibilityHtml = item.responsibilities.length
-            ? `<details class="arrangement-responsibilities-summary"><summary>Ansvariga och roller (${item.responsibilities.length})</summary><div class="arrangement-responsibilities-summary-list">${item.responsibilities.map(entry => `<article class="arrangement-responsibility-summary-item"><h3>${escapeArrangementHtml(entry.person || "Ansvarspost")}</h3><p class="arrangement-responsibility-role">${escapeArrangementHtml(entry.role || "Fritextbeskrivning")}</p>${entry.description || entry.role_description ? `<p class="arrangement-responsibility-description">${escapeArrangementHtml(entry.description || entry.role_description)}</p>` : ""}</article>`).join("")}</div></details>`
+            ? `<details class="arrangement-responsibilities-summary"><summary>Ansvariga och roller (${item.responsibilities.length})</summary><div class="arrangement-responsibilities-summary-list">${item.responsibilities.map(entry => {
+                const roleDescription = String(entry.role_description || "").trim();
+                const description = String(entry.description || "").trim();
+                const roleDescriptionHtml = roleDescription ? `<p><strong>Rollbeskrivning</strong>${escapeArrangementHtml(roleDescription)}</p>` : "";
+                const descriptionHtml = description && description !== roleDescription ? `<p><strong>Ansvar</strong>${escapeArrangementHtml(description)}</p>` : "";
+                return `<details class="arrangement-responsibility-summary-item"><summary><span class="arrangement-responsibility-summary-role">${escapeArrangementHtml(entry.role || "Fritextbeskrivning")}</span><span class="arrangement-responsibility-summary-separator" aria-hidden="true">:</span><span class="arrangement-responsibility-summary-person">${escapeArrangementHtml(entry.person || "Ansvarspost")}</span></summary><div class="arrangement-responsibility-summary-details">${roleDescriptionHtml}${descriptionHtml}</div></details>`;
+            }).join("")}</div></details>`
             : "";
         const cardWidth = item.departments.length > 2 ? " arrangement-card--wide" : "";
         const actions = isArrangementEditable(item)
