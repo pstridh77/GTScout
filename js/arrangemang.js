@@ -5,6 +5,8 @@ const arrangementForm = document.getElementById("arrangementForm");
 const agendaEntryModal = document.getElementById("agendaEntryModal");
 const agendaEntryForm = document.getElementById("agendaEntryForm");
 const agendaEntryDialogFields = document.getElementById("agendaEntryDialogFields");
+const responsibilityModal = document.getElementById("responsibilityModal");
+const responsibilityForm = document.getElementById("responsibilityForm");
 const arrangementActionToast = document.getElementById("arrangementActionToast");
 const scheduleGesturePreview = document.createElement("div");
 scheduleGesturePreview.className = "schedule-gesture-preview hidden";
@@ -26,6 +28,8 @@ let activeAgendaEntryId = "";
 let activeAgendaEntryIsCopy = false;
 let activeAgendaEntryIsNew = false;
 let agendaEntryDialogTrigger = null;
+let activeResponsibilityArrangementId = "";
+let responsibilityDialogTrigger = null;
 let arrangementToastTimer = null;
 let activeScheduleGesture = null;
 let suppressScheduleClickUntil = 0;
@@ -423,20 +427,27 @@ function renderArrangements() {
         const agendaHtml = renderArrangementSchedule(item);
         const link = item.planning_ref?.name ? `<p class="arrangement-card-planning">Planering: ${escapeArrangementHtml(item.planning_ref.name)}</p>` : "";
         const responsibilityCountLabel = item.responsibilities.length === 1 ? "1 roll" : `${item.responsibilities.length} roller`;
-        const responsibilityHtml = item.responsibilities.length
-            ? `<details class="arrangement-responsibilities-summary"><summary class="arrangement-section-summary"><strong>Ansvariga och roller</strong><span>${responsibilityCountLabel}</span></summary><div class="arrangement-responsibilities-summary-list">${item.responsibilities.map(entry => {
+        const canEditResponsibilities = isArrangementEditable(item);
+        const addResponsibilityButton = canEditResponsibilities
+            ? `<button class="btn-secondary arrangement-responsibility-add" type="button" data-add-responsibility="${escapeArrangementHtml(item.id)}">+ Lägg till ansvarig</button>`
+            : "";
+        const responsibilityHtml = item.responsibilities.length || canEditResponsibilities
+            ? `<div class="arrangement-responsibilities-overview"><details class="arrangement-responsibilities-summary" data-arrangement-id="${escapeArrangementHtml(item.id)}"><summary class="arrangement-section-summary"><strong>Ansvariga och roller</strong><span>${responsibilityCountLabel}</span></summary><div class="arrangement-responsibilities-summary-list">${item.responsibilities.length ? item.responsibilities.map(entry => {
                 const roleDescription = String(entry.role_description || "").trim();
                 const description = String(entry.description || "").trim();
                 const roleDescriptionHtml = roleDescription ? `<p><strong>Rollbeskrivning</strong>${escapeArrangementHtml(roleDescription)}</p>` : "";
                 const descriptionHtml = description && description !== roleDescription ? `<p><strong>Ansvar</strong>${escapeArrangementHtml(description)}</p>` : "";
-                return `<details class="arrangement-responsibility-summary-item"><summary><span class="arrangement-responsibility-summary-role">${escapeArrangementHtml(entry.role || "Fritextbeskrivning")}</span><span class="arrangement-responsibility-summary-separator" aria-hidden="true">:</span><span class="arrangement-responsibility-summary-person">${escapeArrangementHtml(entry.person || "Ansvarspost")}</span></summary><div class="arrangement-responsibility-summary-details">${roleDescriptionHtml}${descriptionHtml}</div></details>`;
-            }).join("")}</div></details>`
+                const deleteResponsibilityButton = canEditResponsibilities
+                    ? `<div class="arrangement-responsibility-summary-actions"><button class="arrangement-delete-icon arrangement-responsibility-delete" type="button" data-delete-responsibility="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}" aria-label="Ta bort ${escapeArrangementHtml(entry.person || "ansvarspost")}" title="Ta bort ansvarig"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button></div>`
+                    : "";
+                return `<details class="arrangement-responsibility-summary-item" data-responsibility-id="${escapeArrangementHtml(entry.id)}"><summary><span class="arrangement-responsibility-summary-role">${escapeArrangementHtml(entry.role || "Övrig")}</span><span class="arrangement-responsibility-summary-separator" aria-hidden="true">:</span><span class="arrangement-responsibility-summary-person">${escapeArrangementHtml(entry.person || "Ansvarspost")}</span></summary><div class="arrangement-responsibility-summary-details"><div class="arrangement-responsibility-summary-info">${roleDescriptionHtml}${descriptionHtml}</div>${deleteResponsibilityButton}</div></details>`;
+            }).join("") : `<p class="arrangement-responsibilities-empty">Inga ansvariga tillagda.</p>`}</div>${addResponsibilityButton}</details></div>`
             : "";
         const cardWidth = item.departments.length > 2 ? " arrangement-card--wide" : "";
         const actions = isArrangementEditable(item)
             ? `<div class="arrangement-card-actions"><button class="btn-secondary" type="button" data-edit-arrangement="${escapeArrangementHtml(item.id)}">Redigera</button><button class="arrangement-delete-icon" type="button" data-delete-arrangement="${escapeArrangementHtml(item.id)}" aria-label="Ta bort ${escapeArrangementHtml(item.title)}" title="Ta bort arrangemang"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button></div>`
             : "";
-        return `<article class="arrangement-card${cardWidth}"><div class="arrangement-card-top"><div><p class="arrangement-card-type">${escapeArrangementHtml(item.type)}</p><h2>${escapeArrangementHtml(item.title)}</h2></div><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates">${escapeArrangementHtml(formatDateSpan(item))}${item.start_time ? ` · ${escapeArrangementHtml(item.start_time)}` : ""}${item.end_time ? `–${escapeArrangementHtml(item.end_time)}` : ""}</p>${item.location ? `<p class="arrangement-card-location">${escapeArrangementHtml(item.location)}</p>` : ""}<div class="arrangement-participant-tags">${participantTags}</div>${link}${responsibilityHtml}${agendaHtml}${actions}</article>`;
+        return `<article class="arrangement-card${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}"><div class="arrangement-card-top"><div><p class="arrangement-card-type">${escapeArrangementHtml(item.type)}</p><h2>${escapeArrangementHtml(item.title)}</h2></div><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates">${escapeArrangementHtml(formatDateSpan(item))}${item.start_time ? ` · ${escapeArrangementHtml(item.start_time)}` : ""}${item.end_time ? `–${escapeArrangementHtml(item.end_time)}` : ""}</p>${item.location ? `<p class="arrangement-card-location">${escapeArrangementHtml(item.location)}</p>` : ""}<div class="arrangement-participant-tags">${participantTags}</div>${link}${responsibilityHtml}${agendaHtml}${actions}</article>`;
     }).join("");
 
     arrangementsEmpty.classList.toggle("hidden", visible.length > 0);
@@ -633,6 +644,34 @@ function readFormPayload() {
     };
 }
 
+async function openResponsibilityDialog(arrangement, trigger) {
+    await defaultRoleDefinitionsLoaded;
+    if (!isArrangementEditable(arrangement)) return;
+    activeResponsibilityArrangementId = arrangement.id;
+    responsibilityDialogTrigger = trigger;
+    const roleSelect = document.getElementById("responsibilityDialogRole");
+    roleSelect.innerHTML = `<option value="">Övrig / egen roll</option>${getRoleDefinitions().map(role => `<option value="${escapeArrangementHtml(role.name)}">${escapeArrangementHtml(role.name)}</option>`).join("")}`;
+    document.getElementById("responsibilityDialogPerson").value = "";
+    document.getElementById("responsibilityDialogDescription").value = "";
+    document.getElementById("responsibilityDialogStatus").textContent = "";
+    document.getElementById("responsibilityCustomRoleName").value = "";
+    document.getElementById("responsibilityCustomRoleDescription").value = "";
+    document.getElementById("responsibilityRoleStatus").textContent = "";
+    document.getElementById("responsibilityCustomRoleForm").classList.add("hidden");
+    document.getElementById("toggleResponsibilityRoleForm").setAttribute("aria-expanded", "false");
+    document.getElementById("saveResponsibilityBtn").disabled = false;
+    responsibilityModal.classList.remove("hidden");
+    roleSelect.focus();
+}
+
+function closeResponsibilityDialog() {
+    const trigger = responsibilityDialogTrigger;
+    responsibilityModal.classList.add("hidden");
+    activeResponsibilityArrangementId = "";
+    responsibilityDialogTrigger = null;
+    if (trigger?.isConnected) trigger.focus();
+}
+
 async function saveScheduleGesture(arrangementId, entryId, changes) {
     const arrangement = arrangements.find(item => item.id === arrangementId);
     if (!arrangement || !isArrangementEditable(arrangement)) return;
@@ -773,6 +812,8 @@ arrangementsGrid.addEventListener("click", async event => {
     const editButton = event.target.closest("[data-edit-arrangement]");
     const agendaButton = event.target.closest("[data-edit-agenda]");
     const addAgendaButton = event.target.closest("[data-add-agenda]");
+    const addResponsibilityButton = event.target.closest("[data-add-responsibility]");
+    const deleteResponsibilityButton = event.target.closest("[data-delete-responsibility]");
     const deleteButton = event.target.closest("[data-delete-arrangement]");
     if (agendaButton && event.detail > 0 && performance.now() < suppressScheduleClickUntil) {
         event.preventDefault();
@@ -798,6 +839,52 @@ arrangementsGrid.addEventListener("click", async event => {
                 title: "",
                 notes: ""
             });
+        }
+        return;
+    }
+    if (addResponsibilityButton) {
+        const item = arrangements.find(arrangement => arrangement.id === addResponsibilityButton.dataset.addResponsibility);
+        if (item && isArrangementEditable(item)) openResponsibilityDialog(item, addResponsibilityButton);
+        return;
+    }
+    if (deleteResponsibilityButton) {
+        const item = arrangements.find(arrangement => arrangement.id === deleteResponsibilityButton.dataset.arrangementId);
+        const responsibility = item?.responsibilities.find(entry => entry.id === deleteResponsibilityButton.dataset.deleteResponsibility);
+        if (!item || !responsibility || !isArrangementEditable(item)) return;
+        const confirmation = `Ta bort ${responsibility.person || "ansvarspost"}${responsibility.role ? ` · ${responsibility.role}` : ""}?`;
+        if (!confirm(confirmation)) return;
+        const card = deleteResponsibilityButton.closest(".arrangement-card");
+        const overview = card?.querySelector(".arrangement-responsibilities-summary");
+        const overviewWasOpen = Boolean(overview?.open);
+        const openIds = [...(overview?.querySelectorAll(".arrangement-responsibility-summary-item[open]") || [])]
+            .map(row => row.dataset.responsibilityId)
+            .filter(id => id !== responsibility.id);
+        try {
+            const result = await window.GTScoutArrangements.save({
+                ...item,
+                responsibilities: item.responsibilities.filter(entry => entry.id !== responsibility.id)
+            });
+            const updatedCard = [...arrangementsGrid.querySelectorAll(".arrangement-card")]
+                .find(element => element.dataset.arrangementId === item.id);
+            const updatedOverview = updatedCard?.querySelector(".arrangement-responsibilities-summary");
+            if (updatedOverview) {
+                updatedOverview.open = overviewWasOpen;
+                openIds.forEach(id => {
+                    const row = [...updatedOverview.querySelectorAll(".arrangement-responsibility-summary-item")]
+                        .find(entry => entry.dataset.responsibilityId === id);
+                    if (row) row.open = true;
+                });
+                updatedOverview.querySelector(":scope > summary")?.focus();
+            }
+            const message = result.error
+                ? "Ansvarig borttagen lokalt men kunde inte synkas."
+                : result.localOnly ? "Ansvarig borttagen lokalt." : "Ansvarig har tagits bort.";
+            showArrangementToast(message, result.error ? "error" : result.localOnly ? "info" : "success");
+            arrangementSyncStatus.textContent = result.localOnly
+                ? result.error ? "Kunde inte nå databasen · ändringen finns lokalt" : "Sparas lokalt i den här webbläsaren"
+                : "Sparat i databasen";
+        } catch (error) {
+            showArrangementToast(error.message || "Kunde inte ta bort ansvarig.", "error");
         }
         return;
     }
@@ -835,6 +922,11 @@ document.getElementById("cancelArrangementBtn").addEventListener("click", () => 
 arrangementModal.addEventListener("click", event => {
     if (event.target === arrangementModal) arrangementModal.classList.add("hidden");
 });
+document.getElementById("closeResponsibilityModal").addEventListener("click", closeResponsibilityDialog);
+document.getElementById("cancelResponsibilityBtn").addEventListener("click", closeResponsibilityDialog);
+responsibilityModal.addEventListener("click", event => {
+    if (event.target === responsibilityModal) closeResponsibilityDialog();
+});
 const closeAgendaEntryDialog = () => {
     const trigger = agendaEntryDialogTrigger;
     const arrangementId = activeAgendaArrangementId;
@@ -860,7 +952,10 @@ agendaEntryModal.addEventListener("click", event => {
 });
 document.addEventListener("keydown", event => {
     if (event.key !== "Escape") return;
-    if (!agendaEntryModal.classList.contains("hidden")) {
+    if (!responsibilityModal.classList.contains("hidden")) {
+        event.preventDefault();
+        closeResponsibilityDialog();
+    } else if (!agendaEntryModal.classList.contains("hidden")) {
         event.preventDefault();
         closeAgendaEntryDialog();
     } else if (!arrangementModal.classList.contains("hidden")) {
@@ -1027,6 +1122,112 @@ async function saveAgendaEntryChanges(arrangement, agenda, completionMessage) {
         saveButton.disabled = false;
     }
 }
+
+document.getElementById("responsibilityDialogRole").addEventListener("change", event => {
+    const definition = getRoleDefinition(event.target.value);
+    document.getElementById("responsibilityDialogDescription").value = definition?.description || "";
+});
+
+const responsibilityCustomRoleForm = document.getElementById("responsibilityCustomRoleForm");
+const toggleResponsibilityRoleForm = document.getElementById("toggleResponsibilityRoleForm");
+toggleResponsibilityRoleForm.addEventListener("click", () => {
+    const shouldShow = responsibilityCustomRoleForm.classList.contains("hidden");
+    responsibilityCustomRoleForm.classList.toggle("hidden", !shouldShow);
+    toggleResponsibilityRoleForm.setAttribute("aria-expanded", String(shouldShow));
+    document.getElementById("responsibilityRoleStatus").textContent = "";
+    if (shouldShow) document.getElementById("responsibilityCustomRoleName").focus();
+});
+
+document.getElementById("cancelResponsibilityRoleBtn").addEventListener("click", () => {
+    responsibilityCustomRoleForm.classList.add("hidden");
+    toggleResponsibilityRoleForm.setAttribute("aria-expanded", "false");
+});
+
+document.getElementById("saveResponsibilityRoleBtn").addEventListener("click", () => {
+    const name = document.getElementById("responsibilityCustomRoleName").value.trim();
+    const description = document.getElementById("responsibilityCustomRoleDescription").value.trim();
+    const status = document.getElementById("responsibilityRoleStatus");
+    if (!name) {
+        status.textContent = "Skriv ett namn på rollen.";
+        document.getElementById("responsibilityCustomRoleName").focus();
+        return;
+    }
+    if (getRoleDefinitions().some(role => role.name.toLocaleLowerCase("sv") === name.toLocaleLowerCase("sv"))) {
+        status.textContent = "Rollen finns redan i listan.";
+        document.getElementById("responsibilityCustomRoleName").focus();
+        return;
+    }
+    localStorage.setItem(roleLibraryStorageKey, JSON.stringify([...getCustomRoleDefinitions(), { name, description }]));
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    const roleSelect = document.getElementById("responsibilityDialogRole");
+    roleSelect.append(option);
+    roleSelect.value = name;
+    document.getElementById("responsibilityDialogDescription").value = description;
+    responsibilityCustomRoleForm.classList.add("hidden");
+    toggleResponsibilityRoleForm.setAttribute("aria-expanded", "false");
+    document.getElementById("responsibilityCustomRoleName").value = "";
+    document.getElementById("responsibilityCustomRoleDescription").value = "";
+});
+
+responsibilityForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    const arrangement = arrangements.find(item => item.id === activeResponsibilityArrangementId);
+    const status = document.getElementById("responsibilityDialogStatus");
+    const person = document.getElementById("responsibilityDialogPerson").value.trim();
+    const role = document.getElementById("responsibilityDialogRole").value.trim();
+    const description = document.getElementById("responsibilityDialogDescription").value.trim();
+    if (!arrangement || !isArrangementEditable(arrangement)) {
+        status.textContent = "Arrangemanget kan inte redigeras.";
+        return;
+    }
+    if (!role && !description) {
+        status.textContent = "Välj en roll eller fyll i en ansvarsbeskrivning.";
+        return;
+    }
+    const definition = getRoleDefinition(role);
+    const responsibility = {
+        id: crypto.randomUUID(),
+        person,
+        role,
+        role_description: definition?.description || "",
+        description: description || definition?.description || ""
+    };
+    const saveButton = document.getElementById("saveResponsibilityBtn");
+    saveButton.disabled = true;
+    status.textContent = "Sparar...";
+    try {
+        const result = await window.GTScoutArrangements.save({
+            ...arrangement,
+            responsibilities: [...(arrangement.responsibilities || []), responsibility]
+        });
+        closeResponsibilityDialog();
+        const message = result.error
+            ? "Ansvarig tillagd lokalt men kunde inte synkas."
+            : result.localOnly ? "Ansvarig tillagd lokalt." : "Ansvarig har lagts till.";
+        showArrangementToast(message, result.error ? "error" : result.localOnly ? "info" : "success");
+        arrangementSyncStatus.textContent = result.localOnly
+            ? result.error ? "Kunde inte nå databasen · ändringen finns lokalt" : "Sparas lokalt i den här webbläsaren"
+            : "Sparat i databasen";
+        const card = [...arrangementsGrid.querySelectorAll(".arrangement-card")]
+            .find(element => element.dataset.arrangementId === arrangement.id);
+        const overview = card?.querySelector(".arrangement-responsibilities-summary");
+        if (overview) overview.open = true;
+        const newRow = [...(overview?.querySelectorAll(".arrangement-responsibility-summary-item") || [])]
+            .find(element => element.dataset.responsibilityId === responsibility.id);
+        if (newRow) {
+            newRow.open = true;
+            newRow.querySelector(":scope > summary")?.focus();
+        }
+    } catch (error) {
+        const message = error.message || "Kunde inte spara ansvarig.";
+        status.textContent = message;
+        showArrangementToast(message, "error");
+    } finally {
+        saveButton.disabled = false;
+    }
+});
 
 agendaEntryDialogFields.addEventListener("change", event => {
     const arrangement = arrangements.find(item => item.id === activeAgendaArrangementId);

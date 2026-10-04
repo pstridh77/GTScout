@@ -97,7 +97,10 @@ body {
 .arrangement-agenda-more, .arrangement-card-no-agenda { color: #65767b; font-size: .84rem; }
 .arrangement-card-no-agenda { margin: 14px 0 0; }
 .arrangement-card-actions { display: flex; align-items: center; gap: 8px; margin-top: 16px; padding-top: 12px; border-top: 1px solid #e2e8e8; }
-.arrangement-responsibilities-summary { margin-top: 14px; border-top: 1px solid #e2e8e8; }
+.arrangement-responsibilities-overview { display: block; margin-top: 14px; padding-top: 8px; border-top: 1px solid #e2e8e8; }
+.arrangement-responsibilities-summary { display: block; min-width: 0; margin: 0; }
+.arrangement-responsibility-add { min-height: 32px; margin: 4px 6px 8px; white-space: nowrap; }
+.arrangement-responsibilities-empty { margin: 0; padding: 4px 6px 8px; color: #65767b; font-size: .8rem; }
 .arrangement-responsibilities-summary-list { display: grid; gap: 0; padding: 4px 0 8px; }
 .arrangement-responsibility-summary-item { min-width: 0; border-bottom: 1px solid #e2e8e8; }
 .arrangement-responsibility-summary-item > summary { display: flex; align-items: center; justify-content: flex-start; gap: 0; min-height: 28px; padding: 3px 6px; color: #153c4a; cursor: pointer; list-style: none; }
@@ -109,7 +112,11 @@ body {
 .arrangement-responsibility-summary-person { min-width: 0; overflow-wrap: anywhere; font-size: .8rem; font-weight: 600; }
 .arrangement-responsibility-summary-role { flex: 0 1 auto; color: #286d60; font-size: .78rem; font-weight: 700; overflow-wrap: anywhere; }
 .arrangement-responsibility-summary-separator { margin-right: 5px; }
-.arrangement-responsibility-summary-details { padding: 0 8px 7px; }
+.arrangement-responsibility-summary-details { display: flex; align-items: flex-start; gap: 8px; padding: 0 8px 7px; }
+.arrangement-responsibility-summary-info { flex: 1 1 auto; min-width: 0; }
+.arrangement-responsibility-summary-actions { flex: 0 0 auto; }
+.arrangement-responsibility-delete { width: 28px; height: 28px; }
+.arrangement-responsibility-delete svg { width: 15px; height: 15px; }
 .arrangement-responsibility-summary-details p { margin: 0; color: #52636a; font-size: .78rem; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
 .arrangement-responsibility-summary-details p + p { margin-top: 5px; }
 .arrangement-responsibility-summary-details strong { margin-right: 4px; color: #153c4a; }
@@ -230,6 +237,12 @@ body {
 .arrangement-responsibility-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .responsibility-field { display: grid; min-width: 0; gap: 5px; color: #52636a; font-size: .76rem; font-weight: 700; }
 .responsibility-field input, .responsibility-field select, .responsibility-field textarea { width: 100%; min-width: 0; padding: 8px; border: 1px solid #cbd7dc; border-radius: 4px; background: #fff; color: #153c4a; font: inherit; }
+.responsibility-dialog-content { max-width: 460px; gap: 12px; }
+.responsibility-dialog-actions { gap: 8px; margin-top: 2px; }
+.responsibility-dialog-role-control { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px; }
+.responsibility-dialog-role-control > button { min-height: 40px; white-space: nowrap; }
+.responsibility-dialog-role-form { grid-template-columns: minmax(0, 1fr); gap: 8px; margin: 0; padding: 10px; }
+.responsibility-dialog-role-form .responsibility-field input, .responsibility-dialog-role-form .responsibility-field textarea { box-sizing: border-box; }
 .responsibility-field--role { grid-column: 1 / -1; }
 .responsibility-field--person { grid-column: 1 / -1; }
 .responsibility-field--description { grid-column: 1 / -1; }

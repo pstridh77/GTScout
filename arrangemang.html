@@ -131,7 +131,7 @@
                 </label>
             </div>
 
-            <section class="arrangement-responsibilities-editor" aria-labelledby="arrangementResponsibilitiesTitle">
+            <section class="arrangement-responsibilities-editor hidden" aria-labelledby="arrangementResponsibilitiesTitle">
                 <div class="arrangement-section-heading">
                     <div>
                         <h3 id="arrangementResponsibilitiesTitle">Ansvariga och roller</h3>
@@ -139,7 +139,7 @@
                     </div>
                     <div class="arrangement-responsibility-actions">
                         <button id="toggleRoleLibraryBtn" class="btn-secondary" type="button" aria-expanded="false" aria-controls="customRoleForm">+ Ny roll</button>
-                        <button id="addResponsibilityBtn" class="btn-primary" type="button">+ Lägg till ansvarig</button>
+                        <button id="addResponsibilityBtn" class="btn-primary hidden" type="button">+ Lägg till ansvarig</button>
                     </div>
                 </div>
                 <div id="customRoleForm" class="arrangement-role-form hidden">
@@ -152,7 +152,7 @@
                 <p id="arrangementResponsibilitiesEmpty" class="arrangement-responsibilities-empty">Inga ansvariga tillagda.</p>
             </section>
 
-            <section class="arrangement-agenda-editor" aria-labelledby="arrangementAgendaTitle">
+            <section class="arrangement-agenda-editor hidden" aria-labelledby="arrangementAgendaTitle">
                 <div class="arrangement-section-heading">
                     <div>
                         <h3 id="arrangementAgendaTitle">Dagsprogram</h3>
@@ -195,6 +195,39 @@
                     <button id="cancelAgendaEntryBtn" class="btn-secondary" type="button">Avbryt</button>
                     <button id="saveAgendaEntryBtn" class="btn-primary" type="submit">Spara</button>
                 </div>
+            </div>
+        </form>
+    </div>
+
+    <div id="responsibilityModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="responsibilityDialogTitle">
+        <form id="responsibilityForm" class="modal-content responsibility-dialog-content">
+            <button id="closeResponsibilityModal" class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2 id="responsibilityDialogTitle">Lägg till ansvarig</h2>
+            <div class="responsibility-dialog-role-control">
+                <label class="responsibility-field">
+                    <span>Roll</span>
+                    <select id="responsibilityDialogRole"></select>
+                </label>
+                <button id="toggleResponsibilityRoleForm" class="btn-secondary" type="button" aria-expanded="false" aria-controls="responsibilityCustomRoleForm">+ Ny roll</button>
+            </div>
+            <div id="responsibilityCustomRoleForm" class="arrangement-role-form responsibility-dialog-role-form hidden">
+                <label class="responsibility-field"><span>Rollnamn</span><input id="responsibilityCustomRoleName" type="text" maxlength="120" placeholder="Till exempel Kommunikationsansvarig"></label>
+                <label class="responsibility-field"><span>Standardbeskrivning</span><textarea id="responsibilityCustomRoleDescription" rows="2" maxlength="600" placeholder="Vilket ansvarsområde hör till rollen?"></textarea></label>
+                <div class="arrangement-role-form-actions"><button id="cancelResponsibilityRoleBtn" class="btn-secondary" type="button">Avbryt</button><button id="saveResponsibilityRoleBtn" class="btn-primary" type="button">Spara roll</button></div>
+                <p id="responsibilityRoleStatus" class="detail-planning-status" role="status" aria-live="polite"></p>
+            </div>
+            <label class="responsibility-field">
+                <span>Namn</span>
+                <input id="responsibilityDialogPerson" type="text" maxlength="120" required placeholder="Ansvarigs namn" autocomplete="name">
+            </label>
+            <label class="responsibility-field">
+                <span>Ansvar och anteckningar</span>
+                <textarea id="responsibilityDialogDescription" rows="4" maxlength="600" placeholder="Ansvar, samordning, tider och övriga detaljer"></textarea>
+            </label>
+            <p id="responsibilityDialogStatus" class="detail-planning-status" role="status" aria-live="polite"></p>
+            <div class="modal-actions responsibility-dialog-actions">
+                <button id="cancelResponsibilityBtn" class="btn-secondary" type="button">Avbryt</button>
+                <button id="saveResponsibilityBtn" class="btn-primary" type="submit">Lägg till ansvarig</button>
             </div>
         </form>
     </div>
