@@ -344,12 +344,13 @@ function renderArrangementSchedule(item) {
 
 function renderScheduleEntry(entry, departmentIndex = null, arrangementId = "", canEdit = false) {
     const tone = departmentIndex === null ? "arrangement-schedule-item--shared" : `department-tone-${departmentIndex}`;
-    const meal = entry.kind === "meal" && entry.meal_type ? `<span class="arrangement-schedule-meal">${escapeArrangementHtml(entry.meal_type)}</span>` : "";
-    const endTime = entry.end_time ? `<span class="arrangement-schedule-end">Slut ${escapeArrangementHtml(entry.end_time)}</span>` : "";
+    const formattedTime = /^\d{2}:\d{2}$/.test(entry.time || "") ? `${Number(entry.time.slice(0, 2))}:${entry.time.slice(3)}` : "";
+    const mealType = entry.kind === "meal" && entry.meal_type ? ` (${escapeArrangementHtml(entry.meal_type)})` : "";
+    const title = `${formattedTime ? `${escapeArrangementHtml(formattedTime)}: ` : ""}${escapeArrangementHtml(entry.title)}${mealType}`;
     const notes = entry.notes ? `<small class="arrangement-schedule-notes" title="${escapeArrangementHtml(entry.notes)}">${escapeArrangementHtml(entry.notes)}</small>` : "";
     const actionLabel = entry.kind === "activity" ? "Redigera aktivitet" : entry.kind === "meal" ? "Redigera måltid" : "Redigera programpunkt";
     const editAttributes = canEdit ? `data-edit-agenda="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(arrangementId)}" aria-label="${actionLabel}: ${escapeArrangementHtml(entry.title)}" title="Klicka för att redigera"` : "disabled aria-disabled=\"true\"";
-    return `<button type="button" class="arrangement-schedule-item ${tone}" ${editAttributes}>${meal}<strong>${escapeArrangementHtml(entry.title)}</strong>${endTime}${notes}</button>`;
+    return `<button type="button" class="arrangement-schedule-item ${tone}" ${editAttributes}><strong>${title}</strong>${notes}</button>`;
 }
 
 function renderArrangements() {
