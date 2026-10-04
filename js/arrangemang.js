@@ -208,35 +208,83 @@ function renderArrangementSchedule(item) {
         }
         const sortedTimes = [...times].sort((left, right) => left.localeCompare(right));
         const timePoints = [...(entries.some(entry => !isTime(entry.time)) ? [""] : []), ...sortedTimes];
-        const eventGroups = new Map();
-        entries.forEach(entry => {
+        const scheduleEvents = entries.flatMap(entry => {
             const startTime = isTime(entry.time) ? entry.time : "";
             const targets = entry.shared !== false
                 ? [{ key: "shared", department: null }]
                 : selectedDepartments.filter(department => entry.departments.includes(department)).map(department => ({ key: department, department }));
-            targets.forEach(target => {
-                const key = `${startTime}\u0000${target.key}`;
-                if (!eventGroups.has(key)) eventGroups.set(key, { startTime, department: target.department, entries: [] });
-                eventGroups.get(key).entries.push(entry);
+            const startMinutes = startTime ? Number(startTime.slice(0, 2)) * 60 + Number(startTime.slice(3)) : 0;
+            const endMinutes = isTime(entry.end_time) && entry.end_time > startTime
+                ? Number(entry.end_time.slice(0, 2)) * 60 + Number(entry.end_time.slice(3))
+                : startTime ? startMinutes + 60 : 1440;
+            return targets.map(target => ({
+                entry,
+                startTime,
+                department: target.department,
+                startMinutes,
+                endMinutes,
+                laneIndex: 0,
+                laneCount: 1
+            }));
+        });
+        const laneGroups = new Map();
+        scheduleEvents.forEach(event => {
+            const key = JSON.stringify([event.department || "shared", Boolean(event.startTime)]);
+            if (!laneGroups.has(key)) laneGroups.set(key, []);
+            laneGroups.get(key).push(event);
+        });
+        laneGroups.forEach(eventsInLane => {
+            const sortedEvents = [...eventsInLane].sort((left, right) => left.startMinutes - right.startMinutes || left.endMinutes - right.endMinutes);
+            let cluster = [];
+            let clusterEnd = -1;
+            const assignClusterLanes = () => {
+                if (!cluster.length) return;
+                const laneEnds = [];
+                cluster.forEach(event => {
+                    let laneIndex = laneEnds.findIndex(end => end <= event.startMinutes);
+                    if (laneIndex < 0) {
+                        laneIndex = laneEnds.length;
+                        laneEnds.push(event.endMinutes);
+                    } else {
+                        laneEnds[laneIndex] = event.endMinutes;
+                    }
+                    event.laneIndex = laneIndex;
+                });
+                cluster.forEach(event => { event.laneCount = laneEnds.length; });
+            };
+            sortedEvents.forEach(event => {
+                if (cluster.length && event.startMinutes >= clusterEnd) {
+                    assignClusterLanes();
+                    cluster = [];
+                    clusterEnd = -1;
+                }
+                cluster.push(event);
+                clusterEnd = Math.max(clusterEnd, event.endMinutes);
             });
+            assignClusterLanes();
         });
         const timeLabels = timePoints.map((time, index) => `<time class="arrangement-schedule-time" style="grid-column:1;grid-row:${index + 1}">${escapeArrangementHtml(time || "Heldag")}</time>`).join("");
         const emptyCells = timePoints.map((time, rowIndex) => selectedDepartments.map((department, departmentIndex) => `<div class="arrangement-schedule-slot department-tone-${departments.indexOf(department)}" style="grid-column:${departmentIndex + 2};grid-row:${rowIndex + 1}" aria-hidden="true"></div>`).join("")).join("");
-        const eventMarkup = [...eventGroups.values()].map(group => {
-            const startIndex = timePoints.indexOf(group.startTime);
+        const eventMarkup = scheduleEvents.map(event => {
+            const startIndex = timePoints.indexOf(event.startTime);
             const startRow = startIndex + 1;
-            const validEndTimes = group.entries.map(entry => entry.end_time).filter(time => isTime(time) && (!isTime(group.startTime) || time > group.startTime));
-            const endTime = validEndTimes.sort((left, right) => right.localeCompare(left))[0];
+            const endTime = isTime(event.entry.end_time) && (!isTime(event.startTime) || event.entry.end_time > event.startTime) ? event.entry.end_time : "";
             const endIndex = endTime ? timePoints.indexOf(endTime) : -1;
             const endRow = endIndex > startIndex ? endIndex + 1 : startRow + 1;
-            const departmentIndex = group.department === null ? -1 : selectedDepartments.indexOf(group.department);
+            const departmentIndex = event.department === null ? -1 : selectedDepartments.indexOf(event.department);
             const column = departmentIndex < 0 ? "2 / -1" : String(departmentIndex + 2);
-            const tone = group.department === null ? null : departments.indexOf(group.department);
-            const cards = group.entries.map(entry => renderScheduleEntry(entry, tone, item.id, isArrangementEditable(item))).join("");
-            return `<div class="arrangement-schedule-event${group.department === null ? " arrangement-schedule-event--shared" : ""}" style="grid-column:${column};grid-row:${startRow}/${endRow};--event-count:${group.entries.length}">${cards}</div>`;
+            const tone = event.department === null ? null : departments.indexOf(event.department);
+            const laneWidth = (100 / event.laneCount).toFixed(4);
+            const laneOffset = (event.laneIndex * 100 / event.laneCount).toFixed(4);
+            const laneGap = 4;
+            const width = event.laneCount > 1 ? `calc(${laneWidth}% - ${(laneGap * (event.laneCount - 1) / event.laneCount).toFixed(2)}px)` : "100%";
+            const offset = event.laneIndex ? `calc(${laneOffset}% + ${(event.laneIndex * laneGap / event.laneCount).toFixed(2)}px)` : "0px";
+            const card = renderScheduleEntry(event.entry, tone, item.id, isArrangementEditable(item));
+            const durationClass = endRow - startRow > 1 ? " arrangement-schedule-event--multi-hour" : "";
+            return `<div class="arrangement-schedule-event${durationClass}${event.department === null ? " arrangement-schedule-event--shared" : ""}" style="grid-column:${column};grid-row:${startRow}/${endRow};--lane-width:${width};--lane-offset:${offset}">${card}</div>`;
         }).join("");
         const headers = selectedDepartments.map(department => `<span class="arrangement-schedule-department department-tone-${departments.indexOf(department)}">${escapeArrangementHtml(department)}</span>`).join("");
-        const hasVisibleEvents = eventGroups.size > 0;
+        const hasVisibleEvents = scheduleEvents.length > 0;
         const grid = hasVisibleEvents ? `<div class="arrangement-schedule-grid" style="--department-count:${departmentCount};--schedule-row-count:${timePoints.length}">${timeLabels}${emptyCells}${eventMarkup}</div>` : `<p class="arrangement-day-empty">Inga programpunkter den här dagen.</p>`;
         return `<section class="arrangement-day"><h3>${escapeArrangementHtml(formatArrangementDate(date))}</h3><div class="arrangement-schedule-header"><span>Tid</span><div class="arrangement-schedule-columns" style="--department-count:${departmentCount}">${headers}</div></div>${grid}</section>`;
     }).join("");
@@ -247,7 +295,7 @@ function renderScheduleEntry(entry, departmentIndex = null, arrangementId = "", 
     const tone = departmentIndex === null ? "arrangement-schedule-item--shared" : `department-tone-${departmentIndex}`;
     const meal = entry.kind === "meal" && entry.meal_type ? `<span class="arrangement-schedule-meal">${escapeArrangementHtml(entry.meal_type)}</span>` : "";
     const endTime = entry.end_time ? `<span class="arrangement-schedule-end">Slut ${escapeArrangementHtml(entry.end_time)}</span>` : "";
-    const notes = entry.notes ? `<small>${escapeArrangementHtml(entry.notes)}</small>` : "";
+    const notes = entry.notes ? `<small class="arrangement-schedule-notes" title="${escapeArrangementHtml(entry.notes)}">${escapeArrangementHtml(entry.notes)}</small>` : "";
     const actionLabel = entry.kind === "activity" ? "Redigera aktivitet" : entry.kind === "meal" ? "Redigera måltid" : "Redigera programpunkt";
     const editAttributes = canEdit ? `data-edit-agenda="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(arrangementId)}" aria-label="${actionLabel}: ${escapeArrangementHtml(entry.title)}" title="Klicka för att redigera"` : "disabled aria-disabled=\"true\"";
     return `<button type="button" class="arrangement-schedule-item ${tone}" ${editAttributes}>${meal}<strong>${escapeArrangementHtml(entry.title)}</strong>${endTime}${notes}</button>`;
