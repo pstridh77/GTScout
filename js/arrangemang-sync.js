@@ -56,6 +56,7 @@
         return {
             id,
             title: String(item.title).trim(),
+            description: String(item.description || "").trim(),
             type: String(item.type || "Övrigt"),
             start_date: startDate,
             end_date: endDate,

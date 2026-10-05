@@ -81,7 +81,7 @@ body {
 .arrangements-toolbar .planning-sync-status { justify-self: end; padding-bottom: 10px; color: #52636a; font-size: .82rem; }
 .arrangements-grid { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 14px; }
 .arrangement-card { min-width: 0; padding: 0; border: 1px solid #d1dbdc; border-top: 3px solid #4d8275; border-radius: 6px; background: #fff; }
-.arrangement-card > .arrangement-card-summary { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, auto) minmax(0, auto); grid-template-rows: auto auto; grid-template-areas: "title location tags" "dates location tags"; align-items: center; column-gap: 28px; row-gap: 4px; min-height: 72px; padding: 13px 48px 13px 16px; cursor: pointer; list-style: none; }
+.arrangement-card > .arrangement-card-summary { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, auto) minmax(0, auto); grid-template-rows: auto auto auto; grid-template-areas: "title location tags" "dates location tags" "description location tags"; align-items: center; column-gap: 28px; row-gap: 4px; min-height: 72px; padding: 13px 48px 13px 16px; cursor: pointer; list-style: none; }
 .arrangement-card > .arrangement-card-summary::-webkit-details-marker { display: none; }
 .arrangement-card > .arrangement-card-summary::after { position: absolute; top: 50%; right: 18px; width: 8px; height: 8px; border-right: 2px solid #286d60; border-bottom: 2px solid #286d60; content: ""; transform: translateY(-70%) rotate(45deg); transition: transform .15s ease; }
 .arrangement-card[open] > .arrangement-card-summary::after { transform: translateY(-25%) rotate(225deg); }
@@ -90,6 +90,7 @@ body {
 .arrangement-card-summary-title h2 { flex: 0 1 auto; }
 .arrangement-card-summary-type { margin: 0; font-size: .68rem; }
 .arrangement-card-summary .arrangement-card-dates { grid-area: dates; margin: 0; font-size: .86rem; }
+.arrangement-card-summary .arrangement-card-description { grid-area: description; min-width: 0; margin: 0; color: #52636a; font-size: .82rem; line-height: 1.35; overflow-wrap: anywhere; }
 .arrangement-card-summary-times { display: none; }
 .arrangement-card[open] > .arrangement-card-summary .arrangement-card-summary-times { display: inline; }
 .arrangement-card-summary .arrangement-card-location { display: flex; grid-area: location; align-items: center; gap: 7px; min-width: 0; margin: 0; color: #52636a; }
@@ -284,7 +285,7 @@ body {
 .arrangement-action-toast--error { border-left-color: #b91c1c; color: #8e2020; }
 .schedule-gesture-preview { position: fixed; z-index: 1900; max-width: calc(100vw - 16px); padding: 5px 8px; border: 1px solid rgba(255, 255, 255, .35); border-radius: 4px; background: #153c4a; box-shadow: 0 3px 10px rgba(0, 0, 0, .22); color: #fff; font-size: .76rem; font-weight: 700; line-height: 1.2; pointer-events: none; white-space: nowrap; }
 @media (max-width: 760px) {
-    .arrangement-card > .arrangement-card-summary { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; grid-template-areas: "title" "dates" "location" "tags"; row-gap: 8px; }
+    .arrangement-card > .arrangement-card-summary { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; grid-template-areas: "title" "dates" "description" "location" "tags"; row-gap: 8px; }
     .arrangement-card-summary .arrangement-participant-tags { justify-content: flex-start; }
     .arrangements-toolbar { grid-template-columns: minmax(0, 1fr) minmax(150px, .7fr); }
     .arrangements-toolbar .planning-sync-status { grid-column: 1 / -1; justify-self: start; padding: 0; }

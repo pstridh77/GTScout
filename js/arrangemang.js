@@ -420,7 +420,7 @@ function renderArrangements() {
     const query = document.getElementById("arrangementSearch").value.trim().toLocaleLowerCase("sv");
     const selectedStatus = document.getElementById("arrangementStatusFilter").value;
     const visible = arrangements.filter(item => {
-        const matchesQuery = !query || `${item.title} ${item.location}`.toLocaleLowerCase("sv").includes(query);
+        const matchesQuery = !query || `${item.title} ${item.description} ${item.location}`.toLocaleLowerCase("sv").includes(query);
         return matchesQuery && (selectedStatus === "all" || item.status === selectedStatus);
     });
 
@@ -451,8 +451,9 @@ function renderArrangements() {
             ? `<div class="arrangement-card-actions"><button class="btn-secondary" type="button" data-edit-arrangement="${escapeArrangementHtml(item.id)}">Redigera</button><button class="arrangement-delete-icon" type="button" data-delete-arrangement="${escapeArrangementHtml(item.id)}" aria-label="Ta bort ${escapeArrangementHtml(item.title)}" title="Ta bort arrangemang"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button></div>`
             : "";
         const notes = String(item.notes || "").trim();
+        const description = String(item.description || "").trim();
         const timeRange = [item.start_time, item.end_time].filter(Boolean).join("–");
-        return `<details class="arrangement-card${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}</div></summary><div class="arrangement-card-details"><div class="arrangement-card-expanded-header"><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div>${link}<section class="arrangement-detail-notes"><h3>Anteckningar</h3><p>${notes ? escapeArrangementHtml(notes) : "Inga anteckningar."}</p></section>${responsibilityHtml}${agendaHtml}${actions}</div></details>`;
+        return `<details class="arrangement-card${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}</div></summary><div class="arrangement-card-details"><div class="arrangement-card-expanded-header"><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div>${link}<section class="arrangement-detail-notes"><h3>Anteckningar</h3><p>${notes ? escapeArrangementHtml(notes) : "Inga anteckningar."}</p></section>${responsibilityHtml}${agendaHtml}${actions}</div></details>`;
     }).join("");
 
     arrangementsEmpty.classList.toggle("hidden", visible.length > 0);
@@ -588,6 +589,7 @@ async function openArrangementEditor(item = null, focusAgendaId = "") {
     form.dataset.arrangementId = item?.id || "";
     document.getElementById("arrangementModalTitle").textContent = item ? "Redigera arrangemang" : "Nytt arrangemang";
     document.getElementById("arrangementTitle").value = item?.title || "";
+    document.getElementById("arrangementDescription").value = item?.description || "";
     document.getElementById("arrangementType").value = item?.type || "Hajk";
     document.getElementById("arrangementStatus").value = item?.status || "planned";
     document.getElementById("arrangementStartDate").value = item?.start_date || new Date().toISOString().slice(0, 10);
@@ -635,6 +637,7 @@ function readFormPayload() {
     return {
         id: arrangementForm.dataset.arrangementId || crypto.randomUUID(),
         title: document.getElementById("arrangementTitle").value.trim(),
+        description: document.getElementById("arrangementDescription").value.trim(),
         type: document.getElementById("arrangementType").value,
         status: document.getElementById("arrangementStatus").value,
         start_date: document.getElementById("arrangementStartDate").value,
