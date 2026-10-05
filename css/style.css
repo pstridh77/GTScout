@@ -6,6 +6,11 @@ body.shared-planning-view .planning-intro {
     display: none;
 }
 
+body.shared-arrangement-view .arrangements-heading > button,
+body.shared-arrangement-view .arrangements-toolbar {
+    display: none;
+}
+
 body {
     margin: 0;
     font-family: 'Inter', Arial, sans-serif;

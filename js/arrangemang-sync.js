@@ -3,6 +3,7 @@
     let arrangements = [];
     let onChange = null;
     let loadedForKarId = null;
+    let sharedToken = null;
     const DEPARTMENTS = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
 
     const auth = () => window.GTScoutAuth;
@@ -74,6 +75,7 @@
             notes: String(item.notes || "").trim(),
             experience: String(item.experience || item.after_notes || "").trim(),
             created_by: item.created_by || null,
+            share_token: item.share_token || null,
             local_only: Boolean(item.local_only),
             updated_at: String(item.updated_at || new Date().toISOString())
         };
@@ -115,9 +117,9 @@
 
         const currentKarId = karId();
         try {
-            const { data, error } = await client().from("arrangemang").select("id, kar_id, created_by, data, updated_at").eq("kar_id", currentKarId);
+            const { data, error } = await client().from("arrangemang").select("id, kar_id, created_by, data, updated_at, share_token").eq("kar_id", currentKarId);
             if (error) throw error;
-            const remote = (data || []).map(row => normalize({ ...row.data, id: row.id, created_by: row.created_by, updated_at: row.updated_at, local_only: false })).filter(Boolean);
+            const remote = (data || []).map(row => normalize({ ...row.data, id: row.id, created_by: row.created_by, updated_at: row.updated_at, share_token: row.share_token || row.data?.share_token, local_only: false })).filter(Boolean);
             const remoteIds = new Set(remote.map(item => item.id));
             const pendingById = new Map(local.filter(item => item.local_only).map(item => [item.id, item]));
             arrangements = remote.map(item => pendingById.get(item.id) || item);
@@ -133,6 +135,32 @@
         }
         writeLocal();
         return getAll();
+    }
+
+    async function loadShared() {
+        const status = document.getElementById("arrangementSyncStatus");
+        arrangements = [];
+        onChange?.([]);
+        if (status) status.textContent = "Hämtar delat arrangemang...";
+        if (!client()) {
+            if (status) status.textContent = "Delningslänken kräver en databaskoppling.";
+            return;
+        }
+        try {
+            const { data, error } = await client().rpc("get_shared_arrangement", { requested_token: sharedToken });
+            if (error) throw error;
+            const row = Array.isArray(data) ? data[0] : data;
+            const item = row?.data && typeof row.data === "object"
+                ? normalize({ ...row.data, id: row.id, share_token: null, local_only: false, read_only: true })
+                : null;
+            if (!item) throw new Error("Arrangemanget kunde inte hittas.");
+            arrangements = [item];
+            onChange?.(getAll());
+            if (status) status.textContent = "Delat arrangemang · skrivskyddad visning";
+        } catch (error) {
+            console.error("Kunde inte hämta delat arrangemang", error);
+            if (status) status.textContent = "Det delade arrangemanget kunde inte hittas eller är inte längre delat.";
+        }
     }
 
     async function save(input) {
@@ -153,6 +181,7 @@
             start_date: item.start_date,
             end_date: item.end_date,
             status: item.status,
+            share_token: item.share_token || null,
             data: item
         };
         try {
@@ -187,6 +216,10 @@
     }
 
     function onAuthChange() {
+        if (sharedToken !== null) {
+            loadShared();
+            return;
+        }
         const currentKarId = canRead() ? karId() : null;
         if (loadedForKarId === currentKarId) {
             onChange?.(getAll());
@@ -203,6 +236,13 @@
     window.GTScoutArrangements = {
         init(config) {
             onChange = config?.onChange || null;
+            const params = new URLSearchParams(window.location.search);
+            sharedToken = params.has("share") ? params.get("share") : null;
+            if (sharedToken !== null) {
+                document.body.classList.add("shared-arrangement-view");
+                auth()?.onChange?.(onAuthChange);
+                return;
+            }
             arrangements = readLocal();
             onChange?.(getAll());
             auth()?.onChange?.(onAuthChange);

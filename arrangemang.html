@@ -248,6 +248,23 @@
         </form>
     </div>
 
+    <div id="shareArrangementModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="shareArrangementTitle">
+        <div class="modal-content">
+            <button class="close-popup" type="button" id="closeShareArrangementModal" aria-label="Stäng">&times;</button>
+            <h2 id="shareArrangementTitle">Dela arrangemang</h2>
+            <p>Alla som har länken kan visa arrangemanget i skrivskyddat läge, även utan att logga in.</p>
+            <label class="modal-field">
+                <span>Länk</span>
+                <input id="shareArrangementUrl" class="share-planning-url" type="text" readonly aria-label="Länk till arrangemanget">
+            </label>
+            <p id="shareArrangementStatus" class="detail-planning-status" role="status"></p>
+            <div class="modal-actions">
+                <button id="copyShareArrangementBtn" class="btn-primary" type="button">Kopiera länk</button>
+                <button id="closeShareArrangementBtn" class="btn-secondary" type="button">Stäng</button>
+            </div>
+        </div>
+    </div>
+
     <div id="arrangementActionToast" class="arrangement-action-toast hidden" role="status" aria-live="polite"></div>
 
     <footer class="site-footer" aria-label="Sidfot och version">

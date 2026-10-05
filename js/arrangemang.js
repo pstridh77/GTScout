@@ -9,6 +9,7 @@ const responsibilityModal = document.getElementById("responsibilityModal");
 const responsibilityForm = document.getElementById("responsibilityForm");
 const arrangementNotesModal = document.getElementById("arrangementNotesModal");
 const arrangementNotesForm = document.getElementById("arrangementNotesForm");
+const shareArrangementModal = document.getElementById("shareArrangementModal");
 const arrangementActionToast = document.getElementById("arrangementActionToast");
 const scheduleGesturePreview = document.createElement("div");
 scheduleGesturePreview.className = "schedule-gesture-preview hidden";
@@ -20,6 +21,7 @@ const roleLibraryStorageKey = "gtscout_arrangemang_roles";
 const arrangementAgendaList = document.getElementById("arrangementAgendaList");
 const arrangementAgendaEmpty = document.getElementById("arrangementAgendaEmpty");
 const arrangementSyncStatus = document.getElementById("arrangementSyncStatus");
+const isSharedArrangementView = new URLSearchParams(window.location.search).has("share");
 
 let arrangements = [];
 let recipes = [];
@@ -125,7 +127,31 @@ function showArrangementToast(message, type = "success") {
 }
 
 function isArrangementEditable(item) {
-    return Boolean(window.GTScoutArrangements?.canWrite() || item.local_only);
+    return !isSharedArrangementView && Boolean(window.GTScoutArrangements?.canWrite() || item.local_only);
+}
+
+async function shareArrangement(item) {
+    if (!item || item.local_only || !window.GTScoutArrangements?.canWrite?.()) return;
+    const token = item.share_token || crypto.randomUUID();
+    const result = await window.GTScoutArrangements.save({ ...item, share_token: token });
+    if (result.localOnly) {
+        showArrangementToast("Delningen kunde inte sparas i databasen.", "error");
+        return;
+    }
+    const shareUrl = new URL("arrangemang.html", window.location.href);
+    shareUrl.searchParams.set("share", token);
+    const urlInput = document.getElementById("shareArrangementUrl");
+    const status = document.getElementById("shareArrangementStatus");
+    urlInput.value = shareUrl.href;
+    status.textContent = "";
+    shareArrangementModal.classList.remove("hidden");
+    urlInput.select();
+    try {
+        await navigator.clipboard.writeText(shareUrl.href);
+        status.textContent = "Länken har kopierats. Du kan också markera den och kopiera manuellt.";
+    } catch {
+        status.textContent = "Markera länken och kopiera den manuellt.";
+    }
 }
 
 function openArrangementNotesDialog(item, trigger) {
@@ -475,8 +501,9 @@ function renderArrangements() {
             : "";
         const detailsOpen = expandedArrangementIds.has(item.id);
         const cardWidth = detailsOpen && item.departments.length > 2 ? " arrangement-card--wide" : "";
+        const canShare = !item.local_only && window.GTScoutArrangements?.canWrite?.();
         const actions = isArrangementEditable(item)
-            ? `<div class="arrangement-card-actions"><button class="btn-secondary" type="button" data-edit-arrangement="${escapeArrangementHtml(item.id)}">Redigera</button><button class="arrangement-delete-icon" type="button" data-delete-arrangement="${escapeArrangementHtml(item.id)}" aria-label="Ta bort ${escapeArrangementHtml(item.title)}" title="Ta bort arrangemang"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button></div>`
+            ? `<div class="arrangement-card-actions"><button class="btn-secondary" type="button" data-edit-arrangement="${escapeArrangementHtml(item.id)}">Redigera</button><button class="btn-secondary" type="button" data-copy-arrangement="${escapeArrangementHtml(item.id)}">Kopiera</button>${canShare ? `<button class="btn-secondary share-arrangement-btn" type="button" data-share-arrangement="${escapeArrangementHtml(item.id)}" aria-label="Dela arrangemang" title="Dela arrangemang"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,16.08C17.24,16.08 16.54,16.38 16,16.85L8.91,12.74C8.96,12.5 9,12.25 8.91,11.26L15.92,7.17C16.47,7.66 17.2,7.97 18,7.97C19.66,7.97 21,6.63 21,4.97C21,3.31 19.66,1.97 18,1.97C16.34,1.97 15,3.31 15,4.97C15,5.22 15.04,5.47 15.09,5.71L8.08,9.8C7.53,9.31 6.8,9 6,9C4.34,9 3,10.34 3,12C3,13.66 4.34,15 6,15C6.8,15 7.53,14.69 8.08,14.2L15.17,18.31C15.12,18.54 15,18.77 15,19C15,20.66 16.34,22 18,22C19.66,22 21,20.66 21,19C21,17.34 19.66,16.08 18,16.08Z"/></svg></button>` : ""}<button class="arrangement-delete-icon" type="button" data-delete-arrangement="${escapeArrangementHtml(item.id)}" aria-label="Ta bort ${escapeArrangementHtml(item.title)}" title="Ta bort arrangemang"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button></div>`
             : "";
         const notes = String(item.notes || "").trim();
         const description = String(item.description || "").trim();
@@ -501,7 +528,9 @@ function renderArrangements() {
     arrangementsEmpty.classList.toggle("hidden", visible.length > 0);
     arrangementsGrid.classList.toggle("hidden", visible.length === 0);
     if (!visible.length) {
-        arrangementsEmpty.textContent = arrangements.length ? "Inga arrangemang matchar filtreringen." : "Inga arrangemang ännu. Skapa ett för att börja planera.";
+        arrangementsEmpty.textContent = isSharedArrangementView
+            ? "Det delade arrangemanget kunde inte visas. Kontrollera att länken fortfarande är aktiv."
+            : arrangements.length ? "Inga arrangemang matchar filtreringen." : "Inga arrangemang ännu. Skapa ett för att börja planera.";
     }
 }
 
@@ -625,32 +654,32 @@ function syncDraftAgenda() {
     draftAgenda = readAgendaFromDom();
 }
 
-async function openArrangementEditor(item = null, focusAgendaId = "") {
+async function openArrangementEditor(item = null, focusAgendaId = "", isCopy = false) {
     await defaultRoleDefinitionsLoaded;
     const form = arrangementForm;
-    form.dataset.arrangementId = item?.id || "";
-    document.getElementById("arrangementModalTitle").textContent = item ? "Redigera arrangemang" : "Nytt arrangemang";
-    document.getElementById("arrangementTitle").value = item?.title || "";
+    form.dataset.arrangementId = item && !isCopy ? item.id : "";
+    document.getElementById("arrangementModalTitle").textContent = isCopy ? "Kopiera arrangemang" : item ? "Redigera arrangemang" : "Nytt arrangemang";
+    document.getElementById("arrangementTitle").value = isCopy ? `Kopia av ${item.title}` : item?.title || "";
     document.getElementById("arrangementDescription").value = item?.description || "";
     document.getElementById("arrangementType").value = item?.type || "Hajk";
-    document.getElementById("arrangementStatus").value = item?.status || "planned";
+    document.getElementById("arrangementStatus").value = isCopy ? "planned" : item?.status || "planned";
     document.getElementById("arrangementStartDate").value = item?.start_date || new Date().toISOString().slice(0, 10);
     document.getElementById("arrangementEndDate").value = item?.end_date || item?.start_date || new Date().toISOString().slice(0, 10);
     document.getElementById("arrangementStartTime").value = item?.start_time || "";
     document.getElementById("arrangementEndTime").value = item?.end_time || "";
     document.getElementById("arrangementLocation").value = item?.location || "";
-    document.getElementById("arrangementExperience").value = item?.experience || item?.after_notes || "";
+    document.getElementById("arrangementExperience").value = isCopy ? "" : item?.experience || item?.after_notes || "";
     document.getElementById("arrangementFormStatus").textContent = "";
-    document.getElementById("deleteArrangementBtn").classList.toggle("hidden", !item);
+    document.getElementById("deleteArrangementBtn").classList.toggle("hidden", !item || isCopy);
     document.getElementById("arrangementLocalNotice").classList.toggle("hidden", window.GTScoutArrangements?.canWrite());
     renderDepartmentOptions(item?.departments?.length ? item.departments : departments);
     populatePlanningOptions(item?.planning_ref?.id || "");
     draftResponsibilities = (item?.responsibilities || []).map(entry => {
         const roleDescription = entry.role_description || getRoleDefinition(entry.role)?.description || "";
-        return { ...entry, role_description: roleDescription, description: entry.description || roleDescription };
+        return { ...entry, id: isCopy ? crypto.randomUUID() : entry.id, role_description: roleDescription, description: entry.description || roleDescription };
     });
     renderResponsibilityList();
-    draftAgenda = (item?.agenda || []).map(entry => ({ ...entry }));
+    draftAgenda = (item?.agenda || []).map(entry => ({ ...entry, id: isCopy ? crypto.randomUUID() : entry.id }));
     renderAgendaEditor();
     arrangementModal.classList.remove("hidden");
     if (focusAgendaId) {
@@ -663,6 +692,10 @@ async function openArrangementEditor(item = null, focusAgendaId = "") {
 }
 
 function updateSyncStatus() {
+    if (isSharedArrangementView) {
+        arrangementSyncStatus.textContent = "Delat arrangemang · skrivskyddad visning";
+        return;
+    }
     if (!window.GTScoutArrangements?.canRead()) {
         arrangementSyncStatus.textContent = "Sparas lokalt i den här webbläsaren";
         return;
@@ -872,6 +905,8 @@ arrangementsGrid.addEventListener("pointercancel", event => {
 arrangementsGrid.addEventListener("click", async event => {
     const editNotesButton = event.target.closest("[data-edit-arrangement-notes]");
     const editButton = event.target.closest("[data-edit-arrangement]");
+    const copyButton = event.target.closest("[data-copy-arrangement]");
+    const shareButton = event.target.closest("[data-share-arrangement]");
     const agendaButton = event.target.closest("[data-edit-agenda]");
     const addAgendaButton = event.target.closest("[data-add-agenda]");
     const addResponsibilityButton = event.target.closest("[data-add-responsibility]");
@@ -972,6 +1007,16 @@ arrangementsGrid.addEventListener("click", async event => {
         if (item && isArrangementEditable(item)) openArrangementEditor(item);
         return;
     }
+    if (copyButton) {
+        const item = arrangements.find(arrangement => arrangement.id === copyButton.dataset.copyArrangement);
+        if (item && isArrangementEditable(item)) openArrangementEditor(item, "", true);
+        return;
+    }
+    if (shareButton) {
+        const item = arrangements.find(arrangement => arrangement.id === shareButton.dataset.shareArrangement);
+        if (item) await shareArrangement(item);
+        return;
+    }
     if (!deleteButton) return;
     const item = arrangements.find(arrangement => arrangement.id === deleteButton.dataset.deleteArrangement);
     if (!item || !isArrangementEditable(item) || !confirm(`Ta bort ${item.title}?`)) return;
@@ -994,6 +1039,22 @@ document.getElementById("closeArrangementNotesModal").addEventListener("click", 
 document.getElementById("cancelArrangementNotesBtn").addEventListener("click", closeArrangementNotesDialog);
 arrangementNotesModal.addEventListener("click", event => {
     if (event.target === arrangementNotesModal) closeArrangementNotesDialog();
+});
+document.getElementById("closeShareArrangementModal").addEventListener("click", () => shareArrangementModal.classList.add("hidden"));
+document.getElementById("closeShareArrangementBtn").addEventListener("click", () => shareArrangementModal.classList.add("hidden"));
+shareArrangementModal.addEventListener("click", event => {
+    if (event.target === shareArrangementModal) shareArrangementModal.classList.add("hidden");
+});
+document.getElementById("copyShareArrangementBtn").addEventListener("click", async () => {
+    const urlInput = document.getElementById("shareArrangementUrl");
+    const status = document.getElementById("shareArrangementStatus");
+    try {
+        await navigator.clipboard.writeText(urlInput.value);
+        shareArrangementModal.classList.add("hidden");
+    } catch {
+        urlInput.select();
+        status.textContent = "Kopieringen misslyckades. Markera länken och kopiera den manuellt.";
+    }
 });
 arrangementNotesForm.addEventListener("submit", async event => {
     event.preventDefault();
