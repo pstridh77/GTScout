@@ -39,6 +39,7 @@
                 shared: entry.shared !== false,
                 departments: Array.isArray(entry.departments) ? [...new Set(entry.departments.filter(department => DEPARTMENTS.includes(department)))] : [],
                 title: String(entry.title || "").trim(),
+                responsible: String(entry.responsible || "").trim(),
                 notes: String(entry.notes || "").trim()
             };
         }).filter(entry => entry?.title) : [];

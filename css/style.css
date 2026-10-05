@@ -213,6 +213,7 @@ body {
 .arrangement-schedule-item strong { overflow: hidden; font-size: .75rem; text-overflow: ellipsis; white-space: nowrap; }
 .arrangement-schedule-item small { font-size: .68rem; line-height: 1.3; }
 .arrangement-schedule-item .arrangement-schedule-notes { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 1; line-clamp: 1; text-overflow: ellipsis; }
+.arrangement-schedule-item .arrangement-schedule-responsible { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .arrangement-schedule-meal { font-size: .64rem; font-weight: 700; opacity: .9; }
 .arrangement-schedule-end { font-size: .67rem; font-weight: 700; }
 .arrangement-schedule-item--shared { --department-color: #123f60; --department-text: #fff; }
