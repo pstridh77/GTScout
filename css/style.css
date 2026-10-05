@@ -80,6 +80,15 @@ body {
 .arrangements-toolbar .filter-field { min-width: 0; }
 .arrangements-toolbar .planning-sync-status { justify-self: end; padding-bottom: 10px; color: #52636a; font-size: .82rem; }
 .arrangements-grid { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 14px; }
+.arrangement-year-group { min-width: 0; padding-bottom: 8px; border-bottom: 1px solid #d1dbdc; }
+.arrangement-year-summary { display: flex; align-items: center; gap: 9px; min-height: 38px; padding: 0 4px; color: #153c4a; cursor: pointer; list-style: none; }
+.arrangement-year-summary::-webkit-details-marker { display: none; }
+.arrangement-year-summary::before { width: 7px; height: 7px; flex: 0 0 7px; border-right: 2px solid #286d60; border-bottom: 2px solid #286d60; content: ""; transform: rotate(-45deg); transition: transform .15s ease; }
+.arrangement-year-group[open] > .arrangement-year-summary::before { transform: rotate(45deg); }
+.arrangement-year-summary > strong { font-size: .98rem; }
+.arrangement-year-summary > span { margin-left: auto; color: #65767b; font-size: .78rem; }
+.arrangement-year-summary:focus-visible { outline: 2px solid #4d8275; outline-offset: -2px; }
+.arrangement-year-cards { display: grid; gap: 14px; padding-top: 8px; }
 .arrangement-card { min-width: 0; padding: 0; border: 1px solid #d1dbdc; border-top: 3px solid #4d8275; border-radius: 6px; background: #fff; }
 .arrangement-card > .arrangement-card-summary { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, auto) minmax(0, auto); grid-template-rows: auto auto auto; grid-template-areas: "title location tags" "dates location tags" "description location tags"; align-items: center; column-gap: 28px; row-gap: 4px; min-height: 72px; padding: 13px 48px 13px 16px; cursor: pointer; list-style: none; }
 .arrangement-card > .arrangement-card-summary::-webkit-details-marker { display: none; }
@@ -98,7 +107,6 @@ body {
 .arrangement-card-location span { overflow-wrap: anywhere; }
 .arrangement-card-summary .arrangement-participant-tags { grid-area: tags; justify-content: flex-end; margin: 0; }
 .arrangement-card-details { padding: 0 18px 18px; border-top: 1px solid #e2e8e8; }
-.arrangement-card-expanded-header { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin: 12px 0 0; }
 .arrangement-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .arrangement-card-type { margin: 0 0 6px; color: #a25235; font-size: .73rem; font-weight: 700; text-transform: uppercase; }
 .arrangement-card h2 { margin: 0; color: #153c4a; font-size: 1.22rem; overflow-wrap: anywhere; }
@@ -115,9 +123,17 @@ body {
 .arrangement-agenda-more, .arrangement-card-no-agenda { color: #65767b; font-size: .84rem; }
 .arrangement-card-no-agenda { margin: 14px 0 0; }
 .arrangement-card-actions { display: flex; align-items: center; gap: 8px; margin-top: 16px; padding-top: 12px; border-top: 1px solid #e2e8e8; }
-.arrangement-detail-notes { margin: 12px 0 14px; padding: 10px; border-left: 3px solid #a25235; background: #f7f5f1; }
-.arrangement-detail-notes h3 { margin: 0 0 5px; color: #153c4a; font-size: .84rem; }
+.arrangement-detail-notes { display: grid; gap: 9px; margin: 0 0 14px; padding: 0 0 12px; border-bottom: 1px solid #e2e8e8; }
+.arrangement-detail-notes h3 { margin: 0; color: #153c4a; font-size: .84rem; }
 .arrangement-detail-notes p { margin: 0; color: #354b51; font-size: .84rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.arrangement-notes-preview { display: grid; gap: 9px; width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid #d1dbdc; border-radius: 4px; background: #f7f9f8; color: #354b51; font: inherit; font-size: .84rem; line-height: 1.45; text-align: left; white-space: pre-wrap; overflow-wrap: anywhere; cursor: pointer; }
+.arrangement-notes-preview:hover { border-color: #4d8275; background: #f1f6f3; }
+.arrangement-notes-preview:focus-visible { outline: 2px solid #4d8275; outline-offset: 2px; }
+.arrangement-notes-preview-hint { color: #65767b; font-size: .74rem; }
+#arrangementNotesModal { z-index: 3100; }
+.arrangement-notes-dialog-content { box-sizing: border-box; max-height: calc(100vh - 24px); overflow-y: auto; }
+.arrangement-notes-dialog-content .modal-field textarea { min-height: 160px; resize: vertical; }
+.arrangement-notes-dialog-actions { gap: 10px; }
 .arrangement-card-details > .arrangement-card-actions { margin-top: 16px; }
 .arrangement-responsibilities-overview { display: block; margin-top: 14px; padding-top: 8px; border-top: 1px solid #e2e8e8; }
 .arrangement-responsibilities-summary { display: block; min-width: 0; margin: 0; }

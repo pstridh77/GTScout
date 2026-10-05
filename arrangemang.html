@@ -85,10 +85,6 @@
                     <p>Välj vilka avdelningar som deltar.</p>
                     <div id="arrangementDepartments" class="arrangement-department-options"></div>
                 </fieldset>
-                <label class="modal-field arrangement-field-wide">
-                    <span>Anteckningar</span>
-                    <textarea id="arrangementNotes" rows="3" placeholder="Skriv sådant som är bra att ha samlat inför arrangemanget."></textarea>
-                </label>
                 <label class="modal-field">
                     <span>Typ</span>
                     <select id="arrangementType">
@@ -232,6 +228,22 @@
             <div class="modal-actions responsibility-dialog-actions">
                 <button id="cancelResponsibilityBtn" class="btn-secondary" type="button">Avbryt</button>
                 <button id="saveResponsibilityBtn" class="btn-primary" type="submit">Lägg till ansvarig</button>
+            </div>
+        </form>
+    </div>
+
+    <div id="arrangementNotesModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="arrangementNotesDialogTitle">
+        <form id="arrangementNotesForm" class="modal-content arrangement-notes-dialog-content">
+            <button id="closeArrangementNotesModal" class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2 id="arrangementNotesDialogTitle">Redigera anteckningar</h2>
+            <label class="modal-field">
+                <span id="arrangementNotesDialogLabel">Anteckningar</span>
+                <textarea id="arrangementNotesDialogText" rows="7" maxlength="2000" placeholder="Skriv sådant som är bra att ha samlat inför arrangemanget."></textarea>
+            </label>
+            <p id="arrangementNotesDialogStatus" class="detail-planning-status" role="status" aria-live="polite"></p>
+            <div class="modal-actions arrangement-notes-dialog-actions">
+                <button id="cancelArrangementNotesBtn" class="btn-secondary" type="button">Avbryt</button>
+                <button id="saveArrangementNotesBtn" class="btn-primary" type="submit">Spara anteckningar</button>
             </div>
         </form>
     </div>

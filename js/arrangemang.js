@@ -7,6 +7,8 @@ const agendaEntryForm = document.getElementById("agendaEntryForm");
 const agendaEntryDialogFields = document.getElementById("agendaEntryDialogFields");
 const responsibilityModal = document.getElementById("responsibilityModal");
 const responsibilityForm = document.getElementById("responsibilityForm");
+const arrangementNotesModal = document.getElementById("arrangementNotesModal");
+const arrangementNotesForm = document.getElementById("arrangementNotesForm");
 const arrangementActionToast = document.getElementById("arrangementActionToast");
 const scheduleGesturePreview = document.createElement("div");
 scheduleGesturePreview.className = "schedule-gesture-preview hidden";
@@ -30,12 +32,15 @@ let activeAgendaEntryIsNew = false;
 let agendaEntryDialogTrigger = null;
 let activeResponsibilityArrangementId = "";
 let responsibilityDialogTrigger = null;
+let activeNotesArrangementId = "";
+let notesDialogTrigger = null;
 let arrangementToastTimer = null;
 let activeScheduleGesture = null;
 let suppressScheduleClickUntil = 0;
 const arrangementDayExpansion = new Map();
 const arrangementSchemaExpansion = new Set();
 const expandedArrangementIds = new Set();
+const collapsedArrangementYears = new Set();
 let draftResponsibilities = [];
 let planningOptions = [];
 const mealTypes = ["Frukost", "Lunch", "Mellanmål", "Middag", "Kvällsmål"];
@@ -121,6 +126,28 @@ function showArrangementToast(message, type = "success") {
 
 function isArrangementEditable(item) {
     return Boolean(window.GTScoutArrangements?.canWrite() || item.local_only);
+}
+
+function openArrangementNotesDialog(item, trigger) {
+    activeNotesArrangementId = item.id;
+    notesDialogTrigger = trigger;
+    document.getElementById("arrangementNotesDialogTitle").textContent = `Anteckningar · ${item.title}`;
+    document.getElementById("arrangementNotesDialogLabel").textContent = `Anteckningar för ${item.title}`;
+    document.getElementById("arrangementNotesDialogText").value = item.notes || "";
+    document.getElementById("arrangementNotesDialogStatus").textContent = "";
+    arrangementNotesModal.classList.remove("hidden");
+    document.getElementById("arrangementNotesDialogText").focus();
+}
+
+function closeArrangementNotesDialog() {
+    const trigger = notesDialogTrigger;
+    const arrangementId = activeNotesArrangementId;
+    arrangementNotesModal.classList.add("hidden");
+    activeNotesArrangementId = "";
+    notesDialogTrigger = null;
+    const fallbackTrigger = [...arrangementsGrid.querySelectorAll("[data-edit-arrangement-notes]")]
+        .find(button => button.dataset.editArrangementNotes === arrangementId);
+    (trigger?.isConnected ? trigger : fallbackTrigger)?.focus();
 }
 
 function arrangementDates(startDate, endDate) {
@@ -424,7 +451,8 @@ function renderArrangements() {
         return matchesQuery && (selectedStatus === "all" || item.status === selectedStatus);
     });
 
-    arrangementsGrid.innerHTML = visible.map(item => {
+    const orderedVisible = [...visible].sort((left, right) => left.start_date.localeCompare(right.start_date) || left.title.localeCompare(right.title, "sv"));
+    const renderedCards = orderedVisible.map(item => {
         const participantTags = item.departments.map((department, index) => `<span class="arrangement-department-tag department-tone-${departments.indexOf(department)}">${escapeArrangementHtml(department)}</span>`).join("");
         const agendaHtml = renderArrangementSchedule(item);
         const link = item.planning_ref?.name ? `<p class="arrangement-card-planning">Planering: ${escapeArrangementHtml(item.planning_ref.name)}</p>` : "";
@@ -452,8 +480,22 @@ function renderArrangements() {
             : "";
         const notes = String(item.notes || "").trim();
         const description = String(item.description || "").trim();
+        const notesHtml = isArrangementEditable(item)
+            ? `<section class="arrangement-detail-notes"><h3>Anteckningar</h3><button class="arrangement-notes-preview" type="button" data-edit-arrangement-notes="${escapeArrangementHtml(item.id)}" aria-label="Redigera anteckningar för ${escapeArrangementHtml(item.title)}"><span>${notes ? escapeArrangementHtml(notes) : "Inga anteckningar ännu. Klicka för att lägga till."}</span><span class="arrangement-notes-preview-hint">Klicka för att redigera</span></button></section>`
+            : `<section class="arrangement-detail-notes"><h3>Anteckningar</h3><p>${notes ? escapeArrangementHtml(notes) : "Inga anteckningar."}</p></section>`;
         const timeRange = [item.start_time, item.end_time].filter(Boolean).join("–");
-        return `<details class="arrangement-card${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}</div></summary><div class="arrangement-card-details"><div class="arrangement-card-expanded-header"><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div>${link}<section class="arrangement-detail-notes"><h3>Anteckningar</h3><p>${notes ? escapeArrangementHtml(notes) : "Inga anteckningar."}</p></section>${responsibilityHtml}${agendaHtml}${actions}</div></details>`;
+        return `<details class="arrangement-card${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}</div></summary><div class="arrangement-card-details">${link}${notesHtml}${responsibilityHtml}${agendaHtml}${actions}</div></details>`;
+    });
+    const cardsByYear = new Map();
+    orderedVisible.forEach((item, index) => {
+        const year = item.start_date.slice(0, 4);
+        if (!cardsByYear.has(year)) cardsByYear.set(year, []);
+        cardsByYear.get(year).push(renderedCards[index]);
+    });
+    arrangementsGrid.innerHTML = [...cardsByYear].map(([year, cards]) => {
+        const countLabel = cards.length === 1 ? "1 arrangemang" : `${cards.length} arrangemang`;
+        const isOpen = !collapsedArrangementYears.has(year);
+        return `<details class="arrangement-year-group" data-arrangement-year="${escapeArrangementHtml(year)}"${isOpen ? " open" : ""}><summary class="arrangement-year-summary"><strong>${escapeArrangementHtml(year)}</strong><span>${countLabel}</span></summary><div class="arrangement-year-cards">${cards.join("")}</div></details>`;
     }).join("");
 
     arrangementsEmpty.classList.toggle("hidden", visible.length > 0);
@@ -597,7 +639,6 @@ async function openArrangementEditor(item = null, focusAgendaId = "") {
     document.getElementById("arrangementStartTime").value = item?.start_time || "";
     document.getElementById("arrangementEndTime").value = item?.end_time || "";
     document.getElementById("arrangementLocation").value = item?.location || "";
-    document.getElementById("arrangementNotes").value = item?.notes || "";
     document.getElementById("arrangementExperience").value = item?.experience || item?.after_notes || "";
     document.getElementById("arrangementFormStatus").textContent = "";
     document.getElementById("deleteArrangementBtn").classList.toggle("hidden", !item);
@@ -649,7 +690,6 @@ function readFormPayload() {
         planning_ref: planning ? { id: planning.id, name: planning.name } : null,
         agenda: readAgendaFromDom(),
         responsibilities: readResponsibilitiesFromDom(),
-        notes: document.getElementById("arrangementNotes").value.trim(),
         experience: document.getElementById("arrangementExperience").value.trim()
     };
 }
@@ -712,6 +752,11 @@ function clearScheduleGesture(gesture) {
 
 arrangementsGrid.addEventListener("toggle", event => {
     const day = event.target;
+    if (day.matches?.("details.arrangement-year-group[data-arrangement-year]")) {
+        if (day.open) collapsedArrangementYears.delete(day.dataset.arrangementYear);
+        else collapsedArrangementYears.add(day.dataset.arrangementYear);
+        return;
+    }
     if (day.matches?.("details.arrangement-card[data-arrangement-id]")) {
         if (day.open) expandedArrangementIds.add(day.dataset.arrangementId);
         else expandedArrangementIds.delete(day.dataset.arrangementId);
@@ -825,12 +870,18 @@ arrangementsGrid.addEventListener("pointercancel", event => {
 });
 
 arrangementsGrid.addEventListener("click", async event => {
+    const editNotesButton = event.target.closest("[data-edit-arrangement-notes]");
     const editButton = event.target.closest("[data-edit-arrangement]");
     const agendaButton = event.target.closest("[data-edit-agenda]");
     const addAgendaButton = event.target.closest("[data-add-agenda]");
     const addResponsibilityButton = event.target.closest("[data-add-responsibility]");
     const deleteResponsibilityButton = event.target.closest("[data-delete-responsibility]");
     const deleteButton = event.target.closest("[data-delete-arrangement]");
+    if (editNotesButton) {
+        const arrangement = arrangements.find(item => item.id === editNotesButton.dataset.editArrangementNotes);
+        if (arrangement && isArrangementEditable(arrangement)) openArrangementNotesDialog(arrangement, editNotesButton);
+        return;
+    }
     if (agendaButton && event.detail > 0 && performance.now() < suppressScheduleClickUntil) {
         event.preventDefault();
         return;
@@ -939,6 +990,41 @@ document.getElementById("cancelArrangementBtn").addEventListener("click", () => 
 arrangementModal.addEventListener("click", event => {
     if (event.target === arrangementModal) arrangementModal.classList.add("hidden");
 });
+document.getElementById("closeArrangementNotesModal").addEventListener("click", closeArrangementNotesDialog);
+document.getElementById("cancelArrangementNotesBtn").addEventListener("click", closeArrangementNotesDialog);
+arrangementNotesModal.addEventListener("click", event => {
+    if (event.target === arrangementNotesModal) closeArrangementNotesDialog();
+});
+arrangementNotesForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    const arrangement = arrangements.find(item => item.id === activeNotesArrangementId);
+    const status = document.getElementById("arrangementNotesDialogStatus");
+    const saveButton = document.getElementById("saveArrangementNotesBtn");
+    if (!arrangement || !isArrangementEditable(arrangement)) {
+        status.textContent = "Arrangemanget kan inte redigeras.";
+        return;
+    }
+    saveButton.disabled = true;
+    status.textContent = "Sparar...";
+    try {
+        const result = await window.GTScoutArrangements.save({
+            ...arrangement,
+            notes: document.getElementById("arrangementNotesDialogText").value.trim()
+        });
+        arrangementSyncStatus.textContent = result.localOnly
+            ? result.error ? "Kunde inte nå databasen · ändringen finns lokalt" : "Sparas lokalt i den här webbläsaren"
+            : "Sparat i databasen";
+        closeArrangementNotesDialog();
+        const message = result.error
+            ? "Anteckningarna sparades lokalt men kunde inte synkas."
+            : result.localOnly ? "Anteckningarna sparades lokalt." : "Anteckningarna har sparats.";
+        showArrangementToast(message, result.error ? "error" : result.localOnly ? "info" : "success");
+    } catch (error) {
+        status.textContent = error.message || "Kunde inte spara anteckningarna.";
+    } finally {
+        saveButton.disabled = false;
+    }
+});
 document.getElementById("closeResponsibilityModal").addEventListener("click", closeResponsibilityDialog);
 document.getElementById("cancelResponsibilityBtn").addEventListener("click", closeResponsibilityDialog);
 responsibilityModal.addEventListener("click", event => {
@@ -969,7 +1055,10 @@ agendaEntryModal.addEventListener("click", event => {
 });
 document.addEventListener("keydown", event => {
     if (event.key !== "Escape") return;
-    if (!responsibilityModal.classList.contains("hidden")) {
+    if (!arrangementNotesModal.classList.contains("hidden")) {
+        event.preventDefault();
+        closeArrangementNotesDialog();
+    } else if (!responsibilityModal.classList.contains("hidden")) {
         event.preventDefault();
         closeResponsibilityDialog();
     } else if (!agendaEntryModal.classList.contains("hidden")) {
@@ -1346,6 +1435,7 @@ arrangementForm.addEventListener("submit", async event => {
         return;
     }
     const existing = arrangements.find(item => item.id === payload.id);
+    payload.notes = existing?.notes || "";
     if (existing) payload.created_by = existing.created_by;
     document.getElementById("saveArrangementBtn").disabled = true;
     status.textContent = "Sparar...";
