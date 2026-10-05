@@ -157,7 +157,11 @@ body {
 .arrangement-responsibility-summary-separator { margin-right: 5px; }
 .arrangement-responsibility-summary-details { display: flex; align-items: flex-start; gap: 8px; padding: 0 8px 7px; }
 .arrangement-responsibility-summary-info { flex: 1 1 auto; min-width: 0; }
-.arrangement-responsibility-summary-actions { flex: 0 0 auto; }
+.arrangement-responsibility-summary-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
+.arrangement-responsibility-edit { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 1px solid #d7e1eb; border-radius: 5px; background: #fff; color: #286d60; cursor: pointer; }
+.arrangement-responsibility-edit svg { width: 15px; height: 15px; }
+.arrangement-responsibility-edit:hover { background: #e8f2ef; }
+.arrangement-responsibility-edit:focus-visible { outline: 2px solid #4d8275; outline-offset: 2px; }
 .arrangement-responsibility-delete { width: 28px; height: 28px; }
 .arrangement-responsibility-delete svg { width: 15px; height: 15px; }
 .arrangement-responsibility-summary-details p { margin: 0; color: #52636a; font-size: .78rem; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }

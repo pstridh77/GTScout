@@ -33,6 +33,7 @@ let activeAgendaEntryIsCopy = false;
 let activeAgendaEntryIsNew = false;
 let agendaEntryDialogTrigger = null;
 let activeResponsibilityArrangementId = "";
+let activeResponsibilityId = "";
 let responsibilityDialogTrigger = null;
 let activeNotesArrangementId = "";
 let notesDialogTrigger = null;
@@ -493,10 +494,10 @@ function renderArrangements() {
                 const description = String(entry.description || "").trim();
                 const roleDescriptionHtml = roleDescription ? `<p><strong>Rollbeskrivning</strong>${escapeArrangementHtml(roleDescription)}</p>` : "";
                 const descriptionHtml = description && description !== roleDescription ? `<p><strong>Ansvar</strong>${escapeArrangementHtml(description)}</p>` : "";
-                const deleteResponsibilityButton = canEditResponsibilities
-                    ? `<div class="arrangement-responsibility-summary-actions"><button class="arrangement-delete-icon arrangement-responsibility-delete" type="button" data-delete-responsibility="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}" aria-label="Ta bort ${escapeArrangementHtml(entry.person || "ansvarspost")}" title="Ta bort ansvarig"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button></div>`
+                const responsibilityActions = canEditResponsibilities
+                    ? `<div class="arrangement-responsibility-summary-actions"><button class="arrangement-responsibility-edit" type="button" data-edit-responsibility="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}" aria-label="Redigera ${escapeArrangementHtml(entry.person || "ansvarspost")}" title="Redigera ansvarig"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/></svg></button><button class="arrangement-delete-icon arrangement-responsibility-delete" type="button" data-delete-responsibility="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}" aria-label="Ta bort ${escapeArrangementHtml(entry.person || "ansvarspost")}" title="Ta bort ansvarig"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button></div>`
                     : "";
-                return `<details class="arrangement-responsibility-summary-item" data-responsibility-id="${escapeArrangementHtml(entry.id)}"><summary><span class="arrangement-responsibility-summary-role">${escapeArrangementHtml(entry.role || "Övrig")}</span><span class="arrangement-responsibility-summary-separator" aria-hidden="true">:</span><span class="arrangement-responsibility-summary-person">${escapeArrangementHtml(entry.person || "Ansvarspost")}</span></summary><div class="arrangement-responsibility-summary-details"><div class="arrangement-responsibility-summary-info">${roleDescriptionHtml}${descriptionHtml}</div>${deleteResponsibilityButton}</div></details>`;
+                return `<details class="arrangement-responsibility-summary-item" data-responsibility-id="${escapeArrangementHtml(entry.id)}"><summary><span class="arrangement-responsibility-summary-role">${escapeArrangementHtml(entry.role || "Övrig")}</span><span class="arrangement-responsibility-summary-separator" aria-hidden="true">:</span><span class="arrangement-responsibility-summary-person">${escapeArrangementHtml(entry.person || "Ansvarspost")}</span></summary><div class="arrangement-responsibility-summary-details"><div class="arrangement-responsibility-summary-info">${roleDescriptionHtml}${descriptionHtml}</div>${responsibilityActions}</div></details>`;
             }).join("") : `<p class="arrangement-responsibilities-empty">Inga ansvariga tillagda.</p>`}</div>${addResponsibilityButton}</details></div>`
             : "";
         const detailsOpen = expandedArrangementIds.has(item.id);
@@ -727,15 +728,19 @@ function readFormPayload() {
     };
 }
 
-async function openResponsibilityDialog(arrangement, trigger) {
+async function openResponsibilityDialog(arrangement, trigger, responsibility = null) {
     await defaultRoleDefinitionsLoaded;
     if (!isArrangementEditable(arrangement)) return;
     activeResponsibilityArrangementId = arrangement.id;
+    activeResponsibilityId = responsibility?.id || "";
     responsibilityDialogTrigger = trigger;
+    document.getElementById("responsibilityDialogTitle").textContent = responsibility ? "Redigera ansvarig" : "Lägg till ansvarig";
+    document.getElementById("saveResponsibilityBtn").textContent = responsibility ? "Spara ändringar" : "Lägg till ansvarig";
     const roleSelect = document.getElementById("responsibilityDialogRole");
     roleSelect.innerHTML = `<option value="">Övrig / egen roll</option>${getRoleDefinitions().map(role => `<option value="${escapeArrangementHtml(role.name)}">${escapeArrangementHtml(role.name)}</option>`).join("")}`;
-    document.getElementById("responsibilityDialogPerson").value = "";
-    document.getElementById("responsibilityDialogDescription").value = "";
+    roleSelect.value = responsibility?.role || "";
+    document.getElementById("responsibilityDialogPerson").value = responsibility?.person || "";
+    document.getElementById("responsibilityDialogDescription").value = responsibility?.description || "";
     document.getElementById("responsibilityDialogStatus").textContent = "";
     document.getElementById("responsibilityCustomRoleName").value = "";
     document.getElementById("responsibilityCustomRoleDescription").value = "";
@@ -751,7 +756,10 @@ function closeResponsibilityDialog() {
     const trigger = responsibilityDialogTrigger;
     responsibilityModal.classList.add("hidden");
     activeResponsibilityArrangementId = "";
+    activeResponsibilityId = "";
     responsibilityDialogTrigger = null;
+    document.getElementById("responsibilityDialogTitle").textContent = "Lägg till ansvarig";
+    document.getElementById("saveResponsibilityBtn").textContent = "Lägg till ansvarig";
     if (trigger?.isConnected) trigger.focus();
 }
 
@@ -910,6 +918,7 @@ arrangementsGrid.addEventListener("click", async event => {
     const agendaButton = event.target.closest("[data-edit-agenda]");
     const addAgendaButton = event.target.closest("[data-add-agenda]");
     const addResponsibilityButton = event.target.closest("[data-add-responsibility]");
+    const editResponsibilityButton = event.target.closest("[data-edit-responsibility]");
     const deleteResponsibilityButton = event.target.closest("[data-delete-responsibility]");
     const deleteButton = event.target.closest("[data-delete-arrangement]");
     if (editNotesButton) {
@@ -948,6 +957,12 @@ arrangementsGrid.addEventListener("click", async event => {
     if (addResponsibilityButton) {
         const item = arrangements.find(arrangement => arrangement.id === addResponsibilityButton.dataset.addResponsibility);
         if (item && isArrangementEditable(item)) openResponsibilityDialog(item, addResponsibilityButton);
+        return;
+    }
+    if (editResponsibilityButton) {
+        const item = arrangements.find(arrangement => arrangement.id === editResponsibilityButton.dataset.arrangementId);
+        const responsibility = item?.responsibilities.find(entry => entry.id === editResponsibilityButton.dataset.editResponsibility);
+        if (item && responsibility && isArrangementEditable(item)) openResponsibilityDialog(item, editResponsibilityButton, responsibility);
         return;
     }
     if (deleteResponsibilityButton) {
@@ -1345,8 +1360,14 @@ responsibilityForm.addEventListener("submit", async event => {
     const person = document.getElementById("responsibilityDialogPerson").value.trim();
     const role = document.getElementById("responsibilityDialogRole").value.trim();
     const description = document.getElementById("responsibilityDialogDescription").value.trim();
+    const isEditing = Boolean(activeResponsibilityId);
+    const existingResponsibility = (arrangement?.responsibilities || []).find(entry => entry.id === activeResponsibilityId);
     if (!arrangement || !isArrangementEditable(arrangement)) {
         status.textContent = "Arrangemanget kan inte redigeras.";
+        return;
+    }
+    if (isEditing && !existingResponsibility) {
+        status.textContent = "Ansvarsposten finns inte längre.";
         return;
     }
     if (!role && !description) {
@@ -1355,24 +1376,29 @@ responsibilityForm.addEventListener("submit", async event => {
     }
     const definition = getRoleDefinition(role);
     const responsibility = {
-        id: crypto.randomUUID(),
+        ...existingResponsibility,
+        id: existingResponsibility?.id || crypto.randomUUID(),
         person,
         role,
-        role_description: definition?.description || "",
+        role_description: definition?.description || (role === existingResponsibility?.role ? existingResponsibility.role_description || "" : ""),
         description: description || definition?.description || ""
     };
+    const responsibilities = arrangement.responsibilities || [];
+    const updatedResponsibilities = existingResponsibility
+        ? responsibilities.map(entry => entry.id === existingResponsibility.id ? responsibility : entry)
+        : [...responsibilities, responsibility];
     const saveButton = document.getElementById("saveResponsibilityBtn");
     saveButton.disabled = true;
     status.textContent = "Sparar...";
     try {
         const result = await window.GTScoutArrangements.save({
             ...arrangement,
-            responsibilities: [...(arrangement.responsibilities || []), responsibility]
+            responsibilities: updatedResponsibilities
         });
         closeResponsibilityDialog();
         const message = result.error
-            ? "Ansvarig tillagd lokalt men kunde inte synkas."
-            : result.localOnly ? "Ansvarig tillagd lokalt." : "Ansvarig har lagts till.";
+            ? `Ansvarig ${isEditing ? "uppdaterad" : "tillagd"} lokalt men kunde inte synkas.`
+            : result.localOnly ? `Ansvarig ${isEditing ? "uppdaterad" : "tillagd"} lokalt.` : `Ansvarig har ${isEditing ? "uppdaterats" : "lagts till"}.`;
         showArrangementToast(message, result.error ? "error" : result.localOnly ? "info" : "success");
         arrangementSyncStatus.textContent = result.localOnly
             ? result.error ? "Kunde inte nå databasen · ändringen finns lokalt" : "Sparas lokalt i den här webbläsaren"
