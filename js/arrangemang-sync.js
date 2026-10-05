@@ -188,7 +188,10 @@
 
     function onAuthChange() {
         const currentKarId = canRead() ? karId() : null;
-        if (loadedForKarId === currentKarId) return;
+        if (loadedForKarId === currentKarId) {
+            onChange?.(getAll());
+            return;
+        }
         reload();
     }
 
