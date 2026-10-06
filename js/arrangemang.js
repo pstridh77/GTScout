@@ -513,6 +513,8 @@ function renderArrangementMealSummary(item, canEdit = false) {
             return `<li>${mealContent}</li>`;
         }).join("")}</ul></section>`
     ).join("");
+    const mealCount = [...mealsByDate.values()].reduce((count, meals) => count + meals.length, 0);
+    const mealCountLabel = `${mealCount} ${mealCount === 1 ? "måltid" : "måltider"}`;
     const isOpen = !collapsedArrangementMeals.has(item.id);
     const mealContent = rows
         ? `<div class="arrangement-meal-summary-days">${rows}</div>`
@@ -520,7 +522,7 @@ function renderArrangementMealSummary(item, canEdit = false) {
     const addMealButton = canEdit
         ? `<button class="btn-secondary arrangement-meal-add" type="button" data-add-meal="${escapeArrangementHtml(item.id)}">+ Lägg till mat</button>`
         : "";
-    return `<details class="arrangement-meal-summary" data-arrangement-id="${escapeArrangementHtml(item.id)}"${isOpen ? " open" : ""}><summary><h3>Måltider</h3></summary>${mealContent}${addMealButton}</details>`;
+    return `<details class="arrangement-meal-summary" data-arrangement-id="${escapeArrangementHtml(item.id)}"${isOpen ? " open" : ""}><summary><h3>Måltider</h3><span>${mealCountLabel}</span></summary>${mealContent}${addMealButton}</details>`;
 }
 
 function renderScheduleEntry(entry, departmentIndex = null, arrangementId = "", canEdit = false) {
@@ -598,7 +600,7 @@ function renderArrangements() {
             ? `<details class="arrangement-detail-notes" data-arrangement-id="${escapeArrangementHtml(item.id)}"${notesOpen ? " open" : ""}><summary><h3>Anteckningar</h3></summary>${notesContent}</details>`
             : "";
         const timeRange = [item.start_time, item.end_time].filter(Boolean).join("–");
-        return `<details class="arrangement-card${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}</div></summary><div class="arrangement-card-details">${detailEditControl}${link}${notesHtml}${mealSummaryHtml}${responsibilityHtml}${agendaHtml}${actions}</div></details>`;
+        return `<details class="arrangement-card${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}</div></summary><div class="arrangement-card-details">${detailEditControl}${link}<div class="arrangement-card-sections">${notesHtml}${mealSummaryHtml}${responsibilityHtml}${agendaHtml}</div>${actions}</div></details>`;
     });
     const cardsByYear = new Map();
     orderedVisible.forEach((item, index) => {
@@ -1006,9 +1008,20 @@ arrangementsGrid.addEventListener("toggle", event => {
         return;
     }
     if (day.matches?.("details.arrangement-card[data-arrangement-id]")) {
-        if (day.open) expandedArrangementIds.add(day.dataset.arrangementId);
-        else expandedArrangementIds.delete(day.dataset.arrangementId);
+        if (day.open) {
+            expandedArrangementIds.add(day.dataset.arrangementId);
+        } else {
+            const arrangementId = day.dataset.arrangementId;
+            expandedArrangementIds.delete(arrangementId);
+            arrangementDetailEditModes.delete(arrangementId);
+            collapsedArrangementNotes.add(arrangementId);
+            collapsedArrangementMeals.add(arrangementId);
+            arrangementSchemaExpansion.delete(arrangementId);
+            arrangementDayExpansion.delete(arrangementId);
+            day.querySelectorAll("details").forEach(section => { section.open = false; });
+        }
         day.classList.toggle("arrangement-card--wide", day.open && Number(day.dataset.departmentCount) > 2);
+        if (!day.open) renderArrangements();
         return;
     }
     if (day.matches?.("details.arrangement-schedule[data-arrangement-id]")) {
