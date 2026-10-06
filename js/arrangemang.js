@@ -485,6 +485,29 @@ function renderArrangementSchedule(item) {
     return `<details class="arrangement-schedule" data-arrangement-id="${escapeArrangementHtml(item.id)}"${isSchemaExpanded ? " open" : ""}><summary class="arrangement-section-summary"><strong>Schema</strong><span>${scheduleDateLabel} · ${scheduleEntryLabel}</span></summary><div class="arrangement-schedule-days">${scheduleDays}</div></details>`;
 }
 
+function renderArrangementMealSummary(item) {
+    const mealsByDate = new Map();
+    (item.agenda || []).filter(entry => entry.kind === "meal")
+        .sort((left, right) => left.date.localeCompare(right.date) || (left.time || "99:99").localeCompare(right.time || "99:99"))
+        .forEach(entry => {
+            const mealRecipes = [...new Set(getMealRecipeIds(entry)
+                .map(id => recipes.find(recipe => String(recipe.id) === id)?.namn)
+                .filter(Boolean))];
+            const mealType = entry.meal_type || entry.title || "Måltid";
+            const mealContents = mealRecipes.length
+                ? mealRecipes.join(", ")
+                : entry.meal_type && entry.title !== entry.meal_type ? entry.title : "";
+            const mealName = mealContents ? `${mealType}: ${mealContents}` : mealType;
+            if (!mealsByDate.has(entry.date)) mealsByDate.set(entry.date, []);
+            mealsByDate.get(entry.date).push(mealName);
+        });
+    if (!mealsByDate.size) return "";
+    const rows = [...mealsByDate].map(([date, meals]) =>
+        `<section class="arrangement-meal-day"><h4><time datetime="${escapeArrangementHtml(date)}">${escapeArrangementHtml(formatArrangementDate(date))}</time></h4><ul>${meals.map(meal => `<li>${escapeArrangementHtml(meal)}</li>`).join("")}</ul></section>`
+    ).join("");
+    return `<section class="arrangement-meal-summary"><h3>Måltider</h3><div class="arrangement-meal-summary-days">${rows}</div></section>`;
+}
+
 function renderScheduleEntry(entry, departmentIndex = null, arrangementId = "", canEdit = false) {
     const tone = departmentIndex === null ? "arrangement-schedule-item--shared" : `department-tone-${departmentIndex}`;
     const formattedTime = /^\d{2}:\d{2}$/.test(entry.time || "") ? `${Number(entry.time.slice(0, 2))}:${entry.time.slice(3)}` : "";
@@ -517,6 +540,7 @@ function renderArrangements() {
     const renderedCards = orderedVisible.map(item => {
         const participantTags = item.departments.map((department, index) => `<span class="arrangement-department-tag department-tone-${departments.indexOf(department)}">${escapeArrangementHtml(department)}</span>`).join("");
         const agendaHtml = renderArrangementSchedule(item);
+        const mealSummaryHtml = renderArrangementMealSummary(item);
         const link = item.planning_ref?.name ? `<p class="arrangement-card-planning">Planering: ${escapeArrangementHtml(item.planning_ref.name)}</p>` : "";
         const canEditDetails = isArrangementDetailEditable(item);
         const lockAction = canEditDetails ? "Lås redigering" : "Lås upp för redigering";
@@ -555,7 +579,7 @@ function renderArrangements() {
             ? `<section class="arrangement-detail-notes"><h3>Anteckningar</h3><button class="arrangement-notes-preview" type="button" data-edit-arrangement-notes="${escapeArrangementHtml(item.id)}" aria-label="Redigera anteckningar för ${escapeArrangementHtml(item.title)}"><span>${notes ? escapeArrangementHtml(notes) : "Inga anteckningar ännu. Klicka för att lägga till."}</span><span class="arrangement-notes-preview-hint">Klicka för att redigera</span></button></section>`
             : `<section class="arrangement-detail-notes"><h3>Anteckningar</h3><p>${notes ? escapeArrangementHtml(notes) : "Inga anteckningar."}</p></section>`;
         const timeRange = [item.start_time, item.end_time].filter(Boolean).join("–");
-        return `<details class="arrangement-card${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}</div></summary><div class="arrangement-card-details">${detailEditControl}${link}${notesHtml}${responsibilityHtml}${agendaHtml}${actions}</div></details>`;
+        return `<details class="arrangement-card${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}</div></summary><div class="arrangement-card-details">${detailEditControl}${link}${notesHtml}${mealSummaryHtml}${responsibilityHtml}${agendaHtml}${actions}</div></details>`;
     });
     const cardsByYear = new Map();
     orderedVisible.forEach((item, index) => {
