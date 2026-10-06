@@ -282,6 +282,14 @@
                     <option value="Rover">Rover</option>
                 </select>
             </label>
+            <div class="modal-field">
+                <span>Avdelningens grundantal</span>
+                <div class="meeting-form-grid">
+                    <label class="modal-field"><span>Scouter</span><input id="groupScoutCount" type="number" min="0" step="1" placeholder="Okänt"></label>
+                    <label class="modal-field"><span>Ledare</span><input id="groupLeaderCount" type="number" min="0" step="1" placeholder="Okänt"></label>
+                </div>
+                <small class="modal-field-hint">Kan användas som grund när en träffs deltagarantal saknas.</small>
+            </div>
             <label class="modal-field">
                 <span>Anteckning</span>
                 <textarea id="groupNote" rows="4" placeholder="Information om planeringen..."></textarea>
@@ -379,6 +387,22 @@
                     <input id="meetingLocation" type="text" list="meetingLocationOptions" placeholder="T.ex. Scoutstugan">
                     <datalist id="meetingLocationOptions"></datalist>
                 </label>
+            </div>
+
+            <div class="modal-field">
+                <span>Deltagare på träffen</span>
+                <div class="meeting-form-grid">
+                    <label class="modal-field"><span>Scouter</span><input id="meetingScoutCount" type="number" min="0" step="1" placeholder="Avdelningens grundantal"></label>
+                    <label class="modal-field"><span>Ledare</span><input id="meetingLeaderCount" type="number" min="0" step="1" placeholder="Avdelningens grundantal"></label>
+                </div>
+                <small class="modal-field-hint">Lämna tomt för att använda avdelningens grundantal.</small>
+            </div>
+
+            <div class="modal-field">
+                <span>Mat och recept</span>
+                <div id="meetingMealList" class="meeting-meal-list"></div>
+                <button id="addMeetingMealBtn" class="btn-secondary" type="button">+ Lägg till recept</button>
+                <small class="modal-field-hint">Tomt portionsantal följer träffens deltagarantal. Inköpslistan slår ihop ingredienser med samma mängdenhet.</small>
             </div>
 
             <label class="modal-field">
@@ -481,6 +505,7 @@
     <script src="js/activities-sync.js"></script>
     <script src="js/badges-sync.js"></script>
     <script src="js/planering-sync.js"></script>
+    <script src="js/kokbok-sync.js"></script>
     <script src="js/notes-sync.js"></script>
     <script src="js/version.js"></script>
     <script src="js/planering.js"></script>

@@ -4573,6 +4573,43 @@ select:focus {
     gap: 12px;
 }
 
+.meeting-meal-list {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.meeting-meal-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 140px auto;
+    gap: 8px;
+    align-items: center;
+}
+
+@media (max-width: 680px) {
+    .meeting-meal-row { grid-template-columns: 1fr auto; }
+    .meeting-meal-row select { grid-column: 1 / -1; }
+}
+
+.meeting-reading-meals {
+    margin: 12px 0;
+    padding: 12px 16px;
+    border: 1px solid #d7e1eb;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.meeting-reading-meals ul {
+    margin: 6px 0 0;
+    padding-left: 20px;
+}
+
+.group-participant-summary {
+    display: block;
+    color: #536477;
+    font-size: .78rem;
+}
+
 #meetingLocation.meeting-location-empty-readonly:disabled {
     border-color: #d0d7de;
     background: #f8fafc;

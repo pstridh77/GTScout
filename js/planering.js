@@ -121,6 +121,27 @@ let activeStandaloneActivityPlanning = null;
 let activeBadgeActivityLibraryMarke = null;
 let activeBadgeActivityLibraryPlanning = null;
 let planningBadgeActivityKarFilter = "Alla";
+let cookbookRecipes = [];
+
+function normalizeParticipantCount(value) {
+    if (value === "" || value === null || value === undefined) return null;
+    const count = Number(value);
+    return Number.isFinite(count) && count >= 0 ? Math.floor(count) : null;
+}
+
+function normalizeParticipants(value) {
+    return {
+        scouts: normalizeParticipantCount(value?.scouts),
+        leaders: normalizeParticipantCount(value?.leaders)
+    };
+}
+
+function readParticipants(scoutsId, leadersId) {
+    return normalizeParticipants({
+        scouts: document.getElementById(scoutsId)?.value,
+        leaders: document.getElementById(leadersId)?.value
+    });
+}
 
 function normalizePlanningTerm(value) {
     const normalized = String(value ?? "").trim();
@@ -1066,6 +1087,7 @@ function normalizeGroupList(list) {
             group.year = Number.isFinite(year) ? year : "";
             group.term = normalizePlanningTerm(term);
             group.note = typeof group.note === "string" ? group.note : "";
+            group.participants = normalizeParticipants(group.participants);
             group.activities = Array.isArray(group.activities) ? group.activities : [];
             group.badges = Array.isArray(group.badges) ? group.badges : [];
             group.meetings = normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : []);
@@ -1112,6 +1134,7 @@ function saveGroups() {
         badges: Array.isArray(group.badges) ? group.badges : [],
         activities: Array.isArray(group.activities) ? group.activities : [],
         meetings: normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : []),
+        participants: normalizeParticipants(group.participants),
         note: typeof group.note === "string" ? group.note : "",
         year: Number.isFinite(getGroupYearValue(group)) ? getGroupYearValue(group) : "",
         term: getGroupTermValue(group)
@@ -1211,6 +1234,7 @@ function exportPlannings() {
             year: Number.isFinite(getGroupYearValue(group)) ? getGroupYearValue(group) : "",
             term: getGroupTermValue(group),
             note: typeof group.note === "string" ? group.note : "",
+            participants: normalizeParticipants(group.participants),
             badges: Array.isArray(group.badges) ? group.badges : [],
             activities: Array.isArray(group.activities) ? group.activities : [],
             meetings: normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : [])
@@ -1966,6 +1990,7 @@ function importPlannings(file) {
                         return fallback ? fallback[0].toUpperCase() : "";
                     })(),
                     note: typeof planning.note === "string" ? planning.note.trim() : "",
+                    participants: normalizeParticipants(planning.participants),
                     badges: Array.isArray(planning.badges) ? [...new Set(planning.badges.filter(Boolean))] : [],
                     activities: Array.isArray(planning.activities) ? [...new Set(planning.activities.filter(Boolean))] : [],
                     meetings: normalizeMeetingList(Array.isArray(planning.meetings) ? planning.meetings : [])
@@ -2250,6 +2275,7 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                     <div class="group-card-heading">
                         <h3 class="group-name" title="Planeringens namn">${group.name}</h3>
                         <span class="group-planning-meta">År ${planningYear !== null ? planningYear : "-"} · ${planningTerm || "Termin -"}${group.visibility === "private" ? ` · <span class="planning-visibility-badge" title="Privat – endast synlig för ägare och admin">${getPlanningVisibilityIcon("private")}</span>` : group.visibility === "kar_view" ? ` · <span class="planning-visibility-badge" title="Skrivskyddad – bara ägare och admin kan redigera">${getPlanningVisibilityIcon("kar_view")}</span>` : ""}</span>
+                        ${group.participants?.scouts !== null || group.participants?.leaders !== null ? `<span class="group-participant-summary">Avdelning: ${group.participants?.scouts ?? "?"} scouter · ${group.participants?.leaders ?? "?"} ledare</span>` : ""}
                     </div>
                     <div class="group-card-actions">
                         <button class="btn-secondary share-overview-group-btn" type="button" data-group-id="${group.id}" aria-label="Dela översikt" title="Dela översikt"${group.local_only || !window.GTScoutPlanningSync?.canWrite?.() ? " disabled" : ""}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17.27,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5M12,17C9.24,17 7,14.76 7,12C7,9.24 9.24,7 12,7C14.76,7 17,9.24 17,12C17,14.76 14.76,17 12,17M12,9C10.34,9 9,10.34 9,12C9,13.66 10.34,15 12,15C13.66,15 15,13.66 15,12C15,10.34 13.66,9 12,9Z" /></svg></button>
@@ -2399,7 +2425,12 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
                 }).join("")}</div></details>`;
             const meetingsMarkup = showPlanningMeetings ? `<details class="planned-meetings"${openMeetingGroupIds.has(group.id) ? " open" : ""}><summary><span>Möten${meetings.length > 0 ? ` (${meetings.length})` : ""}</span><button class="btn-secondary add-meeting-btn" type="button" data-group-id="${group.id}"${editable ? "" : " disabled aria-disabled=\"true\" title=\"Endast ledare och administratörer kan ändra denna planering\""}>+ Möte</button></summary><div class="planned-meetings-list">${meetings.map(meeting => {
             const selectedActivities = (meeting.activities || []).map(activityId => allAktiviteter.find(item => item.id === activityId)).filter(Boolean);
-            const meetingBadges = sortBadgesForDisplay(
+                const participants = getMeetingParticipants(group, meeting);
+                const participantSummary = participants.scouts !== null || participants.leaders !== null
+                    ? `${participants.scouts ?? "?"} scouter · ${participants.leaders ?? "?"} ledare`
+                    : "";
+                const mealNames = (meeting.meals || []).map(meal => cookbookRecipes.find(recipe => recipe.id === meal.recipeId)?.namn || "Recept saknas");
+                const meetingBadges = sortBadgesForDisplay(
                 getMeetingBadgeIds(meeting)
                     .map(badgeId => allMarken.find(item => item.id === badgeId))
                     .filter(Boolean),
@@ -2416,6 +2447,8 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
                     </div>
                     ${meeting.date ? `<small>${escapeHtml(meeting.date)}${meeting.location ? ` &middot; ${escapeHtml(meeting.location)}` : ""}${calculateSunsetTime(meeting.date) ? ` &middot; <span class="meeting-sunset-hint">${SUNSET_ICON_SVG}${escapeHtml(calculateSunsetTime(meeting.date))}</span>` : ""}</small>` : ""}
                     ${meeting.responsible ? `<div><strong>Ansvarig:</strong> ${escapeHtml(meeting.responsible)}</div>` : ""}
+                    ${participantSummary ? `<div><strong>Deltagare:</strong> ${escapeHtml(participantSummary)}</div>` : ""}
+                    ${mealNames.length ? `<div><strong>Mat:</strong> ${mealNames.map(escapeHtml).join(", ")}</div>` : ""}
                     ${meeting.notes ? `<p>${escapeHtml(meeting.notes)}</p>` : ""}
                     ${meetingBadges.length > 0 ? `<div class="planned-meeting-badges">${meetingBadges.map(badge => `<div class="planned-meeting-badge" title="${escapeHtml(badge.namn)}"><img src="${escapeHtml(badge.bild)}" alt="${escapeHtml(badge.namn)}"></div>`).join("")}</div>` : ""}
                     ${(meeting.games || []).length > 0 ? `<div class="planned-meeting-activity-list"><strong>Lek:</strong> ${(meeting.games || []).map(activityId => {
@@ -2459,6 +2492,10 @@ function addGroup(name, level, year = "", term = "", note = "") {
         year: Number.isFinite(normalizedYear) ? normalizedYear : "",
         term: normalizedTerm,
         note: typeof note === "string" ? note.trim() : "",
+        participants: normalizeParticipants({
+            scouts: document.getElementById("groupScoutCount")?.value,
+            leaders: document.getElementById("groupLeaderCount")?.value
+        }),
         badges: [],
         activities: [],
         meetings: []
@@ -2519,6 +2556,9 @@ function openGroupEditor(groupId) {
     document.getElementById("groupTerm").value = getGroupTermValue(group) || "";
     document.getElementById("groupNote").value = typeof group.note === "string" ? group.note : "";
     document.getElementById("groupLevel").value = group.level || "Familjescouter";
+    const participants = normalizeParticipants(group.participants);
+    document.getElementById("groupScoutCount").value = participants.scouts ?? "";
+    document.getElementById("groupLeaderCount").value = participants.leaders ?? "";
 
     const visibilitySelect = document.getElementById("groupVisibility");
     visibilitySelect.value = group.visibility || "kar_edit";
@@ -2559,6 +2599,8 @@ function resetGroupModalState() {
     document.getElementById("groupModalTitle").textContent = "Ny plannering";
     document.getElementById("saveGroupBtn").textContent = "Spara";
     document.getElementById("groupNote").value = "";
+    document.getElementById("groupScoutCount").value = "";
+    document.getElementById("groupLeaderCount").value = "";
     const visibilitySelect = document.getElementById("groupVisibility");
     visibilitySelect.value = "kar_edit";
     visibilitySelect.disabled = false;
@@ -2934,6 +2976,13 @@ function normalizeMeetingList(meetings) {
                 date: String(meeting.date ?? ""),
                 responsible: String(meeting.responsible ?? meeting.ansvarig ?? "").trim(),
                 location: String(meeting.location ?? meeting.plats ?? "").trim(),
+                participants: normalizeParticipants(meeting.participants),
+                meals: Array.isArray(meeting.meals) ? meeting.meals
+                    .filter(meal => meal && typeof meal === "object" && String(meal.recipeId || "").trim())
+                    .map(meal => ({
+                        recipeId: String(meal.recipeId).trim(),
+                        servings: normalizeParticipantCount(meal.servings)
+                    })) : [],
                 gameResponsible: normalizeActivityResponsibleMap(gameResponsibleInput, games),
                 badgeIds,
                 badgeId: badgeIds[0] || "",
@@ -2949,6 +2998,214 @@ function normalizeMeetingList(meetings) {
             const rightDate = /^\d{4}-\d{2}-\d{2}$/.test(right.date) ? right.date : "9999-99-99";
             return leftDate.localeCompare(rightDate);
         });
+}
+
+function getMeetingParticipants(group, meeting) {
+    const section = normalizeParticipants(group?.participants);
+    const event = normalizeParticipants(meeting?.participants);
+    return {
+        scouts: event.scouts ?? section.scouts,
+        leaders: event.leaders ?? section.leaders
+    };
+}
+
+function getMealDefaultServings(group, meeting) {
+    const participants = getMeetingParticipants(group, meeting);
+    const total = (participants.scouts || 0) + (participants.leaders || 0);
+    return total > 0 ? total : 4;
+}
+
+function getRecipeIngredientRows(recipe) {
+    if (Array.isArray(recipe?.ingredienser_skalningar) && recipe.ingredienser_skalningar.length) {
+        return recipe.ingredienser_skalningar;
+    }
+    return (Array.isArray(recipe?.ingredienser) ? recipe.ingredienser : []).map(value => {
+        const text = String(value || "").trim();
+        const match = text.match(/^(\d+(?:[.,]\d+)?(?:\s+\d+\/\d+)?|\d+\/\d+)\s*(ml|cl|dl|l|liter|mg|g|gram|kg|krm|tsk|msk|förpackning|förp|paket|pkt|påse|burk|styck|st)?\s+(.+)$/i);
+        return match
+            ? { namn: match[3].trim(), mangder: { "4": `${match[1]}${match[2] ? ` ${match[2]}` : ""}` } }
+            : { namn: text, mangder: {} };
+    }).filter(row => row.namn);
+}
+
+function parseMealAmount(value) {
+    const match = String(value || "").trim().match(/^(\d+(?:[.,]\d+)?(?:\s+\d+\/\d+)?|\d+\/\d+)\s*(ml|cl|dl|l|liter|mg|g|gram|kg|krm|tsk|msk|förpackning|förp|paket|pkt|påse|burk|styck|st)?\b/i);
+    if (!match) return null;
+    const quantity = match[1].replace(",", ".").split(/\s+/).reduce((total, part) => {
+        if (!part.includes("/")) return total + Number(part);
+        const [numerator, denominator] = part.split("/").map(Number);
+        return denominator ? total + numerator / denominator : total;
+    }, 0);
+    const unit = (match[2] || "").toLowerCase()
+        .replace("liter", "l").replace("gram", "g").replace("förpackning", "förp")
+        .replace("paket", "pkt").replace("styck", "st");
+    if (!Number.isFinite(quantity) || quantity <= 0) return null;
+    const volumeFactors = { krm: 1, tsk: 5, msk: 15, ml: 1, cl: 10, dl: 100, l: 1000 };
+    const weightFactors = { mg: 1, g: 1000, kg: 1000000 };
+    if (volumeFactors[unit]) return { value: quantity * volumeFactors[unit], category: "volume", unit };
+    if (weightFactors[unit]) return { value: quantity * weightFactors[unit], category: "weight", unit };
+    return { value: quantity, category: `unit:${unit}`, unit };
+}
+
+function getScaledMealAmount(row, servings) {
+    const measures = row.mangder && typeof row.mangder === "object" ? row.mangder : {};
+    const exact = measures[String(servings)];
+    if (exact) return { comparable: parseMealAmount(exact), text: exact };
+    const points = [4, 10, 25, 50, 100].map(scale => {
+        const text = measures[String(scale)];
+        const comparable = parseMealAmount(text);
+        return comparable ? { scale, comparable } : null;
+    }).filter(Boolean);
+    if (!points.length) return { comparable: null, text: "" };
+    const compatible = points.filter(point => point.comparable.category === points[0].comparable.category);
+    if (compatible.length === 1) {
+        return {
+            comparable: { ...compatible[0].comparable, value: compatible[0].comparable.value * servings / compatible[0].scale },
+            text: ""
+        };
+    }
+    let lower = compatible[0];
+    let upper = compatible[1];
+    if (servings >= compatible[compatible.length - 1].scale) {
+        [lower, upper] = compatible.slice(-2);
+    } else if (servings > compatible[0].scale) {
+        for (let index = 1; index < compatible.length; index += 1) {
+            if (compatible[index].scale >= servings) {
+                lower = compatible[index - 1];
+                upper = compatible[index];
+                break;
+            }
+        }
+    }
+    const ratio = (servings - lower.scale) / (upper.scale - lower.scale);
+    return {
+        comparable: {
+            ...lower.comparable,
+            value: lower.comparable.value + (upper.comparable.value - lower.comparable.value) * ratio
+        },
+        text: ""
+    };
+}
+
+function formatMealAmount(comparable) {
+    const { category, value } = comparable;
+    let unit = comparable.unit;
+    let quantity = value;
+    if (category === "volume") {
+        if (unit === "krm" || unit === "tsk" || unit === "msk") {
+            unit = value >= 1000 ? "l" : value >= 100 ? "dl" : value >= 15 ? "msk" : value >= 5 ? "tsk" : "krm";
+            quantity = value / { krm: 1, tsk: 5, msk: 15, dl: 100, l: 1000 }[unit];
+        } else {
+            unit = value >= 1000 ? "l" : value >= 100 ? "dl" : "ml";
+            quantity = value / { ml: 1, dl: 100, l: 1000 }[unit];
+        }
+    } else if (category === "weight") {
+        unit = value >= 1000000 ? "kg" : value >= 1000 ? "g" : "mg";
+        quantity = value / { mg: 1, g: 1000, kg: 1000000 }[unit];
+    }
+    return `${String(Number(quantity.toFixed(1))).replace(".", ",")}${unit ? ` ${unit}` : ""}`;
+}
+
+function buildMeetingShoppingList(group, meeting) {
+    const items = new Map();
+    const missingRecipes = [];
+    (meeting.meals || []).forEach(meal => {
+        const recipe = cookbookRecipes.find(item => item.id === meal.recipeId);
+        if (!recipe) {
+            missingRecipes.push(meal.recipeId);
+            return;
+        }
+        const servings = meal.servings || getMealDefaultServings(group, meeting);
+        getRecipeIngredientRows(recipe).forEach(row => {
+            const amount = getScaledMealAmount(row, servings);
+            const ingredient = String(row.namn || "").trim();
+            if (!ingredient) return;
+            if (!amount.comparable) {
+                const key = `${ingredient.toLocaleLowerCase("sv-SE")}|text|${amount.text}`;
+                const entry = items.get(key) || { ingredient, text: amount.text };
+                items.set(key, entry);
+                return;
+            }
+            const key = `${ingredient.toLocaleLowerCase("sv-SE")}|${amount.comparable.category}`;
+            const entry = items.get(key) || { ingredient, value: 0, comparable: amount.comparable };
+            entry.value += amount.comparable.value;
+            items.set(key, entry);
+        });
+    });
+    return {
+        items: [...items.values()].map(item => ({
+            ingredient: item.ingredient,
+            amount: item.comparable ? formatMealAmount({ ...item.comparable, value: item.value }) : item.text
+        })).sort((left, right) => left.ingredient.localeCompare(right.ingredient, "sv")),
+        missingRecipes
+    };
+}
+
+function printMeetingShoppingList(group, meeting) {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    const { items, missingRecipes } = buildMeetingShoppingList(group, meeting);
+    const rows = items.length
+        ? items.map(item => `<li><span class="check"></span><strong>${escapeHtml(item.amount || "Mängd saknas")}</strong> ${escapeHtml(item.ingredient)}</li>`).join("")
+        : "<li>Inga mängdsatta ingredienser hittades.</li>";
+    const missing = missingRecipes.length
+        ? `<p>Recept saknas: ${missingRecipes.map(escapeHtml).join(", ")}</p>`
+        : "";
+    printWindow.document.write(`<!DOCTYPE html><html lang="sv"><head><meta charset="UTF-8"><title>Inköpslista – ${escapeHtml(group.name)}</title><style>body{font:16px Arial,sans-serif;color:#172b4d;margin:32px}h1{color:#003660}li{list-style:none;margin:12px 0}.check{display:inline-block;width:16px;height:16px;border:1px solid #555;margin-right:8px;vertical-align:middle}@media print{body{margin:0}}</style></head><body><h1>Inköpslista</h1><p>${escapeHtml(group.name)} · Träff ${escapeHtml(meeting.week || "-")}${meeting.date ? ` · ${escapeHtml(meeting.date)}` : ""}</p><ul>${rows}</ul>${missing}</body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+}
+
+function readMeetingMeals() {
+    return [...document.querySelectorAll("#meetingMealList .meeting-meal-row")].map(row => ({
+        recipeId: row.querySelector("[data-meal-recipe]")?.value || "",
+        servings: normalizeParticipantCount(row.querySelector("[data-meal-servings]")?.value)
+    })).filter(meal => meal.recipeId);
+}
+
+function renderMeetingMeals(meals, group, readOnly) {
+    const container = document.getElementById("meetingMealList");
+    const normalizedMeals = Array.isArray(meals) ? meals : [];
+    container.replaceChildren(...normalizedMeals.map(meal => {
+        const row = document.createElement("div");
+        row.className = "meeting-meal-row";
+        const recipeSelect = document.createElement("select");
+        recipeSelect.dataset.mealRecipe = "";
+        recipeSelect.setAttribute("aria-label", "Välj recept");
+        recipeSelect.add(new Option("Välj recept", ""));
+        cookbookRecipes.slice().sort((left, right) => left.namn.localeCompare(right.namn, "sv")).forEach(recipe => {
+            recipeSelect.add(new Option(recipe.namn, recipe.id));
+        });
+        if (meal.recipeId && !cookbookRecipes.some(recipe => recipe.id === meal.recipeId)) {
+            recipeSelect.add(new Option("Recept saknas", meal.recipeId));
+        }
+        recipeSelect.value = meal.recipeId || "";
+        const servingsInput = document.createElement("input");
+        servingsInput.type = "number";
+        servingsInput.min = "1";
+        servingsInput.step = "1";
+        servingsInput.placeholder = String(getMealDefaultServings(group, { participants: readParticipants("meetingScoutCount", "meetingLeaderCount") }));
+        servingsInput.value = meal.servings ?? "";
+        servingsInput.dataset.mealServings = "";
+        servingsInput.setAttribute("aria-label", `Portioner för ${recipeSelect.selectedOptions[0]?.text || "recept"}`);
+        const removeButton = document.createElement("button");
+        removeButton.type = "button";
+        removeButton.className = "btn-secondary";
+        removeButton.textContent = "Ta bort";
+        removeButton.dataset.removeMeetingMeal = "";
+        removeButton.disabled = readOnly;
+        recipeSelect.disabled = readOnly;
+        servingsInput.disabled = readOnly;
+        row.append(recipeSelect, servingsInput, removeButton);
+        return row;
+    }));
+    if (!normalizedMeals.length && !cookbookRecipes.length) {
+        const note = document.createElement("p");
+        note.className = "detail-note-warning";
+        note.textContent = "Inga recept har laddats. Kontrollera Scoutkokboken och försök igen.";
+        container.append(note);
+    }
 }
 
 function getMeetingLabelsForActivity(group, activityId) {
@@ -2990,6 +3247,14 @@ function openMeetingReadingView(groupId, meetingId) {
         </article>`;
     };
     const sectionStatuses = getMeetingSectionStatuses(group.id, meeting.id);
+    const participants = getMeetingParticipants(group, meeting);
+    const participantSummary = participants.scouts !== null || participants.leaders !== null
+        ? `${participants.scouts ?? "?"} scouter · ${participants.leaders ?? "?"} ledare`
+        : "";
+    const mealSummary = (meeting.meals || []).map(meal => {
+        const recipe = cookbookRecipes.find(item => item.id === meal.recipeId);
+        return `<li>${escapeHtml(recipe?.namn || "Recept saknas")} · ${meal.servings || getMealDefaultServings(group, meeting)} portioner</li>`;
+    }).join("");
     const sections = [
         ["opening", "Inledningsceremoni", "Välkomna scouterna och skapa en tydlig start på mötet."],
         ["game", "Lek", "Ha roligt, lär känna varandra och få upp rörelsen.", (meeting.games || []).map(id => renderActivity(id, "Lek")).join("")],
@@ -3004,6 +3269,7 @@ function openMeetingReadingView(groupId, meetingId) {
             <div class="meeting-reading-title-row">
                 <h2 id="meetingReadingTitle">Träff ${escapeHtml(meeting.week || "-")}</h2>
                 <button id="meetingReadingPrintBtn" class="btn-secondary meeting-reading-print-btn" type="button" aria-label="Skriv ut möte" title="Skriv ut möte"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,3H6V7H18M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8M16,19H8V14H16M19,13A1,1 0 1,1 20,12A1,1 0 1,1 19,13Z" /></svg></button>
+                ${(meeting.meals || []).length ? `<button id="meetingReadingShoppingBtn" class="btn-secondary" type="button">Inköpslista</button>` : ""}
                 ${canShare ? `<button id="meetingReadingShareBtn" class="btn-secondary meeting-reading-share-btn" type="button" aria-label="Dela möte" title="Dela möte"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,16.08C17.24,16.08 16.54,16.38 16,16.85L8.91,12.74C8.96,12.5 9,12.25 8.91,11.26L15.92,7.17C16.47,7.66 17.2,7.97 18,7.97C19.66,7.97 21,6.63 21,4.97C21,3.31 19.66,1.97 18,1.97C16.34,1.97 15,3.31 15,4.97C15,5.22 15.04,5.47 15.09,5.71L8.08,9.8C7.53,9.31 6.8,9 6,9C4.34,9 3,10.34 3,12C3,13.66 4.34,15 6,15C6.8,15 7.53,14.69 8.08,14.2L15.17,18.31C15.12,18.54 15,18.77 15,19C15,20.66 16.34,22 18,22C19.66,22 21,20.66 21,19C21,17.34 19.66,16.08 18,16.08Z" /></svg></button>` : ""}
             </div>
             <div class="meeting-reading-meta">
@@ -3011,8 +3277,10 @@ function openMeetingReadingView(groupId, meetingId) {
                 ${meeting.location ? `<span>${escapeHtml(meeting.location)}</span>` : ""}
                 ${meeting.responsible ? `<span>Ansvarig: ${escapeHtml(meeting.responsible)}</span>` : ""}
                 ${calculateSunsetTime(meeting.date) ? `<span>${SUNSET_ICON_SVG}${escapeHtml(calculateSunsetTime(meeting.date))}</span>` : ""}
+                ${participantSummary ? `<span>Deltagare: ${escapeHtml(participantSummary)}</span>` : ""}
             </div>
         </header>
+        ${mealSummary ? `<div class="meeting-reading-meals"><strong>Mat</strong><ul>${mealSummary}</ul></div>` : ""}
         ${meeting.notes ? `<div class="meeting-reading-notes"><strong>Anteckning</strong><p>${renderLinkedText(meeting.notes)}</p></div>` : ""}
         ${badges.length > 0 ? `<div class="meeting-reading-badges" aria-label="Märken">${badges.map(badge => `<div><img src="${escapeHtml(new URL(badge.bild, window.location.href).href)}" alt=""><span>${escapeHtml(badge.namn)}</span></div>`).join("")}</div>` : ""}
         <div class="meeting-reading-sections">${sections.map(([key, title, text, content]) => `<section class="meeting-reading-section${sectionStatuses[key] ? " meeting-reading-section--completed" : ""}" data-section-key="${key}" role="button" tabindex="0" aria-pressed="${Boolean(sectionStatuses[key])}" aria-label="${sectionStatuses[key] ? "Markera " : "Markera "} ${escapeHtml(title)} ${sectionStatuses[key] ? "som ej klar" : "som klar"}"><div class="meeting-reading-section-heading"><h3>${title}</h3><span class="meeting-reading-section-status">${sectionStatuses[key] ? "Klar" : ""}</span></div><p>${text}</p>${content || ""}</section>`).join("")}</div>
@@ -3067,6 +3335,7 @@ function openMeetingReadingView(groupId, meetingId) {
         meetingPrintButton.replaceChildren(planningPrintIcon.cloneNode(true));
     }
     meetingPrintButton?.addEventListener("click", () => openMeetingPdfSelection(group.id, meeting.id));
+    view.querySelector("#meetingReadingShoppingBtn")?.addEventListener("click", () => printMeetingShoppingList(group, meeting));
     modal.classList.remove("hidden");
 }
 
@@ -3182,6 +3451,30 @@ function openMeetingModal(groupId, meetingId = null, readOnly = false) {
     modal.dataset.groupId = groupId;
     modal.dataset.meetingId = meetingId || "";
     modal.dataset.readOnly = viewOnly ? "true" : "false";
+    const participants = normalizeParticipants(meeting?.participants);
+    document.getElementById("meetingScoutCount").value = participants.scouts ?? "";
+    document.getElementById("meetingLeaderCount").value = participants.leaders ?? "";
+    ["meetingScoutCount", "meetingLeaderCount"].forEach(id => {
+        document.getElementById(id).disabled = viewOnly;
+    });
+    renderMeetingMeals(meeting?.meals || [], group, viewOnly);
+    const addMealButton = document.getElementById("addMeetingMealBtn");
+    addMealButton.classList.toggle("hidden", viewOnly);
+    addMealButton.disabled = !cookbookRecipes.length;
+    addMealButton.onclick = () => {
+        const meals = readMeetingMeals();
+        meals.push({ recipeId: cookbookRecipes[0]?.id || "", servings: null });
+        renderMeetingMeals(meals, group, false);
+        document.querySelectorAll("#meetingMealList [data-meal-recipe]")[meals.length - 1]?.focus();
+    };
+    document.getElementById("meetingMealList").onclick = event => {
+        if (!event.target.closest("[data-remove-meeting-meal]")) return;
+        const meals = readMeetingMeals();
+        const row = event.target.closest(".meeting-meal-row");
+        const index = [...row.parentElement.children].indexOf(row);
+        meals.splice(index, 1);
+        renderMeetingMeals(meals, group, viewOnly);
+    };
     document.getElementById("meetingWeek").value = meeting ? (meeting.week || "") : "";
     const meetingDateInput = document.getElementById("meetingDate");
     meetingDateInput.value = meeting ? (meeting.date || "") : "";
@@ -3301,6 +3594,11 @@ function saveMeetingFromModal() {
     const date = document.getElementById("meetingDate").value;
     const responsible = document.getElementById("meetingResponsible").value.trim();
     const location = document.getElementById("meetingLocation").value.trim();
+    const participants = readParticipants("meetingScoutCount", "meetingLeaderCount");
+    const meals = readMeetingMeals().map(meal => ({
+        ...meal,
+        servings: meal.servings || null
+    }));
     const badgeIds = normalizeMeetingBadgeIds(document.getElementById("meetingBadge").value);
     const notes = document.getElementById("meetingNotes").value.trim();
     const selectedGames = [...document.querySelectorAll("#meetingGameList input:checked")].map(input => input.value);
@@ -3327,6 +3625,8 @@ function saveMeetingFromModal() {
         date,
         responsible,
         location,
+        participants,
+        meals,
         gameResponsible,
         badgeIds,
         badgeId: badgeIds[0] || "",
@@ -3447,6 +3747,8 @@ function createMeetingForGroup(groupId, meetingInput = {}) {
         date: String(meetingInput.date ?? ""),
         responsible: String(meetingInput.responsible ?? meetingInput.ansvarig ?? "").trim(),
         location: String(meetingInput.location ?? "").trim(),
+        participants: normalizeParticipants(meetingInput.participants),
+        meals: Array.isArray(meetingInput.meals) ? meetingInput.meals : [],
         gameResponsible: meetingInput.gameResponsible && typeof meetingInput.gameResponsible === "object" ? meetingInput.gameResponsible : {},
         badgeIds,
         badgeId: badgeIds[0] || "",
@@ -3480,6 +3782,10 @@ function updateMeetingForGroup(groupId, meetingId, meetingInput = {}) {
             date: String(meetingInput.date ?? meeting.date ?? ""),
             responsible: String(meetingInput.responsible ?? meetingInput.ansvarig ?? meeting.responsible ?? "").trim(),
             location: String(meetingInput.location ?? meeting.location ?? "").trim(),
+            participants: meetingInput.participants && typeof meetingInput.participants === "object"
+                ? normalizeParticipants(meetingInput.participants)
+                : meeting.participants,
+            meals: Array.isArray(meetingInput.meals) ? meetingInput.meals : (meeting.meals || []),
             gameResponsible: meetingInput.gameResponsible && typeof meetingInput.gameResponsible === "object"
                 ? meetingInput.gameResponsible
                 : (meeting.gameResponsible || {}),
@@ -4089,6 +4395,7 @@ document.getElementById("saveGroupBtn").addEventListener("click", () => {
         group.year = Number.isFinite(parsedYear) ? parsedYear : "";
         group.term = termValue;
         group.note = noteValue;
+        group.participants = readParticipants("groupScoutCount", "groupLeaderCount");
         if (canChangeGroupVisibility(group)) {
             const visibilityValue = document.getElementById("groupVisibility").value;
             group.visibility = ["private", "kar_view", "kar_edit"].includes(visibilityValue) ? visibilityValue : "kar_edit";
@@ -4505,4 +4812,16 @@ window.GTScoutPlanningSync?.init({
 
 window.GTScoutNotes?.init({
     onChange: () => renderPlanning()
+});
+
+window.GTScoutCookbook?.init({
+    onChange: recipes => {
+        cookbookRecipes = Array.isArray(recipes) ? recipes : [];
+        const modal = document.getElementById("meetingModal");
+        if (modal && !modal.classList.contains("hidden")) {
+            const group = groups.find(item => item.id === modal.dataset.groupId);
+            renderMeetingMeals(readMeetingMeals(), group, modal.dataset.readOnly === "true");
+            document.getElementById("addMeetingMealBtn").disabled = !cookbookRecipes.length;
+        }
+    }
 });
