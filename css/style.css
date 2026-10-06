@@ -140,15 +140,24 @@ body {
 .arrangement-card-no-agenda { margin: 14px 0 0; }
 .arrangement-card-actions { display: flex; align-items: center; gap: 8px; margin-top: 16px; padding-top: 12px; border-top: 1px solid #e2e8e8; }
 .arrangement-detail-notes { display: grid; gap: 9px; margin: 0 0 14px; padding: 0 0 12px; border-bottom: 1px solid #e2e8e8; }
+.arrangement-detail-notes > summary, .arrangement-meal-summary > summary { display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none; }
+.arrangement-detail-notes > summary::-webkit-details-marker, .arrangement-meal-summary > summary::-webkit-details-marker { display: none; }
+.arrangement-detail-notes > summary::before, .arrangement-meal-summary > summary::before { width: 7px; height: 7px; flex: 0 0 7px; border-right: 2px solid #286d60; border-bottom: 2px solid #286d60; content: ""; transform: rotate(-45deg); transition: transform .15s ease; }
+.arrangement-detail-notes[open] > summary::before, .arrangement-meal-summary[open] > summary::before { transform: rotate(45deg); }
 .arrangement-detail-notes h3 { margin: 0; color: #153c4a; font-size: .84rem; }
 .arrangement-detail-notes p { margin: 0; color: #354b51; font-size: .84rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
-.arrangement-meal-summary { margin: 0 0 14px; }
+.arrangement-meal-summary { display: block; margin: 0 0 14px; }
 .arrangement-meal-summary h3 { margin: 0; color: #153c4a; font-size: .84rem; }
 .arrangement-meal-summary-days { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 12px; margin-top: 8px; }
 .arrangement-meal-day { min-width: 0; padding: 10px; border: 1px solid #dbe3e3; border-radius: 4px; background: #f7f9f8; }
 .arrangement-meal-day h4 { margin: 0 0 7px; color: #153c4a; font-size: .82rem; }
 .arrangement-meal-day ul { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .arrangement-meal-day li { color: #354b51; font-size: .82rem; line-height: 1.45; overflow-wrap: anywhere; }
+.arrangement-meal-entry { padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; overflow-wrap: anywhere; cursor: pointer; }
+.arrangement-meal-entry:hover { color: #286d60; text-decoration: underline; }
+.arrangement-meal-entry:focus-visible { outline: 2px solid #4d8275; outline-offset: 2px; }
+.arrangement-meals-empty { margin: 8px 0 0; color: #65767b; font-size: .84rem; }
+.arrangement-meal-add { margin-top: 10px; }
 .arrangement-notes-preview { display: grid; gap: 9px; width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid #d1dbdc; border-radius: 4px; background: #f7f9f8; color: #354b51; font: inherit; font-size: .84rem; line-height: 1.45; text-align: left; white-space: pre-wrap; overflow-wrap: anywhere; cursor: pointer; }
 .arrangement-notes-preview:hover { border-color: #4d8275; background: #f1f6f3; }
 .arrangement-notes-preview:focus-visible { outline: 2px solid #4d8275; outline-offset: 2px; }

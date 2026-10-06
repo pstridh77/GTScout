@@ -42,6 +42,8 @@ let activeScheduleGesture = null;
 let suppressScheduleClickUntil = 0;
 const arrangementDayExpansion = new Map();
 const arrangementSchemaExpansion = new Set();
+const collapsedArrangementNotes = new Set();
+const collapsedArrangementMeals = new Set();
 const expandedArrangementIds = new Set();
 const collapsedArrangementYears = new Set();
 const arrangementDetailEditModes = new Set();
@@ -485,7 +487,7 @@ function renderArrangementSchedule(item) {
     return `<details class="arrangement-schedule" data-arrangement-id="${escapeArrangementHtml(item.id)}"${isSchemaExpanded ? " open" : ""}><summary class="arrangement-section-summary"><strong>Schema</strong><span>${scheduleDateLabel} · ${scheduleEntryLabel}</span></summary><div class="arrangement-schedule-days">${scheduleDays}</div></details>`;
 }
 
-function renderArrangementMealSummary(item) {
+function renderArrangementMealSummary(item, canEdit = false) {
     const mealsByDate = new Map();
     (item.agenda || []).filter(entry => entry.kind === "meal")
         .sort((left, right) => left.date.localeCompare(right.date) || (left.time || "99:99").localeCompare(right.time || "99:99"))
@@ -499,13 +501,26 @@ function renderArrangementMealSummary(item) {
                 : entry.meal_type && entry.title !== entry.meal_type ? entry.title : "";
             const mealName = mealContents ? `${mealType}: ${mealContents}` : mealType;
             if (!mealsByDate.has(entry.date)) mealsByDate.set(entry.date, []);
-            mealsByDate.get(entry.date).push(mealName);
+            mealsByDate.get(entry.date).push({ entry, name: mealName });
         });
-    if (!mealsByDate.size) return "";
+    if (!mealsByDate.size && !canEdit) return "";
     const rows = [...mealsByDate].map(([date, meals]) =>
-        `<section class="arrangement-meal-day"><h4><time datetime="${escapeArrangementHtml(date)}">${escapeArrangementHtml(formatArrangementDate(date))}</time></h4><ul>${meals.map(meal => `<li>${escapeArrangementHtml(meal)}</li>`).join("")}</ul></section>`
+        `<section class="arrangement-meal-day"><h4><time datetime="${escapeArrangementHtml(date)}">${escapeArrangementHtml(formatArrangementDate(date))}</time></h4><ul>${meals.map(({ entry, name }) => {
+            const mealLabel = escapeArrangementHtml(name);
+            const mealContent = canEdit
+                ? `<button class="arrangement-meal-entry" type="button" data-edit-agenda="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}" aria-label="Redigera måltid: ${mealLabel}" title="Redigera eller ta bort måltid">${mealLabel}</button>`
+                : mealLabel;
+            return `<li>${mealContent}</li>`;
+        }).join("")}</ul></section>`
     ).join("");
-    return `<section class="arrangement-meal-summary"><h3>Måltider</h3><div class="arrangement-meal-summary-days">${rows}</div></section>`;
+    const isOpen = !collapsedArrangementMeals.has(item.id);
+    const mealContent = rows
+        ? `<div class="arrangement-meal-summary-days">${rows}</div>`
+        : `<p class="arrangement-meals-empty">Inga måltider planerade.</p>`;
+    const addMealButton = canEdit
+        ? `<button class="btn-secondary arrangement-meal-add" type="button" data-add-meal="${escapeArrangementHtml(item.id)}">+ Lägg till mat</button>`
+        : "";
+    return `<details class="arrangement-meal-summary" data-arrangement-id="${escapeArrangementHtml(item.id)}"${isOpen ? " open" : ""}><summary><h3>Måltider</h3></summary>${mealContent}${addMealButton}</details>`;
 }
 
 function renderScheduleEntry(entry, departmentIndex = null, arrangementId = "", canEdit = false) {
@@ -540,9 +555,9 @@ function renderArrangements() {
     const renderedCards = orderedVisible.map(item => {
         const participantTags = item.departments.map((department, index) => `<span class="arrangement-department-tag department-tone-${departments.indexOf(department)}">${escapeArrangementHtml(department)}</span>`).join("");
         const agendaHtml = renderArrangementSchedule(item);
-        const mealSummaryHtml = renderArrangementMealSummary(item);
-        const link = item.planning_ref?.name ? `<p class="arrangement-card-planning">Planering: ${escapeArrangementHtml(item.planning_ref.name)}</p>` : "";
         const canEditDetails = isArrangementDetailEditable(item);
+        const mealSummaryHtml = renderArrangementMealSummary(item, canEditDetails);
+        const link = item.planning_ref?.name ? `<p class="arrangement-card-planning">Planering: ${escapeArrangementHtml(item.planning_ref.name)}</p>` : "";
         const lockAction = canEditDetails ? "Lås redigering" : "Lås upp för redigering";
         const lockIcon = canEditDetails
             ? `<path fill="currentColor" d="M18 8h-1V6a5 5 0 0 0-9.9-1h2.05A3 3 0 0 1 15 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2Zm-6 11a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z"/>`
@@ -575,9 +590,13 @@ function renderArrangements() {
             : "";
         const notes = String(item.notes || "").trim();
         const description = String(item.description || "").trim();
-        const notesHtml = canEditDetails
-            ? `<section class="arrangement-detail-notes"><h3>Anteckningar</h3><button class="arrangement-notes-preview" type="button" data-edit-arrangement-notes="${escapeArrangementHtml(item.id)}" aria-label="Redigera anteckningar för ${escapeArrangementHtml(item.title)}"><span>${notes ? escapeArrangementHtml(notes) : "Inga anteckningar ännu. Klicka för att lägga till."}</span><span class="arrangement-notes-preview-hint">Klicka för att redigera</span></button></section>`
-            : `<section class="arrangement-detail-notes"><h3>Anteckningar</h3><p>${notes ? escapeArrangementHtml(notes) : "Inga anteckningar."}</p></section>`;
+        const notesContent = canEditDetails
+            ? `<button class="arrangement-notes-preview" type="button" data-edit-arrangement-notes="${escapeArrangementHtml(item.id)}" aria-label="Redigera anteckningar för ${escapeArrangementHtml(item.title)}"><span>${notes ? escapeArrangementHtml(notes) : "Inga anteckningar ännu. Klicka för att lägga till."}</span><span class="arrangement-notes-preview-hint">Klicka för att redigera</span></button>`
+            : `<p>${notes ? escapeArrangementHtml(notes) : "Inga anteckningar."}</p>`;
+        const notesOpen = !collapsedArrangementNotes.has(item.id);
+        const notesHtml = notes || canEditDetails
+            ? `<details class="arrangement-detail-notes" data-arrangement-id="${escapeArrangementHtml(item.id)}"${notesOpen ? " open" : ""}><summary><h3>Anteckningar</h3></summary>${notesContent}</details>`
+            : "";
         const timeRange = [item.start_time, item.end_time].filter(Boolean).join("–");
         return `<details class="arrangement-card${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}</div></summary><div class="arrangement-card-details">${detailEditControl}${link}${notesHtml}${mealSummaryHtml}${responsibilityHtml}${agendaHtml}${actions}</div></details>`;
     });
@@ -757,8 +776,9 @@ function renderAgendaEntryDialog(arrangement, entry, focusField = "title") {
     const inactiveScopeNote = !shared && entry.departments?.some(department => !selectedDepartments.includes(department))
         ? `<small class="agenda-scope-hidden-note">Posten visas bara om dess avdelning väljs för arrangemanget.</small>`
         : "";
-    agendaEntryDialogFields.innerHTML = `<div class="agenda-entry-scope"><span>${shared ? "Avdelningar som deltar" : "Gäller avdelningar"}</span><label class="agenda-shared-choice"><input data-agenda-field="shared" type="checkbox"${shared ? " checked" : ""}>Gemensamt för alla</label>${shared ? "<small class=\"agenda-scope-help\">Avmarkera avdelningar som inte ska delta.</small>" : ""}<div class="agenda-scope-options">${scopeOptions}</div>${inactiveScopeNote}</div><label class="agenda-entry-field agenda-entry-title"><span>Namn</span><input data-agenda-field="title" type="text" maxlength="160" value="${escapeArrangementHtml(entry.title)}" required placeholder="Till exempel lägerbål"></label><label class="agenda-entry-field"><span>Datum</span><input data-agenda-field="date" type="date" min="${escapeArrangementHtml(arrangement.start_date)}" max="${escapeArrangementHtml(arrangement.end_date)}" value="${escapeArrangementHtml(entry.date)}" required></label><label class="agenda-entry-field"><span>Start</span><input data-agenda-field="time" type="time" value="${escapeArrangementHtml(entry.time || "")}"></label><label class="agenda-entry-field"><span>Slut</span><input data-agenda-field="end_time" type="time" value="${escapeArrangementHtml(entry.end_time || "")}"></label><label class="agenda-entry-field"><span>Typ</span><select data-agenda-field="kind"><option value="meal"${entry.kind === "meal" ? " selected" : ""}>Mat</option><option value="activity"${entry.kind === "activity" ? " selected" : ""}>Aktivitet</option><option value="program"${entry.kind === "program" ? " selected" : ""}>Program</option></select></label>${recipeField}${sourceField}<label class="agenda-entry-field"><span>Ansvarig</span><input data-agenda-field="responsible" type="text" maxlength="120" value="${escapeArrangementHtml(entry.responsible || "")}" placeholder="Namn"></label><label class="agenda-entry-field agenda-entry-notes"><span>Anteckningar</span><textarea data-agenda-field="notes" rows="3" maxlength="240" placeholder="Skriv anteckningar">${escapeArrangementHtml(entry.notes)}</textarea></label>`;
-    document.getElementById("agendaEntryDialogTitle").textContent = activeAgendaEntryIsCopy ? "Kopiera programpunkt" : activeAgendaEntryIsNew ? "Ny programpunkt" : "Redigera programpunkt";
+    agendaEntryDialogFields.innerHTML = `<div class="agenda-entry-scope"><span>${shared ? "Avdelningar som deltar" : "Gäller avdelningar"}</span><label class="agenda-shared-choice"><input data-agenda-field="shared" type="checkbox"${shared ? " checked" : ""}>Gemensamt för alla</label>${shared ? "<small class=\"agenda-scope-help\">Avmarkera avdelningar som inte ska delta.</small>" : ""}<div class="agenda-scope-options">${scopeOptions}</div>${inactiveScopeNote}</div><label class="agenda-entry-field agenda-entry-title"><span>Namn</span><input data-agenda-field="title" type="text" maxlength="160" value="${escapeArrangementHtml(entry.title)}" required placeholder="${entry.kind === "meal" ? "Till exempel Frukost" : "Till exempel lägerbål"}"></label><label class="agenda-entry-field"><span>Datum</span><input data-agenda-field="date" type="date" min="${escapeArrangementHtml(arrangement.start_date)}" max="${escapeArrangementHtml(arrangement.end_date)}" value="${escapeArrangementHtml(entry.date)}" required></label><label class="agenda-entry-field"><span>Start</span><input data-agenda-field="time" type="time" value="${escapeArrangementHtml(entry.time || "")}"></label><label class="agenda-entry-field"><span>Slut</span><input data-agenda-field="end_time" type="time" value="${escapeArrangementHtml(entry.end_time || "")}"></label><label class="agenda-entry-field"><span>Typ</span><select data-agenda-field="kind"><option value="meal"${entry.kind === "meal" ? " selected" : ""}>Mat</option><option value="activity"${entry.kind === "activity" ? " selected" : ""}>Aktivitet</option><option value="program"${entry.kind === "program" ? " selected" : ""}>Program</option></select></label>${recipeField}${sourceField}<label class="agenda-entry-field"><span>Ansvarig</span><input data-agenda-field="responsible" type="text" maxlength="120" value="${escapeArrangementHtml(entry.responsible || "")}" placeholder="Namn"></label><label class="agenda-entry-field agenda-entry-notes"><span>Anteckningar</span><textarea data-agenda-field="notes" rows="3" maxlength="240" placeholder="Skriv anteckningar">${escapeArrangementHtml(entry.notes)}</textarea></label>`;
+    const entryLabel = entry.kind === "meal" ? "måltid" : "programpunkt";
+    document.getElementById("agendaEntryDialogTitle").textContent = activeAgendaEntryIsCopy ? `Kopiera ${entryLabel}` : activeAgendaEntryIsNew ? `Ny ${entryLabel}` : `Redigera ${entryLabel}`;
     document.getElementById("agendaEntryDialogStatus").textContent = "";
     document.getElementById("copyAgendaEntryBtn").classList.toggle("hidden", !isArrangementEditable(arrangement) || activeAgendaEntryIsCopy || activeAgendaEntryIsNew);
     document.getElementById("deleteAgendaEntryBtn").classList.toggle("hidden", !isArrangementEditable(arrangement) || activeAgendaEntryIsCopy || activeAgendaEntryIsNew);
@@ -975,6 +995,16 @@ arrangementsGrid.addEventListener("toggle", event => {
         else collapsedArrangementYears.add(day.dataset.arrangementYear);
         return;
     }
+    if (day.matches?.("details.arrangement-detail-notes[data-arrangement-id]")) {
+        if (day.open) collapsedArrangementNotes.delete(day.dataset.arrangementId);
+        else collapsedArrangementNotes.add(day.dataset.arrangementId);
+        return;
+    }
+    if (day.matches?.("details.arrangement-meal-summary[data-arrangement-id]")) {
+        if (day.open) collapsedArrangementMeals.delete(day.dataset.arrangementId);
+        else collapsedArrangementMeals.add(day.dataset.arrangementId);
+        return;
+    }
     if (day.matches?.("details.arrangement-card[data-arrangement-id]")) {
         if (day.open) expandedArrangementIds.add(day.dataset.arrangementId);
         else expandedArrangementIds.delete(day.dataset.arrangementId);
@@ -1090,6 +1120,7 @@ arrangementsGrid.addEventListener("pointercancel", event => {
 arrangementsGrid.addEventListener("click", async event => {
     const detailEditButton = event.target.closest("[data-toggle-arrangement-edit]");
     const editNotesButton = event.target.closest("[data-edit-arrangement-notes]");
+    const addMealButton = event.target.closest("[data-add-meal]");
     const editButton = event.target.closest("[data-edit-arrangement]");
     const copyButton = event.target.closest("[data-copy-arrangement]");
     const shareButton = event.target.closest("[data-share-arrangement]");
@@ -1127,6 +1158,32 @@ arrangementsGrid.addEventListener("click", async event => {
     if (editNotesButton) {
         const arrangement = arrangements.find(item => item.id === editNotesButton.dataset.editArrangementNotes);
         if (arrangement && isArrangementDetailEditable(arrangement)) openArrangementNotesDialog(arrangement, editNotesButton);
+        return;
+    }
+    if (addMealButton) {
+        const item = arrangements.find(arrangement => arrangement.id === addMealButton.dataset.addMeal);
+        if (item && isArrangementDetailEditable(item)) {
+            activeAgendaEntryIsCopy = false;
+            activeAgendaEntryIsNew = true;
+            agendaEntryDialogTrigger = addMealButton;
+            renderAgendaEntryDialog(item, {
+                id: crypto.randomUUID(),
+                date: item.start_date,
+                time: "",
+                end_time: "",
+                kind: "meal",
+                meal_type: "",
+                source_type: "",
+                source_id: "",
+                recipe_ids: [],
+                shared: true,
+                departments: [],
+                excluded_departments: [],
+                title: "",
+                responsible: "",
+                notes: ""
+            });
+        }
         return;
     }
     if (agendaButton && event.detail > 0 && performance.now() < suppressScheduleClickUntil) {
