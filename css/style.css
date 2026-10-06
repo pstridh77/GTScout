@@ -256,6 +256,7 @@ body {
 .arrangement-schedule-meal { font-size: .64rem; font-weight: 700; opacity: .9; }
 .arrangement-schedule-end { font-size: .67rem; font-weight: 700; }
 .arrangement-schedule-item--shared { --department-color: #123f60; --department-text: #fff; }
+.arrangement-schedule-event--continuation .arrangement-schedule-item > * { visibility: hidden; }
 .arrangement-day-empty { margin: 0; padding: 10px 0; color: #65767b; font-size: .82rem; }
 .arrangement-agenda-editor { padding-top: 14px; border-top: 1px solid #dbe3e3; }
 .arrangement-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
@@ -276,6 +277,7 @@ body {
 #agendaEntryDialogFields .agenda-entry-title, #agendaEntryDialogFields .agenda-entry-notes { grid-column: 1 / -1; }
 #agendaEntryDialogFields .agenda-entry-notes textarea { width: 100%; min-width: 0; min-height: 96px; box-sizing: border-box; padding: 8px; border: 1px solid #cbd7dc; border-radius: 4px; background: #fff; color: #153c4a; font: inherit; resize: vertical; }
 .agenda-entry-scope { display: grid; grid-column: 1 / -1; gap: 7px; color: #52636a; font-size: .76rem; font-weight: 700; }
+.agenda-scope-help { color: #65767b; font-weight: 500; }
 .agenda-shared-choice { display: inline-flex; align-items: center; gap: 6px; width: fit-content; color: #153c4a; }
 .agenda-shared-choice input { width: 15px; height: 15px; margin: 0; accent-color: #286d60; }
 .agenda-scope-options { display: flex; flex-wrap: wrap; gap: 6px; }

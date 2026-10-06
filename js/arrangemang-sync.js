@@ -39,6 +39,7 @@
                 source_id: String(entry.source_id || ""),
                 shared: entry.shared !== false,
                 departments: Array.isArray(entry.departments) ? [...new Set(entry.departments.filter(department => DEPARTMENTS.includes(department)))] : [],
+                excluded_departments: Array.isArray(entry.excluded_departments) ? [...new Set(entry.excluded_departments.filter(department => DEPARTMENTS.includes(department)))] : [],
                 title: String(entry.title || "").trim(),
                 responsible: String(entry.responsible || "").trim(),
                 notes: String(entry.notes || "").trim()
@@ -100,7 +101,7 @@
         return arrangements.map(item => ({
             ...item,
             departments: [...item.departments],
-            agenda: item.agenda.map(entry => ({ ...entry, departments: [...entry.departments] })),
+            agenda: item.agenda.map(entry => ({ ...entry, departments: [...entry.departments], excluded_departments: [...entry.excluded_departments] })),
             responsibilities: item.responsibilities.map(entry => ({ ...entry })),
             planning_ref: item.planning_ref ? { ...item.planning_ref } : null
         }));

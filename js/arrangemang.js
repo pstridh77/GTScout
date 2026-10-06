@@ -73,6 +73,12 @@ function escapeArrangementHtml(value) {
     return String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
 }
 
+function agendaHasTargets(entry, activeDepartments) {
+    return entry.shared === false
+        ? entry.departments.length > 0
+        : activeDepartments.some(department => !(entry.excluded_departments || []).includes(department));
+}
+
 function formatArrangementDate(value, includeWeekday = true) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(value || "")) return "";
     return new Intl.DateTimeFormat("sv-SE", includeWeekday
@@ -293,6 +299,20 @@ function syncDraftResponsibilities() {
 function renderArrangementSchedule(item) {
     const selectedDepartments = item.departments?.length ? item.departments : departments;
     const departmentCount = selectedDepartments.length;
+    const getSharedSegments = excludedDepartments => {
+        const segments = [];
+        let segmentStart = -1;
+        selectedDepartments.forEach((department, departmentIndex) => {
+            const included = !excludedDepartments.includes(department);
+            if (included && segmentStart < 0) segmentStart = departmentIndex;
+            if (!included && segmentStart >= 0) {
+                segments.push({ startColumn: segmentStart + 2, endColumn: departmentIndex + 2 });
+                segmentStart = -1;
+            }
+        });
+        if (segmentStart >= 0) segments.push({ startColumn: segmentStart + 2, endColumn: selectedDepartments.length + 2 });
+        return segments;
+    };
         const isTime = time => /^\d{2}:\d{2}$/.test(time || "");
     const addHour = time => {
         const [hours, minutes] = time.split(":").map(Number);
@@ -361,8 +381,9 @@ function renderArrangementSchedule(item) {
             const endTime = isTime(entry.end_time) && (!startTime || entry.end_time > startTime)
                 ? entry.end_time
                 : startTime ? addHour(startTime) : "";
+            const sharedSegments = entry.shared !== false ? getSharedSegments(entry.excluded_departments || []) : [];
             const targets = entry.shared !== false
-                ? [{ key: "shared", department: null }]
+                ? sharedSegments.length ? [{ key: "shared", department: null, segments: sharedSegments }] : []
                 : selectedDepartments.filter(department => entry.departments.includes(department)).map(department => ({ key: department, department }));
             const startMinutes = startTime ? Number(startTime.slice(0, 2)) * 60 + Number(startTime.slice(3)) : 0;
             const endMinutes = isTime(endTime)
@@ -373,6 +394,7 @@ function renderArrangementSchedule(item) {
                 startTime,
                 endTime,
                 department: target.department,
+                segments: target.segments,
                 startMinutes,
                 endMinutes,
                 laneIndex: 0,
@@ -435,7 +457,6 @@ function renderArrangementSchedule(item) {
             const endIndex = event.endTime ? timePoints.indexOf(event.endTime) : -1;
             const endRow = endIndex > startIndex ? endIndex + 1 : startRow + 1;
             const departmentIndex = event.department === null ? -1 : selectedDepartments.indexOf(event.department);
-            const column = departmentIndex < 0 ? "2 / -1" : String(departmentIndex + 2);
             const tone = event.department === null ? null : departments.indexOf(event.department);
             const laneWidth = (100 / event.laneCount).toFixed(4);
             const laneOffset = (event.laneIndex * 100 / event.laneCount).toFixed(4);
@@ -446,10 +467,15 @@ function renderArrangementSchedule(item) {
             const durationMinutes = event.endMinutes - event.startMinutes;
             const durationClass = `${durationMinutes > 60 ? " arrangement-schedule-event--multi-hour" : ""}${event.startTime && durationMinutes < 60 ? " arrangement-schedule-event--short" : ""}`;
             const departmentSpan = event.department === null
-                ? selectedDepartments.length
+                ? event.segments.reduce((total, segment) => total + segment.endColumn - segment.startColumn, 0)
                 : Math.max(1, event.entry.departments.filter(department => selectedDepartments.includes(department)).length);
             const stackingOrder = 1000 - departmentSpan * 100 + (event.department === null ? 0 : 1);
-            return `<div class="arrangement-schedule-event${durationClass}${event.department === null ? " arrangement-schedule-event--shared" : ""}" style="grid-column:${column};grid-row:${startRow}/${endRow};--lane-width:${width};--lane-offset:${offset};--event-z-index:${stackingOrder}">${card}</div>`;
+            const segments = event.department === null ? event.segments : [{ startColumn: departmentIndex + 2, endColumn: departmentIndex + 3 }];
+            const mainSegmentIndex = segments.reduce((largestIndex, segment, index) => segment.endColumn - segment.startColumn > segments[largestIndex].endColumn - segments[largestIndex].startColumn ? index : largestIndex, 0);
+            return segments.map((segment, segmentIndex) => {
+                const continuationClass = segmentIndex === mainSegmentIndex ? "" : " arrangement-schedule-event--continuation";
+                return `<div class="arrangement-schedule-event${durationClass}${event.department === null ? " arrangement-schedule-event--shared" : ""}${continuationClass}" style="grid-column:${segment.startColumn}/${segment.endColumn};grid-row:${startRow}/${endRow};--lane-width:${width};--lane-offset:${offset};--event-z-index:${stackingOrder}">${card}</div>`;
+            }).join("");
         }).join("");
         const headers = selectedDepartments.map(department => `<span class="arrangement-schedule-department department-tone-${departments.indexOf(department)}">${escapeArrangementHtml(department)}</span>`).join("");
         const showScheduleGrid = scheduleEvents.length > 0 || entries.length === 0;
@@ -600,15 +626,18 @@ function renderAgendaEditor() {
         const mealField = entry.kind === "meal" ? `<label class="agenda-entry-field"><span>Måltid</span><select data-agenda-field="meal_type">${mealTypes.map(type => `<option${entry.meal_type === type ? " selected" : ""}>${type}</option>`).join("")}</select></label>` : "";
         const sourceField = entry.kind === "program" ? "" : `<label class="agenda-entry-field"><span>${entry.kind === "meal" ? "Recept" : "Aktivitet"}</span><select data-agenda-field="source">${getCatalogOptions(entry.kind, entry.source_type, entry.source_id, entry.title)}</select></label>`;
         const shared = entry.shared !== false;
+        const scopeDepartments = shared
+            ? selectedDepartments.filter(department => !(entry.excluded_departments || []).includes(department))
+            : entry.departments;
         const scopeOptions = departments.map(department => {
             const isActive = selectedDepartments.includes(department);
-            const isChecked = entry.departments?.includes(department);
+            const isChecked = scopeDepartments?.includes(department);
             return `<label class="arrangement-department-choice department-tone-${departments.indexOf(department)}"><input class="agenda-department-target" type="checkbox" value="${escapeArrangementHtml(department)}"${isChecked ? " checked" : ""}${isActive ? "" : " disabled"}><span>${escapeArrangementHtml(department)}</span></label>`;
         }).join("");
         const inactiveScopeNote = !shared && entry.departments?.some(department => !selectedDepartments.includes(department))
             ? `<small class="agenda-scope-hidden-note">Posten visas bara om dess avdelning väljs för arrangemanget.</small>`
             : "";
-        const scopeField = `<div class="agenda-entry-scope"><span>Gäller</span><label class="agenda-shared-choice"><input data-agenda-field="shared" type="checkbox"${shared ? " checked" : ""}>Gemensamt för alla</label><div class="agenda-scope-options${shared ? " hidden" : ""}">${scopeOptions}</div>${inactiveScopeNote}</div>`;
+        const scopeField = `<div class="agenda-entry-scope"><span>${shared ? "Avdelningar som deltar" : "Gäller avdelningar"}</span><label class="agenda-shared-choice"><input data-agenda-field="shared" type="checkbox"${shared ? " checked" : ""}>Gemensamt för alla</label>${shared ? "<small class=\"agenda-scope-help\">Avmarkera avdelningar som inte ska delta.</small>" : ""}<div class="agenda-scope-options">${scopeOptions}</div>${inactiveScopeNote}</div>`;
         return `<article class="arrangement-agenda-entry" data-agenda-id="${escapeArrangementHtml(entry.id)}"><div class="arrangement-agenda-entry-top"><strong>${escapeArrangementHtml(entry.title || (entry.kind === "meal" ? "Måltid" : entry.kind === "activity" ? "Aktivitet" : "Programpunkt"))}</strong><button class="agenda-entry-remove" type="button" data-remove-agenda="${escapeArrangementHtml(entry.id)}" aria-label="Ta bort programpunkt" title="Ta bort programpunkt">&times;</button></div><div class="arrangement-agenda-entry-grid"><label class="agenda-entry-field"><span>Datum</span><input data-agenda-field="date" type="date" min="${escapeArrangementHtml(startDate)}" max="${escapeArrangementHtml(endDate)}" value="${escapeArrangementHtml(entry.date)}" required></label><label class="agenda-entry-field"><span>Start</span><input data-agenda-field="time" type="time" value="${escapeArrangementHtml(entry.time)}"></label><label class="agenda-entry-field"><span>Slut</span><input data-agenda-field="end_time" type="time" value="${escapeArrangementHtml(entry.end_time || "")}"></label><label class="agenda-entry-field"><span>Typ</span><select data-agenda-field="kind"><option value="meal"${entry.kind === "meal" ? " selected" : ""}>Mat</option><option value="activity"${entry.kind === "activity" ? " selected" : ""}>Aktivitet</option><option value="program"${entry.kind === "program" ? " selected" : ""}>Program</option></select></label>${mealField}${sourceField}<label class="agenda-entry-field agenda-entry-title"><span>Namn</span><input data-agenda-field="title" type="text" maxlength="160" value="${escapeArrangementHtml(entry.title)}" required placeholder="Till exempel lägerbål"></label><label class="agenda-entry-field"><span>Ansvarig</span><input data-agenda-field="responsible" type="text" maxlength="120" value="${escapeArrangementHtml(entry.responsible || "")}" placeholder="Namn"></label><label class="agenda-entry-field agenda-entry-notes"><span>Anteckning</span><input data-agenda-field="notes" type="text" maxlength="240" value="${escapeArrangementHtml(entry.notes)}" placeholder="Valfri notering"></label>${scopeField}</div></article>`;
     }).join("");
     arrangementAgendaEmpty.classList.toggle("hidden", draftAgenda.length > 0);
@@ -621,14 +650,17 @@ function renderAgendaEntryDialog(arrangement, entry, focusField = "title") {
     const mealField = entry.kind === "meal" ? `<label class="agenda-entry-field"><span>Måltid</span><select data-agenda-field="meal_type">${mealTypes.map(type => `<option${entry.meal_type === type ? " selected" : ""}>${type}</option>`).join("")}</select></label>` : "";
     const sourceField = entry.kind === "program" ? "" : `<label class="agenda-entry-field"><span>${entry.kind === "meal" ? "Recept" : "Aktivitet"}</span><select data-agenda-field="source">${getCatalogOptions(entry.kind, entry.source_type, entry.source_id, entry.title)}</select></label>`;
     const shared = entry.shared !== false;
+    const scopeDepartments = shared
+        ? selectedDepartments.filter(department => !(entry.excluded_departments || []).includes(department))
+        : entry.departments;
     const scopeOptions = selectedDepartments.map(department => {
-        const isChecked = entry.departments?.includes(department);
-        return `<label class="arrangement-department-choice department-tone-${departments.indexOf(department)}"><input class="agenda-department-target" type="checkbox" value="${escapeArrangementHtml(department)}"${isChecked ? " checked" : ""}${shared ? " disabled" : ""}><span>${escapeArrangementHtml(department)}</span></label>`;
+        const isChecked = scopeDepartments?.includes(department);
+        return `<label class="arrangement-department-choice department-tone-${departments.indexOf(department)}"><input class="agenda-department-target" type="checkbox" value="${escapeArrangementHtml(department)}"${isChecked ? " checked" : ""}><span>${escapeArrangementHtml(department)}</span></label>`;
     }).join("");
     const inactiveScopeNote = !shared && entry.departments?.some(department => !selectedDepartments.includes(department))
         ? `<small class="agenda-scope-hidden-note">Posten visas bara om dess avdelning väljs för arrangemanget.</small>`
         : "";
-    agendaEntryDialogFields.innerHTML = `<div class="agenda-entry-scope"><span>Målgrupp</span><label class="agenda-shared-choice"><input data-agenda-field="shared" type="checkbox"${shared ? " checked" : ""}>Gemensamt för alla</label><div class="agenda-scope-options${shared ? " agenda-scope-options--disabled" : ""}">${scopeOptions}</div>${inactiveScopeNote}</div><label class="agenda-entry-field agenda-entry-title"><span>Namn</span><input data-agenda-field="title" type="text" maxlength="160" value="${escapeArrangementHtml(entry.title)}" required placeholder="Till exempel lägerbål"></label><label class="agenda-entry-field"><span>Datum</span><input data-agenda-field="date" type="date" min="${escapeArrangementHtml(arrangement.start_date)}" max="${escapeArrangementHtml(arrangement.end_date)}" value="${escapeArrangementHtml(entry.date)}" required></label><label class="agenda-entry-field"><span>Start</span><input data-agenda-field="time" type="time" value="${escapeArrangementHtml(entry.time)}"></label><label class="agenda-entry-field"><span>Slut</span><input data-agenda-field="end_time" type="time" value="${escapeArrangementHtml(entry.end_time || "")}"></label><label class="agenda-entry-field"><span>Typ</span><select data-agenda-field="kind"><option value="meal"${entry.kind === "meal" ? " selected" : ""}>Mat</option><option value="activity"${entry.kind === "activity" ? " selected" : ""}>Aktivitet</option><option value="program"${entry.kind === "program" ? " selected" : ""}>Program</option></select></label>${mealField}${sourceField}<label class="agenda-entry-field"><span>Ansvarig</span><input data-agenda-field="responsible" type="text" maxlength="120" value="${escapeArrangementHtml(entry.responsible || "")}" placeholder="Namn"></label><label class="agenda-entry-field agenda-entry-notes"><span>Anteckningar</span><textarea data-agenda-field="notes" rows="3" maxlength="240" placeholder="Skriv anteckningar">${escapeArrangementHtml(entry.notes)}</textarea></label>`;
+    agendaEntryDialogFields.innerHTML = `<div class="agenda-entry-scope"><span>${shared ? "Avdelningar som deltar" : "Gäller avdelningar"}</span><label class="agenda-shared-choice"><input data-agenda-field="shared" type="checkbox"${shared ? " checked" : ""}>Gemensamt för alla</label>${shared ? "<small class=\"agenda-scope-help\">Avmarkera avdelningar som inte ska delta.</small>" : ""}<div class="agenda-scope-options">${scopeOptions}</div>${inactiveScopeNote}</div><label class="agenda-entry-field agenda-entry-title"><span>Namn</span><input data-agenda-field="title" type="text" maxlength="160" value="${escapeArrangementHtml(entry.title)}" required placeholder="Till exempel lägerbål"></label><label class="agenda-entry-field"><span>Datum</span><input data-agenda-field="date" type="date" min="${escapeArrangementHtml(arrangement.start_date)}" max="${escapeArrangementHtml(arrangement.end_date)}" value="${escapeArrangementHtml(entry.date)}" required></label><label class="agenda-entry-field"><span>Start</span><input data-agenda-field="time" type="time" value="${escapeArrangementHtml(entry.time || "")}"></label><label class="agenda-entry-field"><span>Slut</span><input data-agenda-field="end_time" type="time" value="${escapeArrangementHtml(entry.end_time || "")}"></label><label class="agenda-entry-field"><span>Typ</span><select data-agenda-field="kind"><option value="meal"${entry.kind === "meal" ? " selected" : ""}>Mat</option><option value="activity"${entry.kind === "activity" ? " selected" : ""}>Aktivitet</option><option value="program"${entry.kind === "program" ? " selected" : ""}>Program</option></select></label>${mealField}${sourceField}<label class="agenda-entry-field"><span>Ansvarig</span><input data-agenda-field="responsible" type="text" maxlength="120" value="${escapeArrangementHtml(entry.responsible || "")}" placeholder="Namn"></label><label class="agenda-entry-field agenda-entry-notes"><span>Anteckningar</span><textarea data-agenda-field="notes" rows="3" maxlength="240" placeholder="Skriv anteckningar">${escapeArrangementHtml(entry.notes)}</textarea></label>`;
     document.getElementById("agendaEntryDialogTitle").textContent = activeAgendaEntryIsCopy ? "Kopiera programpunkt" : activeAgendaEntryIsNew ? "Ny programpunkt" : "Redigera programpunkt";
     document.getElementById("agendaEntryDialogStatus").textContent = "";
     document.getElementById("copyAgendaEntryBtn").classList.toggle("hidden", !isArrangementEditable(arrangement) || activeAgendaEntryIsCopy || activeAgendaEntryIsNew);
@@ -642,6 +674,9 @@ function readAgendaEntryDialog() {
     const value = field => agendaEntryDialogFields.querySelector(`[data-agenda-field="${field}"]`)?.value || "";
     const selectedSource = value("source");
     const [sourceType = "", ...sourceParts] = selectedSource.split(":");
+    const shared = agendaEntryDialogFields.querySelector('[data-agenda-field="shared"]')?.checked !== false;
+    const selectedScopeDepartments = [...agendaEntryDialogFields.querySelectorAll(".agenda-department-target:checked")].map(input => input.value);
+    const activeDepartments = [...agendaEntryDialogFields.querySelectorAll(".agenda-department-target")].map(input => input.value);
     return {
         id: activeAgendaEntryId,
         date: value("date"),
@@ -651,8 +686,9 @@ function readAgendaEntryDialog() {
         meal_type: value("meal_type"),
         source_type: sourceParts.length ? sourceType : "",
         source_id: sourceParts.join(":"),
-        shared: agendaEntryDialogFields.querySelector('[data-agenda-field="shared"]')?.checked !== false,
-        departments: [...agendaEntryDialogFields.querySelectorAll(".agenda-department-target:checked")].map(input => input.value),
+        shared,
+        departments: shared ? [] : selectedScopeDepartments,
+        excluded_departments: shared ? activeDepartments.filter(department => !selectedScopeDepartments.includes(department)) : [],
         title: value("title").trim(),
         responsible: value("responsible").trim(),
         notes: value("notes").trim()
@@ -664,6 +700,9 @@ function readAgendaFromDom() {
         const value = field => row.querySelector(`[data-agenda-field="${field}"]`)?.value || "";
         const selectedSource = value("source");
         const [sourceType = "", ...sourceParts] = selectedSource.split(":");
+        const shared = row.querySelector('[data-agenda-field="shared"]')?.checked !== false;
+        const selectedScopeDepartments = [...row.querySelectorAll(".agenda-department-target:checked")].map(input => input.value);
+        const activeDepartments = getSelectedArrangementDepartments();
         return {
             id: row.dataset.agendaId,
             date: value("date"),
@@ -673,8 +712,9 @@ function readAgendaFromDom() {
             meal_type: value("meal_type"),
             source_type: sourceParts.length ? sourceType : "",
             source_id: sourceParts.join(":"),
-            shared: row.querySelector('[data-agenda-field="shared"]')?.checked !== false,
-            departments: [...row.querySelectorAll(".agenda-department-target:checked")].map(input => input.value),
+            shared,
+            departments: shared ? [] : selectedScopeDepartments,
+            excluded_departments: shared ? activeDepartments.filter(department => !selectedScopeDepartments.includes(department)) : [],
             title: value("title").trim(),
             responsible: value("responsible").trim(),
             notes: value("notes").trim()
@@ -1316,6 +1356,7 @@ arrangementAgendaList.addEventListener("change", event => {
     if (item && event.target.dataset.agendaField === "shared") {
         item.shared = event.target.checked;
         item.departments = item.shared ? [] : getSelectedArrangementDepartments();
+        item.excluded_departments = [];
         shouldRender = true;
     }
     if (item && event.target.dataset.agendaField === "source") {
@@ -1497,6 +1538,7 @@ agendaEntryDialogFields.addEventListener("change", event => {
         renderAgendaEntryDialog(arrangement, entry, "kind");
     } else if (field === "shared") {
         entry.departments = entry.shared ? [] : arrangement.departments;
+        entry.excluded_departments = [];
         renderAgendaEntryDialog(arrangement, entry, "shared");
     } else if (field === "source") {
         const source = entry.source_type === "recipe" ? recipes.find(recipe => String(recipe.id) === entry.source_id)
@@ -1515,7 +1557,8 @@ agendaEntryForm.addEventListener("submit", async event => {
         status.textContent = "Arrangemanget kan inte redigeras.";
         return;
     }
-    if (!entry.title || entry.date < arrangement.start_date || entry.date > arrangement.end_date || (entry.shared === false && !entry.departments.length) || entry.departments.some(department => !departments.includes(department))) {
+    const activeDepartments = arrangement.departments?.length ? arrangement.departments : departments;
+    if (!entry.title || entry.date < arrangement.start_date || entry.date > arrangement.end_date || !agendaHasTargets(entry, activeDepartments) || entry.departments.some(department => !departments.includes(department)) || entry.excluded_departments.some(department => !departments.includes(department))) {
         status.textContent = "Kontrollera namn, datum och avdelningar för programpunkten.";
         return;
     }
@@ -1575,7 +1618,7 @@ arrangementForm.addEventListener("submit", async event => {
         status.textContent = "Slutdatum kan inte vara före startdatum.";
         return;
     }
-    if (payload.agenda.some(entry => !entry.title || entry.date < payload.start_date || entry.date > payload.end_date || (entry.shared === false && !entry.departments.length) || entry.departments.some(department => !departments.includes(department)))) {
+    if (payload.agenda.some(entry => !entry.title || entry.date < payload.start_date || entry.date > payload.end_date || !agendaHasTargets(entry, payload.departments) || entry.departments.some(department => !departments.includes(department)) || entry.excluded_departments.some(department => !departments.includes(department)))) {
         status.textContent = "Kontrollera namn, tider och avdelningar för varje programpunkt.";
         return;
     }
