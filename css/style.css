@@ -112,6 +112,17 @@ body {
 .arrangement-card-location span { overflow-wrap: anywhere; }
 .arrangement-card-summary .arrangement-participant-tags { grid-area: tags; justify-content: flex-end; margin: 0; }
 .arrangement-card-details { padding: 0 18px 18px; border-top: 1px solid #e2e8e8; }
+.btn-secondary.arrangement-edit-details-icon { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 1px solid #d7e1eb; border-radius: 5px; background: #fff; color: #286d60; cursor: pointer; }
+.btn-secondary.arrangement-edit-details-icon { align-self: center; flex: 0 0 36px; margin-left: auto; }
+.btn-secondary.arrangement-edit-details-icon svg { flex: 0 0 20px; width: 20px; height: 20px; }
+.btn-secondary.arrangement-edit-details-icon:hover { background: #e8f2ef; }
+.btn-secondary.arrangement-edit-details-icon:focus-visible { outline: 2px solid #4d8275; outline-offset: 2px; }
+.arrangement-detail-edit-control { display: flex; align-items: center; margin: 0; }
+.arrangement-detail-edit-control--active { padding: 0; border: 0; background: transparent; }
+.arrangement-detail-edit-control--active .arrangement-detail-edit-toggle { border-color: #286d60; background: #e8f2ef; color: #286d60; }
+.arrangement-detail-edit-toggle { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; }
+.btn-secondary.arrangement-detail-edit-toggle { padding: 0; }
+.arrangement-detail-edit-toggle svg { flex: 0 0 24px; width: 24px; height: 24px; }
 .arrangement-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .arrangement-card-type { margin: 0 0 6px; color: #a25235; font-size: .73rem; font-weight: 700; text-transform: uppercase; }
 .arrangement-card h2 { margin: 0; color: #153c4a; font-size: 1.22rem; overflow-wrap: anywhere; }
@@ -157,7 +168,11 @@ body {
 .arrangement-responsibility-summary-separator { margin-right: 5px; }
 .arrangement-responsibility-summary-details { display: flex; align-items: flex-start; gap: 8px; padding: 0 8px 7px; }
 .arrangement-responsibility-summary-info { flex: 1 1 auto; min-width: 0; }
-.arrangement-responsibility-summary-actions { flex: 0 0 auto; }
+.arrangement-responsibility-summary-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
+.arrangement-responsibility-edit { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 1px solid #d7e1eb; border-radius: 5px; background: #fff; color: #286d60; cursor: pointer; }
+.arrangement-responsibility-edit svg { width: 15px; height: 15px; }
+.arrangement-responsibility-edit:hover { background: #e8f2ef; }
+.arrangement-responsibility-edit:focus-visible { outline: 2px solid #4d8275; outline-offset: 2px; }
 .arrangement-responsibility-delete { width: 28px; height: 28px; }
 .arrangement-responsibility-delete svg { width: 15px; height: 15px; }
 .arrangement-responsibility-summary-details p { margin: 0; color: #52636a; font-size: .78rem; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }

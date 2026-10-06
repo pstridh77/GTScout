@@ -33,6 +33,7 @@ let activeAgendaEntryIsCopy = false;
 let activeAgendaEntryIsNew = false;
 let agendaEntryDialogTrigger = null;
 let activeResponsibilityArrangementId = "";
+let activeResponsibilityId = "";
 let responsibilityDialogTrigger = null;
 let activeNotesArrangementId = "";
 let notesDialogTrigger = null;
@@ -43,6 +44,7 @@ const arrangementDayExpansion = new Map();
 const arrangementSchemaExpansion = new Set();
 const expandedArrangementIds = new Set();
 const collapsedArrangementYears = new Set();
+const arrangementDetailEditModes = new Set();
 let draftResponsibilities = [];
 let planningOptions = [];
 const mealTypes = ["Frukost", "Lunch", "Mellanmål", "Middag", "Kvällsmål"];
@@ -128,6 +130,10 @@ function showArrangementToast(message, type = "success") {
 
 function isArrangementEditable(item) {
     return !isSharedArrangementView && Boolean(window.GTScoutArrangements?.canWrite() || item.local_only);
+}
+
+function isArrangementDetailEditable(item) {
+    return isArrangementEditable(item) && arrangementDetailEditModes.has(item.id);
 }
 
 async function shareArrangement(item) {
@@ -287,7 +293,7 @@ function syncDraftResponsibilities() {
 function renderArrangementSchedule(item) {
     const selectedDepartments = item.departments?.length ? item.departments : departments;
     const departmentCount = selectedDepartments.length;
-    const isTime = time => /^\d{2}:\d{2}$/.test(time || "");
+        const isTime = time => /^\d{2}:\d{2}$/.test(time || "");
     const addHour = time => {
         const [hours, minutes] = time.split(":").map(Number);
         const nextMinutes = hours * 60 + minutes + 60;
@@ -415,7 +421,7 @@ function renderArrangementSchedule(item) {
             const element = label ? "time" : "span";
             return `<${element} class="${className}" style="grid-column:1;grid-row:${index + 1}"${label ? "" : " aria-hidden=\"true\""}>${escapeArrangementHtml(label)}</${element}>`;
         }).join("");
-        const canEditAgenda = isArrangementEditable(item);
+        const canEditAgenda = isArrangementDetailEditable(item);
         const emptyCells = timePoints.map((time, rowIndex) => selectedDepartments.map((department, departmentIndex) => {
             const timeLabel = time || "Heldag";
             const addAttributes = canEditAgenda
@@ -436,7 +442,7 @@ function renderArrangementSchedule(item) {
             const laneGap = 4;
             const width = event.laneCount > 1 ? `calc(${laneWidth}% - ${(laneGap * (event.laneCount - 1) / event.laneCount).toFixed(2)}px)` : "100%";
             const offset = event.laneIndex ? `calc(${laneOffset}% + ${(event.laneIndex * laneGap / event.laneCount).toFixed(2)}px)` : "0px";
-            const card = renderScheduleEntry(event.entry, tone, item.id, isArrangementEditable(item));
+            const card = renderScheduleEntry(event.entry, tone, item.id, isArrangementDetailEditable(item));
             const durationMinutes = event.endMinutes - event.startMinutes;
             const durationClass = `${durationMinutes > 60 ? " arrangement-schedule-event--multi-hour" : ""}${event.startTime && durationMinutes < 60 ? " arrangement-schedule-event--short" : ""}`;
             const departmentSpan = event.department === null
@@ -482,8 +488,16 @@ function renderArrangements() {
         const participantTags = item.departments.map((department, index) => `<span class="arrangement-department-tag department-tone-${departments.indexOf(department)}">${escapeArrangementHtml(department)}</span>`).join("");
         const agendaHtml = renderArrangementSchedule(item);
         const link = item.planning_ref?.name ? `<p class="arrangement-card-planning">Planering: ${escapeArrangementHtml(item.planning_ref.name)}</p>` : "";
+        const canEditDetails = isArrangementDetailEditable(item);
+        const lockAction = canEditDetails ? "Lås redigering" : "Lås upp för redigering";
+        const lockIcon = canEditDetails
+            ? `<path fill="currentColor" d="M18 8h-1V6a5 5 0 0 0-9.9-1h2.05A3 3 0 0 1 15 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2Zm-6 11a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z"/>`
+            : `<path fill="currentColor" d="M18 8h-1V6a5 5 0 0 0-10 0v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2ZM9 6a3 3 0 0 1 6 0v2H9V6Zm3 13a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z"/>`;
+        const detailEditControl = isArrangementEditable(item)
+            ? `<div class="arrangement-detail-edit-control${canEditDetails ? " arrangement-detail-edit-control--active" : ""}"><button class="btn-secondary arrangement-detail-edit-toggle" type="button" data-toggle-arrangement-edit="${escapeArrangementHtml(item.id)}" aria-label="${lockAction} för ${escapeArrangementHtml(item.title)}" title="${lockAction} för ${escapeArrangementHtml(item.title)}" aria-pressed="${canEditDetails}"><svg viewBox="0 0 24 24" aria-hidden="true">${lockIcon}</svg></button></div>`
+            : "";
         const responsibilityCountLabel = item.responsibilities.length === 1 ? "1 roll" : `${item.responsibilities.length} roller`;
-        const canEditResponsibilities = isArrangementEditable(item);
+        const canEditResponsibilities = canEditDetails;
         const addResponsibilityButton = canEditResponsibilities
             ? `<button class="btn-secondary arrangement-responsibility-add" type="button" data-add-responsibility="${escapeArrangementHtml(item.id)}">+ Lägg till ansvarig</button>`
             : "";
@@ -493,10 +507,10 @@ function renderArrangements() {
                 const description = String(entry.description || "").trim();
                 const roleDescriptionHtml = roleDescription ? `<p><strong>Rollbeskrivning</strong>${escapeArrangementHtml(roleDescription)}</p>` : "";
                 const descriptionHtml = description && description !== roleDescription ? `<p><strong>Ansvar</strong>${escapeArrangementHtml(description)}</p>` : "";
-                const deleteResponsibilityButton = canEditResponsibilities
-                    ? `<div class="arrangement-responsibility-summary-actions"><button class="arrangement-delete-icon arrangement-responsibility-delete" type="button" data-delete-responsibility="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}" aria-label="Ta bort ${escapeArrangementHtml(entry.person || "ansvarspost")}" title="Ta bort ansvarig"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button></div>`
+                const responsibilityActions = canEditResponsibilities
+                    ? `<div class="arrangement-responsibility-summary-actions"><button class="arrangement-responsibility-edit" type="button" data-edit-responsibility="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}" aria-label="Redigera ${escapeArrangementHtml(entry.person || "ansvarspost")}" title="Redigera ansvarig"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/></svg></button><button class="arrangement-delete-icon arrangement-responsibility-delete" type="button" data-delete-responsibility="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}" aria-label="Ta bort ${escapeArrangementHtml(entry.person || "ansvarspost")}" title="Ta bort ansvarig"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button></div>`
                     : "";
-                return `<details class="arrangement-responsibility-summary-item" data-responsibility-id="${escapeArrangementHtml(entry.id)}"><summary><span class="arrangement-responsibility-summary-role">${escapeArrangementHtml(entry.role || "Övrig")}</span><span class="arrangement-responsibility-summary-separator" aria-hidden="true">:</span><span class="arrangement-responsibility-summary-person">${escapeArrangementHtml(entry.person || "Ansvarspost")}</span></summary><div class="arrangement-responsibility-summary-details"><div class="arrangement-responsibility-summary-info">${roleDescriptionHtml}${descriptionHtml}</div>${deleteResponsibilityButton}</div></details>`;
+                return `<details class="arrangement-responsibility-summary-item" data-responsibility-id="${escapeArrangementHtml(entry.id)}"><summary><span class="arrangement-responsibility-summary-role">${escapeArrangementHtml(entry.role || "Övrig")}</span><span class="arrangement-responsibility-summary-separator" aria-hidden="true">:</span><span class="arrangement-responsibility-summary-person">${escapeArrangementHtml(entry.person || "Ansvarspost")}</span></summary><div class="arrangement-responsibility-summary-details"><div class="arrangement-responsibility-summary-info">${roleDescriptionHtml}${descriptionHtml}</div>${responsibilityActions}</div></details>`;
             }).join("") : `<p class="arrangement-responsibilities-empty">Inga ansvariga tillagda.</p>`}</div>${addResponsibilityButton}</details></div>`
             : "";
         const detailsOpen = expandedArrangementIds.has(item.id);
@@ -507,11 +521,11 @@ function renderArrangements() {
             : "";
         const notes = String(item.notes || "").trim();
         const description = String(item.description || "").trim();
-        const notesHtml = isArrangementEditable(item)
+        const notesHtml = canEditDetails
             ? `<section class="arrangement-detail-notes"><h3>Anteckningar</h3><button class="arrangement-notes-preview" type="button" data-edit-arrangement-notes="${escapeArrangementHtml(item.id)}" aria-label="Redigera anteckningar för ${escapeArrangementHtml(item.title)}"><span>${notes ? escapeArrangementHtml(notes) : "Inga anteckningar ännu. Klicka för att lägga till."}</span><span class="arrangement-notes-preview-hint">Klicka för att redigera</span></button></section>`
             : `<section class="arrangement-detail-notes"><h3>Anteckningar</h3><p>${notes ? escapeArrangementHtml(notes) : "Inga anteckningar."}</p></section>`;
         const timeRange = [item.start_time, item.end_time].filter(Boolean).join("–");
-        return `<details class="arrangement-card${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}</div></summary><div class="arrangement-card-details">${link}${notesHtml}${responsibilityHtml}${agendaHtml}${actions}</div></details>`;
+        return `<details class="arrangement-card${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}</div></summary><div class="arrangement-card-details">${detailEditControl}${link}${notesHtml}${responsibilityHtml}${agendaHtml}${actions}</div></details>`;
     });
     const cardsByYear = new Map();
     orderedVisible.forEach((item, index) => {
@@ -524,6 +538,24 @@ function renderArrangements() {
         const isOpen = !collapsedArrangementYears.has(year);
         return `<details class="arrangement-year-group" data-arrangement-year="${escapeArrangementHtml(year)}"${isOpen ? " open" : ""}><summary class="arrangement-year-summary"><strong>${escapeArrangementHtml(year)}</strong><span>${countLabel}</span></summary><div class="arrangement-year-cards">${cards.join("")}</div></details>`;
     }).join("");
+    arrangementsGrid.querySelectorAll(".arrangement-card").forEach(card => {
+        const editControl = card.querySelector(".arrangement-detail-edit-control");
+        const actions = card.querySelector(".arrangement-card-actions");
+        if (editControl && actions) actions.prepend(editControl);
+        const editUnlocked = arrangementDetailEditModes.has(card.dataset.arrangementId);
+        const editArrangementButton = actions?.querySelector("[data-edit-arrangement]");
+        if (editArrangementButton) {
+            if (editUnlocked) {
+                editArrangementButton.className = "btn-secondary arrangement-edit-details-icon";
+                editArrangementButton.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/></svg>`;
+                editArrangementButton.setAttribute("aria-label", `Redigera arrangemangsdetaljer för ${card.querySelector(".arrangement-card-summary h2")?.textContent || "arrangemanget"}`);
+                editArrangementButton.title = "Redigera arrangemangsdetaljer";
+                card.querySelector(".arrangement-card-summary-title")?.append(editArrangementButton);
+            } else {
+                editArrangementButton.remove();
+            }
+        }
+    });
 
     arrangementsEmpty.classList.toggle("hidden", visible.length > 0);
     arrangementsGrid.classList.toggle("hidden", visible.length === 0);
@@ -727,15 +759,19 @@ function readFormPayload() {
     };
 }
 
-async function openResponsibilityDialog(arrangement, trigger) {
+async function openResponsibilityDialog(arrangement, trigger, responsibility = null) {
     await defaultRoleDefinitionsLoaded;
-    if (!isArrangementEditable(arrangement)) return;
+    if (!isArrangementDetailEditable(arrangement)) return;
     activeResponsibilityArrangementId = arrangement.id;
+    activeResponsibilityId = responsibility?.id || "";
     responsibilityDialogTrigger = trigger;
+    document.getElementById("responsibilityDialogTitle").textContent = responsibility ? "Redigera ansvarig" : "Lägg till ansvarig";
+    document.getElementById("saveResponsibilityBtn").textContent = responsibility ? "Spara ändringar" : "Lägg till ansvarig";
     const roleSelect = document.getElementById("responsibilityDialogRole");
     roleSelect.innerHTML = `<option value="">Övrig / egen roll</option>${getRoleDefinitions().map(role => `<option value="${escapeArrangementHtml(role.name)}">${escapeArrangementHtml(role.name)}</option>`).join("")}`;
-    document.getElementById("responsibilityDialogPerson").value = "";
-    document.getElementById("responsibilityDialogDescription").value = "";
+    roleSelect.value = responsibility?.role || "";
+    document.getElementById("responsibilityDialogPerson").value = responsibility?.person || "";
+    document.getElementById("responsibilityDialogDescription").value = responsibility?.description || "";
     document.getElementById("responsibilityDialogStatus").textContent = "";
     document.getElementById("responsibilityCustomRoleName").value = "";
     document.getElementById("responsibilityCustomRoleDescription").value = "";
@@ -751,13 +787,16 @@ function closeResponsibilityDialog() {
     const trigger = responsibilityDialogTrigger;
     responsibilityModal.classList.add("hidden");
     activeResponsibilityArrangementId = "";
+    activeResponsibilityId = "";
     responsibilityDialogTrigger = null;
+    document.getElementById("responsibilityDialogTitle").textContent = "Lägg till ansvarig";
+    document.getElementById("saveResponsibilityBtn").textContent = "Lägg till ansvarig";
     if (trigger?.isConnected) trigger.focus();
 }
 
 async function saveScheduleGesture(arrangementId, entryId, changes) {
     const arrangement = arrangements.find(item => item.id === arrangementId);
-    if (!arrangement || !isArrangementEditable(arrangement)) return;
+    if (!arrangement || !isArrangementDetailEditable(arrangement)) return;
     const agenda = arrangement.agenda.map(entry => entry.id === entryId ? { ...entry, ...changes } : entry);
     try {
         const result = await window.GTScoutArrangements.save({ ...arrangement, agenda });
@@ -820,7 +859,7 @@ arrangementsGrid.addEventListener("pointerdown", event => {
     const arrangement = arrangements.find(item => item.id === card?.dataset.arrangementId);
     const entry = arrangement?.agenda.find(item => item.id === card?.dataset.editAgenda);
     const startMinutes = parseScheduleTime(entry?.time);
-    if (!card || !wrapper || !entry || startMinutes === null || !isArrangementEditable(arrangement)) return;
+    if (!card || !wrapper || !entry || startMinutes === null || !isArrangementDetailEditable(arrangement)) return;
     const parsedEnd = parseScheduleTime(entry.end_time);
     const hasExplicitEnd = parsedEnd !== null && parsedEnd > startMinutes;
     const endMinutes = Math.min(scheduleMaxMinutes, hasExplicitEnd ? parsedEnd : startMinutes + 60);
@@ -903,6 +942,7 @@ arrangementsGrid.addEventListener("pointercancel", event => {
 });
 
 arrangementsGrid.addEventListener("click", async event => {
+    const detailEditButton = event.target.closest("[data-toggle-arrangement-edit]");
     const editNotesButton = event.target.closest("[data-edit-arrangement-notes]");
     const editButton = event.target.closest("[data-edit-arrangement]");
     const copyButton = event.target.closest("[data-copy-arrangement]");
@@ -910,11 +950,37 @@ arrangementsGrid.addEventListener("click", async event => {
     const agendaButton = event.target.closest("[data-edit-agenda]");
     const addAgendaButton = event.target.closest("[data-add-agenda]");
     const addResponsibilityButton = event.target.closest("[data-add-responsibility]");
+    const editResponsibilityButton = event.target.closest("[data-edit-responsibility]");
     const deleteResponsibilityButton = event.target.closest("[data-delete-responsibility]");
     const deleteButton = event.target.closest("[data-delete-arrangement]");
+    if (detailEditButton) {
+        const item = arrangements.find(arrangement => arrangement.id === detailEditButton.dataset.toggleArrangementEdit);
+        if (!item || !isArrangementEditable(item)) return;
+        const card = detailEditButton.closest(".arrangement-card");
+        const overviewWasOpen = Boolean(card?.querySelector(".arrangement-responsibilities-summary")?.open);
+        const openResponsibilityIds = [...(card?.querySelectorAll(".arrangement-responsibility-summary-item[open]") || [])]
+            .map(row => row.dataset.responsibilityId);
+        if (arrangementDetailEditModes.has(item.id)) arrangementDetailEditModes.delete(item.id);
+        else arrangementDetailEditModes.add(item.id);
+        expandedArrangementIds.add(item.id);
+        renderArrangements();
+        const updatedCard = [...arrangementsGrid.querySelectorAll(".arrangement-card")]
+            .find(element => element.dataset.arrangementId === item.id);
+        const updatedOverview = updatedCard?.querySelector(".arrangement-responsibilities-summary");
+        if (updatedOverview) {
+            updatedOverview.open = overviewWasOpen;
+            openResponsibilityIds.forEach(id => {
+                const row = [...updatedOverview.querySelectorAll(".arrangement-responsibility-summary-item")]
+                    .find(entry => entry.dataset.responsibilityId === id);
+                if (row) row.open = true;
+            });
+        }
+        updatedCard?.querySelector("[data-toggle-arrangement-edit]")?.focus();
+        return;
+    }
     if (editNotesButton) {
         const arrangement = arrangements.find(item => item.id === editNotesButton.dataset.editArrangementNotes);
-        if (arrangement && isArrangementEditable(arrangement)) openArrangementNotesDialog(arrangement, editNotesButton);
+        if (arrangement && isArrangementDetailEditable(arrangement)) openArrangementNotesDialog(arrangement, editNotesButton);
         return;
     }
     if (agendaButton && event.detail > 0 && performance.now() < suppressScheduleClickUntil) {
@@ -923,7 +989,7 @@ arrangementsGrid.addEventListener("click", async event => {
     }
     if (addAgendaButton) {
         const item = arrangements.find(arrangement => arrangement.id === addAgendaButton.dataset.addAgendaArrangement);
-        if (item && isArrangementEditable(item)) {
+        if (item && isArrangementDetailEditable(item)) {
             activeAgendaEntryIsCopy = false;
             activeAgendaEntryIsNew = true;
             agendaEntryDialogTrigger = addAgendaButton;
@@ -947,13 +1013,19 @@ arrangementsGrid.addEventListener("click", async event => {
     }
     if (addResponsibilityButton) {
         const item = arrangements.find(arrangement => arrangement.id === addResponsibilityButton.dataset.addResponsibility);
-        if (item && isArrangementEditable(item)) openResponsibilityDialog(item, addResponsibilityButton);
+        if (item && isArrangementDetailEditable(item)) openResponsibilityDialog(item, addResponsibilityButton);
+        return;
+    }
+    if (editResponsibilityButton) {
+        const item = arrangements.find(arrangement => arrangement.id === editResponsibilityButton.dataset.arrangementId);
+        const responsibility = item?.responsibilities.find(entry => entry.id === editResponsibilityButton.dataset.editResponsibility);
+        if (item && responsibility && isArrangementDetailEditable(item)) openResponsibilityDialog(item, editResponsibilityButton, responsibility);
         return;
     }
     if (deleteResponsibilityButton) {
         const item = arrangements.find(arrangement => arrangement.id === deleteResponsibilityButton.dataset.arrangementId);
         const responsibility = item?.responsibilities.find(entry => entry.id === deleteResponsibilityButton.dataset.deleteResponsibility);
-        if (!item || !responsibility || !isArrangementEditable(item)) return;
+        if (!item || !responsibility || !isArrangementDetailEditable(item)) return;
         const confirmation = `Ta bort ${responsibility.person || "ansvarspost"}${responsibility.role ? ` · ${responsibility.role}` : ""}?`;
         if (!confirm(confirmation)) return;
         const card = deleteResponsibilityButton.closest(".arrangement-card");
@@ -994,7 +1066,7 @@ arrangementsGrid.addEventListener("click", async event => {
     if (agendaButton) {
         const item = arrangements.find(arrangement => arrangement.id === agendaButton.dataset.arrangementId);
         const entry = item?.agenda.find(agendaEntry => agendaEntry.id === agendaButton.dataset.editAgenda);
-        if (item && entry && isArrangementEditable(item)) {
+        if (item && entry && isArrangementDetailEditable(item)) {
             activeAgendaEntryIsCopy = false;
             activeAgendaEntryIsNew = false;
             agendaEntryDialogTrigger = agendaButton;
@@ -1003,8 +1075,9 @@ arrangementsGrid.addEventListener("click", async event => {
         return;
     }
     if (editButton) {
+        event.preventDefault();
         const item = arrangements.find(arrangement => arrangement.id === editButton.dataset.editArrangement);
-        if (item && isArrangementEditable(item)) openArrangementEditor(item);
+        if (item && isArrangementDetailEditable(item)) openArrangementEditor(item);
         return;
     }
     if (copyButton) {
@@ -1061,7 +1134,7 @@ arrangementNotesForm.addEventListener("submit", async event => {
     const arrangement = arrangements.find(item => item.id === activeNotesArrangementId);
     const status = document.getElementById("arrangementNotesDialogStatus");
     const saveButton = document.getElementById("saveArrangementNotesBtn");
-    if (!arrangement || !isArrangementEditable(arrangement)) {
+    if (!arrangement || !isArrangementDetailEditable(arrangement)) {
         status.textContent = "Arrangemanget kan inte redigeras.";
         return;
     }
@@ -1269,6 +1342,10 @@ arrangementAgendaList.addEventListener("click", event => {
 async function saveAgendaEntryChanges(arrangement, agenda, completionMessage) {
     const saveButton = document.getElementById("saveAgendaEntryBtn");
     const status = document.getElementById("agendaEntryDialogStatus");
+    if (!isArrangementDetailEditable(arrangement)) {
+        status.textContent = "Aktivera redigering för att ändra arrangemanget.";
+        return;
+    }
     saveButton.disabled = true;
     status.textContent = "Sparar...";
     try {
@@ -1345,8 +1422,14 @@ responsibilityForm.addEventListener("submit", async event => {
     const person = document.getElementById("responsibilityDialogPerson").value.trim();
     const role = document.getElementById("responsibilityDialogRole").value.trim();
     const description = document.getElementById("responsibilityDialogDescription").value.trim();
-    if (!arrangement || !isArrangementEditable(arrangement)) {
+    const isEditing = Boolean(activeResponsibilityId);
+    const existingResponsibility = (arrangement?.responsibilities || []).find(entry => entry.id === activeResponsibilityId);
+    if (!arrangement || !isArrangementDetailEditable(arrangement)) {
         status.textContent = "Arrangemanget kan inte redigeras.";
+        return;
+    }
+    if (isEditing && !existingResponsibility) {
+        status.textContent = "Ansvarsposten finns inte längre.";
         return;
     }
     if (!role && !description) {
@@ -1355,24 +1438,29 @@ responsibilityForm.addEventListener("submit", async event => {
     }
     const definition = getRoleDefinition(role);
     const responsibility = {
-        id: crypto.randomUUID(),
+        ...existingResponsibility,
+        id: existingResponsibility?.id || crypto.randomUUID(),
         person,
         role,
-        role_description: definition?.description || "",
+        role_description: definition?.description || (role === existingResponsibility?.role ? existingResponsibility.role_description || "" : ""),
         description: description || definition?.description || ""
     };
+    const responsibilities = arrangement.responsibilities || [];
+    const updatedResponsibilities = existingResponsibility
+        ? responsibilities.map(entry => entry.id === existingResponsibility.id ? responsibility : entry)
+        : [...responsibilities, responsibility];
     const saveButton = document.getElementById("saveResponsibilityBtn");
     saveButton.disabled = true;
     status.textContent = "Sparar...";
     try {
         const result = await window.GTScoutArrangements.save({
             ...arrangement,
-            responsibilities: [...(arrangement.responsibilities || []), responsibility]
+            responsibilities: updatedResponsibilities
         });
         closeResponsibilityDialog();
         const message = result.error
-            ? "Ansvarig tillagd lokalt men kunde inte synkas."
-            : result.localOnly ? "Ansvarig tillagd lokalt." : "Ansvarig har lagts till.";
+            ? `Ansvarig ${isEditing ? "uppdaterad" : "tillagd"} lokalt men kunde inte synkas.`
+            : result.localOnly ? `Ansvarig ${isEditing ? "uppdaterad" : "tillagd"} lokalt.` : `Ansvarig har ${isEditing ? "uppdaterats" : "lagts till"}.`;
         showArrangementToast(message, result.error ? "error" : result.localOnly ? "info" : "success");
         arrangementSyncStatus.textContent = result.localOnly
             ? result.error ? "Kunde inte nå databasen · ändringen finns lokalt" : "Sparas lokalt i den här webbläsaren"
@@ -1423,7 +1511,7 @@ agendaEntryForm.addEventListener("submit", async event => {
     const arrangement = arrangements.find(item => item.id === activeAgendaArrangementId);
     const entry = readAgendaEntryDialog();
     const status = document.getElementById("agendaEntryDialogStatus");
-    if (!arrangement || !isArrangementEditable(arrangement)) {
+    if (!arrangement || !isArrangementDetailEditable(arrangement)) {
         status.textContent = "Arrangemanget kan inte redigeras.";
         return;
     }
@@ -1446,7 +1534,7 @@ agendaEntryForm.addEventListener("submit", async event => {
 
 document.getElementById("copyAgendaEntryBtn").addEventListener("click", () => {
     const arrangement = arrangements.find(item => item.id === activeAgendaArrangementId);
-    if (!arrangement || !isArrangementEditable(arrangement)) return;
+    if (!arrangement || !isArrangementDetailEditable(arrangement)) return;
     const copy = { ...readAgendaEntryDialog(), id: crypto.randomUUID() };
     activeAgendaEntryIsCopy = true;
     activeAgendaEntryIsNew = false;
@@ -1456,7 +1544,7 @@ document.getElementById("copyAgendaEntryBtn").addEventListener("click", () => {
 document.getElementById("deleteAgendaEntryBtn").addEventListener("click", async () => {
     const arrangement = arrangements.find(item => item.id === activeAgendaArrangementId);
     const entry = arrangement?.agenda.find(item => item.id === activeAgendaEntryId);
-    if (!arrangement || !entry || !isArrangementEditable(arrangement) || !confirm(`Ta bort programpunkten "${entry.title}"?`)) return;
+    if (!arrangement || !entry || !isArrangementDetailEditable(arrangement) || !confirm(`Ta bort programpunkten "${entry.title}"?`)) return;
     await saveAgendaEntryChanges(arrangement, arrangement.agenda.filter(item => item.id !== entry.id), "Programpunkten är borttagen.");
 });
 
