@@ -47,7 +47,6 @@ const collapsedArrangementYears = new Set();
 const arrangementDetailEditModes = new Set();
 let draftResponsibilities = [];
 let planningOptions = [];
-const mealTypes = ["Frukost", "Lunch", "Mellanmål", "Middag", "Kvällsmål"];
 const departments = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
 const scheduleSnapMinutes = 15;
 const scheduleMaxMinutes = 23 * 60 + 45;
@@ -489,7 +488,12 @@ function renderArrangementSchedule(item) {
 function renderScheduleEntry(entry, departmentIndex = null, arrangementId = "", canEdit = false) {
     const tone = departmentIndex === null ? "arrangement-schedule-item--shared" : `department-tone-${departmentIndex}`;
     const formattedTime = /^\d{2}:\d{2}$/.test(entry.time || "") ? `${Number(entry.time.slice(0, 2))}:${entry.time.slice(3)}` : "";
-    const mealType = entry.kind === "meal" && entry.meal_type ? ` (${escapeArrangementHtml(entry.meal_type)})` : "";
+    const mealRecipes = entry.kind === "meal"
+        ? [...new Set(getMealRecipeIds(entry).map(id => recipes.find(recipe => String(recipe.id) === id)?.namn).filter(Boolean))]
+        : [];
+    const mealType = mealRecipes.length
+        ? ` (${mealRecipes.map(escapeArrangementHtml).join(", ")})`
+        : entry.kind === "meal" && entry.meal_type ? ` (${escapeArrangementHtml(entry.meal_type)})` : "";
     const title = `${formattedTime ? `${escapeArrangementHtml(formattedTime)}: ` : ""}${escapeArrangementHtml(entry.title)}${mealType}`;
     const responsible = entry.responsible ? `<small class="arrangement-schedule-responsible">Ansvarig: ${escapeArrangementHtml(entry.responsible)}</small>` : "";
     const notes = entry.notes ? `<small class="arrangement-schedule-notes" title="${escapeArrangementHtml(entry.notes)}">${escapeArrangementHtml(entry.notes)}</small>` : "";
@@ -617,14 +621,82 @@ function getCatalogOptions(kind, selectedSourceType = "", selectedSourceId = "",
     return `<option value="">Egen post</option>${oldLabel}${catalog.map(item => `<option value="${escapeArrangementHtml(`${item.sourceType}:${item.id}`)}"${item.id === selectedSourceId && item.sourceType === selectedSourceType ? " selected" : ""}>${escapeArrangementHtml(item.name)}</option>`).join("")}`;
 }
 
+function getMealRecipeIds(entry) {
+    if (Array.isArray(entry.recipe_ids)) return entry.recipe_ids.map(String);
+    return entry.source_type === "recipe" && entry.source_id ? [String(entry.source_id)] : [];
+}
+
+function renderMealRecipePicker(entry) {
+    const selectedIds = getMealRecipeIds(entry);
+    const groups = new Map();
+    recipes.forEach(recipe => {
+        const category = String(recipe.kategori || "Övrigt").trim() || "Övrigt";
+        if (!groups.has(category)) groups.set(category, []);
+        const id = String(recipe.id);
+        groups.get(category).push({ id, name: String(recipe.namn || "Recept utan namn") });
+    });
+    selectedIds.filter(id => !recipes.some(recipe => String(recipe.id) === id)).forEach(id => {
+        if (!groups.has("Tidigare recept")) groups.set("Tidigare recept", []);
+        const fallback = selectedIds.length === 1 ? entry.title || "Tidigare recept" : `Tidigare recept ${id}`;
+        groups.get("Tidigare recept").push({ id, name: `${fallback} (inte längre i kokboken)`, unavailable: true });
+    });
+    const categoryOrder = ["Frukost", "Lunch", "Fika", "Middag", "Kvällsmål", "Lägerbål"];
+    const groupMarkup = [...groups.entries()].sort(([left], [right]) => {
+        const leftIndex = categoryOrder.indexOf(left);
+        const rightIndex = categoryOrder.indexOf(right);
+        if (leftIndex >= 0 || rightIndex >= 0) {
+            if (leftIndex < 0) return 1;
+            if (rightIndex < 0) return -1;
+            return leftIndex - rightIndex;
+        }
+        return left.localeCompare(right, "sv");
+    }).map(([category, groupRecipes]) => {
+        const recipeChoices = groupRecipes.sort((left, right) => left.name.localeCompare(right.name, "sv")).map(recipe =>
+            `<label class="agenda-recipe-choice"><input class="agenda-recipe-target" type="checkbox" value="${escapeArrangementHtml(recipe.id)}"${selectedIds.includes(recipe.id) ? " checked" : ""}><span>${escapeArrangementHtml(recipe.name)}</span></label>`
+        ).join("");
+        const hasSelectedRecipes = groupRecipes.some(recipe => selectedIds.includes(recipe.id));
+        return `<details class="agenda-recipe-category"${hasSelectedRecipes ? " open" : ""}><summary>${escapeArrangementHtml(category)}</summary>${recipeChoices}</details>`;
+    }).join("");
+    const emptyMessage = groups.size ? "" : "<small>Inga recept i kokboken ännu. Du kan ändå skriva ett eget namn.</small>";
+    return `<div class="agenda-recipe-picker"><span>Recept</span><label class="agenda-recipe-search-field"><span>Sök recept</span><input class="agenda-recipe-search" type="search" placeholder="Börja skriva ett receptnamn" autocomplete="off"></label><div class="agenda-recipe-selection"><span class="agenda-recipe-summary" role="status" aria-live="polite"></span><button class="agenda-recipe-clear" type="button" data-clear-agenda-recipes>Rensa val</button></div><div class="agenda-recipe-options" role="group" aria-label="Recept">${groupMarkup}</div><small class="agenda-recipe-no-results hidden" role="status">Inga recept matchar sökningen.</small>${emptyMessage}</div>`;
+}
+
+function updateMealRecipePicker(picker) {
+    if (!picker) return;
+    const query = picker.querySelector(".agenda-recipe-search")?.value.trim().toLocaleLowerCase("sv") || "";
+    const options = [...picker.querySelectorAll(".agenda-recipe-choice")];
+    options.forEach(option => { option.hidden = !option.textContent.toLocaleLowerCase("sv").includes(query); });
+    const selectedOptions = options.filter(option => option.querySelector(".agenda-recipe-target")?.checked);
+    const selectedNames = selectedOptions.map(option => option.querySelector("span")?.textContent.trim()).filter(Boolean);
+    const summary = picker.querySelector(".agenda-recipe-summary");
+    if (summary) {
+        const previewNames = selectedNames.slice(0, 3).join(", ");
+        const remainingCount = selectedNames.length - Math.min(selectedNames.length, 3);
+        summary.textContent = selectedNames.length
+            ? `${selectedNames.length} valda: ${previewNames}${remainingCount ? `, +${remainingCount} fler` : ""}`
+            : "Inga recept valda";
+        summary.title = selectedNames.join(", ");
+    }
+    const clearButton = picker.querySelector("[data-clear-agenda-recipes]");
+    if (clearButton) clearButton.disabled = selectedNames.length === 0;
+    const noResults = picker.querySelector(".agenda-recipe-no-results");
+    if (noResults) noResults.classList.toggle("hidden", !query || options.some(option => !option.hidden));
+    picker.querySelectorAll(".agenda-recipe-category").forEach(group => {
+        const hasVisibleRecipes = [...group.querySelectorAll(".agenda-recipe-choice")].some(option => !option.hidden);
+        const hasSelectedRecipes = group.querySelector(".agenda-recipe-target:checked") !== null;
+        group.hidden = !hasVisibleRecipes;
+        group.open = query ? hasVisibleRecipes : hasSelectedRecipes;
+    });
+}
+
 function renderAgendaEditor() {
     const startDate = document.getElementById("arrangementStartDate").value;
     const endDate = document.getElementById("arrangementEndDate").value || startDate;
     const selectedDepartments = getSelectedArrangementDepartments();
     draftAgenda.sort((left, right) => left.date.localeCompare(right.date) || (left.time || "99:99").localeCompare(right.time || "99:99"));
     arrangementAgendaList.innerHTML = draftAgenda.map(entry => {
-        const mealField = entry.kind === "meal" ? `<label class="agenda-entry-field"><span>Måltid</span><select data-agenda-field="meal_type">${mealTypes.map(type => `<option${entry.meal_type === type ? " selected" : ""}>${type}</option>`).join("")}</select></label>` : "";
-        const sourceField = entry.kind === "program" ? "" : `<label class="agenda-entry-field"><span>${entry.kind === "meal" ? "Recept" : "Aktivitet"}</span><select data-agenda-field="source">${getCatalogOptions(entry.kind, entry.source_type, entry.source_id, entry.title)}</select></label>`;
+        const recipeField = entry.kind === "meal" ? renderMealRecipePicker(entry) : "";
+        const sourceField = entry.kind === "activity" ? `<label class="agenda-entry-field"><span>Aktivitet</span><select data-agenda-field="source">${getCatalogOptions(entry.kind, entry.source_type, entry.source_id, entry.title)}</select></label>` : "";
         const shared = entry.shared !== false;
         const scopeDepartments = shared
             ? selectedDepartments.filter(department => !(entry.excluded_departments || []).includes(department))
@@ -638,8 +710,9 @@ function renderAgendaEditor() {
             ? `<small class="agenda-scope-hidden-note">Posten visas bara om dess avdelning väljs för arrangemanget.</small>`
             : "";
         const scopeField = `<div class="agenda-entry-scope"><span>${shared ? "Avdelningar som deltar" : "Gäller avdelningar"}</span><label class="agenda-shared-choice"><input data-agenda-field="shared" type="checkbox"${shared ? " checked" : ""}>Gemensamt för alla</label>${shared ? "<small class=\"agenda-scope-help\">Avmarkera avdelningar som inte ska delta.</small>" : ""}<div class="agenda-scope-options">${scopeOptions}</div>${inactiveScopeNote}</div>`;
-        return `<article class="arrangement-agenda-entry" data-agenda-id="${escapeArrangementHtml(entry.id)}"><div class="arrangement-agenda-entry-top"><strong>${escapeArrangementHtml(entry.title || (entry.kind === "meal" ? "Måltid" : entry.kind === "activity" ? "Aktivitet" : "Programpunkt"))}</strong><button class="agenda-entry-remove" type="button" data-remove-agenda="${escapeArrangementHtml(entry.id)}" aria-label="Ta bort programpunkt" title="Ta bort programpunkt">&times;</button></div><div class="arrangement-agenda-entry-grid"><label class="agenda-entry-field"><span>Datum</span><input data-agenda-field="date" type="date" min="${escapeArrangementHtml(startDate)}" max="${escapeArrangementHtml(endDate)}" value="${escapeArrangementHtml(entry.date)}" required></label><label class="agenda-entry-field"><span>Start</span><input data-agenda-field="time" type="time" value="${escapeArrangementHtml(entry.time)}"></label><label class="agenda-entry-field"><span>Slut</span><input data-agenda-field="end_time" type="time" value="${escapeArrangementHtml(entry.end_time || "")}"></label><label class="agenda-entry-field"><span>Typ</span><select data-agenda-field="kind"><option value="meal"${entry.kind === "meal" ? " selected" : ""}>Mat</option><option value="activity"${entry.kind === "activity" ? " selected" : ""}>Aktivitet</option><option value="program"${entry.kind === "program" ? " selected" : ""}>Program</option></select></label>${mealField}${sourceField}<label class="agenda-entry-field agenda-entry-title"><span>Namn</span><input data-agenda-field="title" type="text" maxlength="160" value="${escapeArrangementHtml(entry.title)}" required placeholder="Till exempel lägerbål"></label><label class="agenda-entry-field"><span>Ansvarig</span><input data-agenda-field="responsible" type="text" maxlength="120" value="${escapeArrangementHtml(entry.responsible || "")}" placeholder="Namn"></label><label class="agenda-entry-field agenda-entry-notes"><span>Anteckning</span><input data-agenda-field="notes" type="text" maxlength="240" value="${escapeArrangementHtml(entry.notes)}" placeholder="Valfri notering"></label>${scopeField}</div></article>`;
+        return `<article class="arrangement-agenda-entry" data-agenda-id="${escapeArrangementHtml(entry.id)}"><div class="arrangement-agenda-entry-top"><strong>${escapeArrangementHtml(entry.title || (entry.kind === "meal" ? "Måltid" : entry.kind === "activity" ? "Aktivitet" : "Programpunkt"))}</strong><button class="agenda-entry-remove" type="button" data-remove-agenda="${escapeArrangementHtml(entry.id)}" aria-label="Ta bort programpunkt" title="Ta bort programpunkt">&times;</button></div><div class="arrangement-agenda-entry-grid"><label class="agenda-entry-field"><span>Datum</span><input data-agenda-field="date" type="date" min="${escapeArrangementHtml(startDate)}" max="${escapeArrangementHtml(endDate)}" value="${escapeArrangementHtml(entry.date)}" required></label><label class="agenda-entry-field"><span>Start</span><input data-agenda-field="time" type="time" value="${escapeArrangementHtml(entry.time)}"></label><label class="agenda-entry-field"><span>Slut</span><input data-agenda-field="end_time" type="time" value="${escapeArrangementHtml(entry.end_time || "")}"></label><label class="agenda-entry-field"><span>Typ</span><select data-agenda-field="kind"><option value="meal"${entry.kind === "meal" ? " selected" : ""}>Mat</option><option value="activity"${entry.kind === "activity" ? " selected" : ""}>Aktivitet</option><option value="program"${entry.kind === "program" ? " selected" : ""}>Program</option></select></label>${recipeField}${sourceField}<label class="agenda-entry-field agenda-entry-title"><span>Namn</span><input data-agenda-field="title" type="text" maxlength="160" value="${escapeArrangementHtml(entry.title)}" required placeholder="Till exempel lägerbål"></label><label class="agenda-entry-field"><span>Ansvarig</span><input data-agenda-field="responsible" type="text" maxlength="120" value="${escapeArrangementHtml(entry.responsible || "")}" placeholder="Namn"></label><label class="agenda-entry-field agenda-entry-notes"><span>Anteckning</span><input data-agenda-field="notes" type="text" maxlength="240" value="${escapeArrangementHtml(entry.notes)}" placeholder="Valfri notering"></label>${scopeField}</div></article>`;
     }).join("");
+    arrangementAgendaList.querySelectorAll(".agenda-recipe-picker").forEach(updateMealRecipePicker);
     arrangementAgendaEmpty.classList.toggle("hidden", draftAgenda.length > 0);
 }
 
@@ -647,8 +720,8 @@ function renderAgendaEntryDialog(arrangement, entry, focusField = "title") {
     activeAgendaArrangementId = arrangement.id;
     activeAgendaEntryId = entry.id;
     const selectedDepartments = arrangement.departments?.length ? arrangement.departments : departments;
-    const mealField = entry.kind === "meal" ? `<label class="agenda-entry-field"><span>Måltid</span><select data-agenda-field="meal_type">${mealTypes.map(type => `<option${entry.meal_type === type ? " selected" : ""}>${type}</option>`).join("")}</select></label>` : "";
-    const sourceField = entry.kind === "program" ? "" : `<label class="agenda-entry-field"><span>${entry.kind === "meal" ? "Recept" : "Aktivitet"}</span><select data-agenda-field="source">${getCatalogOptions(entry.kind, entry.source_type, entry.source_id, entry.title)}</select></label>`;
+    const recipeField = entry.kind === "meal" ? renderMealRecipePicker(entry) : "";
+    const sourceField = entry.kind === "activity" ? `<label class="agenda-entry-field"><span>Aktivitet</span><select data-agenda-field="source">${getCatalogOptions(entry.kind, entry.source_type, entry.source_id, entry.title)}</select></label>` : "";
     const shared = entry.shared !== false;
     const scopeDepartments = shared
         ? selectedDepartments.filter(department => !(entry.excluded_departments || []).includes(department))
@@ -660,7 +733,7 @@ function renderAgendaEntryDialog(arrangement, entry, focusField = "title") {
     const inactiveScopeNote = !shared && entry.departments?.some(department => !selectedDepartments.includes(department))
         ? `<small class="agenda-scope-hidden-note">Posten visas bara om dess avdelning väljs för arrangemanget.</small>`
         : "";
-    agendaEntryDialogFields.innerHTML = `<div class="agenda-entry-scope"><span>${shared ? "Avdelningar som deltar" : "Gäller avdelningar"}</span><label class="agenda-shared-choice"><input data-agenda-field="shared" type="checkbox"${shared ? " checked" : ""}>Gemensamt för alla</label>${shared ? "<small class=\"agenda-scope-help\">Avmarkera avdelningar som inte ska delta.</small>" : ""}<div class="agenda-scope-options">${scopeOptions}</div>${inactiveScopeNote}</div><label class="agenda-entry-field agenda-entry-title"><span>Namn</span><input data-agenda-field="title" type="text" maxlength="160" value="${escapeArrangementHtml(entry.title)}" required placeholder="Till exempel lägerbål"></label><label class="agenda-entry-field"><span>Datum</span><input data-agenda-field="date" type="date" min="${escapeArrangementHtml(arrangement.start_date)}" max="${escapeArrangementHtml(arrangement.end_date)}" value="${escapeArrangementHtml(entry.date)}" required></label><label class="agenda-entry-field"><span>Start</span><input data-agenda-field="time" type="time" value="${escapeArrangementHtml(entry.time || "")}"></label><label class="agenda-entry-field"><span>Slut</span><input data-agenda-field="end_time" type="time" value="${escapeArrangementHtml(entry.end_time || "")}"></label><label class="agenda-entry-field"><span>Typ</span><select data-agenda-field="kind"><option value="meal"${entry.kind === "meal" ? " selected" : ""}>Mat</option><option value="activity"${entry.kind === "activity" ? " selected" : ""}>Aktivitet</option><option value="program"${entry.kind === "program" ? " selected" : ""}>Program</option></select></label>${mealField}${sourceField}<label class="agenda-entry-field"><span>Ansvarig</span><input data-agenda-field="responsible" type="text" maxlength="120" value="${escapeArrangementHtml(entry.responsible || "")}" placeholder="Namn"></label><label class="agenda-entry-field agenda-entry-notes"><span>Anteckningar</span><textarea data-agenda-field="notes" rows="3" maxlength="240" placeholder="Skriv anteckningar">${escapeArrangementHtml(entry.notes)}</textarea></label>`;
+    agendaEntryDialogFields.innerHTML = `<div class="agenda-entry-scope"><span>${shared ? "Avdelningar som deltar" : "Gäller avdelningar"}</span><label class="agenda-shared-choice"><input data-agenda-field="shared" type="checkbox"${shared ? " checked" : ""}>Gemensamt för alla</label>${shared ? "<small class=\"agenda-scope-help\">Avmarkera avdelningar som inte ska delta.</small>" : ""}<div class="agenda-scope-options">${scopeOptions}</div>${inactiveScopeNote}</div><label class="agenda-entry-field agenda-entry-title"><span>Namn</span><input data-agenda-field="title" type="text" maxlength="160" value="${escapeArrangementHtml(entry.title)}" required placeholder="Till exempel lägerbål"></label><label class="agenda-entry-field"><span>Datum</span><input data-agenda-field="date" type="date" min="${escapeArrangementHtml(arrangement.start_date)}" max="${escapeArrangementHtml(arrangement.end_date)}" value="${escapeArrangementHtml(entry.date)}" required></label><label class="agenda-entry-field"><span>Start</span><input data-agenda-field="time" type="time" value="${escapeArrangementHtml(entry.time || "")}"></label><label class="agenda-entry-field"><span>Slut</span><input data-agenda-field="end_time" type="time" value="${escapeArrangementHtml(entry.end_time || "")}"></label><label class="agenda-entry-field"><span>Typ</span><select data-agenda-field="kind"><option value="meal"${entry.kind === "meal" ? " selected" : ""}>Mat</option><option value="activity"${entry.kind === "activity" ? " selected" : ""}>Aktivitet</option><option value="program"${entry.kind === "program" ? " selected" : ""}>Program</option></select></label>${recipeField}${sourceField}<label class="agenda-entry-field"><span>Ansvarig</span><input data-agenda-field="responsible" type="text" maxlength="120" value="${escapeArrangementHtml(entry.responsible || "")}" placeholder="Namn"></label><label class="agenda-entry-field agenda-entry-notes"><span>Anteckningar</span><textarea data-agenda-field="notes" rows="3" maxlength="240" placeholder="Skriv anteckningar">${escapeArrangementHtml(entry.notes)}</textarea></label>`;
     document.getElementById("agendaEntryDialogTitle").textContent = activeAgendaEntryIsCopy ? "Kopiera programpunkt" : activeAgendaEntryIsNew ? "Ny programpunkt" : "Redigera programpunkt";
     document.getElementById("agendaEntryDialogStatus").textContent = "";
     document.getElementById("copyAgendaEntryBtn").classList.toggle("hidden", !isArrangementEditable(arrangement) || activeAgendaEntryIsCopy || activeAgendaEntryIsNew);
@@ -668,12 +741,16 @@ function renderAgendaEntryDialog(arrangement, entry, focusField = "title") {
     document.getElementById("saveAgendaEntryBtn").textContent = activeAgendaEntryIsCopy ? "Lägg till kopia" : activeAgendaEntryIsNew ? "Lägg till" : "Spara";
     agendaEntryModal.classList.remove("hidden");
     agendaEntryDialogFields.querySelector(`[data-agenda-field="${focusField}"]`)?.focus();
+    updateMealRecipePicker(agendaEntryDialogFields.querySelector(".agenda-recipe-picker"));
 }
 
 function readAgendaEntryDialog() {
     const value = field => agendaEntryDialogFields.querySelector(`[data-agenda-field="${field}"]`)?.value || "";
     const selectedSource = value("source");
     const [sourceType = "", ...sourceParts] = selectedSource.split(":");
+    const kind = value("kind");
+    const existingEntry = arrangements.find(item => item.id === activeAgendaArrangementId)?.agenda.find(entry => entry.id === activeAgendaEntryId);
+    const recipeIds = [...agendaEntryDialogFields.querySelectorAll(".agenda-recipe-target:checked")].map(input => input.value);
     const shared = agendaEntryDialogFields.querySelector('[data-agenda-field="shared"]')?.checked !== false;
     const selectedScopeDepartments = [...agendaEntryDialogFields.querySelectorAll(".agenda-department-target:checked")].map(input => input.value);
     const activeDepartments = [...agendaEntryDialogFields.querySelectorAll(".agenda-department-target")].map(input => input.value);
@@ -682,10 +759,11 @@ function readAgendaEntryDialog() {
         date: value("date"),
         time: value("time"),
         end_time: value("end_time"),
-        kind: value("kind"),
-        meal_type: value("meal_type"),
-        source_type: sourceParts.length ? sourceType : "",
-        source_id: sourceParts.join(":"),
+        kind,
+        meal_type: existingEntry?.meal_type || "",
+        source_type: kind === "meal" ? recipeIds.length ? "recipe" : "" : sourceParts.length ? sourceType : "",
+        source_id: kind === "meal" ? recipeIds[0] || "" : sourceParts.join(":"),
+        recipe_ids: recipeIds,
         shared,
         departments: shared ? [] : selectedScopeDepartments,
         excluded_departments: shared ? activeDepartments.filter(department => !selectedScopeDepartments.includes(department)) : [],
@@ -700,6 +778,9 @@ function readAgendaFromDom() {
         const value = field => row.querySelector(`[data-agenda-field="${field}"]`)?.value || "";
         const selectedSource = value("source");
         const [sourceType = "", ...sourceParts] = selectedSource.split(":");
+        const kind = value("kind");
+        const existingEntry = draftAgenda.find(entry => entry.id === row.dataset.agendaId);
+        const recipeIds = [...row.querySelectorAll(".agenda-recipe-target:checked")].map(input => input.value);
         const shared = row.querySelector('[data-agenda-field="shared"]')?.checked !== false;
         const selectedScopeDepartments = [...row.querySelectorAll(".agenda-department-target:checked")].map(input => input.value);
         const activeDepartments = getSelectedArrangementDepartments();
@@ -708,10 +789,11 @@ function readAgendaFromDom() {
             date: value("date"),
             time: value("time"),
             end_time: value("end_time"),
-            kind: value("kind"),
-            meal_type: value("meal_type"),
-            source_type: sourceParts.length ? sourceType : "",
-            source_id: sourceParts.join(":"),
+            kind,
+            meal_type: existingEntry?.meal_type || "",
+            source_type: kind === "meal" ? recipeIds.length ? "recipe" : "" : sourceParts.length ? sourceType : "",
+            source_id: kind === "meal" ? recipeIds[0] || "" : sourceParts.join(":"),
+            recipe_ids: recipeIds,
             shared,
             departments: shared ? [] : selectedScopeDepartments,
             excluded_departments: shared ? activeDepartments.filter(department => !selectedScopeDepartments.includes(department)) : [],
@@ -1330,7 +1412,7 @@ document.getElementById("saveCustomRoleBtn").addEventListener("click", () => {
 document.getElementById("addAgendaEntryBtn").addEventListener("click", () => {
     syncDraftAgenda();
     const startDate = document.getElementById("arrangementStartDate").value || new Date().toISOString().slice(0, 10);
-    draftAgenda.push({ id: crypto.randomUUID(), date: startDate, time: "", end_time: "", kind: "program", meal_type: "", source_type: "", source_id: "", shared: true, departments: [], title: "", notes: "" });
+    draftAgenda.push({ id: crypto.randomUUID(), date: startDate, time: "", end_time: "", kind: "program", meal_type: "", source_type: "", source_id: "", recipe_ids: [], shared: true, departments: [], title: "", notes: "" });
     renderAgendaEditor();
 });
 
@@ -1339,7 +1421,10 @@ document.getElementById("arrangementDepartments").addEventListener("change", () 
     renderAgendaEditor();
 });
 
-arrangementAgendaList.addEventListener("input", syncDraftAgenda);
+arrangementAgendaList.addEventListener("input", event => {
+    if (event.target.matches(".agenda-recipe-search")) updateMealRecipePicker(event.target.closest(".agenda-recipe-picker"));
+    syncDraftAgenda();
+});
 arrangementAgendaList.addEventListener("change", event => {
     const row = event.target.closest(".arrangement-agenda-entry");
     if (!row) return;
@@ -1349,8 +1434,9 @@ arrangementAgendaList.addEventListener("change", event => {
     if (item && event.target.dataset.agendaField === "kind") {
         item.source_id = "";
         item.source_type = "";
+        item.recipe_ids = [];
         item.title = "";
-        item.meal_type = item.kind === "meal" ? mealTypes[0] : "";
+        item.meal_type = "";
         shouldRender = true;
     }
     if (item && event.target.dataset.agendaField === "shared") {
@@ -1369,10 +1455,22 @@ arrangementAgendaList.addEventListener("change", event => {
         if (source) item.title = source.namn || "";
         shouldRender = true;
     }
+    if (item && event.target.matches(".agenda-recipe-target")) {
+        updateMealRecipePicker(row.querySelector(".agenda-recipe-picker"));
+    }
     if (shouldRender) renderAgendaEditor();
 });
 
 arrangementAgendaList.addEventListener("click", event => {
+    const clearRecipesButton = event.target.closest("[data-clear-agenda-recipes]");
+    if (clearRecipesButton) {
+        const row = clearRecipesButton.closest(".arrangement-agenda-entry");
+        if (!row) return;
+        row.querySelectorAll(".agenda-recipe-target").forEach(input => { input.checked = false; });
+        syncDraftAgenda();
+        updateMealRecipePicker(row.querySelector(".agenda-recipe-picker"));
+        return;
+    }
     const removeButton = event.target.closest("[data-remove-agenda]");
     if (!removeButton) return;
     syncDraftAgenda();
@@ -1533,8 +1631,9 @@ agendaEntryDialogFields.addEventListener("change", event => {
     if (field === "kind") {
         entry.source_id = "";
         entry.source_type = "";
+        entry.recipe_ids = [];
         entry.title = "";
-        entry.meal_type = entry.kind === "meal" ? mealTypes[0] : "";
+        entry.meal_type = "";
         renderAgendaEntryDialog(arrangement, entry, "kind");
     } else if (field === "shared") {
         entry.departments = entry.shared ? [] : arrangement.departments;
@@ -1545,7 +1644,19 @@ agendaEntryDialogFields.addEventListener("change", event => {
             : entry.source_type === "activity" ? activities.find(activity => String(activity.id) === entry.source_id) : null;
         if (source) entry.title = source.namn || "";
         renderAgendaEntryDialog(arrangement, entry, "source");
+    } else if (event.target.matches(".agenda-recipe-target")) {
+        updateMealRecipePicker(agendaEntryDialogFields.querySelector(".agenda-recipe-picker"));
     }
+});
+
+agendaEntryDialogFields.addEventListener("input", event => {
+    if (event.target.matches(".agenda-recipe-search")) updateMealRecipePicker(event.target.closest(".agenda-recipe-picker"));
+});
+
+agendaEntryDialogFields.addEventListener("click", event => {
+    if (!event.target.closest("[data-clear-agenda-recipes]")) return;
+    agendaEntryDialogFields.querySelectorAll(".agenda-recipe-target").forEach(input => { input.checked = false; });
+    updateMealRecipePicker(agendaEntryDialogFields.querySelector(".agenda-recipe-picker"));
 });
 
 agendaEntryForm.addEventListener("submit", async event => {

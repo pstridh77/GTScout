@@ -272,6 +272,21 @@ body {
 .arrangement-agenda-entry-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .agenda-entry-field { display: grid; min-width: 0; gap: 5px; color: #52636a; font-size: .76rem; font-weight: 700; }
 .agenda-entry-field input, .agenda-entry-field select { width: 100%; min-width: 0; box-sizing: border-box; padding: 8px; border: 1px solid #cbd7dc; border-radius: 4px; background: #fff; color: #153c4a; font: inherit; }
+.agenda-recipe-picker { display: grid; grid-column: 1 / -1; gap: 7px; min-width: 0; color: #52636a; font-size: .76rem; font-weight: 700; }
+.agenda-recipe-search-field { display: grid; gap: 4px; color: #65767b; font-size: .72rem; font-weight: 600; }
+.agenda-recipe-search { width: 100%; min-width: 0; box-sizing: border-box; padding: 7px 9px; border: 1px solid #cbd7dc; border-radius: 4px; background: #fff; color: #153c4a; font: inherit; }
+.agenda-recipe-selection { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.agenda-recipe-summary { min-width: 0; overflow: hidden; color: #153c4a; font-size: .74rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.agenda-recipe-clear { flex: 0 0 auto; padding: 3px 0; border: 0; background: transparent; color: #286d60; font: inherit; font-size: .72rem; cursor: pointer; }
+.agenda-recipe-clear:disabled { color: #8c999b; cursor: default; }
+.agenda-recipe-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 6px; max-height: 220px; overflow-y: auto; }
+.agenda-recipe-category { display: grid; grid-column: 1 / -1; gap: 5px; min-width: 0; padding: 5px 0 0; border: 0; border-top: 1px solid #dbe3e3; }
+.agenda-recipe-category > summary { grid-column: 1 / -1; padding: 0 4px; color: #52636a; font-size: .72rem; font-weight: 700; cursor: pointer; }
+.agenda-recipe-category[hidden] { display: none; }
+.agenda-recipe-choice { display: flex; align-items: flex-start; gap: 7px; min-width: 0; padding: 6px 8px; border: 1px solid #d1dbdc; border-radius: 4px; background: #fff; color: #153c4a; font-weight: 500; line-height: 1.3; }
+.agenda-recipe-choice[hidden] { display: none; }
+.agenda-recipe-choice input { flex: 0 0 auto; margin: 1px 0 0; accent-color: #286d60; }
+.agenda-recipe-choice span { min-width: 0; overflow-wrap: anywhere; }
 .agenda-entry-title { grid-column: span 2; }
 .agenda-entry-notes { grid-column: span 2; }
 #agendaEntryDialogFields .agenda-entry-title, #agendaEntryDialogFields .agenda-entry-notes { grid-column: 1 / -1; }

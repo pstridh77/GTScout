@@ -37,6 +37,9 @@
                 meal_type: kind === "meal" ? String(entry.meal_type || "") : "",
                 source_type: ["recipe", "activity"].includes(entry.source_type) ? entry.source_type : "",
                 source_id: String(entry.source_id || ""),
+                recipe_ids: Array.isArray(entry.recipe_ids)
+                    ? [...new Set(entry.recipe_ids.map(String))]
+                    : kind === "meal" && entry.source_type === "recipe" && entry.source_id ? [String(entry.source_id)] : [],
                 shared: entry.shared !== false,
                 departments: Array.isArray(entry.departments) ? [...new Set(entry.departments.filter(department => DEPARTMENTS.includes(department)))] : [],
                 excluded_departments: Array.isArray(entry.excluded_departments) ? [...new Set(entry.excluded_departments.filter(department => DEPARTMENTS.includes(department)))] : [],
@@ -101,7 +104,7 @@
         return arrangements.map(item => ({
             ...item,
             departments: [...item.departments],
-            agenda: item.agenda.map(entry => ({ ...entry, departments: [...entry.departments], excluded_departments: [...entry.excluded_departments] })),
+            agenda: item.agenda.map(entry => ({ ...entry, recipe_ids: [...entry.recipe_ids], departments: [...entry.departments], excluded_departments: [...entry.excluded_departments] })),
             responsibilities: item.responsibilities.map(entry => ({ ...entry })),
             planning_ref: item.planning_ref ? { ...item.planning_ref } : null
         }));
