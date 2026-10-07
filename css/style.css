@@ -164,6 +164,18 @@ body {
 .arrangement-notes-preview:hover { border-color: #4d8275; background: #f1f6f3; }
 .arrangement-notes-preview:focus-visible { outline: 2px solid #4d8275; outline-offset: 2px; }
 .arrangement-notes-preview-hint { color: #65767b; font-size: .74rem; }
+.arrangement-checklist-overview { display: block; }
+.arrangement-checklist-content { display: grid; gap: 10px; margin-top: 10px; }
+.arrangement-checklist-list { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.arrangement-checklist-item { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.arrangement-checklist-item label { display: flex; align-items: flex-start; gap: 8px; min-width: 0; flex: 1; cursor: pointer; }
+.arrangement-checklist-item input { width: 16px; height: 16px; flex: 0 0 16px; margin: 2px 0 0; accent-color: #286d60; }
+.arrangement-checklist-item label span { min-width: 0; overflow-wrap: anywhere; }
+.arrangement-checklist-item--done label span { color: #65767b; text-decoration: line-through; }
+.arrangement-checklist-remove { width: 28px; height: 28px; flex: 0 0 28px; border: 0; background: transparent; color: #8e4634; font-size: 1.1rem; cursor: pointer; }
+.arrangement-checklist-empty { margin: 0; color: #65767b; font-size: .84rem; }
+.arrangement-checklist-add { display: flex; gap: 8px; max-width: 520px; }
+.arrangement-checklist-add input { min-width: 0; flex: 1; padding: 8px 10px; border: 1px solid #cbd7dc; border-radius: 4px; font: inherit; }
 #arrangementNotesModal { z-index: 3100; }
 .arrangement-notes-dialog-content { box-sizing: border-box; max-height: calc(100vh - 24px); overflow-y: auto; }
 .arrangement-notes-dialog-content .modal-field textarea { min-height: 160px; resize: vertical; }

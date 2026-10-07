@@ -49,6 +49,11 @@
                 notes: String(entry.notes || "").trim()
             };
         }).filter(entry => entry?.title) : [];
+        const checklist = Array.isArray(item.checklist) ? item.checklist.map(task => ({
+            id: String(task?.id || crypto.randomUUID()),
+            text: String(task?.text || "").trim(),
+            done: Boolean(task?.done)
+        })).filter(task => task.text) : [];
         const responsibilities = Array.isArray(item.responsibilities) ? item.responsibilities.map(entry => {
             const responsibility = {
                 id: String(entry?.id || crypto.randomUUID()),
@@ -76,6 +81,7 @@
                 name: String(item.planning_ref.name || "")
             } : null,
             agenda,
+            checklist,
             responsibilities,
             notes: String(item.notes || "").trim(),
             experience: String(item.experience || item.after_notes || "").trim(),
@@ -106,6 +112,7 @@
             ...item,
             departments: [...item.departments],
             agenda: item.agenda.map(entry => ({ ...entry, recipe_ids: [...entry.recipe_ids], departments: [...entry.departments], excluded_departments: [...entry.excluded_departments] })),
+            checklist: item.checklist.map(task => ({ ...task })),
             responsibilities: item.responsibilities.map(entry => ({ ...entry })),
             planning_ref: item.planning_ref ? { ...item.planning_ref } : null
         }));

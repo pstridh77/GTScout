@@ -44,6 +44,7 @@ const arrangementDayExpansion = new Map();
 const arrangementSchemaExpansion = new Set();
 const collapsedArrangementNotes = new Set();
 const collapsedArrangementMeals = new Set();
+const collapsedArrangementChecklist = new Set();
 const expandedArrangementIds = new Set();
 const collapsedArrangementYears = new Set();
 const arrangementDetailEditModes = new Set();
@@ -165,6 +166,28 @@ async function shareArrangement(item) {
     } catch {
         status.textContent = "Markera länken och kopiera den manuellt.";
     }
+}
+
+function renderArrangementChecklist(checklist, arrangementId, editable) {
+    const visibleTasks = editable ? checklist : checklist.filter(task => !task.done);
+    if (!editable && !visibleTasks.length) return "";
+    const isOpen = !collapsedArrangementChecklist.has(arrangementId);
+    const rows = visibleTasks.length
+        ? `<ul class="arrangement-checklist-list">${visibleTasks.map(task => `<li class="arrangement-checklist-item${task.done ? " arrangement-checklist-item--done" : ""}"><label><input type="checkbox" data-checklist-arrangement="${escapeArrangementHtml(arrangementId)}" data-checklist-task="${escapeArrangementHtml(task.id)}"${task.done ? " checked" : ""}${editable ? "" : " disabled"} aria-label="${task.done ? "Avklarad" : "Kvar att göra"}"><span>${escapeArrangementHtml(task.text)}</span></label>${editable ? `<button class="arrangement-checklist-remove" type="button" data-remove-checklist-task="${escapeArrangementHtml(task.id)}" data-arrangement-id="${escapeArrangementHtml(arrangementId)}" aria-label="Ta bort uppgiften ${escapeArrangementHtml(task.text)}" title="Ta bort uppgift">&times;</button>` : ""}</li>`).join("")}</ul>`
+        : '<p class="arrangement-checklist-empty">Inga uppgifter tillagda.</p>';
+    const addControl = editable
+        ? `<form class="arrangement-checklist-add" data-add-checklist-form="${escapeArrangementHtml(arrangementId)}"><input type="text" maxlength="160" placeholder="Ny uppgift" data-checklist-new-task="${escapeArrangementHtml(arrangementId)}" aria-label="Ny uppgift"><button class="btn-secondary" type="submit">Lägg till</button></form>`
+        : "";
+    return `<details class="arrangement-checklist-overview" data-arrangement-id="${escapeArrangementHtml(arrangementId)}"${isOpen ? " open" : ""}><summary class="arrangement-section-summary"><strong>Att göra</strong><span>${visibleTasks.length}</span></summary><div class="arrangement-checklist-content">${rows}${addControl}</div></details>`;
+}
+
+async function saveArrangementChecklist(arrangement, checklist) {
+    const result = await window.GTScoutArrangements.save({ ...arrangement, checklist });
+    arrangementSyncStatus.textContent = result.localOnly
+        ? result.error ? "Uppgiften sparades lokalt men kunde inte synkas." : "Uppgiften sparades lokalt."
+        : "Uppgiften sparades.";
+    if (result.error) showArrangementToast("Uppgiften sparades lokalt men kunde inte synkas.", "error");
+    return result;
 }
 
 function openArrangementNotesDialog(item, trigger) {
@@ -597,6 +620,7 @@ function renderArrangements() {
             ? `<div class="arrangement-card-actions"><button class="btn-secondary" type="button" data-edit-arrangement="${escapeArrangementHtml(item.id)}">Redigera</button><button class="btn-secondary" type="button" data-copy-arrangement="${escapeArrangementHtml(item.id)}">Kopiera</button>${canShare ? `<button class="btn-secondary share-arrangement-btn" type="button" data-share-arrangement="${escapeArrangementHtml(item.id)}" aria-label="Dela arrangemang" title="Dela arrangemang"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,16.08C17.24,16.08 16.54,16.38 16,16.85L8.91,12.74C8.96,12.5 9,12.25 8.91,11.26L15.92,7.17C16.47,7.66 17.2,7.97 18,7.97C19.66,7.97 21,6.63 21,4.97C21,3.31 19.66,1.97 18,1.97C16.34,1.97 15,3.31 15,4.97C15,5.22 15.04,5.47 15.09,5.71L8.08,9.8C7.53,9.31 6.8,9 6,9C4.34,9 3,10.34 3,12C3,13.66 4.34,15 6,15C6.8,15 7.53,14.69 8.08,14.2L15.17,18.31C15.12,18.54 15,18.77 15,19C15,20.66 16.34,22 18,22C19.66,22 21,20.66 21,19C21,17.34 19.66,16.08 18,16.08Z"/></svg></button>` : ""}<button class="arrangement-delete-icon" type="button" data-delete-arrangement="${escapeArrangementHtml(item.id)}" aria-label="Ta bort ${escapeArrangementHtml(item.title)}" title="Ta bort arrangemang"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button></div>`
             : "";
         const notes = String(item.notes || "").trim();
+        const checklist = item.checklist || [];
         const description = String(item.description || "").trim();
         const notesContent = canEditDetails
             ? `<button class="arrangement-notes-preview" type="button" data-edit-arrangement-notes="${escapeArrangementHtml(item.id)}" aria-label="Redigera anteckningar för ${escapeArrangementHtml(item.title)}"><span>${notes ? escapeArrangementHtml(notes) : "Inga anteckningar ännu. Klicka för att lägga till."}</span><span class="arrangement-notes-preview-hint">Klicka för att redigera</span></button>`
@@ -605,8 +629,9 @@ function renderArrangements() {
         const notesHtml = notes || canEditDetails
             ? `<details class="arrangement-detail-notes" data-arrangement-id="${escapeArrangementHtml(item.id)}"${notesOpen ? " open" : ""}><summary><h3>Anteckningar</h3></summary>${notesContent}</details>`
             : "";
+        const checklistHtml = renderArrangementChecklist(checklist, item.id, canEditDetails);
         const timeRange = [item.start_time, item.end_time].filter(Boolean).join("–");
-        return `<details class="arrangement-card${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}</div></summary><div class="arrangement-card-details">${detailEditControl}${link}<div class="arrangement-card-sections">${notesHtml}${mealSummaryHtml}${responsibilityHtml}${agendaHtml}</div>${actions}</div></details>`;
+        return `<details class="arrangement-card${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}</div></summary><div class="arrangement-card-details">${detailEditControl}${link}<div class="arrangement-card-sections">${notesHtml}${checklistHtml}${mealSummaryHtml}${responsibilityHtml}${agendaHtml}</div>${actions}</div></details>`;
     });
     const cardsByYear = new Map();
     orderedVisible.forEach((item, index) => {
@@ -1043,6 +1068,11 @@ arrangementsGrid.addEventListener("toggle", event => {
         else collapsedArrangementNotes.add(day.dataset.arrangementId);
         return;
     }
+    if (day.matches?.("details.arrangement-checklist-overview[data-arrangement-id]")) {
+        if (day.open) collapsedArrangementChecklist.delete(day.dataset.arrangementId);
+        else collapsedArrangementChecklist.add(day.dataset.arrangementId);
+        return;
+    }
     if (day.matches?.("details.arrangement-meal-summary[data-arrangement-id]")) {
         if (day.open) collapsedArrangementMeals.delete(day.dataset.arrangementId);
         else collapsedArrangementMeals.add(day.dataset.arrangementId);
@@ -1057,6 +1087,7 @@ arrangementsGrid.addEventListener("toggle", event => {
             arrangementDetailEditModes.delete(arrangementId);
             collapsedArrangementNotes.add(arrangementId);
             collapsedArrangementMeals.add(arrangementId);
+            collapsedArrangementChecklist.add(arrangementId);
             arrangementSchemaExpansion.delete(arrangementId);
             arrangementDayExpansion.delete(arrangementId);
             day.querySelectorAll("details").forEach(section => { section.open = false; });
@@ -1169,6 +1200,62 @@ arrangementsGrid.addEventListener("pointercancel", event => {
     if (!gesture || event.pointerId !== gesture.pointerId) return;
     activeScheduleGesture = null;
     clearScheduleGesture(gesture);
+});
+
+arrangementsGrid.addEventListener("change", async event => {
+    const checkbox = event.target.closest("[data-checklist-arrangement][data-checklist-task]");
+    if (!checkbox) return;
+    const arrangement = arrangements.find(item => item.id === checkbox.dataset.checklistArrangement);
+    if (!arrangement || !isArrangementDetailEditable(arrangement)) return;
+    const checklist = arrangement.checklist.map(task => task.id === checkbox.dataset.checklistTask
+        ? { ...task, done: checkbox.checked }
+        : { ...task });
+    try {
+        await saveArrangementChecklist(arrangement, checklist);
+        const updatedCheckbox = [...arrangementsGrid.querySelectorAll("[data-checklist-arrangement][data-checklist-task]")]
+            .find(input => input.dataset.checklistArrangement === arrangement.id && input.dataset.checklistTask === checkbox.dataset.checklistTask);
+        updatedCheckbox?.focus();
+    } catch (error) {
+        showArrangementToast(error.message || "Uppgiften kunde inte sparas.", "error");
+    }
+});
+
+arrangementsGrid.addEventListener("submit", async event => {
+    const form = event.target.closest("[data-add-checklist-form]");
+    if (!form) return;
+    event.preventDefault();
+    const arrangement = arrangements.find(item => item.id === form.dataset.addChecklistForm);
+    const input = form.querySelector("[data-checklist-new-task]");
+    const text = input.value.trim();
+    if (!arrangement || !isArrangementDetailEditable(arrangement)) return;
+    if (!text) {
+        input.focus();
+        return;
+    }
+    const checklist = [...arrangement.checklist, { id: crypto.randomUUID(), text, done: false }];
+    try {
+        await saveArrangementChecklist(arrangement, checklist);
+        [...arrangementsGrid.querySelectorAll("[data-checklist-new-task]")]
+            .find(field => field.dataset.checklistNewTask === arrangement.id)?.focus();
+    } catch (error) {
+        showArrangementToast(error.message || "Uppgiften kunde inte läggas till.", "error");
+    }
+});
+
+arrangementsGrid.addEventListener("click", async event => {
+    const button = event.target.closest("[data-remove-checklist-task]");
+    if (!button) return;
+    event.preventDefault();
+    const arrangement = arrangements.find(item => item.id === button.dataset.arrangementId);
+    if (!arrangement || !isArrangementDetailEditable(arrangement)) return;
+    const checklist = arrangement.checklist.filter(task => task.id !== button.dataset.removeChecklistTask);
+    try {
+        await saveArrangementChecklist(arrangement, checklist);
+        [...arrangementsGrid.querySelectorAll("[data-checklist-new-task]")]
+            .find(field => field.dataset.checklistNewTask === arrangement.id)?.focus();
+    } catch (error) {
+        showArrangementToast(error.message || "Uppgiften kunde inte tas bort.", "error");
+    }
 });
 
 arrangementsGrid.addEventListener("click", async event => {
