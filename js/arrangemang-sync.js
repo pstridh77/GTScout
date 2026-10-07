@@ -34,6 +34,7 @@
                 time: String(entry.time || ""),
                 end_time: String(entry.end_time || ""),
                 kind,
+                leaders_only: kind !== "meal" && Boolean(entry.leaders_only),
                 meal_type: kind === "meal" ? String(entry.meal_type || "") : "",
                 source_type: ["recipe", "activity"].includes(entry.source_type) ? entry.source_type : "",
                 source_id: String(entry.source_id || ""),
