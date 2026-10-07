@@ -326,11 +326,16 @@ function renderArrangementSchedule(item) {
     const inferredEnd = agendaEnds.at(-1) || (agendaStarts.length ? addHour(scheduleStart) : "17:00");
     let scheduleEnd = isTime(item.end_time) ? item.end_time : inferredEnd || "17:00";
     if (scheduleEnd <= scheduleStart) scheduleEnd = addHour(scheduleStart) || "23:00";
-    const scheduleDateCount = arrangementDates(item.start_date, item.end_date).length;
+    const canEditAgenda = isArrangementDetailEditable(item);
+    const allScheduleDates = arrangementDates(item.start_date, item.end_date);
+    const scheduleDates = canEditAgenda
+        ? allScheduleDates
+        : allScheduleDates.filter(date => item.agenda.some(entry => entry.date === date));
+    const scheduleDateCount = scheduleDates.length;
     const scheduleDateLabel = `${scheduleDateCount} ${scheduleDateCount === 1 ? "dag" : "dagar"}`;
     const scheduleEntryLabel = `${item.agenda.length} ${item.agenda.length === 1 ? "programpunkt" : "programpunkter"}`;
     const expandedDates = arrangementDayExpansion.get(item.id);
-    const scheduleDays = arrangementDates(item.start_date, item.end_date).map(date => {
+    const scheduleDays = scheduleDates.map(date => {
         const entries = item.agenda.filter(entry => entry.date === date);
         const dayIsOpen = expandedDates ? expandedDates.has(date) : false;
         const countLabel = entries.length === 1 ? "1 programpunkt" : `${entries.length} programpunkter`;
@@ -444,7 +449,6 @@ function renderArrangementSchedule(item) {
             const element = label ? "time" : "span";
             return `<${element} class="${className}" style="grid-column:1;grid-row:${index + 1}"${label ? "" : " aria-hidden=\"true\""}>${escapeArrangementHtml(label)}</${element}>`;
         }).join("");
-        const canEditAgenda = isArrangementDetailEditable(item);
         const emptyCells = timePoints.map((time, rowIndex) => selectedDepartments.map((department, departmentIndex) => {
             const timeLabel = time || "Heldag";
             const addAttributes = canEditAgenda
