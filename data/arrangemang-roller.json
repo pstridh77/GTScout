@@ -1,0 +1,74 @@
+[
+  {
+    "name": "Ansvarig/Lägerchef",
+    "description": "Övergripande ledning, samordning och kontakt med arrangören."
+  },
+  
+  {
+    "name": "Familjescoutansvarig",
+    "description": "Planering och samordning för familjescouternas deltagande."
+  },
+  {
+    "name": "Spåraransvarig",
+    "description": "Planering och samordning för spårarnas deltagande."
+  },
+  {
+    "name": "Upptäckaransvarig",
+    "description": "Planering och samordning för upptäckarnas deltagande."
+  },
+  {
+    "name": "Äventyraransvarig",
+    "description": "Planering och samordning för äventyrarnas deltagande."
+  },
+  {
+    "name": "Utmanaransvarig",
+    "description": "Planering och samordning för utmanarnas deltagande."
+  },
+  {
+    "name": "Roveransvarig",
+    "description": "Planering och samordning för rovers deltagande."
+  },
+  {
+    "name": "Matansvarig",
+    "description": "Planering, samordning och uppföljning av mat och måltider."
+  },
+  {
+    "name": "Materialansvarig",
+    "description": "Packning, material och inventering inför och under arrangemanget."
+  },
+  {
+    "name": "Sjukvårdsansvarig",
+    "description": "Övergripande ansvar för sjukvård, skador och sjukdom."
+  },
+  {
+    "name": "Brandskyddsansvarig/Gasansvarig",
+    "description": "Brandskydd, eldplatser och säkerhetsrutiner."
+  },
+  {
+    "name": "Sop- och återvinningsansvarig",
+    "description": "Sortering, sophantering och återvinning."
+  },
+
+  {
+    "name": "Aktivitetsansvarig",
+    "description": "Planering, information och genomförande av aktiviteter."
+  },
+  {
+    "name": "Byggansvarig",
+    "description": "Planering och samordning av byggnation och lägerplats."
+  },
+    
+  {
+    "name": "Vattenansvarig",
+    "description": "Tillgång till dricksvatten och rutiner för vattenhantering."
+  },
+  
+    {
+    "name": "Transportansvarig",
+    "description": "Samordning av transporter, fordon och tider."
+  },
+  {
+    "name": "Ekonomiansvarig",
+    "description": "Budget, utlägg och ekonomisk uppföljning."
+  }
+]

@@ -6,6 +6,11 @@ body.shared-planning-view .planning-intro {
     display: none;
 }
 
+body.shared-arrangement-view .arrangements-heading > button,
+body.shared-arrangement-view .arrangements-toolbar {
+    display: none;
+}
+
 body {
     margin: 0;
     font-family: 'Inter', Arial, sans-serif;
@@ -70,6 +75,372 @@ body {
 @media (max-width: 800px) { .cookbook-hero { align-items: flex-start; flex-direction: column; } .cookbook-toolbar { grid-template-columns: 1fr 1fr; } .cookbook-toolbar .planning-sync-status { grid-column: 1 / -1; } .recipe-form-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 680px) { .recipe-ingredient-row { grid-template-columns: 1fr 34px; } .recipe-ingredient-row .recipe-ingredient-name { grid-column: 1 / -1; } .recipe-ingredient-amounts { grid-column: 1 / -1; } }
 @media (max-width: 520px) { .cookbook-page { width: min(100% - 20px, 1280px); margin-top: 20px; } .cookbook-hero { padding: 24px; } .cookbook-toolbar, .recipe-form-grid { grid-template-columns: 1fr; } .recipe-card { padding: 18px; } .recipe-ingredient-amounts { grid-template-columns: repeat(5, minmax(42px, 1fr)); gap: 3px; } }
+
+.arrangements-page { width: min(100% - 32px, 1240px); margin: 34px auto 54px; }
+.arrangements-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 26px; padding: 0 0 22px; border-bottom: 1px solid #cbd7dc; }
+.arrangements-heading h1 { margin: 0; color: #153c4a; font-size: 2.15rem; line-height: 1.1; }
+.arrangements-heading p:last-child { margin: 8px 0 0; color: #52636a; }
+.arrangements-kicker { margin: 0 0 8px; color: #a25235; font-size: .76rem; font-weight: 700; text-transform: uppercase; }
+.arrangements-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(170px, 240px) auto; align-items: end; gap: 14px; margin-bottom: 22px; }
+.arrangements-toolbar .filter-field { min-width: 0; }
+.arrangements-toolbar .planning-sync-status { justify-self: end; padding-bottom: 10px; color: #52636a; font-size: .82rem; }
+.arrangements-grid { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 14px; }
+.arrangement-year-group { min-width: 0; padding-bottom: 8px; border-bottom: 1px solid #d1dbdc; }
+.arrangement-year-summary { display: flex; align-items: center; gap: 9px; min-height: 38px; padding: 0 4px; color: #153c4a; cursor: pointer; list-style: none; }
+.arrangement-year-summary::-webkit-details-marker { display: none; }
+.arrangement-year-summary::before { width: 7px; height: 7px; flex: 0 0 7px; border-right: 2px solid #286d60; border-bottom: 2px solid #286d60; content: ""; transform: rotate(-45deg); transition: transform .15s ease; }
+.arrangement-year-group[open] > .arrangement-year-summary::before { transform: rotate(45deg); }
+.arrangement-year-summary > strong { font-size: .98rem; }
+.arrangement-year-summary > span { margin-left: auto; color: #65767b; font-size: .78rem; }
+.arrangement-year-summary:focus-visible { outline: 2px solid #4d8275; outline-offset: -2px; }
+.arrangement-year-cards { display: grid; gap: 14px; padding-top: 8px; }
+.arrangement-card { min-width: 0; padding: 0; border: 1px solid #d1dbdc; border-top: 3px solid #4d8275; border-radius: 6px; background: #fff; }
+.arrangement-card > .arrangement-card-summary { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, auto) minmax(0, auto); grid-template-rows: auto auto auto; grid-template-areas: "title location tags" "dates location tags" "description location tags"; align-items: center; column-gap: 28px; row-gap: 4px; min-height: 72px; padding: 13px 48px 13px 16px; cursor: pointer; list-style: none; }
+.arrangement-card > .arrangement-card-summary::-webkit-details-marker { display: none; }
+.arrangement-card > .arrangement-card-summary::after { position: absolute; top: 50%; right: 18px; width: 8px; height: 8px; border-right: 2px solid #286d60; border-bottom: 2px solid #286d60; content: ""; transform: translateY(-70%) rotate(45deg); transition: transform .15s ease; }
+.arrangement-card[open] > .arrangement-card-summary::after { transform: translateY(-25%) rotate(225deg); }
+.arrangement-card > .arrangement-card-summary:focus-visible { outline: 2px solid #4d8275; outline-offset: -3px; }
+.arrangement-card-summary-title { display: flex; grid-area: title; align-items: baseline; flex-wrap: wrap; gap: 4px 9px; min-width: 0; }
+.arrangement-card-summary-title h2 { flex: 0 1 auto; }
+.arrangement-card-summary-type { margin: 0; font-size: .68rem; }
+.arrangement-card-summary .arrangement-card-dates { grid-area: dates; margin: 0; font-size: .86rem; }
+.arrangement-card-summary .arrangement-card-description { grid-area: description; min-width: 0; margin: 0; color: #52636a; font-size: .82rem; line-height: 1.35; overflow-wrap: anywhere; }
+.arrangement-card-summary-times { display: none; }
+.arrangement-card[open] > .arrangement-card-summary .arrangement-card-summary-times { display: inline; }
+.arrangement-card-summary .arrangement-card-location { display: flex; grid-area: location; align-items: center; gap: 7px; min-width: 0; margin: 0; color: #52636a; }
+.arrangement-card-location svg { width: 16px; height: 16px; flex: 0 0 16px; color: #4d8275; }
+.arrangement-card-location span { overflow-wrap: anywhere; }
+.arrangement-card-summary .arrangement-participant-tags { grid-area: tags; justify-content: flex-end; margin: 0; }
+.arrangement-card-details { padding: 0 18px 18px; border-top: 1px solid #e2e8e8; }
+.btn-secondary.arrangement-edit-details-icon { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 1px solid #d7e1eb; border-radius: 5px; background: #fff; color: #286d60; cursor: pointer; }
+.btn-secondary.arrangement-edit-details-icon { align-self: center; flex: 0 0 36px; margin-left: auto; }
+.btn-secondary.arrangement-edit-details-icon svg { flex: 0 0 20px; width: 20px; height: 20px; }
+.btn-secondary.arrangement-edit-details-icon:hover { background: #e8f2ef; }
+.btn-secondary.arrangement-edit-details-icon:focus-visible { outline: 2px solid #4d8275; outline-offset: 2px; }
+.arrangement-detail-edit-control { display: flex; align-items: center; margin: 0; }
+.arrangement-detail-edit-control--active { padding: 0; border: 0; background: transparent; }
+.arrangement-detail-edit-control--active .arrangement-detail-edit-toggle { border-color: #286d60; background: #e8f2ef; color: #286d60; }
+.arrangement-detail-edit-toggle { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; }
+.btn-secondary.arrangement-detail-edit-toggle { padding: 0; }
+.arrangement-detail-edit-toggle svg { flex: 0 0 24px; width: 24px; height: 24px; }
+.arrangement-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.arrangement-card-type { margin: 0 0 6px; color: #a25235; font-size: .73rem; font-weight: 700; text-transform: uppercase; }
+.arrangement-card h2 { margin: 0; color: #153c4a; font-size: 1.22rem; overflow-wrap: anywhere; }
+.arrangement-status { flex: 0 0 auto; padding: 4px 7px; border-radius: 4px; background: #eef1f1; color: #52636a; font-size: .7rem; font-weight: 700; }
+.arrangement-status--planned { background: #e7f1ed; color: #24624e; }
+.arrangement-status--completed { background: #e5eef2; color: #315b6b; }
+.arrangement-status--cancelled { background: #f8eae5; color: #8e4634; }
+.arrangement-card-dates { margin: 14px 0 4px; color: #153c4a; font-weight: 700; }
+.arrangement-card-location, .arrangement-card-planning { margin: 5px 0; color: #52636a; font-size: .88rem; }
+.arrangement-card-agenda { display: grid; gap: 7px; margin: 15px 0 0; padding: 12px 0 0; border-top: 1px solid #e2e8e8; list-style: none; }
+.arrangement-card-agenda li { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; font-size: .84rem; }
+.arrangement-card-agenda time { color: #65767b; }
+.arrangement-card-agenda span { min-width: 0; color: #263c42; overflow-wrap: anywhere; }
+.arrangement-agenda-more, .arrangement-card-no-agenda { color: #65767b; font-size: .84rem; }
+.arrangement-card-no-agenda { margin: 14px 0 0; }
+.arrangement-card-actions { display: flex; align-items: center; gap: 8px; margin-top: 0; padding-top: 14px; border-top: 1px solid #cbd5d8; }
+.arrangement-card-sections { display: grid; gap: 0; }
+.arrangement-detail-notes { display: grid; gap: 9px; margin: 0; padding: 0; border: 0; }
+.arrangement-detail-notes > summary, .arrangement-meal-summary > summary { display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none; }
+.arrangement-detail-notes > summary::-webkit-details-marker, .arrangement-meal-summary > summary::-webkit-details-marker { display: none; }
+.arrangement-detail-notes > summary::before, .arrangement-meal-summary > summary::before { width: 7px; height: 7px; flex: 0 0 7px; border-right: 2px solid #286d60; border-bottom: 2px solid #286d60; content: ""; transform: rotate(-45deg); transition: transform .15s ease; }
+.arrangement-detail-notes[open] > summary::before, .arrangement-meal-summary[open] > summary::before { transform: rotate(45deg); }
+.arrangement-detail-notes h3 { margin: 0; color: #153c4a; font-size: .84rem; }
+.arrangement-detail-notes p { margin: 0; color: #354b51; font-size: .84rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.arrangement-meal-summary { display: block; margin: 0; }
+.arrangement-meal-summary h3 { margin: 0; color: #153c4a; font-size: .84rem; }
+.arrangement-meal-summary > summary > span { margin-left: auto; color: #65767b; font-size: .72rem; }
+.arrangement-meal-summary-days { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 12px; margin-top: 8px; }
+.arrangement-meal-day { min-width: 0; padding: 10px; border: 1px solid #dbe3e3; border-radius: 4px; background: #f7f9f8; }
+.arrangement-meal-day h4 { margin: 0 0 7px; color: #153c4a; font-size: .82rem; }
+.arrangement-meal-day ul { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.arrangement-meal-day li { color: #354b51; font-size: .82rem; line-height: 1.45; overflow-wrap: anywhere; }
+.arrangement-meal-entry { padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; overflow-wrap: anywhere; cursor: pointer; }
+.arrangement-meal-entry:hover { color: #286d60; text-decoration: underline; }
+.arrangement-meal-entry:focus-visible { outline: 2px solid #4d8275; outline-offset: 2px; }
+.arrangement-meals-empty { margin: 8px 0 0; color: #65767b; font-size: .84rem; }
+.arrangement-meal-add { margin-top: 10px; }
+.arrangement-notes-preview { display: grid; gap: 9px; width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid #d1dbdc; border-radius: 4px; background: #f7f9f8; color: #354b51; font: inherit; font-size: .84rem; line-height: 1.45; text-align: left; white-space: pre-wrap; overflow-wrap: anywhere; cursor: pointer; }
+.arrangement-notes-preview:hover { border-color: #4d8275; background: #f1f6f3; }
+.arrangement-notes-preview:focus-visible { outline: 2px solid #4d8275; outline-offset: 2px; }
+.arrangement-notes-preview-hint { color: #65767b; font-size: .74rem; }
+.arrangement-checklist-overview { display: block; }
+.arrangement-checklist-content { display: grid; gap: 10px; margin-top: 10px; }
+.arrangement-checklist-list { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.arrangement-checklist-item { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.arrangement-checklist-item label { display: flex; align-items: flex-start; gap: 8px; min-width: 0; flex: 1; cursor: pointer; }
+.arrangement-checklist-item input { width: 16px; height: 16px; flex: 0 0 16px; margin: 2px 0 0; accent-color: #286d60; }
+.arrangement-checklist-item label span { min-width: 0; overflow-wrap: anywhere; }
+.arrangement-checklist-item--done label span { color: #65767b; text-decoration: line-through; }
+.arrangement-checklist-remove { width: 28px; height: 28px; flex: 0 0 28px; border: 0; background: transparent; color: #8e4634; font-size: 1.1rem; cursor: pointer; }
+.arrangement-checklist-empty { margin: 0; color: #65767b; font-size: .84rem; }
+.arrangement-checklist-add { display: flex; gap: 8px; max-width: 520px; }
+.arrangement-checklist-add input { min-width: 0; flex: 1; padding: 8px 10px; border: 1px solid #cbd7dc; border-radius: 4px; font: inherit; }
+#arrangementNotesModal { z-index: 3100; }
+.arrangement-notes-dialog-content { box-sizing: border-box; max-height: calc(100vh - 24px); overflow-y: auto; }
+.arrangement-notes-dialog-content .modal-field textarea { min-height: 160px; resize: vertical; }
+.arrangement-notes-dialog-actions { gap: 10px; }
+.arrangement-responsibilities-overview { display: block; margin: 0; }
+.arrangement-responsibilities-summary { display: block; min-width: 0; margin: 0; }
+.arrangement-responsibility-add { min-height: 32px; margin: 4px 6px 8px; white-space: nowrap; }
+.arrangement-responsibilities-empty { margin: 0; padding: 4px 6px 8px; color: #65767b; font-size: .8rem; }
+.arrangement-responsibilities-summary-list { display: grid; gap: 0; padding: 2px 0 4px; }
+.arrangement-responsibility-summary-item { min-width: 0; }
+.arrangement-responsibility-summary-item > summary { display: flex; align-items: center; justify-content: flex-start; gap: 0; min-height: 24px; padding: 1px 6px; color: #153c4a; cursor: pointer; list-style: none; }
+.arrangement-responsibility-summary-item > summary::-webkit-details-marker { display: none; }
+.arrangement-responsibility-summary-item > summary::after { flex: 0 0 auto; margin-left: auto; color: #52636a; content: "+"; font-size: .9rem; }
+.arrangement-responsibility-summary-item[open] > summary::after { content: "-"; }
+.arrangement-responsibility-summary-item > summary:hover { background: #f4f7f6; }
+.arrangement-responsibility-summary-item > summary:focus-visible { outline: 2px solid #4d8275; outline-offset: -2px; }
+.arrangement-responsibility-summary-person { min-width: 0; overflow-wrap: anywhere; font-size: .8rem; font-weight: 600; }
+.arrangement-responsibility-summary-role { flex: 0 1 auto; color: #286d60; font-size: .78rem; font-weight: 700; overflow-wrap: anywhere; }
+.arrangement-responsibility-summary-separator { margin-right: 5px; }
+.arrangement-responsibility-summary-details { display: flex; align-items: flex-start; gap: 8px; padding: 0 8px 4px; }
+.arrangement-responsibility-summary-info { flex: 1 1 auto; min-width: 0; }
+.arrangement-responsibility-summary-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
+.arrangement-responsibility-edit { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; border: 1px solid #d7e1eb; border-radius: 5px; background: #fff; color: #286d60; cursor: pointer; }
+.arrangement-responsibility-edit svg { width: 15px; height: 15px; }
+.arrangement-responsibility-edit:hover { background: #e8f2ef; }
+.arrangement-responsibility-edit:focus-visible { outline: 2px solid #4d8275; outline-offset: 2px; }
+.arrangement-responsibility-delete { width: 28px; height: 28px; }
+.arrangement-responsibility-delete svg { width: 15px; height: 15px; }
+.arrangement-responsibility-summary-details p { margin: 0; color: #52636a; font-size: .78rem; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
+.arrangement-responsibility-summary-details p + p { margin-top: 5px; }
+.arrangement-responsibility-summary-details strong { margin-right: 4px; color: #153c4a; }
+.arrangement-delete-icon, .agenda-entry-remove { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 1px solid #d7e1eb; border-radius: 5px; background: #fff; color: #8e4634; cursor: pointer; }
+.arrangement-delete-icon svg { width: 18px; height: 18px; }
+.arrangement-delete-icon:hover, .agenda-entry-remove:hover { background: #f8eae5; }
+.arrangements-empty { padding: 42px 20px; border-top: 1px solid #d1dbdc; color: #52636a; text-align: center; }
+.arrangement-form { display: flex; flex-direction: column; gap: 16px; }
+.arrangement-form h2 { margin: 0; color: #153c4a; }
+.arrangement-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.arrangement-field-wide { grid-column: 1 / -1; }
+.arrangement-form input, .arrangement-form select, .arrangement-form textarea { max-width: 100%; box-sizing: border-box; }
+.arrangement-departments-field { min-width: 0; margin: 0; padding: 12px; border: 1px solid #d1dbdc; border-radius: 5px; }
+.arrangement-departments-field legend { padding: 0 5px; color: #153c4a; font-size: .88rem; font-weight: 700; }
+.arrangement-departments-field p { margin: 0 0 9px; color: #65767b; font-size: .82rem; }
+.arrangement-department-options { display: flex; flex-wrap: wrap; gap: 7px; }
+.arrangement-department-choice { display: inline-flex; align-items: center; gap: 6px; min-width: 0; padding: 5px 8px; border: 1px solid #d1dbdc; border-radius: 4px; background: #fff; color: #263c42; font-size: .78rem; font-weight: 600; }
+.arrangement-department-choice input { width: 15px; height: 15px; margin: 0; accent-color: #286d60; }
+.arrangement-department-tag { display: inline-flex; align-items: center; padding: 3px 6px; border-radius: 3px; color: #fff; font-size: .66rem; font-weight: 700; }
+.department-tone-0 { --department-color: #713f91; --department-text: #fff; }
+.department-tone-1 { --department-color: #267532; --department-text: #fff; }
+.department-tone-2 { --department-color: #0876a8; --department-text: #fff; }
+.department-tone-3 { --department-color: #c84c08; --department-text: #fff; }
+.department-tone-4 { --department-color: #ca0753; --department-text: #fff; }
+.department-tone-5 { --department-color: #e1bd23; --department-text: #1f251b; }
+.arrangement-department-tag[class*="department-tone-"] { background: var(--department-color); color: var(--department-text); }
+.arrangement-participant-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.arrangement-card--wide { grid-column: 1 / -1; }
+.arrangement-schedule { display: block; margin: 0; padding: 0; border: 0; }
+.arrangement-schedule-body { display: grid; justify-items: start; gap: 10px; margin-top: 8px; }
+.arrangement-schedule-view-toggle { display: inline-flex; gap: 2px; max-width: 100%; padding: 3px; border: 1px solid #d1dbdc; border-radius: 5px; background: #f0f3f2; }
+.arrangement-schedule-view-toggle button { min-height: 32px; padding: 5px 12px; border: 0; border-radius: 3px; background: transparent; color: #52636a; font: inherit; font-size: .78rem; font-weight: 700; cursor: pointer; }
+.arrangement-schedule-view-toggle button[aria-pressed="true"] { background: #153c4a; color: #fff; }
+.arrangement-schedule-view-toggle button:focus-visible { outline: 2px solid #4d8275; outline-offset: 1px; }
+.arrangement-schedule-overview { min-width: 0; }
+.arrangement-overview-scroll { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+.arrangement-overview-grid { position: relative; isolation: isolate; display: grid; width: 100%; min-width: max-content; grid-template-columns: var(--overview-columns); grid-template-rows: 34px minmax(42px, auto) var(--schedule-rows); }
+.arrangement-overview-time-heading { display: grid; place-items: center; border-right: 1px solid #dbe3e3; border-bottom: 1px solid #dbe3e3; color: #65767b; font-size: .68rem; font-weight: 700; text-transform: uppercase; }
+.arrangement-overview-day { display: grid; place-content: center; gap: 1px; min-width: 0; border-bottom: 1px solid #b8c7ca; border-left: 1px solid #dbe3e3; color: #153c4a; font-size: .74rem; text-align: center; }
+.arrangement-overview-day span { font-weight: 700; text-transform: capitalize; }
+.arrangement-overview-day time { color: #65767b; font-size: .68rem; font-weight: 400; }
+.arrangement-overview-all-day { z-index: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 2px; border-left: 1px solid #dbe3e3; background: #f4f6f5; }
+.arrangement-overview-all-day-empty { display: grid; place-items: center; height: 100%; color: #879397; font-size: .62rem; }
+.arrangement-overview-all-day-item { display: flex; align-items: center; justify-content: center; gap: 3px; min-width: 0; min-height: 36px; padding: 3px; border: 0; border-radius: 3px; background: var(--department-color, #123f60); color: var(--department-text, #fff); font: inherit; text-align: center; cursor: pointer; }
+.arrangement-overview-all-day-item strong { min-width: 0; overflow-wrap: anywhere; font-size: .65rem; }
+.arrangement-overview-all-day-item span { flex: 0 0 auto; font-size: .57rem; }
+.arrangement-overview-all-day-item:disabled { cursor: default; }
+.arrangement-overview-slot { z-index: 0; display: block; width: 100%; height: 100%; box-sizing: border-box; min-width: 0; min-height: 0; padding: 0; border: 0; border-left: 1px solid #dbe3e3; background: #f8faf9; color: transparent; font: inherit; cursor: pointer; }
+.arrangement-overview-slot--hour { border-top: 1px solid #dbe3e3; }
+button.arrangement-overview-slot:not(:disabled)::after { color: #286d60; content: "+"; font-size: 1rem; font-weight: 700; opacity: 0; }
+button.arrangement-overview-slot:not(:disabled):hover { background: #e3ece8; }
+button.arrangement-overview-slot:not(:disabled):hover::after,
+button.arrangement-overview-slot:not(:disabled):focus-visible::after { opacity: .7; }
+button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid #f2c94c; outline-offset: -2px; }
+.arrangement-overview-slot:disabled { cursor: default; }
+.arrangement-overview-all-day-add { display: grid; place-items: center; width: 100%; min-height: 30px; box-sizing: border-box; padding: 4px; border: 0; border-radius: 3px; background: transparent; color: #65767b; font: inherit; font-size: .65rem; cursor: pointer; }
+.arrangement-overview-all-day-add:hover { background: #e3ece8; color: #286d60; }
+.arrangement-overview-all-day-add:focus-visible { outline: 2px solid #4d8275; outline-offset: -2px; }
+.arrangement-overview-grid > .arrangement-schedule-time,
+.arrangement-overview-grid > .arrangement-schedule-time-marker,
+.arrangement-overview-grid > .arrangement-schedule-time { z-index: 3; box-sizing: border-box; min-height: 0; padding: 3px 4px; background: #fff; color: #52636a; font-size: .68rem; font-weight: 700; line-height: 1; white-space: nowrap; }
+.arrangement-overview-grid > .arrangement-schedule-time-marker { display: block; border-top: 0; }
+.arrangement-overview-grid > .arrangement-schedule-time { border-top: 1px solid #dbe3e3; }
+.arrangement-schedule-overview-event { display: flex; flex-direction: column; min-height: 0; border-left: 1px solid rgba(255,255,255,.7); }
+.arrangement-schedule-overview-event .arrangement-schedule-item { flex: 1 1 auto; min-height: 0; height: auto; align-content: start; justify-content: start; }
+.arrangement-schedule-overview-event .arrangement-schedule-item strong { white-space: normal; overflow-wrap: anywhere; }
+.arrangement-schedule-overview-event .arrangement-schedule-item .arrangement-schedule-drag-handle { display: none; }
+.arrangement-schedule-overview-event .arrangement-schedule-item .arrangement-schedule-resize-handle { display: none; }
+.arrangement-card-sections > * { box-sizing: border-box; margin: 0; padding: 14px 0; border: 0; }
+.arrangement-card-sections > * + * { border-top: 1px solid #cbd5d8; }
+.arrangement-section-summary { display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 2px 2px; color: #153c4a; cursor: pointer; list-style: none; }
+.arrangement-section-summary::-webkit-details-marker { display: none; }
+.arrangement-section-summary::before { width: 7px; height: 7px; flex: 0 0 7px; border-right: 2px solid #286d60; border-bottom: 2px solid #286d60; content: ""; transform: rotate(-45deg); transition: transform .15s ease; }
+.arrangement-schedule[open] > .arrangement-section-summary::before, .arrangement-responsibilities-summary[open] > .arrangement-section-summary::before { transform: rotate(45deg); }
+.arrangement-section-summary > strong { font-size: .88rem; }
+.arrangement-section-summary > span { margin-left: auto; color: #65767b; font-size: .72rem; }
+.arrangement-section-summary:focus-visible { outline: 2px solid #4d8275; outline-offset: -2px; }
+.arrangement-schedule-days { display: grid; gap: 14px; margin-top: 8px; }
+.arrangement-day { min-width: 0; overflow-x: auto; }
+.arrangement-day + .arrangement-day { padding-top: 12px; border-top: 1px solid #dbe3e3; }
+.arrangement-day-summary { display: flex; align-items: center; gap: 8px; min-height: 30px; padding: 2px 2px 7px; color: #153c4a; cursor: pointer; list-style: none; }
+.arrangement-day-summary::-webkit-details-marker { display: none; }
+.arrangement-day-summary::before { width: 7px; height: 7px; flex: 0 0 7px; border-right: 2px solid #286d60; border-bottom: 2px solid #286d60; content: ""; transform: rotate(-45deg); transition: transform .15s ease; }
+.arrangement-day[open] > .arrangement-day-summary::before { transform: rotate(45deg); }
+.arrangement-day-summary h3 { margin: 0; font-size: .96rem; }
+.arrangement-day-summary > span { margin-left: auto; color: #65767b; font-size: .72rem; }
+.arrangement-day-summary:focus-visible { outline: 2px solid #4d8275; outline-offset: -2px; }
+.arrangement-day-content { min-width: 0; }
+.arrangement-schedule-header { display: grid; grid-template-columns: 54px minmax(0, 1fr); min-width: max-content; }
+.arrangement-schedule-header { align-items: end; margin-bottom: 4px; }
+.arrangement-schedule-header > span { padding: 5px 4px; color: #65767b; font-size: .68rem; font-weight: 700; text-transform: uppercase; }
+.arrangement-schedule-columns { display: grid; grid-template-columns: repeat(var(--department-count), minmax(100px, 1fr)); min-width: calc(var(--department-count) * 100px); }
+.arrangement-schedule-department { padding: 6px 7px; border-right: 1px solid rgba(255,255,255,.65); background: var(--department-color); color: var(--department-text); font-size: .72rem; font-weight: 700; text-align: center; overflow-wrap: anywhere; }
+.arrangement-schedule-grid { position: relative; isolation: isolate; display: grid; grid-template-columns: 54px repeat(var(--department-count), minmax(100px, 1fr)); grid-template-rows: var(--schedule-rows); min-width: calc(54px + var(--department-count) * 100px); }
+.arrangement-schedule-time { box-sizing: border-box; min-height: 0; padding: 4px 4px; border-top: 1px solid #dbe3e3; color: #52636a; font-size: .72rem; font-weight: 700; line-height: 1; white-space: nowrap; }
+.arrangement-schedule-time-marker { display: block; min-height: 0; border-top: 0; }
+.arrangement-schedule-slot { display: grid; place-items: center; width: 100%; height: 100%; box-sizing: border-box; min-width: 0; min-height: 0; padding: 0; border: 0; border-left: 1px solid #dbe3e3; background: #f0f3f2; color: #286d60; font: inherit; cursor: pointer; }
+.arrangement-schedule-slot--hour { border-top: 1px solid #dbe3e3; }
+.arrangement-schedule-slot:not(:disabled)::after { content: "+"; opacity: 0; font-size: 1.1rem; font-weight: 700; }
+.arrangement-schedule-slot:not(:disabled):hover { background: #e3ece8; }
+.arrangement-schedule-slot:not(:disabled):hover::after, .arrangement-schedule-slot:not(:disabled):focus-visible::after { opacity: .7; }
+.arrangement-schedule-slot:focus-visible { z-index: 1; outline: 2px solid #f2c94c; outline-offset: -2px; }
+.arrangement-schedule-slot:disabled { cursor: default; }
+.arrangement-schedule-event { z-index: var(--event-z-index, 1); display: grid; grid-template-rows: minmax(0, 1fr); justify-self: start; align-self: stretch; width: var(--lane-width); min-width: 0; margin-left: var(--lane-offset); box-sizing: border-box; overflow: hidden; }
+.arrangement-schedule-event--dragging { z-index: 2000; overflow: visible; opacity: .9; filter: drop-shadow(0 3px 5px rgba(0, 0, 0, .25)); }
+.arrangement-schedule-event--short .arrangement-schedule-item { padding: 0 4px; }
+.arrangement-schedule-event--short .arrangement-schedule-item strong { font-size: .63rem; line-height: 1; }
+.arrangement-schedule-event--short .arrangement-schedule-meal, .arrangement-schedule-event--short .arrangement-schedule-end, .arrangement-schedule-event--short .arrangement-schedule-notes { display: none; }
+.arrangement-schedule-item { position: relative; display: grid; width: 100%; height: 100%; box-sizing: border-box; align-content: start; justify-items: center; gap: 2px; min-width: 0; min-height: 0; padding: 3px 7px; border: 0; border-top: 1px solid rgba(255,255,255,.8); border-right: 1px solid rgba(255,255,255,.55); color: var(--department-text); background: var(--department-color); font-family: inherit; font-size: .76rem; line-height: 1.15; text-align: center; overflow: hidden; overflow-wrap: anywhere; cursor: pointer; }
+.arrangement-schedule-drag-handle { position: absolute; top: 2px; right: 3px; z-index: 2; width: 14px; height: 14px; border-radius: 3px; background-color: var(--department-color); background-image: radial-gradient(circle, currentColor 1px, transparent 1.2px); background-position: center; background-size: 4px 4px; opacity: .8; cursor: grab; touch-action: none; }
+.arrangement-schedule-resize-handle { position: absolute; right: 0; bottom: 0; left: 0; z-index: 2; height: 8px; cursor: ns-resize; touch-action: none; }
+.arrangement-schedule-resize-handle::after { position: absolute; bottom: 2px; left: 50%; width: 22px; height: 2px; border-radius: 2px; background: var(--department-text); content: ""; opacity: .75; transform: translateX(-50%); }
+.arrangement-schedule-item:hover .arrangement-schedule-drag-handle { opacity: 1; }
+.arrangement-schedule-item:hover:not(:disabled) { filter: brightness(1.08); }
+.arrangement-schedule-item:focus-visible { position: relative; z-index: 1; outline: 3px solid #f2c94c; outline-offset: -3px; }
+.arrangement-schedule-item:disabled { opacity: 1; cursor: default; }
+.arrangement-schedule-item strong { overflow: hidden; font-size: .75rem; text-overflow: ellipsis; white-space: nowrap; }
+.arrangement-schedule-item small { font-size: .68rem; line-height: 1.3; }
+.arrangement-schedule-item .arrangement-schedule-notes { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 1; line-clamp: 1; text-overflow: ellipsis; }
+.arrangement-schedule-item .arrangement-schedule-responsible { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arrangement-schedule-meal { font-size: .64rem; font-weight: 700; opacity: .9; }
+.arrangement-schedule-end { font-size: .67rem; font-weight: 700; }
+.arrangement-schedule-item--shared { --department-color: #123f60; --department-text: #fff; }
+.arrangement-schedule-item--leaders-only { --department-color: #c4cbcd; --department-text: #263238; border: 2px solid #55636a; }
+.arrangement-schedule-heading { display: flex; align-items: center; justify-content: center; gap: 5px; width: 100%; min-width: 0; }
+.arrangement-schedule-heading strong { min-width: 0; flex: 0 1 auto; }
+.arrangement-schedule-audience { flex: 0 0 auto; padding: 1px 4px; border: 1px solid #55636a; border-radius: 3px; background: #e4e8e9; color: #263238; font-size: .6rem; line-height: 1; white-space: nowrap; }
+.arrangement-schedule-event--continuation .arrangement-schedule-item > * { visibility: hidden; }
+.arrangement-day-empty { margin: 0; padding: 10px 0; color: #65767b; font-size: .82rem; }
+.arrangement-agenda-editor { padding-top: 14px; border-top: 1px solid #dbe3e3; }
+.arrangement-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.arrangement-section-heading h3 { margin: 0; color: #153c4a; font-size: 1.05rem; }
+.arrangement-section-heading p { margin: 5px 0 0; color: #65767b; font-size: .84rem; line-height: 1.4; }
+.arrangement-agenda-list { display: grid; gap: 10px; }
+.arrangement-agenda-entry { padding: 12px; border: 1px solid #d1dbdc; border-radius: 5px; background: #f7f9f8; }
+.arrangement-agenda-entry--leaders-only { border-color: #66747a; border-left: 5px solid #66747a; background: #dfe3e4; }
+.agenda-entry-dialog-content { max-height: calc(100vh - 24px); overflow-y: auto; box-sizing: border-box; }
+.arrangement-agenda-entry:focus-within { border-color: #4d8275; box-shadow: 0 0 0 2px rgba(77,130,117,.15); }
+.arrangement-agenda-entry-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; color: #153c4a; }
+.arrangement-agenda-entry-top strong { min-width: 0; overflow-wrap: anywhere; }
+.agenda-entry-remove { width: 30px; height: 30px; flex: 0 0 30px; font-size: 1.2rem; }
+.arrangement-agenda-entry-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.agenda-entry-field { display: grid; min-width: 0; gap: 5px; color: #52636a; font-size: .76rem; font-weight: 700; }
+.agenda-scope-toggles { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
+.agenda-entry-leaders-only { display: inline-flex; align-items: center; gap: 6px; color: #35434a; font-size: .78rem; font-weight: 700; cursor: pointer; }
+.agenda-entry-leaders-only input { width: 16px; height: 16px; margin: 0; accent-color: #42545b; }
+.agenda-entry-field input, .agenda-entry-field select { width: 100%; min-width: 0; box-sizing: border-box; padding: 8px; border: 1px solid #cbd7dc; border-radius: 4px; background: #fff; color: #153c4a; font: inherit; }
+.agenda-recipe-picker { display: grid; grid-column: 1 / -1; gap: 7px; min-width: 0; color: #52636a; font-size: .76rem; font-weight: 700; }
+.agenda-recipe-search-field { display: grid; gap: 4px; color: #65767b; font-size: .72rem; font-weight: 600; }
+.agenda-recipe-search { width: 100%; min-width: 0; box-sizing: border-box; padding: 7px 9px; border: 1px solid #cbd7dc; border-radius: 4px; background: #fff; color: #153c4a; font: inherit; }
+.agenda-recipe-selection { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.agenda-recipe-summary { min-width: 0; overflow: hidden; color: #153c4a; font-size: .74rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.agenda-recipe-clear { flex: 0 0 auto; padding: 3px 0; border: 0; background: transparent; color: #286d60; font: inherit; font-size: .72rem; cursor: pointer; }
+.agenda-recipe-clear:disabled { color: #8c999b; cursor: default; }
+.agenda-recipe-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 6px; max-height: 220px; overflow-y: auto; }
+.agenda-recipe-category { display: grid; grid-column: 1 / -1; gap: 5px; min-width: 0; padding: 5px 0 0; border: 0; border-top: 1px solid #dbe3e3; }
+.agenda-recipe-category > summary { grid-column: 1 / -1; padding: 0 4px; color: #52636a; font-size: .72rem; font-weight: 700; cursor: pointer; }
+.agenda-recipe-category[hidden] { display: none; }
+.agenda-recipe-choice { display: flex; align-items: flex-start; gap: 7px; min-width: 0; padding: 6px 8px; border: 1px solid #d1dbdc; border-radius: 4px; background: #fff; color: #153c4a; font-weight: 500; line-height: 1.3; }
+.agenda-recipe-choice[hidden] { display: none; }
+.agenda-recipe-choice input { flex: 0 0 auto; margin: 1px 0 0; accent-color: #286d60; }
+.agenda-recipe-choice span { min-width: 0; overflow-wrap: anywhere; }
+.agenda-entry-title { grid-column: span 2; }
+.agenda-entry-notes { grid-column: span 2; }
+#agendaEntryDialogFields .agenda-entry-title, #agendaEntryDialogFields .agenda-entry-notes { grid-column: 1 / -1; }
+#agendaEntryDialogFields .agenda-entry-notes textarea { width: 100%; min-width: 0; min-height: 96px; box-sizing: border-box; padding: 8px; border: 1px solid #cbd7dc; border-radius: 4px; background: #fff; color: #153c4a; font: inherit; resize: vertical; }
+.agenda-entry-scope { display: grid; grid-column: 1 / -1; gap: 7px; color: #52636a; font-size: .76rem; font-weight: 700; }
+.agenda-scope-help { color: #65767b; font-weight: 500; }
+.agenda-shared-choice { display: inline-flex; align-items: center; gap: 6px; width: fit-content; color: #153c4a; }
+.agenda-shared-choice input { width: 15px; height: 15px; margin: 0; accent-color: #286d60; }
+.agenda-scope-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.agenda-scope-options--disabled { opacity: .45; }
+.agenda-scope-options .arrangement-department-choice { font-weight: 500; }
+.agenda-scope-hidden-note { color: #8e4634; font-size: .74rem; font-weight: 500; }
+.arrangement-agenda-empty { margin: 12px 0; color: #65767b; font-size: .86rem; }
+.arrangement-responsibilities-editor { padding-top: 14px; border-top: 1px solid #dbe3e3; }
+.arrangement-responsibility-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.arrangement-role-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 12px 0; padding: 12px; border: 1px solid #d1dbdc; border-radius: 5px; background: #f7f9f8; }
+.arrangement-role-form-actions { display: flex; grid-column: 1 / -1; justify-content: flex-end; gap: 8px; }
+.arrangement-role-form > .detail-planning-status { grid-column: 1 / -1; margin: 0; }
+.arrangement-responsibilities-list { display: grid; gap: 10px; }
+.arrangement-responsibility-entry { padding: 12px; border: 1px solid #d1dbdc; border-radius: 5px; background: #f7f9f8; }
+.arrangement-responsibility-entry:focus-within { border-color: #4d8275; box-shadow: 0 0 0 2px rgba(77,130,117,.15); }
+.arrangement-responsibility-entry-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; color: #153c4a; }
+.arrangement-responsibility-entry-top strong { min-width: 0; overflow-wrap: anywhere; }
+.arrangement-responsibility-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.responsibility-field { display: grid; min-width: 0; gap: 5px; color: #52636a; font-size: .76rem; font-weight: 700; }
+.responsibility-field input, .responsibility-field select, .responsibility-field textarea { width: 100%; min-width: 0; padding: 8px; border: 1px solid #cbd7dc; border-radius: 4px; background: #fff; color: #153c4a; font: inherit; }
+.responsibility-dialog-content { max-width: 460px; gap: 12px; }
+.responsibility-dialog-actions { gap: 8px; margin-top: 2px; }
+.responsibility-dialog-role-control { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px; }
+.responsibility-dialog-role-control > button { min-height: 40px; white-space: nowrap; }
+.responsibility-dialog-role-form { grid-template-columns: minmax(0, 1fr); gap: 8px; margin: 0; padding: 10px; }
+.responsibility-dialog-role-form .responsibility-field input, .responsibility-dialog-role-form .responsibility-field textarea { box-sizing: border-box; }
+.responsibility-field--role { grid-column: 1 / -1; }
+.responsibility-field--person { grid-column: 1 / -1; }
+.responsibility-field--description { grid-column: 1 / -1; }
+.arrangement-responsibilities-empty { margin: 12px 0; color: #65767b; font-size: .86rem; }
+.arrangement-form-actions { margin-top: 0; }
+.arrangement-form-actions .btn-danger { margin-right: auto; }
+.modal-actions.agenda-entry-dialog-actions { align-items: center; justify-content: space-between; gap: 16px; margin-top: 4px; }
+.agenda-entry-dialog-action-group { display: flex; align-items: center; gap: 8px; }
+.agenda-entry-dialog-action-group button { min-height: 40px; white-space: nowrap; }
+.agenda-entry-dialog-action-group .btn-danger { padding: 7px 14px; border-radius: 10px; font-size: inherit; }
+.agenda-entry-dialog-action-group--primary .btn-primary { min-width: 112px; }
+.agenda-entry-dialog-action-group .agenda-entry-dialog-delete { width: 40px; height: 40px; min-height: 40px; flex: 0 0 40px; border-radius: 6px; color: #a33a36; }
+.agenda-entry-dialog-delete svg { width: 16px; height: 16px; }
+.agenda-entry-dialog-delete:focus-visible { outline: 3px solid #f2c94c; outline-offset: 2px; }
+.arrangement-action-toast { position: fixed; right: 20px; bottom: 20px; z-index: 1800; box-sizing: border-box; max-width: calc(100vw - 32px); padding: 12px 16px; border-left: 4px solid #286d60; border-radius: 6px; background: #fff; box-shadow: 0 6px 24px rgba(21, 60, 74, .2); color: #153c4a; font-size: .9rem; font-weight: 600; }
+.arrangement-action-toast--info { border-left-color: #b77a16; }
+.arrangement-action-toast--error { border-left-color: #b91c1c; color: #8e2020; }
+.schedule-gesture-preview { position: fixed; z-index: 1900; max-width: calc(100vw - 16px); padding: 5px 8px; border: 1px solid rgba(255, 255, 255, .35); border-radius: 4px; background: #153c4a; box-shadow: 0 3px 10px rgba(0, 0, 0, .22); color: #fff; font-size: .76rem; font-weight: 700; line-height: 1.2; pointer-events: none; white-space: nowrap; }
+@media (max-width: 760px) {
+    .arrangement-card > .arrangement-card-summary { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; grid-template-areas: "title" "dates" "description" "location" "tags"; row-gap: 8px; }
+    .arrangement-card-summary .arrangement-participant-tags { justify-content: flex-start; }
+    .arrangements-toolbar { grid-template-columns: minmax(0, 1fr) minmax(150px, .7fr); }
+    .arrangements-toolbar .planning-sync-status { grid-column: 1 / -1; justify-self: start; padding: 0; }
+    .arrangement-agenda-entry-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .arrangement-responsibility-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .arrangement-role-form { grid-template-columns: minmax(0, 1fr); }
+    .arrangement-role-form-actions, .arrangement-role-form > .detail-planning-status { grid-column: auto; }
+    .arrangement-card--wide { grid-column: 1 / -1; }
+}
+@media (max-width: 540px) {
+    .arrangements-page { width: min(100% - 20px, 1240px); margin-top: 22px; }
+    .arrangements-heading { align-items: flex-start; flex-direction: column; gap: 16px; }
+    .arrangements-heading h1 { font-size: 1.8rem; }
+    .arrangements-toolbar, .arrangement-form-grid { grid-template-columns: 1fr; }
+    .arrangement-field-wide { grid-column: auto; }
+    .arrangement-section-heading { align-items: flex-start; flex-direction: column; }
+    .arrangement-agenda-entry-grid { grid-template-columns: minmax(0, 1fr); }
+    .arrangement-responsibility-grid { grid-template-columns: minmax(0, 1fr); }
+    .agenda-entry-title, .agenda-entry-notes { grid-column: auto; }
+    .arrangement-card-agenda li { grid-template-columns: 82px minmax(0, 1fr); gap: 6px; }
+    .modal-actions.agenda-entry-dialog-actions { align-items: stretch; flex-direction: column; gap: 10px; }
+    .agenda-entry-dialog-action-group--primary { justify-content: flex-end; }
+}
 
 .scouts-page {
     width: min(100% - 32px, 1400px);
@@ -3291,6 +3662,19 @@ select:focus {
         grid-row: 2;
     }
 
+    .main-nav {
+        min-width: 0;
+        max-width: calc(100vw - 20px);
+        justify-content: flex-start;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+    }
+
+    .main-nav .nav-link {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+
     .site-header--planning .library-header-actions {
         grid-column: 2;
         grid-row: 1;
@@ -4357,6 +4741,9 @@ select:focus {
 }
 
 .modal.hidden { display: none; }
+
+#arrangementModal,
+#agendaEntryModal { z-index: 3000; }
 
 #createActivityModal {
     z-index: 1600;
