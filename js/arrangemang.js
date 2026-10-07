@@ -42,6 +42,7 @@ let activeScheduleGesture = null;
 let suppressScheduleClickUntil = 0;
 const arrangementDayExpansion = new Map();
 const arrangementSchemaExpansion = new Set();
+const arrangementScheduleOverview = new Set();
 const collapsedArrangementNotes = new Set();
 const collapsedArrangementMeals = new Set();
 const collapsedArrangementChecklist = new Set();
@@ -320,9 +321,150 @@ function syncDraftResponsibilities() {
     draftResponsibilities = readResponsibilitiesFromDom();
 }
 
+function renderArrangementScheduleOverview(item, selectedDepartments, canEditAgenda) {
+    const isTime = time => /^\d{2}:\d{2}$/.test(time || "");
+    const allDates = arrangementDates(item.start_date, item.end_date);
+    const dates = canEditAgenda ? allDates : allDates.filter(date => item.agenda.some(entry => entry.date === date));
+    if (!dates.length) {
+        return '<p class="arrangement-day-empty">Inga programpunkter att visa.</p>';
+    }
+    const addAgendaSlotAttributes = (date, minute = null) => {
+        const time = minute !== null && minute < 1440 ? formatScheduleTime(minute) : "";
+        const label = time ? `Lägg till programpunkt ${time}` : "Lägg till programpunkt utan tid";
+        return `data-add-agenda data-add-agenda-arrangement="${escapeArrangementHtml(item.id)}" data-add-agenda-date="${escapeArrangementHtml(date)}" data-add-agenda-time="${time}" aria-label="${label}" title="${label}"`;
+    };
+    const timedEntries = item.agenda.filter(entry => isTime(entry.time)).map(entry => {
+        const startMinutes = parseScheduleTime(entry.time);
+        const parsedEnd = parseScheduleTime(entry.end_time);
+        const endMinutes = parsedEnd !== null && parsedEnd > startMinutes ? parsedEnd : Math.min(1440, startMinutes + 60);
+        return { entry, startMinutes, endMinutes };
+    });
+    const timeBounds = [
+        ...timedEntries.flatMap(event => [event.startMinutes, event.endMinutes]),
+        parseScheduleTime(item.start_time),
+        parseScheduleTime(item.end_time)
+    ].filter(value => value !== null);
+    let startMinutes = timeBounds.length ? Math.floor(Math.min(...timeBounds) / 60) * 60 : 9 * 60;
+    let endMinutes = timeBounds.length ? Math.ceil(Math.max(...timeBounds) / 60) * 60 : 17 * 60;
+    if (endMinutes <= startMinutes) endMinutes = Math.min(1440, startMinutes + 60);
+    if (endMinutes <= startMinutes) startMinutes = Math.max(0, endMinutes - 60);
+
+    const timePoints = new Set([startMinutes, endMinutes]);
+    timedEntries.forEach(event => {
+        if (event.startMinutes >= startMinutes && event.startMinutes <= endMinutes) timePoints.add(event.startMinutes);
+        if (event.endMinutes >= startMinutes && event.endMinutes <= endMinutes) timePoints.add(event.endMinutes);
+    });
+    for (let minute = Math.floor(startMinutes / 60) * 60 + 60; minute < endMinutes; minute += 60) timePoints.add(minute);
+    const sortedTimes = [...timePoints].sort((left, right) => left - right);
+    const formatTime = minutes => `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+    const rowHeights = sortedTimes.map((minute, index) => {
+        const nextMinute = sortedTimes[index + 1];
+        return `${nextMinute === undefined ? 48 : Math.max(1, (nextMinute - minute) * 0.8)}px`;
+    });
+    const overviewEvents = dates.map((date, dateIndex) => {
+        const entriesForDate = item.agenda.filter(entry => entry.date === date);
+        const events = entriesForDate.flatMap(entry => {
+            if (!isTime(entry.time)) return [];
+            const timing = timedEntries.find(event => event.entry.id === entry.id);
+            if (!timing) return [];
+            const targets = entry.shared !== false
+                ? [{ tone: null, label: "Gemensamt" }]
+                : selectedDepartments.filter(department => entry.departments.includes(department))
+                    .map(department => ({ tone: departments.indexOf(department), label: department }));
+            return targets.map(target => ({
+                ...timing,
+                ...target,
+                dateIndex,
+                laneIndex: 0,
+                laneCount: 1
+            }));
+        });
+        const sortedEvents = [...events].sort((left, right) => left.startMinutes - right.startMinutes || left.endMinutes - right.endMinutes);
+        let cluster = [];
+        let clusterEnd = -1;
+        const assignClusterLanes = () => {
+            if (!cluster.length) return;
+            const laneEnds = [];
+            cluster.forEach(event => {
+                let laneIndex = laneEnds.findIndex(end => end <= event.startMinutes);
+                if (laneIndex < 0) {
+                    laneIndex = laneEnds.length;
+                    laneEnds.push(event.endMinutes);
+                } else {
+                    laneEnds[laneIndex] = event.endMinutes;
+                }
+                event.laneIndex = laneIndex;
+            });
+            cluster.forEach(event => { event.laneCount = laneEnds.length; });
+        };
+        sortedEvents.forEach(event => {
+            if (cluster.length && event.startMinutes >= clusterEnd) {
+                assignClusterLanes();
+                cluster = [];
+                clusterEnd = -1;
+            }
+            cluster.push(event);
+            clusterEnd = Math.max(clusterEnd, event.endMinutes);
+        });
+        assignClusterLanes();
+
+        const allDayEntries = entriesForDate.filter(entry => !isTime(entry.time)).map(entry => {
+            const targetLabel = entry.shared !== false
+                ? "Gemensamt"
+                : selectedDepartments.filter(department => entry.departments.includes(department)).join(", ");
+            const targetDepartment = selectedDepartments.find(department => entry.departments.includes(department));
+            const tone = entry.shared !== false || !targetDepartment ? "arrangement-schedule-item--shared"
+                : `department-tone-${departments.indexOf(targetDepartment)}`;
+            const editAttributes = canEditAgenda
+                ? `data-edit-agenda="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}" aria-label="Redigera programpunkt: ${escapeArrangementHtml(entry.title)}"`
+                : "disabled aria-disabled=\"true\"";
+            return `<button type="button" class="arrangement-overview-all-day-item ${tone}" ${editAttributes}><strong>${escapeArrangementHtml(entry.title)}</strong><span>${escapeArrangementHtml(targetLabel)}</span></button>`;
+        }).join("");
+        return { events, allDayEntries };
+    });
+
+    const timeLabels = sortedTimes.map((minute, index) => {
+        const label = minute % 60 === 0 ? formatTime(minute) : "";
+        const row = index + 3;
+        return `<span class="${label ? "arrangement-schedule-time" : "arrangement-schedule-time-marker"}" style="grid-column:1;grid-row:${row}"${label ? "" : " aria-hidden=\"true\""}>${escapeArrangementHtml(label)}</span>`;
+    }).join("");
+    const dayHeaders = dates.map((date, index) => `<strong class="arrangement-overview-day" style="grid-column:${index + 2};grid-row:1"><span>${escapeArrangementHtml(new Intl.DateTimeFormat("sv-SE", { weekday: "short" }).format(new Date(`${date}T12:00:00`)))}</span><time datetime="${escapeArrangementHtml(date)}">${escapeArrangementHtml(new Intl.DateTimeFormat("sv-SE", { day: "numeric", month: "short" }).format(new Date(`${date}T12:00:00`)))}</time></strong>`).join("");
+    const dayAllDayRows = dates.map((date, index) => {
+        const { allDayEntries } = overviewEvents[index];
+        const emptyLabel = !allDayEntries && !canEditAgenda ? '<span class="arrangement-overview-all-day-empty">Heldag</span>' : "";
+        const addButton = canEditAgenda
+            ? `<button type="button" class="arrangement-overview-all-day-add" ${addAgendaSlotAttributes(date)}>+ Heldag</button>`
+            : "";
+        return `<div class="arrangement-overview-all-day" style="grid-column:${index + 2};grid-row:2">${allDayEntries}${emptyLabel}${addButton}</div>`;
+    }).join("");
+        const emptyCells = dates.flatMap((date, dateIndex) => sortedTimes.map((minute, timeIndex) => {
+            const hourClass = minute % 60 === 0 ? " arrangement-overview-slot--hour" : "";
+            const position = `grid-column:${dateIndex + 2};grid-row:${timeIndex + 3}`;
+        const cell = canEditAgenda && minute < 1440
+                ? `<button type="button" class="arrangement-overview-slot${hourClass}" style="${position}" ${addAgendaSlotAttributes(date, minute)}></button>`
+                : `<span class="arrangement-overview-slot${hourClass}" style="${position}" aria-hidden="true"></span>`;
+            return cell;
+        })).join("");
+    const eventMarkup = overviewEvents.flatMap(({ events }, dateIndex) => events.map(event => {
+        const startIndex = sortedTimes.indexOf(event.startMinutes);
+        const endIndex = sortedTimes.indexOf(event.endMinutes);
+        const startRow = (startIndex >= 0 ? startIndex : 0) + 3;
+        const endRow = endIndex > startIndex ? endIndex + 3 : startRow + 1;
+        const laneWidth = (100 / event.laneCount).toFixed(4);
+        const laneOffset = (event.laneIndex * 100 / event.laneCount).toFixed(4);
+        const card = renderScheduleEntry(event.entry, event.tone, item.id, canEditAgenda);
+        const durationClass = event.endMinutes - event.startMinutes < 60 ? " arrangement-schedule-overview-event--short" : "";
+        return `<div class="arrangement-schedule-event arrangement-schedule-overview-event${event.tone === null ? " arrangement-schedule-event--shared" : ""}${durationClass}" style="grid-column:${dateIndex + 2};grid-row:${startRow}/${endRow};--lane-width:${laneWidth}%;--lane-offset:${laneOffset}%;--event-z-index:${event.tone === null ? 1 : 2}">${card}</div>`;
+    })).join("");
+    const columns = `48px repeat(${dates.length}, minmax(128px, 1fr))`;
+    return `<div class="arrangement-schedule-overview"><div class="arrangement-overview-scroll"><div class="arrangement-overview-grid" style="--overview-columns:${columns};--schedule-rows:${rowHeights.join(" ")}"><span class="arrangement-overview-time-heading" style="grid-column:1;grid-row:1 / 3">Tid</span>${dayHeaders}${dayAllDayRows}${timeLabels}${emptyCells}${eventMarkup}</div></div></div>`;
+}
+
 function renderArrangementSchedule(item) {
     const selectedDepartments = item.departments?.length ? item.departments : departments;
     const departmentCount = selectedDepartments.length;
+    const canEditAgenda = isArrangementDetailEditable(item);
+    const showOverview = arrangementScheduleOverview.has(item.id);
     const getSharedSegments = excludedDepartments => {
         const segments = [];
         let segmentStart = -1;
@@ -349,7 +491,6 @@ function renderArrangementSchedule(item) {
     const inferredEnd = agendaEnds.at(-1) || (agendaStarts.length ? addHour(scheduleStart) : "17:00");
     let scheduleEnd = isTime(item.end_time) ? item.end_time : inferredEnd || "17:00";
     if (scheduleEnd <= scheduleStart) scheduleEnd = addHour(scheduleStart) || "23:00";
-    const canEditAgenda = isArrangementDetailEditable(item);
     const allScheduleDates = arrangementDates(item.start_date, item.end_date);
     const scheduleDates = canEditAgenda
         ? allScheduleDates
@@ -474,10 +615,11 @@ function renderArrangementSchedule(item) {
         }).join("");
         const emptyCells = timePoints.map((time, rowIndex) => selectedDepartments.map((department, departmentIndex) => {
             const timeLabel = time || "Heldag";
+            const hourClass = isTime(time) && time.endsWith(":00") ? " arrangement-schedule-slot--hour" : "";
             const addAttributes = canEditAgenda
                 ? `type="button" data-add-agenda data-add-agenda-arrangement="${escapeArrangementHtml(item.id)}" data-add-agenda-date="${escapeArrangementHtml(date)}" data-add-agenda-time="${escapeArrangementHtml(time)}" data-add-agenda-department="${escapeArrangementHtml(department)}" aria-label="Lägg till programpunkt ${escapeArrangementHtml(timeLabel)} för ${escapeArrangementHtml(department)}" title="Lägg till programpunkt"`
                 : `type="button" disabled aria-hidden="true"`;
-            return `<button ${addAttributes} class="arrangement-schedule-slot department-tone-${departments.indexOf(department)}" style="grid-column:${departmentIndex + 2};grid-row:${rowIndex + 1}"></button>`;
+            return `<button ${addAttributes} class="arrangement-schedule-slot department-tone-${departments.indexOf(department)}${hourClass}" style="grid-column:${departmentIndex + 2};grid-row:${rowIndex + 1}"></button>`;
         }).join("")).join("");
         const eventMarkup = scheduleEvents.map(event => {
             const startIndex = timePoints.indexOf(event.startTime);
@@ -511,7 +653,11 @@ function renderArrangementSchedule(item) {
         return `<details class="arrangement-day" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-arrangement-date="${escapeArrangementHtml(date)}"${dayIsOpen ? " open" : ""}><summary class="arrangement-day-summary"><h3>${escapeArrangementHtml(formatArrangementDate(date))}</h3><span>${countLabel}</span></summary><div class="arrangement-day-content"><div class="arrangement-schedule-header"><span>Tid</span><div class="arrangement-schedule-columns" style="--department-count:${departmentCount}">${headers}</div></div>${grid}</div></details>`;
     }).join("");
     const isSchemaExpanded = arrangementSchemaExpansion.has(item.id);
-    return `<details class="arrangement-schedule" data-arrangement-id="${escapeArrangementHtml(item.id)}"${isSchemaExpanded ? " open" : ""}><summary class="arrangement-section-summary"><strong>Schema</strong><span>${scheduleDateLabel} · ${scheduleEntryLabel}</span></summary><div class="arrangement-schedule-days">${scheduleDays}</div></details>`;
+    const viewControls = `<div class="arrangement-schedule-view-toggle" role="group" aria-label="Schemalayout"><button type="button" data-toggle-schedule-overview="${escapeArrangementHtml(item.id)}" data-schedule-view="days" aria-pressed="${!showOverview}">Dag för dag</button><button type="button" data-toggle-schedule-overview="${escapeArrangementHtml(item.id)}" data-schedule-view="overview" aria-pressed="${showOverview}">Helhetsschema</button></div>`;
+    const scheduleContent = showOverview
+        ? renderArrangementScheduleOverview(item, selectedDepartments, canEditAgenda)
+        : `<div class="arrangement-schedule-days">${scheduleDays}</div>`;
+    return `<details class="arrangement-schedule" data-arrangement-id="${escapeArrangementHtml(item.id)}"${isSchemaExpanded ? " open" : ""}><summary class="arrangement-section-summary"><strong>Schema</strong><span>${scheduleDateLabel} · ${scheduleEntryLabel}</span></summary><div class="arrangement-schedule-body">${viewControls}${scheduleContent}</div></details>`;
 }
 
 function renderArrangementMealSummary(item, canEdit = false) {
@@ -1259,6 +1405,24 @@ arrangementsGrid.addEventListener("click", async event => {
 });
 
 arrangementsGrid.addEventListener("click", async event => {
+    const scheduleOverviewButton = event.target.closest("[data-toggle-schedule-overview]");
+    if (scheduleOverviewButton) {
+        event.preventDefault();
+        const arrangementId = scheduleOverviewButton.dataset.toggleScheduleOverview;
+        const showOverview = scheduleOverviewButton.dataset.scheduleView === "overview";
+        if (showOverview) {
+            arrangementScheduleOverview.add(arrangementId);
+            arrangementSchemaExpansion.add(arrangementId);
+            expandedArrangementIds.add(arrangementId);
+        } else {
+            arrangementScheduleOverview.delete(arrangementId);
+        }
+        renderArrangements();
+        [...arrangementsGrid.querySelectorAll(".arrangement-card")]
+            .find(card => card.dataset.arrangementId === arrangementId)
+            ?.querySelector(`[data-schedule-view="${showOverview ? "overview" : "days"}"]`)?.focus();
+        return;
+    }
     const detailEditButton = event.target.closest("[data-toggle-arrangement-edit]");
     const editNotesButton = event.target.closest("[data-edit-arrangement-notes]");
     const addMealButton = event.target.closest("[data-add-meal]");
@@ -1346,8 +1510,8 @@ arrangementsGrid.addEventListener("click", async event => {
                 meal_type: "",
                 source_type: "",
                 source_id: "",
-                shared: false,
-                departments: [addAgendaButton.dataset.addAgendaDepartment],
+                shared: !addAgendaButton.dataset.addAgendaDepartment,
+                departments: addAgendaButton.dataset.addAgendaDepartment ? [addAgendaButton.dataset.addAgendaDepartment] : [],
                 title: "",
                 responsible: "",
                 notes: ""
