@@ -786,7 +786,7 @@ function renderArrangements() {
         cardsByYear.get(year).push(renderedCards[index]);
     });
     arrangementsGrid.innerHTML = [...cardsByYear].map(([year, cards]) => {
-        const countLabel = cards.length === 1 ? "1 arrangemang" : `${cards.length} arrangemang`;
+        const countLabel = `${cards.length} st.`;
         const isOpen = !collapsedArrangementYears.has(year);
         return `<details class="arrangement-year-group" data-arrangement-year="${escapeArrangementHtml(year)}"${isOpen ? " open" : ""}><summary class="arrangement-year-summary"><strong>${escapeArrangementHtml(year)}</strong><span>${countLabel}</span></summary><div class="arrangement-year-cards">${cards.join("")}</div></details>`;
     }).join("");

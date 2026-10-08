@@ -6,6 +6,8 @@ body.shared-planning-view .planning-hero {
 }
 
 body.shared-arrangement-view .arrangements-heading > button,
+body.shared-arrangement-view .filters-visibility-toggle,
+body.shared-arrangement-view [data-header-action],
 body.shared-arrangement-view .arrangements-toolbar {
     display: none;
 }
@@ -28,7 +30,11 @@ body {
 .page-sync-status { display: block; width: fit-content; max-width: 100%; margin-bottom: 22px; }
 .cookbook-toolbar { display: grid; grid-template-columns: minmax(240px, 1.5fr) minmax(170px, .8fr) minmax(170px, .8fr); align-items: end; gap: 14px; margin-bottom: 24px; padding: 15px; border: 1px solid #d7e1eb; border-radius: 10px; background: #f8fafc; }
 .cookbook-toolbar .filter-field { min-width: 0; }
-.recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); align-items: start; gap: 18px; }
+.recipe-grid { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 18px; }
+.recipe-meal-group { min-width: 0; }
+.recipe-meal-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); align-items: start; gap: 18px; padding-top: 14px; }
+.recipe-meal-group > .recipe-meal-summary { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr); }
+.recipe-meal-summary > strong { overflow-wrap: anywhere; }
 .recipe-card { position: relative; display: flex; flex-direction: column; box-sizing: border-box; padding: 22px; border: 1px solid #d7e1eb; border-radius: 10px; background: #fff; box-shadow: 0 7px 22px rgba(0, 54, 96, .06); cursor: pointer; }
 .recipe-card-top, .recipe-meta, .recipe-card-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .recipe-card-top { padding-right: 52px; }
@@ -83,13 +89,13 @@ body {
 .arrangements-toolbar .filter-field { min-width: 0; }
 .arrangements-grid { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 14px; }
 .arrangement-year-group { min-width: 0; padding-bottom: 8px; border-bottom: 1px solid #d1dbdc; }
-.arrangement-year-summary { display: flex; align-items: center; gap: 9px; min-height: 38px; padding: 0 4px; color: #153c4a; cursor: pointer; list-style: none; }
-.arrangement-year-summary::-webkit-details-marker { display: none; }
-.arrangement-year-summary::before { width: 7px; height: 7px; flex: 0 0 7px; border-right: 2px solid #286d60; border-bottom: 2px solid #286d60; content: ""; transform: rotate(-45deg); transition: transform .15s ease; }
-.arrangement-year-group[open] > .arrangement-year-summary::before { transform: rotate(45deg); }
-.arrangement-year-summary > strong { font-size: .98rem; }
-.arrangement-year-summary > span { margin-left: auto; color: #65767b; font-size: .78rem; }
-.arrangement-year-summary:focus-visible { outline: 2px solid #4d8275; outline-offset: -2px; }
+.arrangement-year-summary, .recipe-meal-summary { position: sticky; top: calc(var(--site-header-height, 146px) + 4px); z-index: 8; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 9px; box-sizing: border-box; min-height: 48px; padding: 10px 14px; border-radius: 12px; background: #003660; color: white; font-size: .95rem; font-weight: 700; text-align: center; cursor: pointer; list-style: none; }
+.arrangement-year-summary::-webkit-details-marker, .recipe-meal-summary::-webkit-details-marker { display: none; }
+.arrangement-year-summary::before, .recipe-meal-summary::before { width: 7px; height: 7px; justify-self: start; border-right: 2px solid white; border-bottom: 2px solid white; content: ""; transform: rotate(-45deg); transition: transform .15s ease; }
+.arrangement-year-group[open] > .arrangement-year-summary::before, .recipe-meal-group[open] > .recipe-meal-summary::before { transform: rotate(45deg); }
+.arrangement-year-summary > strong, .recipe-meal-summary > strong { font-size: inherit; }
+.arrangement-year-summary > span, .recipe-meal-summary > span { justify-self: end; color: white; font-size: .78rem; font-weight: 500; }
+.arrangement-year-summary:focus-visible, .recipe-meal-summary:focus-visible { outline: 2px solid #b8d5ec; outline-offset: -3px; }
 .arrangement-year-cards { display: grid; gap: 14px; padding-top: 8px; }
 .arrangement-card { min-width: 0; padding: 0; border: 1px solid #d1dbdc; border-top: 3px solid #4d8275; border-radius: 6px; background: #fff; }
 .arrangement-card > .arrangement-card-summary { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, auto) minmax(0, auto); grid-template-rows: auto auto auto; grid-template-areas: "title location tags" "dates location tags" "description location tags"; align-items: center; column-gap: 28px; row-gap: 4px; min-height: 72px; padding: 13px 48px 13px 16px; cursor: pointer; list-style: none; }
@@ -2343,7 +2349,7 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
     box-shadow: 0 8px 12px -10px rgba(0, 54, 96, 0.5);
 }
 
-.filters.filters--hidden {
+.filters--hidden {
     display: none !important;
 }
 
@@ -3822,6 +3828,10 @@ select:focus {
 
 .planning-actions-dropdown.hidden {
     display: none;
+}
+
+.planning-actions-dropdown .site-menu-item {
+    box-sizing: border-box;
 }
 
 .planning-menu-item {

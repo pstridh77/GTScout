@@ -3640,7 +3640,8 @@ groupFiltersVisibilityToggle?.addEventListener("click", () => {
     const label = isHidden ? "Visa sökfält och filter" : "Dölj sökfält och filter";
     groupFiltersVisibilityToggle.setAttribute("aria-label", label);
     groupFiltersVisibilityToggle.setAttribute("title", label);
-    groupFiltersVisibilityToggle.setAttribute("aria-pressed", String(isHidden));
+    groupFiltersVisibilityToggle.setAttribute("aria-pressed", String(!isHidden));
+    groupFiltersVisibilityToggle.setAttribute("aria-expanded", String(!isHidden));
 });
 
 updateGroupFilterCount();
