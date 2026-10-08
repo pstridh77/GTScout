@@ -19,7 +19,7 @@ body {
     color:#003660;
 }
 
-.cookbook-page, .arrangements-page { margin: 34px 20px 54px; }
+.cookbook-page, .arrangements-page, .activities-page { margin: 34px 20px 54px; }
 .page-hero { display: flex; align-items: end; justify-content: space-between; gap: 24px; box-sizing: border-box; min-height: 172px; margin-bottom: 26px; padding: 30px 34px; border-radius: 10px; background: linear-gradient(120deg, #003660 0%, #176b72 68%, #e0a83a 160%); color: #fff; }
 .page-hero > div:first-child { min-width: 0; }
 .page-kicker { margin: 0 0 8px; color: #b8e0d6; font-size: .78rem; font-weight: 700; letter-spacing: 0; text-transform: uppercase; }
@@ -35,6 +35,26 @@ body {
 .recipe-meal-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); align-items: start; gap: 18px; padding-top: 14px; }
 .recipe-meal-group > .recipe-meal-summary { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr); }
 .recipe-meal-summary > strong { overflow-wrap: anywhere; }
+.category-heading, .recipe-meal-summary > strong { text-transform: uppercase; }
+.activity-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.activity-category-group { min-width: 0; }
+.activity-category-group > .recipe-meal-summary { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr); }
+.activity-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 18px; align-items: start; padding-top: 14px; }
+.activity-card { min-width: 0; padding: 22px; border: 1px solid #d7e1eb; border-radius: 10px; background: #fff; box-shadow: 0 7px 22px rgba(0, 54, 96, .06); cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.activity-card h2 { margin: 18px 0 8px; }
+.activity-card > .recipe-category { display: block; overflow-wrap: anywhere; }
+.activity-card-title { padding: 0; border: 0; background: transparent; color: #003660; font: inherit; font-size: 1.35rem; font-weight: 700; text-align: left; overflow-wrap: anywhere; cursor: pointer; }
+.activity-card-title:focus-visible { outline: 2px solid #176b72; outline-offset: 3px; }
+.activity-card-meta, .activity-card-bottom { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: #536477; font-size: .78rem; }
+.activity-card-meta { margin-top: 8px; }
+.activity-card-description { color: #536477; line-height: 1.5; overflow-wrap: anywhere; }
+.activity-card-bottom { justify-content: space-between; margin-top: 16px; }
+.activity-card-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.activity-card-actions .activity-tool-button { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; }
+.activity-tool-button svg { width: 20px; height: 20px; }
+.activity-form { display: grid; gap: 12px; }
+.activity-form-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 680px) { .activity-form-grid { grid-template-columns: minmax(0, 1fr); } }
 .recipe-card { position: relative; display: flex; flex-direction: column; box-sizing: border-box; padding: 22px; border: 1px solid #d7e1eb; border-radius: 10px; background: #fff; box-shadow: 0 7px 22px rgba(0, 54, 96, .06); cursor: pointer; }
 .recipe-card-top, .recipe-meta, .recipe-card-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .recipe-card-top { padding-right: 52px; }
@@ -84,7 +104,7 @@ body {
 @media (max-width: 1100px) { .page-hero { align-items: flex-start; flex-direction: column; } }
 @media (max-width: 800px) { .page-hero h1 { font-size: 2.5rem; } .cookbook-toolbar { grid-template-columns: 1fr 1fr; } .recipe-form-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 680px) { .recipe-ingredient-row { grid-template-columns: 1fr 34px; } .recipe-ingredient-row .recipe-ingredient-name { grid-column: 1 / -1; } .recipe-ingredient-amounts { grid-column: 1 / -1; } }
-@media (max-width: 520px) { .cookbook-page, .arrangements-page, .planning-hero { margin-top: 20px; } .page-hero { padding: 24px; } .page-hero h1 { font-size: 2rem; } .cookbook-toolbar, .recipe-form-grid { grid-template-columns: 1fr; } .recipe-card { padding: 18px; } .recipe-ingredient-amounts { grid-template-columns: repeat(5, minmax(42px, 1fr)); gap: 3px; } }
+@media (max-width: 520px) { .cookbook-page, .arrangements-page, .activities-page, .planning-hero { margin-top: 20px; } .page-hero { padding: 24px; } .page-hero h1 { font-size: 2rem; } .cookbook-toolbar, .recipe-form-grid { grid-template-columns: 1fr; } .recipe-card { padding: 18px; } .recipe-ingredient-amounts { grid-template-columns: repeat(5, minmax(42px, 1fr)); gap: 3px; } }
 .arrangements-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(170px, 240px); align-items: end; gap: 14px; margin-bottom: 22px; }
 .arrangements-toolbar .filter-field { min-width: 0; }
 .arrangements-grid { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 14px; }
@@ -92,7 +112,7 @@ body {
 .arrangement-year-summary, .recipe-meal-summary { position: sticky; top: calc(var(--site-header-height, 146px) + 4px); z-index: 8; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 9px; box-sizing: border-box; min-height: 48px; padding: 10px 14px; border-radius: 12px; background: #003660; color: white; font-size: .95rem; font-weight: 700; text-align: center; cursor: pointer; list-style: none; }
 .arrangement-year-summary::-webkit-details-marker, .recipe-meal-summary::-webkit-details-marker { display: none; }
 .arrangement-year-summary::before, .recipe-meal-summary::before { width: 7px; height: 7px; justify-self: start; border-right: 2px solid white; border-bottom: 2px solid white; content: ""; transform: rotate(-45deg); transition: transform .15s ease; }
-.arrangement-year-group[open] > .arrangement-year-summary::before, .recipe-meal-group[open] > .recipe-meal-summary::before { transform: rotate(45deg); }
+.arrangement-year-group[open] > .arrangement-year-summary::before, .recipe-meal-group[open] > .recipe-meal-summary::before, .activity-category-group[open] > .recipe-meal-summary::before { transform: rotate(45deg); }
 .arrangement-year-summary > strong, .recipe-meal-summary > strong { font-size: inherit; }
 .arrangement-year-summary > span, .recipe-meal-summary > span { justify-self: end; color: white; font-size: .78rem; font-weight: 500; }
 .arrangement-year-summary:focus-visible, .recipe-meal-summary:focus-visible { outline: 2px solid #b8d5ec; outline-offset: -3px; }
@@ -2232,7 +2252,8 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
     left: 10px;
 }
 
-.badge:hover {
+.badge:hover,
+.activity-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 24px rgba(0,0,0,0.15);
 }

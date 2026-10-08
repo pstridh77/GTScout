@@ -13,9 +13,88 @@ function deferred() {
     return { promise, resolve };
 }
 
-function createBackend(session = leaderSession) {
-    return { session, callbacks: [], locked: false, requests: [], pending: null };
+function createBackend(session = leaderSession, profile = leaderProfile) {
+    return { session, profile, callbacks: [], locked: false, requests: [], pending: null };
 }
+
+test("local activities remain editable through the shared save API", async () => {
+    const original = { id: "egen-local-test", namn: "Original", material: [], kar_id: null };
+    const page = createPage(createBackend(null), new Map([["gtscout_custom_activities", JSON.stringify([original])]]));
+    page.load("activities-sync.js");
+    const sync = page.window.GTScoutActivities;
+    sync.init({ onChange() {} });
+    assert.equal(sync.canEditActivity(sync.getAllActivities()[0]), true);
+    await sync.saveActivity({ ...original, namn: "Updated" });
+    assert.equal(sync.getAllActivities()[0].namn, "Updated");
+    assert.equal(sync.getAllActivities()[0].kar_id, null);
+});
+
+test("leaders cannot edit or delete activities from another kar", async () => {
+    const backend = createBackend();
+    const page = createPage(backend);
+    await page.auth.init();
+    await page.runTimers();
+    backend.pending = { table: "aktiviteter", promise: Promise.resolve({ data: [{ id: "foreign", namn: "Foreign", kar_id: "kar-2", material: [] }] }) };
+    page.load("activities-sync.js");
+    const sync = page.window.GTScoutActivities;
+    await sync.reload();
+    assert.equal(sync.canEditActivity(sync.getAllActivities()[0]), false);
+    assert.equal(sync.canDeleteActivity(sync.getAllActivities()[0]), false);
+    await assert.rejects(sync.saveActivity({ id: "foreign", namn: "Changed" }), /behörighet/);
+    await assert.rejects(sync.deleteActivity("foreign"));
+    assert.equal(backend.requests.some(request => request.operation === "upsert" || request.operation === "delete"), false);
+});
+
+for (const [role, activityKarId, editable, deletable] of [
+    ["gast", "kar-1", false, false],
+    ["ledare", "kar-1", true, false],
+    ["admin", "kar-1", true, true],
+    ["admin", "kar-2", false, false]
+]) {
+    test(`activity permissions for ${role} and ${activityKarId}`, async () => {
+        const backend = createBackend(leaderSession, { ...leaderProfile, role });
+        const page = createPage(backend);
+        await page.auth.init();
+        await page.runTimers();
+        const activity = { id: "database-activity", namn: "Original", kar_id: activityKarId, material: [] };
+        backend.pending = { table: "aktiviteter", promise: Promise.resolve({ data: [activity] }) };
+        page.load("activities-sync.js");
+        const sync = page.window.GTScoutActivities;
+        await sync.reload();
+        assert.equal(sync.canEditActivity(sync.getAllActivities()[0]), editable);
+        assert.equal(sync.canDeleteActivity(sync.getAllActivities()[0]), deletable);
+        if (editable) {
+            await sync.saveActivity({ ...activity, namn: "Updated" });
+            const write = backend.requests.find(request => request.table === "aktiviteter" && request.operation === "upsert");
+            assert.equal(write.rows.kar_id, "kar-1");
+        } else {
+            await assert.rejects(sync.saveActivity({ ...activity, namn: "Updated" }));
+        }
+        if (deletable) {
+            await sync.deleteActivity(activity.id);
+            const deletion = backend.requests.find(request => request.table === "aktiviteter" && request.operation === "delete");
+            assert.equal(deletion.kar_id, "kar-1");
+        } else {
+            await assert.rejects(sync.deleteActivity(activity.id));
+        }
+    });
+}
+
+test("activity sync reports a failed fetch while preserving its local fallback", async () => {
+    const backend = createBackend();
+    const cached = { id: "cached-activity", namn: "Cached activity", kar_id: "kar-1", material: [] };
+    const page = createPage(backend, new Map([["gtscout_custom_activities", JSON.stringify([cached])]]));
+    await page.auth.init();
+    await page.runTimers();
+    backend.pending = { table: "aktiviteter", promise: Promise.resolve({ error: { message: "Simulated fetch failure" } }) };
+    page.load("activities-sync.js");
+    let lastState;
+    page.window.GTScoutActivities.init({ onChange(state) { lastState = state; } });
+    await page.window.GTScoutActivities.ensureLoaded();
+    assert.equal(lastState.loaded, true);
+    assert.equal(lastState.error, true);
+    assert.equal(lastState.activities[0].namn, "Cached activity");
+});
 
 function createElement() {
     const classes = new Set();
@@ -92,7 +171,7 @@ function createPage(backend, storage = new Map(), displayStorage = new Map()) {
                 delete() { request.operation = "delete"; return this; },
                 maybeSingle() {
                     if (backend.pending?.table === table) return backend.pending.promise;
-                    return Promise.resolve({ data: table === "profiles" ? leaderProfile : { namn: "Testkar" } });
+                    return Promise.resolve({ data: table === "profiles" ? backend.profile : { namn: "Testkar" } });
                 },
                 then(resolve, reject) {
                     const result = backend.pending?.table === table ? backend.pending.promise : Promise.resolve({ data: [] });

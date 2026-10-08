@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aktiviteter - GTScout</title>
+    <link rel="icon" type="image/png" href="images/icons/GTorp_250px.png">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/supabase-config.js"></script>
+    <script src="js/supabase-config.local.js"></script>
+    <script src="js/auth.js"></script>
+</head>
+<body>
+    <header class="site-header site-header--planning">
+        <div class="utility-bar">
+            <span class="utility-spacer" aria-hidden="true"></span>
+            <nav class="utility-nav" aria-label="Externa länkar">
+                <a href="https://www.scouterna.se/" target="_blank" rel="noreferrer">Scouterna</a>
+                <a href="https://www.scoutnet.se/" target="_blank" rel="noreferrer">Scoutnet</a>
+                <a href="https://www.scoutshop.se/" target="_blank" rel="noreferrer">Scoutshop</a>
+            </nav>
+            <div id="authArea" class="auth-area"></div>
+            <script>window.GTScoutAuth?.renderPreview();</script>
+        </div>
+        <div class="header-main">
+            <a class="site-brand" href="index.html" aria-label="Gullbrandstorps scoutkår"><img src="images/icons/GTorp_banner.png" alt="Gullbrandstorps Scoutkår" class="site-brand-banner"></a>
+            <nav class="main-nav" aria-label="Huvudnavigation">
+                <a href="index.html" class="nav-link">Märken</a>
+                <a href="aktiviteter.html" class="nav-link active" aria-current="page">Aktiviteter</a>
+                <a href="planering.html" class="nav-link">Planering</a>
+                <a href="arrangemang.html" class="nav-link">Arrangemang</a>
+                <a href="kokbok.html" class="nav-link">Scoutrecept</a>
+                <a href="scouter.html" class="nav-link hidden" data-scout-navigation>Scouter</a>
+            </nav>
+            <div class="library-header-actions">
+                <button id="filtersVisibilityToggle" class="filters-visibility-toggle" type="button" aria-label="Visa sökfält och filter" aria-pressed="false" aria-expanded="false" aria-controls="activityFilters" title="Visa sökfält och filter">
+                    <span class="filters-visibility-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" /></svg></span>
+                </button>
+                <div class="planning-actions-menu">
+                    <button id="planningActionsBtn" class="header-menu-button" type="button" aria-label="Meny" aria-expanded="false" aria-controls="planningActionsDropdown" title="Meny"><span></span><span></span><span></span></button>
+                    <div id="planningActionsDropdown" class="planning-actions-dropdown hidden" role="menu">
+                        <details class="site-menu-section" open>
+                            <summary class="planning-menu-section-label">Navigering</summary>
+                            <a href="index.html" class="site-menu-item" role="menuitem">Märken</a>
+                            <a href="aktiviteter.html" class="site-menu-item" role="menuitem" aria-current="page">Aktiviteter</a>
+                            <a href="planering.html" class="site-menu-item" role="menuitem">Planering</a>
+                            <a href="arrangemang.html" class="site-menu-item" role="menuitem">Arrangemang</a>
+                            <a href="kokbok.html" class="site-menu-item" role="menuitem">Scoutrecept</a>
+                            <a href="scouter.html" class="site-menu-item hidden" role="menuitem" data-scout-navigation>Scouter</a>
+                        </details>
+                        <div class="planning-menu-divider" role="separator"></div>
+                        <details class="site-menu-section" open>
+                            <summary class="planning-menu-section-label">Funktioner</summary>
+                            <button class="planning-menu-item" type="button" role="menuitem" data-header-action="addActivityBtn">Skapa aktivitet</button>
+                            <button class="planning-menu-item hidden" type="button" role="menuitem" data-admin-panel>Administration</button>
+                        </details>
+                        <div class="planning-menu-divider" role="separator"></div>
+                        <div class="site-menu-environment-note database-environment"></div>
+                        <div class="site-menu-version-note"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="activities-page">
+        <section class="page-hero" aria-labelledby="activitiesTitle">
+            <div><p class="page-kicker">Lek · friluftsliv · lärande</p><h1 id="activitiesTitle">Aktiviteter</h1><p>Samla aktiviteter, material och genomförande för scoutmöten och arrangemang.</p></div>
+            <button id="addActivityBtn" class="btn-primary" type="button">+ Skapa aktivitet</button>
+        </section>
+        <span id="activitySyncStatus" class="planning-sync-status page-sync-status hidden" role="status" aria-live="polite"></span>
+        <div id="activityFilters" class="cookbook-toolbar filters--hidden" data-page-filters>
+            <label class="filter-field search-field"><span>Sök aktiviteter</span><input id="activitySearch" type="search" placeholder="Sök namn, material eller genomförande..."></label>
+            <label class="filter-field"><span>Kategori</span><select id="activityCategoryFilter"><option value="Alla">Alla kategorier</option></select></label>
+            <label class="filter-field"><span>Kår</span><select id="activityKarFilter"><option value="Alla">Alla kårer</option></select></label>
+        </div>
+        <div id="activityGrid" class="activity-grid"></div>
+        <p id="activityEmpty" class="no-results hidden" role="status">Inga aktiviteter ännu.</p>
+    </main>
+
+    <div id="activityDetailModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="activityDetailTitle">
+        <div class="modal-content modal-content--wide">
+            <button class="close-popup" type="button" data-close-activity-detail aria-label="Stäng">&times;</button>
+            <div id="activityDetailBody"></div>
+            <div id="activityDetailActions" class="modal-actions"></div>
+        </div>
+    </div>
+    <div id="activityModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="activityModalTitle">
+        <form id="activityForm" class="modal-content modal-content--wide activity-form">
+            <button class="close-popup" type="button" data-close-activity-form aria-label="Stäng">&times;</button>
+            <h2 id="activityModalTitle">Skapa aktivitet</h2>
+            <p id="activityLocalNotice" class="detail-note-warning hidden">Aktiviteten sparas bara i den här webbläsaren.</p>
+            <div class="activity-form-grid">
+                <label class="modal-field"><span>Namn</span><input id="activityName" type="text" required></label>
+                <label class="modal-field"><span>Kategori</span><input id="activityCategory" type="text" list="activityCategories"><datalist id="activityCategories"></datalist></label>
+                <label class="modal-field"><span>Tid</span><input id="activityTime" type="text" placeholder="t.ex. 20 minuter eller en kväll"></label>
+            </div>
+            <label class="modal-field"><span>Beskrivning</span><textarea id="activityDescription" rows="3"></textarea></label>
+            <label class="modal-field"><span>Material, ett per rad</span><textarea id="activityMaterial" rows="3"></textarea></label>
+            <label class="modal-field"><span>Genomförande</span><textarea id="activityInstructions" rows="6"></textarea></label>
+            <p id="activityFormStatus" class="detail-planning-status" role="status"></p>
+            <div class="modal-actions"><button id="deleteActivityBtn" class="btn-danger hidden" type="button">Radera</button><span class="modal-actions-spacer"></span><button type="button" data-close-activity-form class="btn-secondary">Avbryt</button><button id="saveActivityBtn" class="btn-primary" type="submit">Spara aktivitet</button></div>
+        </form>
+    </div>
+    <footer class="site-footer" aria-label="Sidfot och version"><div class="site-footer-content"><span class="site-footer-title">GTScout</span><span class="site-footer-dot" aria-hidden="true">•</span><span class="site-footer-version"></span><span class="site-footer-dot" aria-hidden="true">•</span><span class="database-environment"></span></div></footer>
+    <script src="js/admin.js"></script>
+    <script src="js/activities-sync.js"></script>
+    <script src="js/badges-sync.js"></script>
+    <script src="js/version.js"></script>
+    <script src="js/aktiviteter.js?v=activity-category-3"></script>
+    <script src="js/header-controls.js"></script>
+</body>
+</html>

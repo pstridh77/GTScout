@@ -984,7 +984,7 @@ function createEditActivitiesMenuAction() {
     };
     syncVisibility();
     window.GTScoutAuth?.onChange(syncVisibility);
-    editButton.addEventListener("click", openEditActivitiesModal);
+    if (editButton.tagName !== "A") editButton.addEventListener("click", openEditActivitiesModal);
     document.getElementById("closeEditActivitiesModal").addEventListener("click", () => modal.classList.add("hidden"));
     modal.addEventListener("click", event => {
         if (event.target === modal) modal.classList.add("hidden");
