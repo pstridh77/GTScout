@@ -4774,6 +4774,18 @@ select:focus {
 #arrangementModal,
 #agendaEntryModal { z-index: 3000; }
 
+#arrangementModal {
+    box-sizing: border-box;
+    height: 100vh;
+    height: 100dvh;
+    padding: max(12px, env(safe-area-inset-top, 0px)) 0 max(12px, env(safe-area-inset-bottom, 0px));
+}
+
+#arrangementModal .modal-content {
+    max-height: 100%;
+    overscroll-behavior-y: contain;
+}
+
 #createActivityModal {
     z-index: 1600;
 }
