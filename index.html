@@ -9,6 +9,9 @@
     <link rel="apple-touch-icon" href="images/marken/koda.png">
 
     <link rel="stylesheet" href="css/style.css">
+    <script src="js/supabase-config.js"></script>
+    <script src="js/supabase-config.local.js"></script>
+    <script src="js/auth.js"></script>
 </head>
 <body>
 
@@ -21,6 +24,7 @@
                 <a href="https://www.scoutshop.se/" target="_blank" rel="noreferrer">Scoutshop</a>
             </nav>
             <div id="authArea" class="auth-area"></div>
+            <script>window.GTScoutAuth?.renderPreview();</script>
         </div>
         <div class="header-main">
             <a class="site-brand" href="index.html" aria-label="Gullbrandstorps scoutkår">
@@ -142,9 +146,6 @@
         </div>
     </footer>
 
-    <script src="js/supabase-config.js"></script>
-    <script src="js/supabase-config.local.js"></script>
-    <script src="js/auth.js"></script>
     <script src="js/admin.js"></script>
     <script src="js/activities-sync.js"></script>
     <script src="js/badges-sync.js"></script>

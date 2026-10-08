@@ -3,6 +3,10 @@
     let arrangements = [];
     let onChange = null;
     let loadedForKarId = null;
+    let loadedForUserId = null;
+    let loadRevision = 0;
+    let loading = false;
+    let loadError = false;
     let sharedToken = null;
     const DEPARTMENTS = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
 
@@ -119,32 +123,44 @@
     }
 
     async function reload() {
+        const revision = ++loadRevision;
+        loading = canRead();
+        loadError = false;
         const local = readLocal();
         arrangements = local;
         if (!canRead()) {
             loadedForKarId = null;
+            loadedForUserId = null;
             writeLocal();
             return getAll();
         }
 
         const currentKarId = karId();
+        const currentUserId = auth().getUser()?.id || null;
+        loadedForKarId = currentKarId;
+        loadedForUserId = currentUserId;
+        onChange?.(getAll());
         try {
             const { data, error } = await client().from("arrangemang").select("id, kar_id, created_by, data, updated_at, share_token").eq("kar_id", currentKarId);
+            if (revision !== loadRevision || !canRead()) return getAll();
             if (error) throw error;
             const remote = (data || []).map(row => normalize({ ...row.data, id: row.id, created_by: row.created_by, updated_at: row.updated_at, share_token: row.share_token || row.data?.share_token, local_only: false })).filter(Boolean);
             const remoteIds = new Set(remote.map(item => item.id));
             const pendingById = new Map(local.filter(item => item.local_only).map(item => [item.id, item]));
             arrangements = remote.map(item => pendingById.get(item.id) || item);
             arrangements.push(...local.filter(item => item.local_only && !remoteIds.has(item.id)));
-            loadedForKarId = currentKarId;
             if (canWrite()) {
                 for (const pending of [...pendingById.values()]) {
                     await save(pending);
+                    if (revision !== loadRevision || !canRead()) return getAll();
                 }
             }
         } catch (error) {
+            if (revision !== loadRevision || !canRead()) return getAll();
+            loadError = true;
             console.error("Kunde inte hämta arrangemang", error);
         }
+        loading = false;
         writeLocal();
         return getAll();
     }
@@ -176,6 +192,7 @@
     }
 
     async function save(input) {
+        const revision = loadRevision;
         const item = normalize({ ...input, updated_at: new Date().toISOString() });
         if (!item) throw new Error("Kontrollera titel och datumintervall.");
         item.created_by = item.created_by || auth()?.getUser?.()?.id || null;
@@ -198,6 +215,7 @@
         };
         try {
             const { error } = await client().from("arrangemang").upsert(row, { onConflict: "id" });
+            if (revision !== loadRevision) return { item, localOnly: false, error };
             if (error) throw error;
             item.local_only = false;
             const savedIndex = arrangements.findIndex(existing => existing.id === item.id);
@@ -205,6 +223,7 @@
             writeLocal();
             return { item, localOnly: false };
         } catch (error) {
+            if (revision !== loadRevision) return { item, localOnly: true, error };
             item.local_only = true;
             const savedIndex = arrangements.findIndex(existing => existing.id === item.id);
             if (savedIndex >= 0) arrangements[savedIndex] = item;
@@ -233,7 +252,20 @@
             return;
         }
         const currentKarId = canRead() ? karId() : null;
-        if (loadedForKarId === currentKarId) {
+        const currentUserId = canRead() ? auth().getUser()?.id || null : null;
+        if (!canRead()) {
+            loading = false;
+            loadError = false;
+            loadRevision++;
+            if (loadedForKarId !== null || loadedForUserId !== null) {
+                loadedForKarId = null;
+                loadedForUserId = null;
+                arrangements = [];
+                onChange?.([]);
+                return;
+            }
+        }
+        if (loadedForKarId === currentKarId && loadedForUserId === currentUserId) {
             onChange?.(getAll());
             return;
         }
@@ -261,6 +293,7 @@
             onAuthChange();
         },
         getAll,
+        getSyncState: () => ({ loading, error: loadError }),
         canRead,
         canWrite,
         reload,

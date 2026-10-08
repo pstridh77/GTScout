@@ -8,6 +8,9 @@
     <link rel="shortcut icon" type="image/png" href="images/marken/navigera.png">
     <link rel="apple-touch-icon" href="images/marken/navigera.png">
     <link rel="stylesheet" href="css/style.css">
+    <script src="js/supabase-config.js"></script>
+    <script src="js/supabase-config.local.js"></script>
+    <script src="js/auth.js"></script>
 </head>
 <body>
 
@@ -20,6 +23,7 @@
                 <a href="https://www.scoutshop.se/" target="_blank" rel="noreferrer">Scoutshop</a>
             </nav>
             <div id="authArea" class="auth-area"></div>
+            <script>window.GTScoutAuth?.renderPreview();</script>
         </div>
         <div class="header-main">
             <a class="site-brand" href="index.html" aria-label="Gullbrandstorps scoutkår">
@@ -82,18 +86,21 @@
         </div>
     </header>
 
-    <section id="planningIntro" class="planning-intro" aria-labelledby="planningIntroTitle">
-        <h2 id="planningIntroTitle">Så använder du planeringen</h2>
-        <p>Lägg till märken i en planering och klicka på märkena för att välja aktiviteter. Du kan också skapa egna aktiviteter, redigera innehåll och skriva ut färdiga planeringar.</p>
-    </section>
-
-    <div class="planning-toolbar">
-        <div class="toolbar-actions">
+    <section id="planningIntro" class="page-hero planning-hero" aria-labelledby="planningIntroTitle">
+        <div>
+            <p class="page-kicker">Märken · möten · terminer</p>
+            <h1 id="planningIntroTitle">Planering</h1>
+            <p>Planera terminens märken, aktiviteter och möten.</p>
+        </div>
+        <div class="page-hero-actions">
             <input id="importPlanningInput" type="file" accept="application/json,.json" hidden>
             <button id="addGroupBtn" class="btn-primary" type="button">+ Lägg till planering</button>
             <button id="openDefaultPlanningBtn" class="btn-secondary" type="button">Standardplaneringar</button>
         </div>
-        <span id="planningSyncStatus" class="planning-sync-status hidden" role="status" aria-live="polite"></span>
+    </section>
+
+    <div class="planning-toolbar">
+        <span id="planningSyncStatus" class="planning-sync-status page-sync-status hidden" role="status" aria-live="polite"></span>
     </div>
 
     <div class="planning-filters filters filters--hidden" aria-label="Filtrera planeringar">
@@ -476,9 +483,6 @@
         </div>
     </footer>
 
-    <script src="js/supabase-config.js"></script>
-    <script src="js/supabase-config.local.js"></script>
-    <script src="js/auth.js"></script>
     <script src="js/admin.js"></script>
     <script src="js/activities-sync.js"></script>
     <script src="js/badges-sync.js"></script>

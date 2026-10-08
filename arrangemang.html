@@ -8,6 +8,9 @@
     <link rel="shortcut icon" type="image/png" href="images/marken/koda.png">
     <link rel="apple-touch-icon" href="images/marken/koda.png">
     <link rel="stylesheet" href="css/style.css">
+    <script src="js/supabase-config.js"></script>
+    <script src="js/supabase-config.local.js"></script>
+    <script src="js/auth.js"></script>
 </head>
 <body>
     <header class="site-header site-header--planning site-header--arrangements">
@@ -19,6 +22,7 @@
                 <a href="https://www.scoutshop.se/" target="_blank" rel="noreferrer">Scoutshop</a>
             </nav>
             <div id="authArea" class="auth-area"></div>
+            <script>window.GTScoutAuth?.renderPreview();</script>
         </div>
         <div class="header-main">
             <a class="site-brand" href="index.html" aria-label="Gullbrandstorps scoutkår">
@@ -35,14 +39,16 @@
     </header>
 
     <main class="arrangements-page">
-        <section class="arrangements-heading" aria-labelledby="arrangementsTitle">
+        <section class="arrangements-heading page-hero" aria-labelledby="arrangementsTitle">
             <div>
-                <p class="arrangements-kicker">Hajk · övernattning · läger</p>
+            <p class="page-kicker">Hajk · övernattning · läger</p>
                 <h1 id="arrangementsTitle">Arrangemang</h1>
                 <p>Samla datum, dagsprogram, mat och aktiviteter på ett ställe.</p>
             </div>
             <button id="addArrangementBtn" class="btn-primary" type="button">+ Nytt arrangemang</button>
         </section>
+
+        <span id="arrangementSyncStatus" class="planning-sync-status page-sync-status" role="status" aria-live="polite"></span>
 
         <section class="arrangements-toolbar" aria-label="Filtrera arrangemang">
             <label class="filter-field search-field">
@@ -58,10 +64,9 @@
                     <option value="cancelled">Inställda</option>
                 </select>
             </label>
-            <span id="arrangementSyncStatus" class="planning-sync-status" role="status" aria-live="polite"></span>
         </section>
 
-        <div id="arrangementsEmpty" class="arrangements-empty hidden" role="status"></div>
+        <p id="arrangementsEmpty" class="no-results hidden" role="status"></p>
         <section id="arrangementsGrid" class="arrangements-grid" aria-label="Arrangemang"></section>
     </main>
 
@@ -277,9 +282,6 @@
         </div>
     </footer>
 
-    <script src="js/supabase-config.js"></script>
-    <script src="js/supabase-config.local.js"></script>
-    <script src="js/auth.js"></script>
     <script src="js/activities-sync.js"></script>
     <script src="js/kokbok-sync.js"></script>
     <script src="js/arrangemang-sync.js"></script>

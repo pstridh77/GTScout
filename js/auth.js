@@ -6,6 +6,7 @@
  */
 (function () {
     const SUPABASE_CDN = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
+    const DISPLAY_STORAGE_KEY = "gtscout_auth_display";
 
     const ROLES = { GUEST: "gast", LEADER: "ledare", ADMIN: "admin" };
     const ROLE_LABELS = { gast: "Gäst", ledare: "Ledare", admin: "Admin" };
@@ -15,6 +16,8 @@
     let profile = null;
     let karName = "";
     let mode = "login";
+    let authRevision = 0;
+    let initializing = isConfigured();
     const listeners = new Set();
 
     function config() {
@@ -37,6 +40,7 @@
 
     function state() {
         return {
+            loading: initializing,
             online: Boolean(client),
             signedIn: Boolean(session?.user),
             email: session?.user?.email || "",
@@ -46,6 +50,46 @@
             karName,
             profile
         };
+    }
+
+    function readDisplay() {
+        try {
+            const display = JSON.parse(sessionStorage.getItem(DISPLAY_STORAGE_KEY));
+            if (display?.url !== config().url
+                || typeof display.email !== "string"
+                || typeof display.roleLabel !== "string"
+                || typeof display.karName !== "string") return null;
+            return display;
+        } catch {
+            return null;
+        }
+    }
+
+    function saveDisplay(current) {
+        try {
+            if (current.online && current.signedIn) {
+                sessionStorage.setItem(DISPLAY_STORAGE_KEY, JSON.stringify({
+                    url: config().url,
+                    email: current.email,
+                    roleLabel: current.roleLabel,
+                    karName: current.karName
+                }));
+            } else {
+                sessionStorage.removeItem(DISPLAY_STORAGE_KEY);
+            }
+        } catch {
+        }
+    }
+
+    function renderIdentity(status, display) {
+        status.textContent = display ? `${display.roleLabel}: ${display.email}` : "";
+        if (display?.karName) {
+            status.appendChild(document.createTextNode(" · "));
+            const name = document.createElement("span");
+            name.className = "auth-kar-name";
+            name.textContent = display.karName;
+            status.appendChild(name);
+        }
     }
 
     function notify() {
@@ -70,9 +114,7 @@
         });
     }
 
-    async function loadProfile() {
-        profile = null;
-        karName = "";
+    async function loadProfile(revision = authRevision) {
         if (!client || !session?.user) return;
 
         const { data, error } = await client
@@ -85,20 +127,24 @@
             console.error("Kunde inte hämta profil", error);
             return;
         }
-        profile = data || null;
+        const nextProfile = data || null;
+        let nextKarName = "";
 
-        if (profile?.kar_id) {
+        if (nextProfile?.kar_id) {
             const { data: kar, error: karError } = await client
                 .from("kar")
                 .select("namn")
-                .eq("id", profile.kar_id)
+            .eq("id", nextProfile.kar_id)
                 .maybeSingle();
             if (karError) {
                 console.error("Kunde inte hämta kår", karError);
             } else {
-                karName = kar?.namn || "";
+                nextKarName = kar?.namn || "";
             }
         }
+        if (revision !== authRevision) return;
+        profile = nextProfile;
+        karName = nextKarName;
     }
 
     function clearLocalKarData() {
@@ -107,6 +153,8 @@
             localStorage.removeItem("gtscout_badge_notes");
             localStorage.removeItem("gtscout_custom_activities");
             localStorage.removeItem("gtscout_custom_badge_activities");
+            localStorage.removeItem("gtscout_arrangemang");
+            localStorage.removeItem("gtscout_scouts");
         } catch (e) {
             console.error("Kunde inte rensa lokal kårdata vid utloggning", e);
         }
@@ -119,7 +167,13 @@
     }
 
     async function signOut() {
+        authRevision++;
+        session = null;
+        profile = null;
+        karName = "";
         clearLocalKarData();
+        renderUi();
+        notify();
         if (client) {
             try {
                 await client.auth.signOut();
@@ -127,11 +181,6 @@
                 console.error("Fel vid utloggning", error);
             }
         }
-        session = null;
-        profile = null;
-        karName = "";
-        renderUi();
-        notify();
     }
 
     async function resetPassword(email) {
@@ -189,8 +238,8 @@
 
         area.dataset.ready = "true";
         area.innerHTML = `
-            <span id="authStatus" class="auth-status">Gäst</span>
-            <button id="authActionBtn" class="auth-button" type="button">Logga in</button>
+            <span id="authStatus" class="auth-status" role="status" aria-live="polite"></span>
+            <button id="authActionBtn" class="auth-button" type="button" disabled>Logga in</button>
         `;
 
         const modal = document.createElement("div");
@@ -343,6 +392,8 @@
     }
 
     function renderUi() {
+        const current = state();
+        if (!current.loading) saveDisplay(current);
         const status = document.getElementById("authStatus");
         const button = document.getElementById("authActionBtn");
         const environments = document.querySelectorAll(".database-environment");
@@ -355,7 +406,21 @@
         });
         if (!status || !button) return;
 
-        const current = state();
+        if (current.loading) {
+            environments.forEach(function (environment) {
+                environment.textContent = config().environmentName;
+                environment.title = "Databaskoppling kontrolleras.";
+                environment.classList.toggle("database-environment--production", config().environmentName === "Produktion");
+            });
+            const display = readDisplay();
+            renderIdentity(status, display);
+            status.title = "Återställer session och hämtar användarprofil.";
+            button.textContent = display ? "Logga ut" : "Logga in";
+            button.disabled = true;
+            button.classList.remove("hidden");
+            return;
+        }
+        button.disabled = false;
         if (!current.online) {
             environments.forEach(function (environment) {
                 environment.textContent = "Lokalt läge";
@@ -373,14 +438,7 @@
         });
         button.classList.remove("hidden");
         if (current.signedIn) {
-            status.textContent = `${current.roleLabel}: ${current.email}`;
-            if (current.karName) {
-                status.appendChild(document.createTextNode(" · "));
-                const karName = document.createElement("span");
-                karName.className = "auth-kar-name";
-                karName.textContent = current.karName;
-                status.appendChild(karName);
-            }
+            renderIdentity(status, current);
             status.title = current.karName ? "Kår: " + current.karName : "";
             button.textContent = "Logga ut";
         } else {
@@ -393,6 +451,7 @@
     /* ── Init ────────────────────────────────────────────────────────────── */
 
     async function init() {
+        initializing = isConfigured();
         buildUi();
         renderUi();
 
@@ -412,11 +471,22 @@
             session = data?.session || null;
             await loadProfile();
 
-            client.auth.onAuthStateChange(async (_event, newSession) => {
-                session = newSession;
-                await loadProfile();
-                renderUi();
-                notify();
+            client.auth.onAuthStateChange((_event, newSession) => {
+                const revision = ++authRevision;
+                setTimeout(async () => {
+                    if (revision !== authRevision) return;
+                    const userChanged = session?.user?.id !== newSession?.user?.id;
+                    session = newSession;
+                    if (userChanged || !session) {
+                        profile = null;
+                        karName = "";
+                    }
+                    if (!session) clearLocalKarData();
+                    await loadProfile(revision);
+                    if (revision !== authRevision) return;
+                    renderUi();
+                    notify();
+                }, 0);
             });
         } catch (error) {
             console.error("Supabase kunde inte initieras, fortsätter i lokalt läge", error);
@@ -425,6 +495,7 @@
             profile = null;
         }
 
+        initializing = false;
         renderUi();
         notify();
     }
@@ -433,6 +504,10 @@
         ROLES,
         ROLE_LABELS,
         init,
+        renderPreview() {
+            buildUi();
+            renderUi();
+        },
         getClient: () => client,
         getUser: () => session?.user || null,
         getProfile: () => profile,

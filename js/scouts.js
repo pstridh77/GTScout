@@ -222,9 +222,10 @@ function canViewScouts() {
 }
 
 function updateScoutAccess() {
+    const loading = Boolean(window.GTScoutAuth?.getState().loading);
     const allowed = canViewScouts();
-    scoutsContent.classList.toggle("hidden", !allowed);
-    scoutsAccessDenied.classList.toggle("hidden", allowed);
+    scoutsContent.classList.toggle("hidden", loading || !allowed);
+    scoutsAccessDenied.classList.toggle("hidden", loading || allowed);
     document.getElementById("importScoutsBtn").classList.toggle("hidden", !canDeleteScouts());
     removeFilteredScoutsBtn.classList.toggle("hidden", !canDeleteScouts());
     if (allowed) renderAll();
@@ -500,7 +501,7 @@ function renderAll() {
     if (!canViewScouts()) {
         scoutData = [];
         scoutsContent.classList.add("hidden");
-        scoutsAccessDenied.classList.remove("hidden");
+        scoutsAccessDenied.classList.toggle("hidden", Boolean(window.GTScoutAuth?.getState().loading));
         return;
     }
     scoutData = window.GTScoutScouts?.getAll?.() || [];

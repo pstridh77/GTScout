@@ -9,6 +9,9 @@
     <link rel="apple-touch-icon" href="images/marken/mattvaan.png">
     
     <link rel="stylesheet" href="css/style.css">
+    <script src="js/supabase-config.js"></script>
+    <script src="js/supabase-config.local.js"></script>
+    <script src="js/auth.js"></script>
 </head>
 <body>
     <header class="site-header site-header--planning">
@@ -20,6 +23,7 @@
                 <a href="https://www.scoutshop.se/" target="_blank" rel="noreferrer">Scoutshop</a>
             </nav>
             <div id="authArea" class="auth-area"></div>
+            <script>window.GTScoutAuth?.renderPreview();</script>
         </div>
         <div class="header-main">
             <a class="site-brand" href="index.html" aria-label="Gullbrandstorps scoutkår">
@@ -36,14 +40,16 @@
     </header>
 
     <main class="cookbook-page">
-        <section class="cookbook-hero">
+        <section class="page-hero" aria-labelledby="cookbookTitle">
             <div>
-                <p class="cookbook-kicker">Mat ute, tillsammans</p>
-                <h1>Scoutrecept</h1>
+            <p class="page-kicker">Mat ute, tillsammans</p>
+            <h1 id="cookbookTitle">Scoutrecept</h1>
                 <p>Samla recept som fungerar runt stormköket, på hajken och vid lägerelden.</p>
             </div>
             <button id="addRecipeBtn" class="btn-primary" type="button">+ Lägg till recept</button>
         </section>
+
+        <span id="recipeSyncStatus" class="planning-sync-status page-sync-status hidden" role="status" aria-live="polite"></span>
 
         <div class="cookbook-toolbar">
             <label class="filter-field search-field">
@@ -63,7 +69,6 @@
                     <option value="Avancerad">Avancerad</option>
                 </select>
             </label>
-            <span id="recipeSyncStatus" class="planning-sync-status" role="status" aria-live="polite"></span>
         </div>
         <div id="recipeGrid" class="recipe-grid"></div>
         <p id="recipeEmpty" class="cookbook-empty hidden">Inga recept matchar sökningen ännu.</p>
@@ -110,9 +115,6 @@
         <div class="site-footer-content"><span class="site-footer-title">GTScout</span><span class="site-footer-dot" aria-hidden="true">•</span><span class="site-footer-version">Scoutkokbok</span><span class="site-footer-dot" aria-hidden="true">•</span><span id="databaseEnvironment" class="database-environment"></span></div>
     </footer>
 
-    <script src="js/supabase-config.js"></script>
-    <script src="js/supabase-config.local.js"></script>
-    <script src="js/auth.js"></script>
     <script src="js/version.js"></script>
     <script src="js/kokbok-sync.js"></script>
     <script src="js/kokbok.js"></script>

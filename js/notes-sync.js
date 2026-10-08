@@ -11,6 +11,8 @@
     let saveTimer = null;
     const pending = new Map();
     let loadedForKarId = null;
+    let loadedForUserId = null;
+    let loadRevision = 0;
 
     const auth = () => window.GTScoutAuth;
     const client = () => auth()?.getClient() || null;
@@ -86,11 +88,13 @@
 
     async function load() {
         if (!canRead()) return;
+        const revision = ++loadRevision;
         try {
             const { data, error } = await client()
                 .from("badge_notes")
                 .select("badge_id, note")
                 .eq("kar_id", karId());
+            if (revision !== loadRevision || !canRead()) return;
             if (error) throw error;
 
             const remote = {};
@@ -119,6 +123,7 @@
             writeLocal(remote);
             onChange?.();
         } catch (error) {
+            if (revision !== loadRevision || !canRead()) return;
             console.error("Kunde inte hämta anteckningar från databasen", error);
         }
     }
@@ -127,6 +132,11 @@
         if (!canRead()) {
             const wasLoaded = loadedForKarId !== null;
             loadedForKarId = null;
+            loadedForUserId = null;
+            loadRevision++;
+            if (saveTimer) clearTimeout(saveTimer);
+            saveTimer = null;
+            pending.clear();
             if (wasLoaded) {
                 // Endast om användaren tidigare var inloggad i en kår och nu loggat ut
                 writeLocal({});
@@ -134,8 +144,10 @@
             }
             return;
         }
-        if (loadedForKarId === karId()) return;
+        const userId = auth().getUser()?.id || null;
+        if (loadedForKarId === karId() && loadedForUserId === userId) return;
         loadedForKarId = karId();
+        loadedForUserId = userId;
         load();
     }
 
