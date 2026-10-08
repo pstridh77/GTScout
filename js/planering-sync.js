@@ -10,6 +10,8 @@
     let saveTimer = null;
     let pendingGroups = null;
     let loadedForKarId = null;
+    let loadedForUserId = null;
+    let loadRevision = 0;
     let sharedToken = null;
 
     const auth = () => window.GTScoutAuth;
@@ -117,9 +119,11 @@
 
     async function load() {
         if (!hooks || !canRead()) return;
+        const revision = ++loadRevision;
         try {
             setStatus("Hämtar planeringar...", false);
             const remote = await fetchGroups();
+            if (revision !== loadRevision || !canRead()) return;
             const local = hooks.getGroups?.() || [];
 
             if (!canWrite()) {
@@ -149,6 +153,7 @@
                         }
                     });
                     await pushGroups(local);
+                    if (revision !== loadRevision || !canRead()) return;
                     hooks.applyGroups(local);
                     setStatus(`Sparade ${local.length} planeringar i kårens databas`, false);
                     return;
@@ -173,6 +178,7 @@
                     });
                     const combined = [...remote, ...localNew];
                     await pushGroups(combined);
+                    if (revision !== loadRevision || !canRead()) return;
                     hooks.applyGroups(combined);
                     setStatus(`Synkad med databasen (${combined.length} planeringar)`, false);
                     return;
@@ -182,6 +188,7 @@
             hooks.applyGroups(remote);
             setStatus(`Synkad med databasen (${remote.length} planeringar)`, false);
         } catch (error) {
+            if (revision !== loadRevision || !canRead()) return;
             console.error("Kunde inte hämta planeringar från databasen", error);
             setStatus("Kunde inte hämta från databasen – använder lokal data.", true);
         }
@@ -203,9 +210,18 @@
     }
 
     function onAuthChange() {
+        if (auth()?.getState().loading) {
+            setStatus("Kontrollerar inloggning...", false);
+            return;
+        }
         if (!canRead()) {
             const wasLoaded = loadedForKarId !== null;
             loadedForKarId = null;
+            loadedForUserId = null;
+            loadRevision++;
+            if (saveTimer) clearTimeout(saveTimer);
+            saveTimer = null;
+            pendingGroups = null;
             setStatus(auth()?.isOnline() ? "Du är inte inloggad – planeringar sparas bara i den här webbläsaren." : "", false);
             if (wasLoaded && hooks) {
                 // Endast om användaren tidigare var inloggad i en kår och nu loggat ut
@@ -213,8 +229,10 @@
             }
             return;
         }
-        if (loadedForKarId === karId()) return;
+        const userId = auth().getUser()?.id || null;
+        if (loadedForKarId === karId() && loadedForUserId === userId) return;
         loadedForKarId = karId();
+        loadedForUserId = userId;
         load();
     }
 

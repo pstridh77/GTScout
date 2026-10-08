@@ -1461,7 +1461,7 @@ function renderEditActivitiesList() {
 
 function createEditActivitiesMenuAction() {
     const actionButton = document.getElementById("editActivitiesBtn");
-    if (!actionButton) return;
+    if (!actionButton || actionButton.tagName === "A") return;
 
     const syncVisibility = () => {
         actionButton.classList.remove("hidden");

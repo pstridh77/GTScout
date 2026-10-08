@@ -786,7 +786,7 @@ function renderArrangements() {
         cardsByYear.get(year).push(renderedCards[index]);
     });
     arrangementsGrid.innerHTML = [...cardsByYear].map(([year, cards]) => {
-        const countLabel = cards.length === 1 ? "1 arrangemang" : `${cards.length} arrangemang`;
+        const countLabel = `${cards.length} st.`;
         const isOpen = !collapsedArrangementYears.has(year);
         return `<details class="arrangement-year-group" data-arrangement-year="${escapeArrangementHtml(year)}"${isOpen ? " open" : ""}><summary class="arrangement-year-summary"><strong>${escapeArrangementHtml(year)}</strong><span>${countLabel}</span></summary><div class="arrangement-year-cards">${cards.join("")}</div></details>`;
     }).join("");
@@ -1104,17 +1104,33 @@ async function openArrangementEditor(item = null, focusAgendaId = "", isCopy = f
 }
 
 function updateSyncStatus() {
+    const loading = Boolean(window.GTScoutAuth?.getState().loading);
+    const syncState = window.GTScoutArrangements?.getSyncState();
+    arrangementSyncStatus.classList.toggle("planning-sync-status--error", Boolean(syncState?.error));
+    arrangementSyncStatus.classList.toggle("detail-note-warning", !isSharedArrangementView && !loading && !window.GTScoutArrangements?.canRead());
     if (isSharedArrangementView) {
         arrangementSyncStatus.textContent = "Delat arrangemang · skrivskyddad visning";
         return;
     }
+    if (loading) {
+        arrangementSyncStatus.textContent = "Kontrollerar inloggning...";
+        return;
+    }
     if (!window.GTScoutArrangements?.canRead()) {
-        arrangementSyncStatus.textContent = "Sparas lokalt i den här webbläsaren";
+        arrangementSyncStatus.textContent = "Du är inte inloggad – arrangemang sparas bara i den här webbläsaren.";
+        return;
+    }
+    if (syncState?.loading) {
+        arrangementSyncStatus.textContent = "Hämtar arrangemang...";
+        return;
+    }
+    if (syncState?.error) {
+        arrangementSyncStatus.textContent = "Kunde inte hämta från databasen – använder lokal data.";
         return;
     }
     arrangementSyncStatus.textContent = window.GTScoutArrangements.canWrite()
-        ? "Kårens arrangemang · synkning aktiv"
-        : "Kårens arrangemang · skrivskyddad";
+        ? `Synkad med databasen (${arrangements.length} arrangemang)`
+        : `Kårens arrangemang visas (${arrangements.length} st) – egna arrangemang sparas lokalt.`;
 }
 
 function readFormPayload() {
@@ -2183,6 +2199,7 @@ window.GTScoutArrangements.init({
     onChange(nextArrangements) {
         arrangements = nextArrangements || [];
         renderArrangements();
+        updateSyncStatus();
     }
 });
 window.GTScoutAuth?.onChange(() => updateSyncStatus());

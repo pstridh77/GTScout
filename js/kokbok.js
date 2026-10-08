@@ -15,6 +15,21 @@ let recipes = [];
 const sharedRecipeIdFromUrl = new URLSearchParams(window.location.search).get("recipe");
 const RECIPE_SCALE_OPTIONS = [4, 10, 25, 50, 100];
 const recipeServingSelections = new Map();
+const RECIPE_MEAL_TYPES = ["Frukost", "Lunch", "Mellanmål", "Middag", "Kvällsmål", "Tillbehör", "Snacks"];
+const collapsedRecipeMealTypes = new Set();
+
+function getRecipeMealType(recipe) {
+    const category = recipe.kategori?.trim() || "Övrigt";
+    return RECIPE_MEAL_TYPES.find(mealType => mealType.toLocaleLowerCase("sv-SE") === category.toLocaleLowerCase("sv-SE")) || category;
+}
+
+function compareRecipeMealTypes(left, right) {
+    const leftIndex = RECIPE_MEAL_TYPES.indexOf(left);
+    const rightIndex = RECIPE_MEAL_TYPES.indexOf(right);
+    const leftOrder = leftIndex < 0 ? RECIPE_MEAL_TYPES.length : leftIndex;
+    const rightOrder = rightIndex < 0 ? RECIPE_MEAL_TYPES.length : rightIndex;
+    return leftOrder - rightOrder || left.localeCompare(right, "sv", { sensitivity: "base" });
+}
 
 function escapeRecipeHtml(value) {
     return String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char]));
@@ -24,11 +39,26 @@ function setRecipeStatus(text, error = false) {
     recipeSyncStatus.textContent = text || "";
     recipeSyncStatus.classList.toggle("hidden", !text);
     recipeSyncStatus.classList.toggle("planning-sync-status--error", error);
+    recipeSyncStatus.classList.toggle("detail-note-warning", !error && /lokalt|webbläsaren/.test(text || ""));
+}
+
+function updateRecipeSyncStatus() {
+    const auth = window.GTScoutAuth;
+    const cookbook = window.GTScoutCookbook;
+    const syncState = cookbook.getSyncState();
+    if (auth?.getState().loading) return setRecipeStatus("Kontrollerar inloggning...");
+    if (syncState.loading) return setRecipeStatus("Hämtar recept...");
+    if (syncState.error) return setRecipeStatus("Kunde inte hämta från databasen – använder lokal data.", true);
+    if (!auth?.isOnline()) return setRecipeStatus("Recept sparas lokalt i den här webbläsaren.");
+    if (cookbook.canEdit()) return setRecipeStatus(`Synkad med databasen (${recipes.length} recept)`);
+    setRecipeStatus(cookbook.canWrite()
+        ? `Receptbiblioteket visas (${recipes.length} st) – egna recept sparas lokalt.`
+        : `Receptbiblioteket visas (${recipes.length} st) – skrivskyddad visning.`);
 }
 
 function populateRecipeFilters() {
     const selected = recipeCategoryFilter.value;
-    const categories = [...new Set(recipes.map(recipe => recipe.kategori).filter(Boolean))].sort((a, b) => a.localeCompare(b, "sv"));
+    const categories = [...new Set(recipes.map(getRecipeMealType))].sort(compareRecipeMealTypes);
     recipeCategoryFilter.replaceChildren(new Option("Alla kategorier", "Alla"), ...categories.map(category => new Option(category, category)));
     recipeCategoryFilter.value = categories.includes(selected) ? selected : "Alla";
     document.getElementById("recipeCategories").replaceChildren(...categories.map(category => { const option = document.createElement("option"); option.value = category; return option; }));
@@ -37,8 +67,9 @@ function populateRecipeFilters() {
 function visibleRecipes() {
     const query = recipeSearch.value.trim().toLocaleLowerCase("sv-SE");
     return recipes.filter(recipe => {
-        const haystack = [recipe.namn, recipe.kategori, recipe.beskrivning, ...recipe.ingredienser].join(" ").toLocaleLowerCase("sv-SE");
-        return (!query || haystack.includes(query)) && (recipeCategoryFilter.value === "Alla" || recipe.kategori === recipeCategoryFilter.value) && (recipeDifficultyFilter.value === "Alla" || recipe.svarighet === recipeDifficultyFilter.value);
+        const mealType = getRecipeMealType(recipe);
+        const haystack = [recipe.namn, mealType, recipe.beskrivning, ...recipe.ingredienser].join(" ").toLocaleLowerCase("sv-SE");
+        return (!query || haystack.includes(query)) && (recipeCategoryFilter.value === "Alla" || mealType === recipeCategoryFilter.value) && (recipeDifficultyFilter.value === "Alla" || recipe.svarighet === recipeDifficultyFilter.value);
     });
 }
 
@@ -188,6 +219,11 @@ function openSharedRecipeFromUrl() {
         .find(element => [...element.querySelectorAll("[data-share-recipe]")]
             .some(button => button.dataset.shareRecipe === sharedRecipeIdFromUrl));
     if (!card) return;
+    const group = card.closest(".recipe-meal-group");
+    if (group) {
+        collapsedRecipeMealTypes.delete(group.dataset.mealType);
+        group.open = true;
+    }
     const details = card.querySelector("details");
     if (details && !details.open) {
         details.setAttribute("open", "");
@@ -213,7 +249,31 @@ async function shareRecipe(recipe) {
 function renderRecipes() {
     const visible = visibleRecipes();
     recipeEmpty.classList.toggle("hidden", visible.length > 0);
-    recipeGrid.replaceChildren(...visible.map(recipe => {
+    const groups = new Map();
+    visible.forEach(recipe => {
+        const mealType = getRecipeMealType(recipe);
+        if (!groups.has(mealType)) groups.set(mealType, []);
+        groups.get(mealType).push(recipe);
+    });
+    recipeGrid.replaceChildren(...[...groups].sort(([left], [right]) => compareRecipeMealTypes(left, right)).map(([mealType, groupRecipes]) => {
+        const group = document.createElement("details");
+        group.className = "recipe-meal-group";
+        group.dataset.mealType = mealType;
+        group.open = !collapsedRecipeMealTypes.has(mealType);
+        group.innerHTML = `<summary class="recipe-meal-summary"><strong>${escapeRecipeHtml(mealType)}</strong><span>${groupRecipes.length} st.</span></summary><div class="recipe-meal-cards"></div>`;
+        group.querySelector(".recipe-meal-cards").replaceChildren(...groupRecipes
+            .sort((left, right) => left.namn.localeCompare(right.namn, "sv"))
+            .map(createRecipeCard));
+        group.addEventListener("toggle", () => {
+            if (group.open) collapsedRecipeMealTypes.delete(mealType);
+            else collapsedRecipeMealTypes.add(mealType);
+        });
+        return group;
+    }));
+    openSharedRecipeFromUrl();
+}
+
+function createRecipeCard(recipe) {
         const card = document.createElement("article");
         card.className = "recipe-card";
         const targetServings = getRecipeTargetServings(recipe);
@@ -221,13 +281,11 @@ function renderRecipes() {
                 card.innerHTML = `<div class="recipe-card-top"><span class="recipe-category">${escapeRecipeHtml(recipe.kategori)}</span><span class="recipe-difficulty recipe-difficulty--${recipe.svarighet.toLocaleLowerCase("sv-SE")}">${escapeRecipeHtml(recipe.svarighet)}</span></div><h2>${escapeRecipeHtml(recipe.namn)}</h2><p class="recipe-description">${escapeRecipeHtml(recipe.beskrivning || "Ett recept för scoutköket.")}</p><dl class="recipe-meta"></dl><label class="recipe-serving-control"><span>Visa recept för</span><input data-recipe-servings="${recipe.id}" aria-label="Visa ${escapeRecipeHtml(recipe.namn)} för antal personer" type="number" min="4" step="1" value="${targetServings}"></label><details><summary>Visa recept</summary><div class="recipe-details"><h3>Ingredienser</h3><ul>${scaledIngredients.map(item => `<li>${escapeRecipeHtml(item)}</li>`).join("")}</ul><h3>Gör så här</h3><p>${escapeRecipeHtml(recipe.instruktioner).replace(/\n/g, "<br>")}</p></div></details><div class="recipe-card-actions"><button class="btn-secondary recipe-share-icon-btn" type="button" data-share-recipe="${recipe.id}" aria-label="Dela recept" title="Dela recept"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,16.08C17.24,16.08 16.54,16.38 16,16.85L8.91,12.74C8.96,12.5 9,12.25 9,12C9,11.75 8.96,11.5 8.91,11.26L15.92,7.17C16.47,7.66 17.2,7.97 18,7.97C19.66,7.97 21,6.63 21,4.97C21,3.31 19.66,1.97 18,1.97C16.34,1.97 15,1.97 15,4.97C15,5.22 15.04,5.47 15.09,5.71L8.08,9.8C7.53,9.31 6.8,9 6,9C4.34,9 3,10.34 3,12C3,13.66 4.34,15 6,15C6.8,15 7.53,14.69 8.08,14.2L15.17,18.31C15.12,18.54 15,18.77 15,19C15,20.66 16.34,22 18,22C19.66,22 21,20.66 21,19C21,17.34 19.66,16.08 18,16.08Z" /></svg></button><button class="btn-secondary" type="button" data-edit-recipe="${recipe.id}">Redigera</button></div>`;
         if (!window.GTScoutCookbook.canEdit?.()) card.querySelector("[data-edit-recipe]")?.remove();
         card.addEventListener("click", event => {
-            if (event.target.closest("button, input, summary, details")) return;
+            if (event.target.closest("button, input, summary") || event.target.closest(".recipe-card details")) return;
             const details = card.querySelector("details");
             if (details) details.open = !details.open;
         });
         return card;
-    }));
-    openSharedRecipeFromUrl();
 }
 
 function openRecipeModal(recipe = null) {
@@ -329,4 +387,5 @@ recipeGrid.addEventListener("click", event => {
     const recipe = recipes.find(item => item.id === button.dataset.editRecipe);
     if (recipe && window.GTScoutCookbook.canWrite()) openRecipeModal(recipe);
 });
-window.GTScoutCookbook.init({ onChange(nextRecipes) { recipes = nextRecipes; populateRecipeFilters(); renderRecipes(); setRecipeStatus(window.GTScoutCookbook.canWrite() ? "" : "Logga in som ledare eller admin för att redigera recept."); } });
+window.GTScoutCookbook.init({ onChange(nextRecipes) { recipes = nextRecipes; populateRecipeFilters(); renderRecipes(); updateRecipeSyncStatus(); } });
+window.GTScoutAuth?.onChange(updateRecipeSyncStatus);

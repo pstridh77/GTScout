@@ -5,6 +5,7 @@
     let onChange = null;
     let loadedForKarId = null;
     let loadedForUserId = null;
+    let loadRevision = 0;
     let saveTimer = null;
     const pendingDeletions = new Set();
 
@@ -33,12 +34,14 @@
 
     async function load() {
         if (!canRead()) return;
+        const revision = ++loadRevision;
         try {
             const { data: scoutRows, error: scoutError } = await client()
                 .from("scouts")
                 .select("id, kar_id, namn, fodelsear, aktiv, arkiverad_at, created_at")
                 .eq("kar_id", karId())
                 .order("namn");
+            if (revision !== loadRevision || !canRead()) return;
             if (scoutError) throw scoutError;
             scouts = (scoutRows || []).map(scout => ({ ...scout, fodelsear: Number(scout.fodelsear), statuses: {} }));
             let badgeRows = [];
@@ -47,6 +50,7 @@
                     .from("scout_badges")
                     .select("scout_id, badge_id, status, antal, updated_by, updated_at")
                     .in("scout_id", scouts.map(scout => scout.id));
+                if (revision !== loadRevision || !canRead()) return;
                 if (badgeError) {
                     console.error("Kunde inte hämta scouternas märkesstatus", badgeError);
                 } else {
@@ -65,13 +69,16 @@
             const updaterIds = [...new Set((badgeRows || []).map(row => row.updated_by).filter(Boolean))];
             if (updaterIds.length) {
                 const { data: profiles } = await client().from("profiles").select("id, full_name, email").in("id", updaterIds);
+                if (revision !== loadRevision || !canRead()) return;
                 const profileNames = new Map((profiles || []).map(profile => [profile.id, profile.full_name || profile.email || profile.id]));
                 scouts.forEach(scout => Object.values(scout.statusMeta || {}).forEach(meta => { meta.updatedByName = profileNames.get(meta.updatedBy) || ""; }));
             }
             const { data: kar } = await client().from("kar").select("id, namn").eq("id", karId()).maybeSingle();
+            if (revision !== loadRevision || !canRead()) return;
             scouts.forEach(scout => { scout.karName = kar?.namn || ""; });
             writeLocal();
         } catch (error) {
+            if (revision !== loadRevision || !canRead()) return;
             console.error("Kunde inte hämta scouter", error);
             scouts = [];
             onChange?.();
@@ -136,6 +143,10 @@
         if (!canRead()) {
             loadedForKarId = null;
             loadedForUserId = null;
+            loadRevision++;
+            if (saveTimer) clearTimeout(saveTimer);
+            saveTimer = null;
+            pendingDeletions.clear();
             scouts = [];
             onChange?.();
             return;

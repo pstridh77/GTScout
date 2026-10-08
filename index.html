@@ -9,6 +9,9 @@
     <link rel="apple-touch-icon" href="images/marken/koda.png">
 
     <link rel="stylesheet" href="css/style.css">
+    <script src="js/supabase-config.js"></script>
+    <script src="js/supabase-config.local.js"></script>
+    <script src="js/auth.js"></script>
 </head>
 <body>
 
@@ -21,6 +24,7 @@
                 <a href="https://www.scoutshop.se/" target="_blank" rel="noreferrer">Scoutshop</a>
             </nav>
             <div id="authArea" class="auth-area"></div>
+            <script>window.GTScoutAuth?.renderPreview();</script>
         </div>
         <div class="header-main">
             <a class="site-brand" href="index.html" aria-label="Gullbrandstorps scoutkår">
@@ -28,6 +32,7 @@
             </a>
             <nav class="main-nav" aria-label="Huvudnavigation">
             <a href="index.html" class="nav-link active">Märken</a>
+            <a href="aktiviteter.html" class="nav-link">Aktiviteter</a>
             <a href="planering.html" class="nav-link">Planering</a>
             <a href="arrangemang.html" class="nav-link">Arrangemang</a>
             <a href="kokbok.html" class="nav-link">Scoutrecept</a>
@@ -45,6 +50,7 @@
                     <details class="site-menu-section" open>
                         <summary class="planning-menu-section-label">Navigering</summary>
                         <a href="index.html" class="site-menu-item" role="menuitem">Märken</a>
+                        <a href="aktiviteter.html" class="site-menu-item" role="menuitem">Aktiviteter</a>
                         <a href="planering.html" class="site-menu-item" role="menuitem">Planering</a>
                         <a href="arrangemang.html" class="site-menu-item" role="menuitem">Arrangemang</a>
                         <a href="kokbok.html" class="site-menu-item" role="menuitem">Scoutkokbok</a>
@@ -54,7 +60,7 @@
                     <details class="site-menu-section">
                         <summary class="planning-menu-section-label">Funktioner</summary>
                         <button class="planning-menu-item hidden" type="button" role="menuitem" data-create-custom-badge>Skapa eget märke</button>
-                        <button id="editActivitiesBtn" class="planning-menu-item" type="button" role="menuitem">Hantera aktiviteter</button>
+                        <a id="editActivitiesBtn" href="aktiviteter.html" class="site-menu-item" role="menuitem">Hantera aktiviteter</a>
                         <button class="planning-menu-item hidden" type="button" role="menuitem" data-admin-panel>Administration</button>
                     </details>
                     <div class="planning-menu-divider" role="separator"></div>
@@ -142,9 +148,6 @@
         </div>
     </footer>
 
-    <script src="js/supabase-config.js"></script>
-    <script src="js/supabase-config.local.js"></script>
-    <script src="js/auth.js"></script>
     <script src="js/admin.js"></script>
     <script src="js/activities-sync.js"></script>
     <script src="js/badges-sync.js"></script>

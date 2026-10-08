@@ -14,6 +14,7 @@
     let activities = [];
     let badgeLinks = [];
     let loaded = false;
+    let loadError = false;
     let loadPromise = null;
     const listeners = new Set();
 
@@ -114,6 +115,7 @@
     function notify() {
         const state = {
             loaded,
+            error: loadError,
             activities: activities.map(item => ({ ...item })),
             badgeLinks: badgeLinks.map(item => ({ ...item }))
         };
@@ -158,6 +160,7 @@
     }
 
     async function reload() {
+        loadError = false;
         if (!client()) {
             activities = readLocalActivities();
             badgeLinks = readLocalBadgeLinks();
@@ -222,6 +225,7 @@
             writeLocalActivities(activities);
             writeLocalBadgeLinks(badgeLinks);
         } catch (error) {
+            loadError = true;
             console.error("Kunde inte hämta aktiviteter från databasen", error);
             activities = readLocalActivities();
             badgeLinks = readLocalBadgeLinks();
@@ -286,8 +290,8 @@
         });
 
         const existing = activities.find(item => item.id === normalized.id);
-        if (!canWrite() && existing) {
-            throw new Error("Du kan bara skapa nya aktiviteter i lokalt läge.");
+        if (existing && !canEditActivity(existing)) {
+            throw new Error("Du har inte behörighet att redigera aktiviteten.");
         }
         if (existing?.kar_id && existing.kar_id !== karId) {
             throw new Error("Du kan bara redigera aktiviteter som ägs av din kår.");
@@ -430,7 +434,7 @@
         removeBadgeActivityLink,
         onChange(listener) {
             listeners.add(listener);
-            listener({ loaded, activities: getAllActivities(), badgeLinks: badgeLinks.map(item => ({ ...item })) });
+            listener({ loaded, error: loadError, activities: getAllActivities(), badgeLinks: badgeLinks.map(item => ({ ...item })) });
             return () => listeners.delete(listener);
         }
     };

@@ -4,6 +4,8 @@
     let recipes = [];
     let onChange = null;
     let loadedForKarId = null;
+    let loading = false;
+    let loadError = false;
 
     const auth = () => window.GTScoutAuth;
     const client = () => auth()?.getClient() || null;
@@ -48,12 +50,18 @@
 
     async function load() {
         if (!canRead()) return;
+        loading = true;
+        loadError = false;
+        onChange?.(recipes);
         try {
             const { data, error } = await client().from("kokbok_recept").select("id, kar_id, created_by, namn, kategori, beskrivning, ingredienser, ingredienser_skalningar, instruktioner, portioner, tid, svarighet, created_at, updated_at").order("namn");
             if (error) throw error;
             recipes = (data || []).map(normalize);
+            loading = false;
             writeLocal();
         } catch (error) {
+            loading = false;
+            loadError = true;
             console.error("Kunde inte hämta recept", error);
             recipes = readLocal();
             onChange?.(recipes);
@@ -92,6 +100,7 @@
     window.GTScoutCookbook = {
         init(config) { onChange = config?.onChange || null; recipes = canRead() ? readLocal() : readLocal(); auth()?.onChange(onAuthChange); onChange?.(recipes); onAuthChange(); },
         getAll: () => recipes.map(recipe => ({ ...recipe, ingredienser: [...recipe.ingredienser] })),
+        getSyncState: () => ({ loading, error: loadError }),
         canWrite,
         canEdit,
         save,
