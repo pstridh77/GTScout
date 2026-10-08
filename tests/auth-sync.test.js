@@ -96,6 +96,31 @@ test("activity sync reports a failed fetch while preserving its local fallback",
     assert.equal(lastState.activities[0].namn, "Cached activity");
 });
 
+for (const fails of [false, true]) {
+    test(`recipe sync reports loading and ${fails ? "a fetch error with local fallback" : "the fetched recipe count"}`, async () => {
+        const backend = createBackend();
+        const cached = { id: "cached-recipe", namn: "Cached recipe", ingredienser: [], portioner: 4 };
+        const page = createPage(backend, new Map([["gtscout_kokbok_recept", JSON.stringify([cached])]]));
+        await page.auth.init();
+        await page.runTimers();
+        const response = deferred();
+        backend.pending = { table: "kokbok_recept", ...response };
+        page.load("kokbok-sync.js");
+        const cookbook = page.window.GTScoutCookbook;
+        const states = [];
+        cookbook.init({ onChange(recipes) { states.push({ ...cookbook.getSyncState(), count: recipes.length }); } });
+        assert.equal(cookbook.getSyncState().loading, true);
+        assert.equal(cookbook.getSyncState().error, false);
+        response.resolve(fails
+            ? { error: { message: "Simulated recipe fetch failure" } }
+            : { data: [cached, { ...cached, id: "second-recipe", namn: "Second recipe" }] });
+        await new Promise(resolve => setImmediate(resolve));
+        assert.equal(cookbook.getSyncState().loading, false);
+        assert.equal(cookbook.getSyncState().error, fails);
+        assert.equal(states.at(-1).count, fails ? 1 : 2);
+    });
+}
+
 function createElement() {
     const classes = new Set();
     const history = [];

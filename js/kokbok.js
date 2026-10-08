@@ -39,6 +39,21 @@ function setRecipeStatus(text, error = false) {
     recipeSyncStatus.textContent = text || "";
     recipeSyncStatus.classList.toggle("hidden", !text);
     recipeSyncStatus.classList.toggle("planning-sync-status--error", error);
+    recipeSyncStatus.classList.toggle("detail-note-warning", !error && /lokalt|webbläsaren/.test(text || ""));
+}
+
+function updateRecipeSyncStatus() {
+    const auth = window.GTScoutAuth;
+    const cookbook = window.GTScoutCookbook;
+    const syncState = cookbook.getSyncState();
+    if (auth?.getState().loading) return setRecipeStatus("Kontrollerar inloggning...");
+    if (syncState.loading) return setRecipeStatus("Hämtar recept...");
+    if (syncState.error) return setRecipeStatus("Kunde inte hämta från databasen – använder lokal data.", true);
+    if (!auth?.isOnline()) return setRecipeStatus("Recept sparas lokalt i den här webbläsaren.");
+    if (cookbook.canEdit()) return setRecipeStatus(`Synkad med databasen (${recipes.length} recept)`);
+    setRecipeStatus(cookbook.canWrite()
+        ? `Receptbiblioteket visas (${recipes.length} st) – egna recept sparas lokalt.`
+        : `Receptbiblioteket visas (${recipes.length} st) – skrivskyddad visning.`);
 }
 
 function populateRecipeFilters() {
@@ -372,4 +387,5 @@ recipeGrid.addEventListener("click", event => {
     const recipe = recipes.find(item => item.id === button.dataset.editRecipe);
     if (recipe && window.GTScoutCookbook.canWrite()) openRecipeModal(recipe);
 });
-window.GTScoutCookbook.init({ onChange(nextRecipes) { recipes = nextRecipes; populateRecipeFilters(); renderRecipes(); setRecipeStatus(window.GTScoutCookbook.canWrite() ? "" : "Logga in som ledare eller admin för att redigera recept."); } });
+window.GTScoutCookbook.init({ onChange(nextRecipes) { recipes = nextRecipes; populateRecipeFilters(); renderRecipes(); updateRecipeSyncStatus(); } });
+window.GTScoutAuth?.onChange(updateRecipeSyncStatus);
