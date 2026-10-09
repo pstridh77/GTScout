@@ -12,9 +12,33 @@ const recipeShareUrl = document.getElementById("recipeShareUrl");
 const recipeShareStatus = document.getElementById("recipeShareStatus");
 let editingRecipeId = null;
 let recipes = [];
-const sharedRecipeIdFromUrl = new URLSearchParams(window.location.search).get("recipe");
+const recipeUrlParams = new URLSearchParams(window.location.search);
+const sharedRecipeIdFromUrl = recipeUrlParams.get("recipe");
+const shoppingArrangementId = recipeUrlParams.get("shopping");
+const isShoppingListView = Boolean(shoppingArrangementId);
+let shoppingArrangement = null;
+let shoppingServings = null;
+let useUniformShoppingCount = false;
+const checkedShoppingItems = new Set();
+if (isShoppingListView) {
+    document.body.classList.add("shopping-list-view");
+    document.getElementById("shoppingView").classList.remove("hidden");
+    document.title = "Inköpslista - GTScout";
+}
+const isEmbeddedRecipeView = recipeUrlParams.get("embedded") === "1" && Boolean(sharedRecipeIdFromUrl);
+if (isEmbeddedRecipeView) {
+    document.body.classList.add("recipe-embedded-view");
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape") window.parent.postMessage({ type: "gtscout-close-recipe" }, "*");
+    });
+}
 const RECIPE_SCALE_OPTIONS = [4, 10, 25, 50, 100];
 const recipeServingSelections = new Map();
+const requestedRecipeServings = Number(recipeUrlParams.get("servings"));
+if (sharedRecipeIdFromUrl && recipeUrlParams.has("servings") && Number.isSafeInteger(requestedRecipeServings) && requestedRecipeServings >= 0) {
+    recipeServingSelections.set(sharedRecipeIdFromUrl, requestedRecipeServings);
+}
+if (isShoppingListView && Number.isSafeInteger(requestedRecipeServings) && requestedRecipeServings > 0) shoppingServings = requestedRecipeServings;
 const RECIPE_MEAL_TYPES = ["Frukost", "Lunch", "Mellanmål", "Middag", "Kvällsmål", "Tillbehör", "Snacks"];
 const collapsedRecipeMealTypes = new Set();
 const collapseAllRecipeButtons = document.querySelectorAll('[data-collapse-all="recipes"]');
@@ -94,7 +118,7 @@ function visibleRecipes() {
     return recipes.filter(recipe => {
         const mealType = getRecipeMealType(recipe);
         const haystack = [recipe.namn, mealType, recipe.beskrivning, ...recipe.ingredienser].join(" ").toLocaleLowerCase("sv-SE");
-        return (!query || haystack.includes(query)) && (recipeCategoryFilter.value === "Alla" || mealType === recipeCategoryFilter.value) && (recipeDifficultyFilter.value === "Alla" || recipe.svarighet === recipeDifficultyFilter.value);
+        return (!isEmbeddedRecipeView || recipe.id === sharedRecipeIdFromUrl) && (!query || haystack.includes(query)) && (recipeCategoryFilter.value === "Alla" || mealType === recipeCategoryFilter.value) && (recipeDifficultyFilter.value === "Alla" || recipe.svarighet === recipeDifficultyFilter.value);
     });
 }
 
@@ -161,6 +185,7 @@ function formatComparableAmount(value, comparable) {
 }
 
 function scaleIngredientAmount(row, recipe, targetServings) {
+    if (targetServings === 0) return "0";
     const exactAmount = row.mangder?.[String(targetServings)];
     const exactParsed = parseAmount(exactAmount);
     if (exactAmount) return exactParsed ? formatComparableAmount(toComparableAmount(exactParsed).value, toComparableAmount(exactParsed)) : exactAmount;
@@ -174,7 +199,7 @@ function scaleIngredientAmount(row, recipe, targetServings) {
         .filter((point, _, all) => point.comparable.category === all[0].comparable.category);
     if (!points.length) return "";
 
-    if (points.length === 1) {
+    if (points.length === 1 || targetServings < points[0].servings) {
         const point = points[0];
         return formatComparableAmount(point.comparable.value * targetServings / point.servings, point.comparable);
     }
@@ -214,6 +239,128 @@ function getIngredientRows(recipe) {
     return recipe.ingredienser.map(parseLegacyIngredient).filter(row => row.namn);
 }
 
+function buildArrangementShoppingList(arrangement, catalog, targetServings, uniformCount = false) {
+    const ingredients = new Map();
+    const warnings = [];
+    const mealColumns = [];
+    const meals = (arrangement.agenda || []).filter(entry => entry.kind === "meal")
+        .sort((left, right) => String(left.date || "").localeCompare(String(right.date || "")) || String(left.time || "").localeCompare(String(right.time || "")));
+    meals.forEach((meal, mealIndex) => {
+        const effective = window.GTScoutParticipants.resolve(arrangement, meal.date, meal);
+        const hasMealCount = effective.totals.hasCounts;
+        const mealCount = uniformCount ? targetServings : hasMealCount ? effective.totals.total : targetServings;
+        const mealLabel = `${meal.date}: ${meal.meal_type || meal.title || "Måltid"}`;
+        const recipeIds = Array.isArray(meal.recipe_ids)
+            ? [...new Set(meal.recipe_ids.map(String))]
+            : meal.source_type === "recipe" && meal.source_id ? [String(meal.source_id)] : [];
+        mealColumns.push({
+            date: meal.date || "", time: meal.time || "", name: meal.meal_type || meal.title || "Måltid",
+            servings: mealCount ?? null,
+            recipes: recipeIds.map(id => catalog.find(recipe => String(recipe.id) === id)?.namn).filter(Boolean)
+        });
+        if (!recipeIds.length) warnings.push(`${mealLabel} saknar länkat recept.`);
+        if (!uniformCount && hasMealCount && !effective.totals.complete) warnings.push(`${mealLabel}: preliminärt deltagarantal.`);
+        if (!uniformCount && hasMealCount && mealCount === 0) return;
+        recipeIds.forEach(id => {
+            const recipe = catalog.find(item => String(item.id) === id);
+            if (!recipe) {
+                warnings.push(`${mealLabel}: ett recept kunde inte hittas.`);
+                return;
+            }
+            const rows = getIngredientRows(recipe);
+            if (!rows.length) warnings.push(`${mealLabel}: ${recipe.namn} saknar ingredienser.`);
+            const servings = mealCount > 0 ? mealCount : Number(recipe.portioner) || 4;
+            rows.forEach(row => {
+                const name = String(row.namn || "").trim().replace(/\s+/g, " ");
+                if (!name) return;
+                const amount = scaleIngredientAmount(row, recipe, servings);
+                const parsed = parseAmount(amount);
+                const comparable = parsed ? toComparableAmount(parsed) : null;
+                const key = `${name.toLocaleLowerCase("sv-SE")}\u0000${comparable?.category || `text:${amount}`}`;
+                if (!ingredients.has(key)) ingredients.set(key, { name, value: 0, comparable, amount, contributions: new Map() });
+                const ingredient = ingredients.get(key);
+                if (comparable) ingredient.value += comparable.value;
+                const contribution = ingredient.contributions.get(mealIndex);
+                if (contribution && comparable) contribution.value += comparable.value;
+                else if (!contribution) ingredient.contributions.set(mealIndex, { value: comparable?.value || 0, amount });
+                if (!comparable) warnings.push(`${recipe.namn}: kontrollera mängden för ${name}${amount ? ` (${amount})` : ""}.`);
+            });
+        });
+    });
+    return {
+        mealCount: meals.length,
+        meals: mealColumns,
+        ingredients: [...ingredients.values()].map(ingredient => ({
+            name: ingredient.name,
+            amount: ingredient.comparable ? formatComparableAmount(ingredient.value, ingredient.comparable) : ingredient.amount || "Mängd ej angiven",
+            contributions: meals.map((meal, mealIndex) => {
+                const contribution = ingredient.contributions.get(mealIndex);
+                if (!contribution) return null;
+                return ingredient.comparable ? formatComparableAmount(contribution.value, ingredient.comparable) : contribution.amount || "Mängd ej angiven";
+            })
+        })).sort((left, right) => left.name.localeCompare(right.name, "sv-SE")),
+        warnings: [...new Set(warnings)]
+    };
+}
+
+function renderShoppingIngredientGrid(list, expanded) {
+    const headers = expanded ? list.meals.map(meal => {
+        const parsedDate = new Date(`${meal.date}T12:00:00`);
+        const day = Number.isNaN(parsedDate.getTime()) ? "" : parsedDate.toLocaleDateString("sv-SE", { weekday: "long" });
+        return `<th class="shopping-meal-cell" scope="col"><span>${escapeRecipeHtml(day)}</span><strong>${escapeRecipeHtml(meal.name)}</strong><small>${escapeRecipeHtml(meal.recipes.join(", "))}</small>${meal.servings !== null ? `<small>${meal.servings} deltagare</small>` : ""}</th>`;
+    }).join("") : "";
+    const columns = expanded ? list.meals.map(() => '<col class="shopping-meal-col">').join("") : "";
+    const rows = list.ingredients.map(ingredient => {
+        const key = `${ingredient.name}\u0000${ingredient.amount}`;
+        const cells = expanded ? ingredient.contributions.map(amount => `<td class="shopping-meal-cell">${escapeRecipeHtml(amount ?? "–")}</td>`).join("") : "";
+        return `<tr><th class="shopping-name-cell" scope="row"><label><input type="checkbox" data-shopping-key="${escapeRecipeHtml(JSON.stringify(key))}"${checkedShoppingItems.has(key) ? " checked" : ""}><span>${escapeRecipeHtml(ingredient.name)}</span></label></th><td class="shopping-total-cell"><strong>${escapeRecipeHtml(ingredient.amount)}</strong></td>${cells}</tr>`;
+    }).join("");
+    return `<colgroup><col class="shopping-name-col"><col class="shopping-total-col">${columns}</colgroup><thead><tr><th class="shopping-name-cell" scope="col">Ingrediens</th><th class="shopping-total-cell" scope="col">Totalt</th>${headers}</tr></thead><tbody>${rows}</tbody>`;
+}
+
+function renderShoppingList() {
+    if (!isShoppingListView) return;
+    const status = document.getElementById("shoppingStatus");
+    const ingredients = document.getElementById("shoppingIngredients");
+    if (!shoppingArrangement) {
+        status.textContent = window.GTScoutAuth?.getState().loading ? "Kontrollerar inloggning..." : "Arrangemanget hämtas eller är inte tillgängligt.";
+        ingredients.replaceChildren();
+        checkedShoppingItems.clear();
+        document.getElementById("shoppingWarningItems").replaceChildren();
+        document.getElementById("shoppingWarnings").classList.add("hidden");
+        document.getElementById("shoppingCountNotice").classList.add("hidden");
+        document.getElementById("shoppingEmpty").classList.add("hidden");
+        document.getElementById("shoppingServings").value = "";
+        document.getElementById("printShoppingBtn").disabled = true;
+        return;
+    }
+    if (window.GTScoutCookbook.getSyncState().loading) {
+        status.textContent = "Hämtar recept...";
+        document.getElementById("printShoppingBtn").disabled = true;
+        return;
+    }
+    const list = buildArrangementShoppingList(shoppingArrangement, recipes, shoppingServings, useUniformShoppingCount);
+    if (window.GTScoutCookbook.getSyncState().error) list.warnings.unshift("Recept kunde inte hämtas. Listan använder tillgängliga lokala recept.");
+    status.textContent = `${shoppingArrangement.title} · ${list.mealCount} måltider${shoppingServings ? ` · ${shoppingServings} deltagare` : ""}`;
+    document.getElementById("shoppingServings").value = shoppingServings || "";
+    const notice = document.getElementById("shoppingCountNotice");
+    document.getElementById("resetShoppingServings").classList.toggle("hidden", !useUniformShoppingCount);
+    notice.textContent = useUniformShoppingCount ? "Tillfälligt gemensamt antal för alla måltider." : !shoppingServings
+        ? "Deltagarantal saknas. Mängderna utgår från receptens grundantal."
+        : recipeUrlParams.get("preliminary") === "1" ? "Preliminärt deltagarantal." : "";
+    notice.classList.toggle("hidden", !notice.textContent);
+    const expanded = document.getElementById("shoppingBreakdown").checked;
+    const grid = document.getElementById("shoppingGrid");
+    grid.classList.toggle("shopping-grid--expanded", expanded);
+    grid.style.setProperty("--shopping-meal-count", list.mealCount);
+    ingredients.innerHTML = renderShoppingIngredientGrid(list, expanded);
+    document.getElementById("shoppingEmpty").classList.toggle("hidden", list.ingredients.length > 0);
+    document.getElementById("shoppingWarnings").classList.toggle("hidden", list.warnings.length === 0);
+    document.getElementById("shoppingWarningsTitle").textContent = `Kontrollera underlaget (${list.warnings.length})`;
+    document.getElementById("shoppingWarningItems").innerHTML = list.warnings.map(warning => `<li>${escapeRecipeHtml(warning)}</li>`).join("");
+    document.getElementById("printShoppingBtn").disabled = false;
+}
+
 function renderIngredientEditor(rows) {
     const editor = document.getElementById("recipeIngredientsEditor");
     editor.replaceChildren(...rows.map((row, index) => {
@@ -235,7 +382,7 @@ function readIngredientRows() {
 
 function getRecipeTargetServings(recipe) {
     const selected = recipeServingSelections.get(recipe.id);
-    return Number.isFinite(selected) && selected >= 4 ? selected : (Number(recipe.portioner) >= 4 ? Number(recipe.portioner) : 4);
+    return Number.isSafeInteger(selected) && selected >= 0 ? selected : (Number(recipe.portioner) >= 1 ? Number(recipe.portioner) : 4);
 }
 
 function openSharedRecipeFromUrl() {
@@ -272,6 +419,10 @@ async function shareRecipe(recipe) {
 }
 
 function renderRecipes() {
+    if (isShoppingListView) {
+        renderShoppingList();
+        return;
+    }
     const visible = visibleRecipes();
     recipeEmpty.classList.toggle("hidden", visible.length > 0);
     const groups = new Map();
@@ -306,6 +457,7 @@ function createRecipeCard(recipe) {
         const targetServings = getRecipeTargetServings(recipe);
         const scaledIngredients = getIngredientRows(recipe).map(row => `${scaleIngredientAmount(row, recipe, targetServings)} ${row.namn}`.trim());
                 card.innerHTML = `<div class="recipe-card-top"><span class="recipe-category">${escapeRecipeHtml(recipe.kategori)}</span><span class="recipe-difficulty recipe-difficulty--${recipe.svarighet.toLocaleLowerCase("sv-SE")}">${escapeRecipeHtml(recipe.svarighet)}</span></div><h2>${escapeRecipeHtml(recipe.namn)}</h2><p class="recipe-description">${escapeRecipeHtml(recipe.beskrivning || "Ett recept för scoutköket.")}</p><dl class="recipe-meta"></dl><label class="recipe-serving-control"><span>Visa recept för</span><input data-recipe-servings="${recipe.id}" aria-label="Visa ${escapeRecipeHtml(recipe.namn)} för antal personer" type="number" min="4" step="1" value="${targetServings}"></label><details><summary>Visa recept</summary><div class="recipe-details"><h3>Ingredienser</h3><ul>${scaledIngredients.map(item => `<li>${escapeRecipeHtml(item)}</li>`).join("")}</ul><h3>Gör så här</h3><p>${escapeRecipeHtml(recipe.instruktioner).replace(/\n/g, "<br>")}</p></div></details><div class="recipe-card-actions"><button class="btn-secondary recipe-share-icon-btn" type="button" data-share-recipe="${recipe.id}" aria-label="Dela recept" title="Dela recept"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,16.08C17.24,16.08 16.54,16.38 16,16.85L8.91,12.74C8.96,12.5 9,12.25 9,12C9,11.75 8.96,11.5 8.91,11.26L15.92,7.17C16.47,7.66 17.2,7.97 18,7.97C19.66,7.97 21,6.63 21,4.97C21,3.31 19.66,1.97 18,1.97C16.34,1.97 15,1.97 15,4.97C15,5.22 15.04,5.47 15.09,5.71L8.08,9.8C7.53,9.31 6.8,9 6,9C4.34,9 3,10.34 3,12C3,13.66 4.34,15 6,15C6.8,15 7.53,14.69 8.08,14.2L15.17,18.31C15.12,18.54 15,18.77 15,19C15,20.66 16.34,22 18,22C19.66,22 21,20.66 21,19C21,17.34 19.66,16.08 18,16.08Z" /></svg></button><button class="btn-secondary" type="button" data-edit-recipe="${recipe.id}">Redigera</button></div>`;
+        card.querySelector("[data-recipe-servings]").min = "0";
         if (!window.GTScoutCookbook.canEdit?.()) card.querySelector("[data-edit-recipe]")?.remove();
         card.addEventListener("click", event => {
             if (event.target.closest("button, input, summary") || event.target.closest(".recipe-card details")) return;
@@ -394,7 +546,9 @@ recipeGrid.addEventListener("change", event => {
     if (!select) return;
     const card = select.closest(".recipe-card");
     const wasDetailsOpen = Boolean(card?.querySelector("details")?.open);
-    recipeServingSelections.set(select.dataset.recipeServings, Number(select.value));
+    if (select.value !== "" && !select.reportValidity()) return;
+    if (select.value === "") recipeServingSelections.delete(select.dataset.recipeServings);
+    else recipeServingSelections.set(select.dataset.recipeServings, Number(select.value));
     renderRecipes();
     if (wasDetailsOpen) {
         const updatedSelect = [...recipeGrid.querySelectorAll("[data-recipe-servings]")]
@@ -415,5 +569,37 @@ recipeGrid.addEventListener("click", event => {
     if (recipe && window.GTScoutCookbook.canWrite()) openRecipeModal(recipe);
 });
 collapseAllRecipeButtons.forEach(button => button.addEventListener("click", toggleAllRecipeGroups));
+document.getElementById("printShoppingBtn").addEventListener("click", () => window.print());
+document.getElementById("shoppingBreakdown").addEventListener("change", renderShoppingList);
+document.getElementById("shoppingServings").addEventListener("change", event => {
+    if (!event.target.reportValidity()) return;
+    shoppingServings = event.target.value ? Number(event.target.value) : null;
+    useUniformShoppingCount = shoppingServings !== null;
+    checkedShoppingItems.clear();
+    recipeUrlParams.delete("preliminary");
+    renderShoppingList();
+});
+document.getElementById("resetShoppingServings").addEventListener("click", () => {
+    useUniformShoppingCount = false;
+    shoppingServings = Number(recipeUrlParams.get("servings")) || null;
+    checkedShoppingItems.clear();
+    renderShoppingList();
+});
+document.getElementById("shoppingIngredients").addEventListener("change", event => {
+    if (!event.target.matches("[data-shopping-key]")) return;
+    const key = JSON.parse(event.target.dataset.shoppingKey);
+    if (event.target.checked) checkedShoppingItems.add(key);
+    else checkedShoppingItems.delete(key);
+});
+if (isShoppingListView) {
+    const script = document.createElement("script");
+    script.src = "js/arrangemang-sync.js";
+    script.onload = () => window.GTScoutArrangements.init({ onChange(items) {
+        shoppingArrangement = items.find(item => item.id === shoppingArrangementId) || null;
+        renderShoppingList();
+    } });
+    script.onerror = () => { document.getElementById("shoppingStatus").textContent = "Kunde inte hämta arrangemanget."; };
+    document.body.append(script);
+}
 window.GTScoutCookbook.init({ onChange(nextRecipes) { recipes = nextRecipes; populateRecipeFilters(); renderRecipes(); updateRecipeSyncStatus(); } });
 window.GTScoutAuth?.onChange(updateRecipeSyncStatus);

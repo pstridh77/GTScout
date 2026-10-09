@@ -37,6 +37,12 @@ let activeResponsibilityId = "";
 let responsibilityDialogTrigger = null;
 let activeNotesArrangementId = "";
 let notesDialogTrigger = null;
+let activeParticipantsArrangementId = "";
+let participantsDialogTrigger = null;
+let mealRecipeDialogTrigger = null;
+const mealRecipeInertState = new Map();
+let draftParticipants = { departments: {}, officials: null };
+let draftParticipantDays = {};
 let arrangementToastTimer = null;
 let activeScheduleGesture = null;
 let suppressScheduleClickUntil = 0;
@@ -280,6 +286,169 @@ function renderDepartmentOptions(selected = []) {
     ).join("");
 }
 
+function getParticipantTotals(selectedDepartments, participants) {
+    let scouts = 0;
+    let leaders = 0;
+    let parents = 0;
+    let complete = true;
+    let hasCounts = false;
+    const include = (value, category) => {
+        if (value === null || value === undefined) {
+            complete = false;
+            return;
+        }
+        hasCounts = true;
+        if (category === "scouts") scouts += value;
+        else if (category === "parents") parents += value;
+        else leaders += value;
+    };
+    selectedDepartments.forEach(department => {
+        const counts = participants?.departments?.[department];
+        if (department !== "Ledare") {
+            include(counts?.scouts, "scouts");
+            const parentCount = counts?.parents === undefined ? 0 : counts.parents;
+            if (parentCount !== 0) include(parentCount, "parents");
+        }
+        include(counts?.leaders, "leaders");
+    });
+    include(participants?.officials, "leaders");
+    return { scouts, leaders, parents, total: scouts + leaders + parents, complete, hasCounts };
+}
+
+function getParticipantSummary(selectedDepartments, participants, totalOnly = false) {
+    const totals = getParticipantTotals(selectedDepartments, participants);
+    if (totalOnly && totals.hasCounts) return `${totals.total} deltagare${totals.complete ? "" : " · Preliminärt"}`;
+    return totals.hasCounts
+        ? `${totals.total} deltagare · ${totals.scouts} scouter · ${totals.leaders} ledare${totals.parents ? ` · ${totals.parents} föräldrar` : ""}${totals.complete ? "" : " · Preliminärt"}`
+        : "Antal ej angivet";
+}
+
+function renderParticipantTable(selectedDepartments, participants, editable = false, inherited = null) {
+    const countCell = (department, field, value) => editable
+        ? `<input type="number" min="0" max="9007199254740991" step="1" inputmode="numeric" data-participant-department="${escapeArrangementHtml(department)}" data-participant-field="${field}" value="${value ?? ""}" placeholder="${inherited ? (department ? inherited.departments?.[department]?.[field] : inherited.officials) ?? "" : ""}" aria-label="${field === "scouts" ? "Scouter" : field === "parents" ? "Föräldrar" : "Ledare"}, ${escapeArrangementHtml(department || "Övriga funktionärer")}">`
+        : value ?? "Ej angivet";
+    const rows = selectedDepartments.map(department => {
+        const counts = participants?.departments?.[department];
+        return `<tr><th scope="row">${escapeArrangementHtml(department)}</th><td>${department === "Ledare" ? "–" : countCell(department, "scouts", counts?.scouts)}</td><td>${countCell(department, "leaders", counts?.leaders)}</td><td>${department === "Ledare" ? "–" : countCell(department, "parents", counts?.parents === undefined ? inherited ? null : 0 : counts.parents)}</td></tr>`;
+    }).join("");
+    const effectiveParticipants = inherited ? window.GTScoutParticipants.resolve({ departments: selectedDepartments, participants: inherited }, "", { participants_override: participants }).participants : participants;
+    const totals = getParticipantTotals(selectedDepartments, effectiveParticipants);
+    return `<table class="arrangement-participants-table"><thead><tr><th scope="col">Avdelning</th><th scope="col">Scouter</th><th scope="col">Ledare</th><th scope="col">Föräldrar</th></tr></thead><tbody>${rows}<tr><th scope="row">Övriga funktionärer</th><td>–</td><td>${countCell("", "officials", participants?.officials)}</td><td>–</td></tr></tbody><tfoot><tr><th scope="row">Totalt</th><td data-participant-total="scouts">${totals.hasCounts ? totals.scouts : "–"}</td><td data-participant-total="leaders">${totals.hasCounts ? totals.leaders : "–"}</td><td data-participant-total="parents">${totals.hasCounts ? totals.parents : "–"}</td></tr></tfoot></table><p class="arrangement-participants-total" data-participant-summary aria-live="polite">${getParticipantSummary(selectedDepartments, effectiveParticipants)}</p>`;
+}
+
+function readParticipantInputs(container) {
+    const participants = { departments: {}, officials: null };
+    container.querySelectorAll("[data-participant-field]").forEach(input => {
+        const value = input.value === "" || !input.validity.valid ? null : Number(input.value);
+        const department = input.dataset.participantDepartment;
+        if (!department) participants.officials = value;
+        else {
+            participants.departments[department] ||= {};
+            participants.departments[department][input.dataset.participantField] = value;
+        }
+    });
+    return participants;
+}
+
+function updateParticipantInputTotals(container, selectedDepartments, inherited = null) {
+    let participants = readParticipantInputs(container);
+    if (inherited) participants = window.GTScoutParticipants.resolve({ departments: selectedDepartments, participants: inherited }, "", { participants_override: participants }).participants;
+    const totals = getParticipantTotals(selectedDepartments, participants);
+    container.querySelector('[data-participant-total="scouts"]').textContent = totals.hasCounts ? totals.scouts : "–";
+    container.querySelector('[data-participant-total="leaders"]').textContent = totals.hasCounts ? totals.leaders : "–";
+    container.querySelector('[data-participant-total="parents"]').textContent = totals.hasCounts ? totals.parents : "–";
+    container.querySelector("[data-participant-summary]").textContent = getParticipantSummary(selectedDepartments, participants);
+}
+
+function syncDraftParticipants() {
+    const current = readParticipantInputs(document.getElementById("arrangementParticipants"));
+    Object.assign(draftParticipants.departments, current.departments);
+    draftParticipants.officials = current.officials;
+}
+
+function renderParticipantEditor() {
+    document.getElementById("arrangementParticipants").innerHTML = renderParticipantTable(getSelectedArrangementDepartments(), draftParticipants, true);
+    renderParticipantDaysEditor(document.getElementById("arrangementParticipantDays"), getDraftParticipantArrangement(), draftParticipants, draftParticipantDays);
+}
+
+function getDraftParticipantArrangement() {
+    return { departments: getSelectedArrangementDepartments(), start_date: document.getElementById("arrangementStartDate").value,
+        end_date: document.getElementById("arrangementEndDate").value, participants: readParticipantInputs(document.getElementById("arrangementParticipants")) };
+}
+
+function readParticipantDays(container) {
+    return Object.fromEntries([...container.querySelectorAll("[data-participant-date]")].map(row => [row.dataset.participantDate, readParticipantInputs(row)]));
+}
+
+function renderParticipantDaysEditor(container, item, base, values, editable = true, onlyChanges = false) {
+    if (!item.start_date || !item.end_date) { container.innerHTML = ""; return; }
+    const openDates = new Set([...container.querySelectorAll("details[data-participant-date][open]")].map(row => row.dataset.participantDate));
+    const previousGroup = container.querySelectorAll(".participant-days-group")[0];
+    const reference = window.GTScoutParticipants.resolve({ ...item, participants: base, participant_days: {} }, "").participants;
+    const days = arrangementDates(item.start_date, item.end_date).map(date => ({ date,
+        effective: window.GTScoutParticipants.resolve({ ...item, participants: base, participant_days: values }, date)
+    })).filter(day => !onlyChanges || JSON.stringify(day.effective.participants) !== JSON.stringify(reference));
+    if (!days.length) { container.innerHTML = ""; return; }
+    const rows = days.map(({ date, effective }) => {
+        const counts = editable ? values[date] : effective.participants;
+        return `<details class="participant-day" data-participant-date="${date}"${openDates.has(date) ? " open" : ""}><summary><strong>${escapeArrangementHtml(formatArrangementDate(date))}</strong><span>${escapeArrangementHtml(getParticipantSummary(item.departments, effective.participants, true))}${effective.source === "day" ? " · Eget antal" : " · Arrangemangets antal"}</span></summary>${renderParticipantTable(item.departments, counts, editable, editable ? base : null)}${editable ? `<button class="btn-secondary" type="button" data-reset-participant-day="${date}">Återställ till arrangemangets antal</button>` : ""}</details>`;
+    }).join("");
+    const hasChanges = editable ? days.some(day => day.effective.source === "day")
+        : days.some(day => JSON.stringify(day.effective.participants) !== JSON.stringify(reference));
+    const groupOpen = previousGroup ? previousGroup.open : hasChanges;
+    const dayCount = !editable && onlyChanges ? `<span>${days.length} ${days.length === 1 ? "avvikande dag" : "avvikande dagar"}</span>` : "";
+    container.innerHTML = `<details class="participant-days-group"${groupOpen ? " open" : ""}><summary class="arrangement-section-summary"><strong>Deltagare per dag</strong>${dayCount}</summary>${rows}</details>`;
+}
+
+function updateParticipantDay(row, item, base) {
+    const counts = readParticipantInputs(row);
+    const effective = window.GTScoutParticipants.resolve({ ...item, participants: base, participant_days: { [row.dataset.participantDate]: counts } }, row.dataset.participantDate);
+    updateParticipantInputTotals(row, item.departments, base);
+    row.querySelector("summary span").textContent = `${getParticipantSummary(item.departments, effective.participants, true)} · ${effective.source === "day" ? "Eget antal" : "Arrangemangets antal"}`;
+}
+
+function renderArrangementParticipants(item, canEdit) {
+    if (!canEdit && !getParticipantTotals(item.departments, item.participants).hasCounts && !Object.keys(item.participant_days || {}).length) return "";
+    const editButton = canEdit
+        ? `<button class="btn-secondary arrangement-edit-details-icon arrangement-participants-edit" type="button" data-edit-participants="${escapeArrangementHtml(item.id)}" aria-label="Redigera deltagare för ${escapeArrangementHtml(item.title)}" title="Redigera deltagare"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/></svg></button>`
+        : "";
+    let daysHtml = "";
+    if (item.start_date && item.end_date) {
+        const container = document.createElement("div");
+        renderParticipantDaysEditor(container, item, item.participants, item.participant_days || {}, false, true);
+        daysHtml = container.innerHTML;
+    }
+    return `<details class="arrangement-participants-overview"><summary class="arrangement-section-summary"><strong>Deltagare</strong>${editButton}<span>${escapeArrangementHtml(getParticipantSummary(item.departments, item.participants))}</span></summary><div class="arrangement-participants-content">${renderParticipantTable(item.departments, item.participants)}${daysHtml}</div></details>`;
+}
+
+function closeMealRecipeDialog() {
+    document.getElementById("mealRecipeModal").classList.add("hidden");
+    document.getElementById("mealRecipeFrame").src = "about:blank";
+    mealRecipeInertState.forEach((inert, element) => { element.inert = inert; });
+    mealRecipeInertState.clear();
+    if (mealRecipeDialogTrigger?.isConnected) mealRecipeDialogTrigger.focus();
+    mealRecipeDialogTrigger = null;
+}
+
+document.getElementById("closeMealRecipeModal").addEventListener("click", closeMealRecipeDialog);
+document.getElementById("mealRecipeModal").addEventListener("click", event => {
+    if (event.target.id === "mealRecipeModal") closeMealRecipeDialog();
+});
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && !document.getElementById("mealRecipeModal").classList.contains("hidden")) closeMealRecipeDialog();
+});
+window.addEventListener("message", event => {
+    if (event.source !== document.getElementById("mealRecipeFrame").contentWindow) return;
+    if (event.data?.type === "gtscout-close-recipe") closeMealRecipeDialog();
+});
+
+function closeParticipantsDialog() {
+    document.getElementById("participantsModal").classList.add("hidden");
+    activeParticipantsArrangementId = "";
+    if (participantsDialogTrigger?.isConnected) participantsDialogTrigger.focus();
+    participantsDialogTrigger = null;
+}
+
 function getCustomRoleDefinitions() {
     try {
         const stored = JSON.parse(localStorage.getItem(roleLibraryStorageKey) || "[]");
@@ -513,6 +682,7 @@ function renderArrangementSchedule(item) {
     const selectedDepartments = item.departments?.length ? item.departments : departments;
     const departmentCount = selectedDepartments.length;
     const canEditAgenda = isArrangementDetailEditable(item);
+    if (!canEditAgenda && !item.agenda.length) return "";
     const showOverview = arrangementScheduleOverview.has(item.id);
     const getSharedSegments = excludedDepartments => {
         const segments = [];
@@ -709,6 +879,23 @@ function renderArrangementSchedule(item) {
     return `<details class="arrangement-schedule" data-arrangement-id="${escapeArrangementHtml(item.id)}"${isSchemaExpanded ? " open" : ""}><summary class="arrangement-section-summary"><strong>Schema</strong><span>${scheduleDateLabel} · ${scheduleEntryLabel}</span></summary><div class="arrangement-schedule-body">${viewControls}${scheduleContent}</div></details>`;
 }
 
+function getArrangementRecipeUrl(item, recipeId, meal = null) {
+    const params = new URLSearchParams({ recipe: String(recipeId) });
+    const totals = window.GTScoutParticipants.resolve(item, meal?.date, meal).totals;
+    if (totals.hasCounts) params.set("servings", String(totals.total));
+    return `kokbok.html?${params}`;
+}
+
+function getArrangementShoppingUrl(item) {
+    const params = new URLSearchParams({ shopping: item.id });
+    const totals = getParticipantTotals(item.departments, item.participants);
+    if (totals.total > 0) params.set("servings", String(totals.total));
+    if (totals.hasCounts && !totals.complete) params.set("preliminary", "1");
+    const shareToken = new URLSearchParams(window.location.search).get("share");
+    if (shareToken) params.set("share", shareToken);
+    return `kokbok.html?${params}`;
+}
+
 function renderArrangementMealSummary(item, canEdit = false) {
     const mealsByDate = new Map();
     (item.agenda || []).filter(entry => entry.kind === "meal")
@@ -729,10 +916,25 @@ function renderArrangementMealSummary(item, canEdit = false) {
     const rows = [...mealsByDate].map(([date, meals]) =>
         `<section class="arrangement-meal-day"><h4><time datetime="${escapeArrangementHtml(date)}">${escapeArrangementHtml(formatArrangementDate(date))}</time></h4><ul>${meals.map(({ entry, name }) => {
             const mealLabel = escapeArrangementHtml(name);
-            const mealContent = canEdit
+            const effective = window.GTScoutParticipants.resolve(item, entry.date, entry);
+            const totals = effective.totals;
+            const servingLabel = totals.total > 0
+                ? `${totals.total} deltagare${totals.complete ? "" : " (preliminärt)"}`
+                : "receptets grundantal";
+            const recipeLinks = [...new Set(getMealRecipeIds(entry))].map(id => {
+                const recipe = recipes.find(recipe => String(recipe.id) === id);
+                return recipe ? `<a class="arrangement-meal-recipe-link" href="${escapeArrangementHtml(getArrangementRecipeUrl(item, id, entry))}" title="Visa ${escapeArrangementHtml(recipe.namn)} för ${escapeArrangementHtml(servingLabel)}">${escapeArrangementHtml(recipe.namn)}</a>` : "";
+            }).filter(Boolean);
+            const editRecipeMeal = canEdit && recipeLinks.length
+                ? `<button class="btn-secondary arrangement-edit-details-icon arrangement-meal-edit" type="button" data-edit-agenda="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}" aria-label="Redigera måltid: ${mealLabel}" title="Redigera eller ta bort måltid"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/></svg></button>`
+                : "";
+            const mealContent = recipeLinks.length
+                ? `<span>${escapeArrangementHtml(entry.meal_type || entry.title || "Måltid")}: ${recipeLinks.join(", ")}</span>${editRecipeMeal}`
+                : canEdit
                 ? `<button class="arrangement-meal-entry" type="button" data-edit-agenda="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}" aria-label="Redigera måltid: ${mealLabel}" title="Redigera eller ta bort måltid">${mealLabel}</button>`
                 : mealLabel;
-            return `<li>${mealContent}</li>`;
+            const sourceLabel = effective.source === "meal" ? "Eget antal" : effective.source === "day" ? "Dagens antal" : "Arrangemangets antal";
+            return `<li>${mealContent}${totals.hasCounts ? `<small class="arrangement-meal-count">${totals.total} deltagare · ${sourceLabel}${totals.complete ? "" : " · Preliminärt"}</small>` : ""}</li>`;
         }).join("")}</ul></section>`
     ).join("");
     const mealCount = [...mealsByDate.values()].reduce((count, meals) => count + meals.length, 0);
@@ -744,7 +946,10 @@ function renderArrangementMealSummary(item, canEdit = false) {
     const addMealButton = canEdit
         ? `<button class="btn-secondary arrangement-meal-add" type="button" data-add-meal="${escapeArrangementHtml(item.id)}">+ Lägg till mat</button>`
         : "";
-    return `<details class="arrangement-meal-summary" data-arrangement-id="${escapeArrangementHtml(item.id)}"${isOpen ? " open" : ""}><summary><h3>Måltider</h3><span>${mealCountLabel}</span></summary>${mealContent}${addMealButton}</details>`;
+    const shoppingLink = mealCount
+        ? `<a class="btn-secondary arrangement-shopping-link" href="${escapeArrangementHtml(getArrangementShoppingUrl(item))}" target="_blank" rel="noopener noreferrer">Inköpslista</a>`
+        : "";
+    return `<details class="arrangement-meal-summary" data-arrangement-id="${escapeArrangementHtml(item.id)}"${isOpen ? " open" : ""}><summary><h3>Måltider</h3><span>${mealCountLabel}</span></summary>${mealContent}<div class="arrangement-meal-actions">${shoppingLink}${addMealButton}</div></details>`;
 }
 
 function renderScheduleEntry(entry, departmentIndex = null, arrangementId = "", canEdit = false) {
@@ -780,8 +985,12 @@ function renderArrangements() {
     const orderedVisible = [...visible].sort((left, right) => left.start_date.localeCompare(right.start_date) || left.title.localeCompare(right.title, "sv"));
     const renderedCards = orderedVisible.map(item => {
         const participantTags = item.departments.map((department, index) => `<span class="arrangement-department-tag department-tone-${departments.indexOf(department)}">${escapeArrangementHtml(department)}</span>`).join("");
-        const agendaHtml = renderArrangementSchedule(item);
         const canEditDetails = isArrangementDetailEditable(item);
+        const participantSummary = canEditDetails || getParticipantTotals(item.departments, item.participants).hasCounts
+            ? `<span class="arrangement-participant-count">${escapeArrangementHtml(getParticipantSummary(item.departments, item.participants, true))}</span>`
+            : "";
+        const agendaHtml = renderArrangementSchedule(item);
+        const participantsHtml = renderArrangementParticipants(item, canEditDetails);
         const mealSummaryHtml = renderArrangementMealSummary(item, canEditDetails);
         const link = item.planning_ref?.name ? `<p class="arrangement-card-planning">Planering: ${escapeArrangementHtml(item.planning_ref.name)}</p>` : "";
         const lockAction = canEditDetails ? "Lås redigering" : "Lås upp för redigering";
@@ -811,8 +1020,11 @@ function renderArrangements() {
         const detailsOpen = expandedArrangementIds.has(item.id);
         const cardWidth = detailsOpen && item.departments.length > 2 ? " arrangement-card--wide" : "";
         const canShare = !item.local_only && window.GTScoutArrangements?.canWrite?.();
+        const deleteAction = canEditDetails
+            ? `<button class="arrangement-delete-icon" type="button" data-delete-arrangement="${escapeArrangementHtml(item.id)}" aria-label="Ta bort ${escapeArrangementHtml(item.title)}" title="Ta bort arrangemang"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button>`
+            : "";
         const actions = isArrangementEditable(item)
-            ? `<div class="arrangement-card-actions"><button class="btn-secondary" type="button" data-edit-arrangement="${escapeArrangementHtml(item.id)}">Redigera</button><button class="btn-secondary" type="button" data-copy-arrangement="${escapeArrangementHtml(item.id)}">Kopiera</button>${canShare ? `<button class="btn-secondary share-arrangement-btn" type="button" data-share-arrangement="${escapeArrangementHtml(item.id)}" aria-label="Dela arrangemang" title="Dela arrangemang"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,16.08C17.24,16.08 16.54,16.38 16,16.85L8.91,12.74C8.96,12.5 9,12.25 8.91,11.26L15.92,7.17C16.47,7.66 17.2,7.97 18,7.97C19.66,7.97 21,6.63 21,4.97C21,3.31 19.66,1.97 18,1.97C16.34,1.97 15,3.31 15,4.97C15,5.22 15.04,5.47 15.09,5.71L8.08,9.8C7.53,9.31 6.8,9 6,9C4.34,9 3,10.34 3,12C3,13.66 4.34,15 6,15C6.8,15 7.53,14.69 8.08,14.2L15.17,18.31C15.12,18.54 15,18.77 15,19C15,20.66 16.34,22 18,22C19.66,22 21,20.66 21,19C21,17.34 19.66,16.08 18,16.08Z"/></svg></button>` : ""}<button class="arrangement-delete-icon" type="button" data-delete-arrangement="${escapeArrangementHtml(item.id)}" aria-label="Ta bort ${escapeArrangementHtml(item.title)}" title="Ta bort arrangemang"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button></div>`
+            ? `<div class="arrangement-card-actions"><button class="btn-secondary" type="button" data-edit-arrangement="${escapeArrangementHtml(item.id)}">Redigera</button><button class="btn-secondary" type="button" data-copy-arrangement="${escapeArrangementHtml(item.id)}">Kopiera</button>${canShare ? `<button class="btn-secondary share-arrangement-btn" type="button" data-share-arrangement="${escapeArrangementHtml(item.id)}" aria-label="Dela arrangemang" title="Dela arrangemang"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,16.08C17.24,16.08 16.54,16.38 16,16.85L8.91,12.74C8.96,12.5 9,12.25 8.91,11.26L15.92,7.17C16.47,7.66 17.2,7.97 18,7.97C19.66,7.97 21,6.63 21,4.97C21,3.31 19.66,1.97 18,1.97C16.34,1.97 15,3.31 15,4.97C15,5.22 15.04,5.47 15.09,5.71L8.08,9.8C7.53,9.31 6.8,9 6,9C4.34,9 3,10.34 3,12C3,13.66 4.34,15 6,15C6.8,15 7.53,14.69 8.08,14.2L15.17,18.31C15.12,18.54 15,18.77 15,19C15,20.66 16.34,22 18,22C19.66,22 21,20.66 21,19C21,17.34 19.66,16.08 18,16.08Z"/></svg></button>` : ""}${deleteAction}</div>`
             : "";
         const notes = String(item.notes || "").trim();
         const checklist = item.checklist || [];
@@ -826,7 +1038,7 @@ function renderArrangements() {
             : "";
         const checklistHtml = renderArrangementChecklist(checklist, item.id, canEditDetails);
         const timeRange = [item.start_time, item.end_time].filter(Boolean).join("–");
-        return `<details class="arrangement-card${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}</div></summary><div class="arrangement-card-details">${detailEditControl}${link}<div class="arrangement-card-sections">${notesHtml}${checklistHtml}${mealSummaryHtml}${responsibilityHtml}${agendaHtml}</div>${actions}</div></details>`;
+        return `<details class="arrangement-card${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}${participantSummary}</div></summary><div class="arrangement-card-details">${detailEditControl}${link}<div class="arrangement-card-sections">${participantsHtml}${notesHtml}${checklistHtml}${mealSummaryHtml}${responsibilityHtml}${agendaHtml}</div>${actions}</div></details>`;
     });
     const cardsByYear = new Map();
     orderedVisible.forEach((item, index) => {
@@ -1018,6 +1230,25 @@ function renderAgendaEditor() {
     arrangementAgendaEmpty.classList.toggle("hidden", draftAgenda.length > 0);
 }
 
+function renderMealParticipantEditor(arrangement, entry) {
+    const inherited = window.GTScoutParticipants.resolve(arrangement, entry.date);
+    const effective = window.GTScoutParticipants.resolve(arrangement, entry.date, entry);
+    const own = Boolean(window.GTScoutParticipants.normalizeOverride(entry.participants_override, arrangement.departments));
+    return `<fieldset class="meal-participants-editor"><legend>Deltagare</legend><div class="meal-participants-modes"><label><input type="radio" name="mealParticipantMode" value="day"${own ? "" : " checked"}>Använd dagens antal</label><label><input type="radio" name="mealParticipantMode" value="own"${own ? " checked" : ""}>Eget antal för måltiden</label></div><p data-meal-participant-summary>${escapeArrangementHtml(getParticipantSummary(arrangement.departments, effective.participants, true))}</p><div data-meal-participant-fields${own ? "" : " class=\"hidden\""}>${renderParticipantTable(arrangement.departments, entry.participants_override, true, inherited.participants)}</div><button class="btn-secondary" type="button" data-reset-meal-participants>Återställ till dagens antal</button></fieldset>`;
+}
+
+function updateMealParticipantEditor(arrangement) {
+    const entry = readAgendaEntryDialog();
+    const container = agendaEntryDialogFields.querySelector("[data-meal-participant-fields]");
+    if (!container) return;
+    const own = agendaEntryDialogFields.querySelector('[name="mealParticipantMode"]:checked')?.value === "own";
+    container.classList.toggle("hidden", !own);
+    const inherited = window.GTScoutParticipants.resolve(arrangement, entry.date);
+    updateParticipantInputTotals(container, arrangement.departments, inherited.participants);
+    const effective = window.GTScoutParticipants.resolve(arrangement, entry.date, entry);
+    agendaEntryDialogFields.querySelector("[data-meal-participant-summary]").textContent = getParticipantSummary(arrangement.departments, effective.participants, true);
+}
+
 function renderAgendaEntryDialog(arrangement, entry, focusField = "title") {
     activeAgendaArrangementId = arrangement.id;
     activeAgendaEntryId = entry.id;
@@ -1037,6 +1268,7 @@ function renderAgendaEntryDialog(arrangement, entry, focusField = "title") {
         : "";
     agendaEntryDialogFields.innerHTML = `<div class="agenda-entry-scope"><span>${shared ? "Avdelningar som deltar" : "Gäller avdelningar"}</span><label class="agenda-shared-choice"><input data-agenda-field="shared" type="checkbox"${shared ? " checked" : ""}>Gemensamt för alla</label>${shared ? "<small class=\"agenda-scope-help\">Avmarkera avdelningar som inte ska delta.</small>" : ""}<div class="agenda-scope-options">${scopeOptions}</div>${inactiveScopeNote}</div><label class="agenda-entry-field agenda-entry-title"><span>Namn</span><input data-agenda-field="title" type="text" maxlength="160" value="${escapeArrangementHtml(entry.title)}" required placeholder="${entry.kind === "meal" ? "Till exempel Frukost" : "Till exempel lägerbål"}"></label><label class="agenda-entry-field"><span>Datum</span><input data-agenda-field="date" type="date" min="${escapeArrangementHtml(arrangement.start_date)}" max="${escapeArrangementHtml(arrangement.end_date)}" value="${escapeArrangementHtml(entry.date)}" required></label><label class="agenda-entry-field"><span>Start</span><input data-agenda-field="time" type="time" value="${escapeArrangementHtml(entry.time || "")}"></label><label class="agenda-entry-field"><span>Slut</span><input data-agenda-field="end_time" type="time" value="${escapeArrangementHtml(entry.end_time || "")}"></label><label class="agenda-entry-field"><span>Typ</span><select data-agenda-field="kind"><option value="meal"${entry.kind === "meal" ? " selected" : ""}>Mat</option><option value="activity"${entry.kind === "activity" ? " selected" : ""}>Aktivitet</option><option value="program"${entry.kind === "program" ? " selected" : ""}>Program</option></select></label>${recipeField}${sourceField}<label class="agenda-entry-field"><span>Ansvarig</span><input data-agenda-field="responsible" type="text" maxlength="120" value="${escapeArrangementHtml(entry.responsible || "")}" placeholder="Namn"></label><label class="agenda-entry-field agenda-entry-notes"><span>Anteckningar</span><textarea data-agenda-field="notes" rows="3" maxlength="240" placeholder="Skriv anteckningar">${escapeArrangementHtml(entry.notes)}</textarea></label>`;
     appendAgendaLeadersOnlyField(agendaEntryDialogFields, entry);
+    if (entry.kind === "meal") agendaEntryDialogFields.insertAdjacentHTML("beforeend", renderMealParticipantEditor(arrangement, entry));
     const entryLabel = entry.kind === "meal" ? "måltid" : "programpunkt";
     document.getElementById("agendaEntryDialogTitle").textContent = activeAgendaEntryIsCopy ? `Kopiera ${entryLabel}` : activeAgendaEntryIsNew ? `Ny ${entryLabel}` : `Redigera ${entryLabel}`;
     document.getElementById("agendaEntryDialogStatus").textContent = "";
@@ -1070,6 +1302,8 @@ function readAgendaEntryDialog() {
         source_type: kind === "meal" ? recipeIds.length ? "recipe" : "" : sourceParts.length ? sourceType : "",
         source_id: kind === "meal" ? recipeIds[0] || "" : sourceParts.join(":"),
         recipe_ids: recipeIds,
+        participants_override: kind === "meal" && agendaEntryDialogFields.querySelector('[name="mealParticipantMode"]:checked')?.value === "own"
+            ? readParticipantInputs(agendaEntryDialogFields.querySelector("[data-meal-participant-fields]")) : null,
         shared,
         departments: shared ? [] : selectedScopeDepartments,
         excluded_departments: shared ? activeDepartments.filter(department => !selectedScopeDepartments.includes(department)) : [],
@@ -1102,6 +1336,7 @@ function readAgendaFromDom() {
             source_type: kind === "meal" ? recipeIds.length ? "recipe" : "" : sourceParts.length ? sourceType : "",
             source_id: kind === "meal" ? recipeIds[0] || "" : sourceParts.join(":"),
             recipe_ids: recipeIds,
+            participants_override: kind === "meal" ? existingEntry?.participants_override || null : null,
             shared,
             departments: shared ? [] : selectedScopeDepartments,
             excluded_departments: shared ? activeDepartments.filter(department => !selectedScopeDepartments.includes(department)) : [],
@@ -1132,9 +1367,16 @@ async function openArrangementEditor(item = null, focusAgendaId = "", isCopy = f
     document.getElementById("arrangementLocation").value = item?.location || "";
     document.getElementById("arrangementExperience").value = isCopy ? "" : item?.experience || item?.after_notes || "";
     document.getElementById("arrangementFormStatus").textContent = "";
-    document.getElementById("deleteArrangementBtn").classList.toggle("hidden", !item || isCopy);
+    document.getElementById("deleteArrangementBtn").classList.toggle("hidden", !item || isCopy || !isArrangementDetailEditable(item));
     document.getElementById("arrangementLocalNotice").classList.toggle("hidden", window.GTScoutArrangements?.canWrite());
     renderDepartmentOptions(item?.departments?.length ? item.departments : departments);
+    draftParticipantDays = JSON.parse(JSON.stringify(item?.participant_days || {}));
+    document.getElementById("arrangementParticipantDays").replaceChildren();
+    draftParticipants = {
+        departments: Object.fromEntries(Object.entries(item?.participants?.departments || {}).map(([department, counts]) => [department, { ...counts }])),
+        officials: item?.participants?.officials ?? null
+    };
+    renderParticipantEditor();
     populatePlanningOptions(item?.planning_ref?.id || "");
     draftResponsibilities = (item?.responsibilities || []).map(entry => {
         const roleDescription = entry.role_description || getRoleDefinition(entry.role)?.description || "";
@@ -1198,6 +1440,8 @@ function readFormPayload() {
         end_time: document.getElementById("arrangementEndTime").value,
         location: document.getElementById("arrangementLocation").value.trim(),
         departments: getSelectedArrangementDepartments(),
+        participants: readParticipantInputs(document.getElementById("arrangementParticipants")),
+        participant_days: readParticipantDays(document.getElementById("arrangementParticipantDays")),
         planning_ref: planning ? { id: planning.id, name: planning.name } : null,
         agenda: readAgendaFromDom(),
         responsibilities: readResponsibilitiesFromDom(),
@@ -1479,6 +1723,25 @@ arrangementsGrid.addEventListener("click", async event => {
 });
 
 arrangementsGrid.addEventListener("click", async event => {
+    const recipeLink = event.target.closest(".arrangement-meal-recipe-link");
+    if (recipeLink) {
+        if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        const url = new URL(recipeLink.href);
+        url.searchParams.set("embedded", "1");
+        mealRecipeDialogTrigger = recipeLink;
+        const frame = document.getElementById("mealRecipeFrame");
+        frame.title = recipeLink.textContent.trim();
+        frame.src = url.href;
+        const modal = document.getElementById("mealRecipeModal");
+        [...document.body.children].filter(element => element !== modal && element.tagName !== "SCRIPT").forEach(element => {
+            mealRecipeInertState.set(element, element.inert);
+            element.inert = true;
+        });
+        modal.classList.remove("hidden");
+        document.getElementById("closeMealRecipeModal").focus();
+        return;
+    }
     const scheduleOverviewButton = event.target.closest("[data-toggle-schedule-overview]");
     if (scheduleOverviewButton) {
         event.preventDefault();
@@ -1495,6 +1758,22 @@ arrangementsGrid.addEventListener("click", async event => {
         [...arrangementsGrid.querySelectorAll(".arrangement-card")]
             .find(card => card.dataset.arrangementId === arrangementId)
             ?.querySelector(`[data-schedule-view="${showOverview ? "overview" : "days"}"]`)?.focus();
+        return;
+    }
+    const participantsButton = event.target.closest("[data-edit-participants]");
+    if (participantsButton) {
+        event.preventDefault();
+        const item = arrangements.find(arrangement => arrangement.id === participantsButton.dataset.editParticipants);
+        if (!item || !isArrangementDetailEditable(item)) return;
+        activeParticipantsArrangementId = item.id;
+        participantsDialogTrigger = participantsButton;
+        document.getElementById("participantsDialogFields").innerHTML = renderParticipantTable(item.departments, item.participants, true);
+        document.getElementById("participantsDialogDays").replaceChildren();
+        renderParticipantDaysEditor(document.getElementById("participantsDialogDays"), item, item.participants, item.participant_days || {});
+        document.getElementById("participantsDialogTitle").textContent = `Deltagare · ${item.title}`;
+        document.getElementById("participantsDialogStatus").textContent = "";
+        document.getElementById("participantsModal").classList.remove("hidden");
+        document.querySelector("#participantsDialogFields input")?.focus();
         return;
     }
     const detailEditButton = event.target.closest("[data-toggle-arrangement-edit]");
@@ -1674,7 +1953,7 @@ arrangementsGrid.addEventListener("click", async event => {
     }
     if (!deleteButton) return;
     const item = arrangements.find(arrangement => arrangement.id === deleteButton.dataset.deleteArrangement);
-    if (!item || !isArrangementEditable(item) || !confirm(`Ta bort ${item.title}?`)) return;
+    if (!item || !isArrangementDetailEditable(item) || !confirm(`Ta bort ${item.title}?`)) return;
     try {
         await window.GTScoutArrangements.remove(item.id);
     } catch (error) {
@@ -1877,8 +2156,72 @@ document.getElementById("addAgendaEntryBtn").addEventListener("click", () => {
 });
 
 document.getElementById("arrangementDepartments").addEventListener("change", () => {
+    Object.assign(draftParticipantDays, readParticipantDays(document.getElementById("arrangementParticipantDays")));
+    syncDraftParticipants();
+    renderParticipantEditor();
     syncDraftAgenda();
     renderAgendaEditor();
+});
+
+document.getElementById("arrangementParticipants").addEventListener("input", () => {
+    updateParticipantInputTotals(document.getElementById("arrangementParticipants"), getSelectedArrangementDepartments());
+    Object.assign(draftParticipantDays, readParticipantDays(document.getElementById("arrangementParticipantDays")));
+    const item = getDraftParticipantArrangement();
+    renderParticipantDaysEditor(document.getElementById("arrangementParticipantDays"), item, item.participants, draftParticipantDays);
+});
+document.getElementById("participantsDialogFields").addEventListener("input", () => {
+    const item = arrangements.find(arrangement => arrangement.id === activeParticipantsArrangementId);
+    if (item) updateParticipantInputTotals(document.getElementById("participantsDialogFields"), item.departments);
+    if (item) {
+        const container = document.getElementById("participantsDialogDays");
+        renderParticipantDaysEditor(container, item, readParticipantInputs(document.getElementById("participantsDialogFields")), readParticipantDays(container));
+    }
+});
+for (const id of ["arrangementParticipantDays", "participantsDialogDays"]) {
+    const container = document.getElementById(id);
+    const current = () => id === "arrangementParticipantDays" ? getDraftParticipantArrangement() : arrangements.find(item => item.id === activeParticipantsArrangementId);
+    const base = () => readParticipantInputs(document.getElementById(id === "arrangementParticipantDays" ? "arrangementParticipants" : "participantsDialogFields"));
+    container.addEventListener("input", event => {
+        const row = event.target.closest("[data-participant-date]");
+        if (row && current()) updateParticipantDay(row, current(), base());
+    });
+    container.addEventListener("click", event => {
+        const button = event.target.closest("[data-reset-participant-day]");
+        if (!button || !current()) return;
+        const row = button.closest("[data-participant-date]");
+        row.querySelectorAll("input").forEach(input => { input.value = ""; });
+        updateParticipantDay(row, current(), base());
+    });
+}
+document.getElementById("closeParticipantsModal").addEventListener("click", closeParticipantsDialog);
+document.getElementById("cancelParticipantsBtn").addEventListener("click", closeParticipantsDialog);
+document.getElementById("participantsModal").addEventListener("click", event => {
+    if (event.target.id === "participantsModal") closeParticipantsDialog();
+});
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && !document.getElementById("participantsModal").classList.contains("hidden")) closeParticipantsDialog();
+});
+document.getElementById("participantsForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    const item = arrangements.find(arrangement => arrangement.id === activeParticipantsArrangementId);
+    if (!item || !isArrangementDetailEditable(item) || !event.currentTarget.reportValidity()) return;
+    const status = document.getElementById("participantsDialogStatus");
+    const saveButton = document.getElementById("saveParticipantsBtn");
+    saveButton.disabled = true;
+    status.textContent = "Sparar...";
+    try {
+        const result = await window.GTScoutArrangements.save({ ...item, participants: readParticipantInputs(document.getElementById("participantsDialogFields")), participant_days: readParticipantDays(document.getElementById("participantsDialogDays")) });
+        closeParticipantsDialog();
+        const card = [...arrangementsGrid.querySelectorAll(".arrangement-card")].find(element => element.dataset.arrangementId === item.id);
+        const overview = card?.querySelector(".arrangement-participants-overview");
+        if (overview) overview.open = true;
+        card?.querySelector("[data-edit-participants]")?.focus();
+        showArrangementToast(result.error ? "Deltagarantalet finns lokalt men kunde inte synkas." : "Deltagarantalet är sparat.", result.error ? "error" : "success");
+    } catch (error) {
+        status.textContent = error.message || "Kunde inte spara deltagarantalet.";
+    } finally {
+        saveButton.disabled = false;
+    }
 });
 
 arrangementAgendaList.addEventListener("input", event => {
@@ -2093,6 +2436,10 @@ agendaEntryDialogFields.addEventListener("change", event => {
     if (!arrangement) return;
     const entry = readAgendaEntryDialog();
     const field = event.target.dataset.agendaField;
+    if (event.target.name === "mealParticipantMode") {
+        updateMealParticipantEditor(arrangement);
+        return;
+    }
     if (field === "kind") {
         entry.source_id = "";
         entry.source_type = "";
@@ -2109,6 +2456,8 @@ agendaEntryDialogFields.addEventListener("change", event => {
             : entry.source_type === "activity" ? activities.find(activity => String(activity.id) === entry.source_id) : null;
         if (source) entry.title = source.namn || "";
         renderAgendaEntryDialog(arrangement, entry, "source");
+    } else if (field === "date" && entry.kind === "meal") {
+        agendaEntryDialogFields.querySelector(".meal-participants-editor").outerHTML = renderMealParticipantEditor(arrangement, entry);
     } else if (event.target.matches(".agenda-recipe-target")) {
         updateMealRecipePicker(agendaEntryDialogFields.querySelector(".agenda-recipe-picker"));
     }
@@ -2116,6 +2465,17 @@ agendaEntryDialogFields.addEventListener("change", event => {
 
 agendaEntryDialogFields.addEventListener("input", event => {
     if (event.target.matches(".agenda-recipe-search")) updateMealRecipePicker(event.target.closest(".agenda-recipe-picker"));
+    if (event.target.matches("[data-participant-field]")) {
+        const arrangement = arrangements.find(item => item.id === activeAgendaArrangementId);
+        if (arrangement) updateMealParticipantEditor(arrangement);
+    }
+});
+agendaEntryDialogFields.addEventListener("click", event => {
+    if (!event.target.closest("[data-reset-meal-participants]")) return;
+    agendaEntryDialogFields.querySelectorAll("[data-meal-participant-fields] input").forEach(input => { input.value = ""; });
+    agendaEntryDialogFields.querySelector('[name="mealParticipantMode"][value="day"]').checked = true;
+    const arrangement = arrangements.find(item => item.id === activeAgendaArrangementId);
+    if (arrangement) updateMealParticipantEditor(arrangement);
 });
 
 agendaEntryDialogFields.addEventListener("click", event => {
@@ -2169,6 +2529,9 @@ document.getElementById("deleteAgendaEntryBtn").addEventListener("click", async 
 
 for (const fieldId of ["arrangementStartDate", "arrangementEndDate"]) {
     document.getElementById(fieldId).addEventListener("change", () => {
+    Object.assign(draftParticipantDays, readParticipantDays(document.getElementById("arrangementParticipantDays")));
+    const item = getDraftParticipantArrangement();
+    renderParticipantDaysEditor(document.getElementById("arrangementParticipantDays"), item, item.participants, draftParticipantDays);
         syncDraftAgenda();
         const startDate = document.getElementById("arrangementStartDate").value;
         const endDate = document.getElementById("arrangementEndDate").value || startDate;
@@ -2222,7 +2585,7 @@ arrangementForm.addEventListener("submit", async event => {
 
 document.getElementById("deleteArrangementBtn").addEventListener("click", async () => {
     const item = arrangements.find(arrangement => arrangement.id === arrangementForm.dataset.arrangementId);
-    if (!item || !isArrangementEditable(item) || !confirm(`Ta bort ${item.title}?`)) return;
+    if (!item || !isArrangementDetailEditable(item) || !confirm(`Ta bort ${item.title}?`)) return;
     try {
         await window.GTScoutArrangements.remove(item.id);
         arrangementModal.classList.add("hidden");
