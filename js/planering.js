@@ -105,6 +105,9 @@ let allAktiviteter = [];
 let groups = loadGroups();
 let activeGroupId = null; // which group is getting badges added
 let groupFilters = { search: "", level: "Alla", year: "Alla", term: "Alla" };
+const SHOW_ARCHIVED_PLANNINGS_STORAGE_KEY = "gtscout_show_archived_plannings";
+let showArchivedPlannings = localStorage.getItem(SHOW_ARCHIVED_PLANNINGS_STORAGE_KEY) === "true";
+const collapsedPlanningYears = new Set();
 let meetingSelectionGroupId = null;
 let meetingSelectionState = new Set();
 let showPlanningActivities = localStorage.getItem(SHOW_ACTIVITIES_STORAGE_KEY) !== "false";
@@ -159,7 +162,7 @@ function getGroupTermValue(group) {
 function getGroupSortValue(group) {
     const year = getGroupYearValue(group);
     const term = getGroupTermValue(group);
-    const termOrder = /^VT$/i.test(term) ? 0 : /^\bHT\b$/i.test(term) ? 1 : 2;
+    const termOrder = term === "VT" ? 0 : term === "HT" ? 1 : 2;
     return { year: Number.isFinite(year) ? year : 0, term: termOrder };
 }
 
@@ -1070,6 +1073,7 @@ function normalizeGroupList(list) {
             group.badges = Array.isArray(group.badges) ? group.badges : [];
             group.meetings = normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : []);
             group.visibility = ["private", "kar_view", "kar_edit"].includes(group.visibility) ? group.visibility : "kar_edit";
+            group.archived = group.archived === true;
             return group;
         }).filter(Boolean).filter(canViewGroup)
         : [];
@@ -2198,6 +2202,7 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
 
     const searchTerm = groupFilters.search.trim().toLowerCase();
     const visibleGroups = groups.filter(g => {
+        if (g.archived && !showArchivedPlannings) return false;
         const matchesLevel = groupFilters.level === "Alla" || g.level === groupFilters.level;
         const matchesYear = groupFilters.year === "Alla" || String(getGroupYearValue(g) ?? "") === String(groupFilters.year);
         const matchesTerm = groupFilters.term === "Alla" || getGroupTermValue(g) === groupFilters.term;
@@ -2211,7 +2216,9 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
     }
 
     if (visibleGroups.length === 0) {
-        grid.innerHTML = '<p class="no-results">Inga planeringar matchar filtret.</p>';
+        grid.innerHTML = groups.every(group => group.archived)
+            ? '<p class="no-results">Inga aktiva planeringar. Visa arkiverade i menyn Visa.</p>'
+            : '<p class="no-results">Inga planeringar matchar filtret.</p>';
         return;
     }
 
@@ -2273,7 +2280,22 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
             groupsByYear.get(yearKey).push(group);
         });
 
-        groupsByYear.forEach(yearGroups => {
+        groupsByYear.forEach((yearGroups, yearKey) => {
+            const yearStateKey = `${level}:${yearKey}`;
+            const yearSection = document.createElement("details");
+            yearSection.className = "planning-year-group";
+            yearSection.open = !collapsedPlanningYears.has(yearStateKey);
+            const yearLabel = yearKey === "unknown" ? "År saknas" : `År ${yearKey}`;
+            const yearCount = yearGroups.length === 1 ? "1 planering" : `${yearGroups.length} planeringar`;
+            const yearSummary = document.createElement("summary");
+            yearSummary.className = "planning-year-summary";
+            yearSummary.innerHTML = `<strong>${escapeHtml(yearLabel)}</strong><span>${yearCount}</span>`;
+            yearSection.appendChild(yearSummary);
+            yearSection.addEventListener("toggle", () => {
+                if (yearSection.open) collapsedPlanningYears.delete(yearStateKey);
+                else collapsedPlanningYears.add(yearStateKey);
+            });
+
             const cardsRow = document.createElement("div");
             cardsRow.className = "level-row-cards";
 
@@ -2283,11 +2305,16 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                 const noteText = String(group.note ?? "").trim();
                 const planningYear = getGroupYearValue(group);
                 const planningTerm = getGroupTermValue(group);
+                const visibilityStatus = group.visibility === "private"
+                    ? ` · <span class="planning-visibility-badge" title="Privat – endast synlig för ägare och admin">${getPlanningVisibilityIcon("private")}</span>`
+                    : group.visibility === "kar_view"
+                        ? ` · <span class="planning-visibility-badge" title="Skrivskyddad – bara ägare och admin kan redigera">${getPlanningVisibilityIcon("kar_view")}</span>`
+                        : "";
                 card.innerHTML = `
                 <div class="group-card-header">
                     <div class="group-card-heading">
                         <h3 class="group-name" title="Planeringens namn">${group.name}</h3>
-                        <span class="group-planning-meta">År ${planningYear !== null ? planningYear : "-"} · ${planningTerm || "Termin -"}${group.visibility === "private" ? ` · <span class="planning-visibility-badge" title="Privat – endast synlig för ägare och admin">${getPlanningVisibilityIcon("private")}</span>` : group.visibility === "kar_view" ? ` · <span class="planning-visibility-badge" title="Skrivskyddad – bara ägare och admin kan redigera">${getPlanningVisibilityIcon("kar_view")}</span>` : ""}</span>
+                        <span class="group-planning-meta">År ${planningYear !== null ? planningYear : "-"} · ${planningTerm || "Termin -"}${visibilityStatus}${group.archived ? ' · <span class="planning-archived-badge">Arkiverad</span>' : ""}</span>
                     </div>
                     <div class="group-card-actions">
                         <button class="btn-secondary share-overview-group-btn" type="button" data-group-id="${group.id}" aria-label="Dela översikt" title="Dela översikt"${group.local_only || !window.GTScoutPlanningSync?.canWrite?.() ? " disabled" : ""}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17.27,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5M12,17C9.24,17 7,14.76 7,12C7,9.24 9.24,7 12,7C14.76,7 17,9.24 17,12C17,14.76 14.76,17 12,17M12,9C10.34,9 9,10.34 9,12C9,13.66 10.34,15 12,15C13.66,15 15,13.66 15,12C15,10.34 13.66,9 12,9Z" /></svg></button>
@@ -2301,6 +2328,7 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                     ${renderGroupBadges(group, activeOpenActivityGroupIds, activeOpenMeetingGroupIds)}
                 </div>
                 `;
+                card.classList.toggle("group-card--archived", group.archived);
                 card.querySelector(".share-overview-group-btn")?.remove();
                 card.querySelector(".edit-group-btn").addEventListener("click", () => openGroupEditor(group.id));
                 card.querySelector(".share-group-btn").addEventListener("click", () => shareGroup(group.id));
@@ -2331,7 +2359,8 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                 cardsRow.appendChild(card);
             });
 
-            col.appendChild(cardsRow);
+            yearSection.appendChild(cardsRow);
+            col.appendChild(yearSection);
         });
 
         grid.appendChild(col);
@@ -2522,10 +2551,19 @@ function copyGroup(id) {
     copy.updated_at = now;
     copy.share_token = null;
     copy.shared_view = false;
+    copy.archived = false;
     copy.local_only = Boolean(auth?.isOnline?.() && !window.GTScoutPlanningSync?.canWrite?.());
     groups.push(copy);
     saveGroups();
     renderPlanning(new Set([copy.id]));
+}
+
+function toggleGroupArchived(id) {
+    const group = groups.find(item => item.id === id);
+    if (!group || !canEditGroup(group)) return;
+    group.archived = !group.archived;
+    saveGroups();
+    renderPlanning();
 }
 
 function removeGroup(id) {
@@ -2552,6 +2590,7 @@ function openGroupEditor(groupId) {
     if (!group || !canEditGroup(group)) return;
 
     groupModal.dataset.editingGroupId = groupId;
+    groupModal.querySelector(".group-modal-actions").classList.add("group-modal-actions--editing");
     document.getElementById("groupModalTitle").textContent = "Redigera planering";
     document.getElementById("groupName").value = stripPlanningYearPrefix(group.name || "");
     document.getElementById("groupYear").value = Number.isFinite(getGroupYearValue(group)) ? getGroupYearValue(group) : "";
@@ -2583,6 +2622,10 @@ function openGroupEditor(groupId) {
     const updatedInfo = document.getElementById("planningUpdatedInfo");
     updatedInfo.textContent = `Senast uppdaterad av: ${group.updated_by_name || "uppgift saknas"}, ${formatPlanningUpdatedAt(group.updated_at)}`;
     updatedInfo.classList.remove("hidden");
+    const archiveButton = document.getElementById("archiveGroupBtn");
+    archiveButton.textContent = group.archived ? "Återställ" : "Arkivera";
+    archiveButton.title = group.archived ? "Återställ arkiverad planering" : "Arkivera planering";
+    archiveButton.classList.remove("hidden");
     document.getElementById("copyGroupBtn").classList.remove("hidden");
     const removeButton = document.getElementById("removeGroupBtn");
     const canDelete = canDeleteGroup(group);
@@ -2595,8 +2638,10 @@ function openGroupEditor(groupId) {
 
 function resetGroupModalState() {
     groupModal.dataset.editingGroupId = "";
+    groupModal.querySelector(".group-modal-actions").classList.remove("group-modal-actions--editing");
     document.getElementById("groupModalTitle").textContent = "Ny plannering";
     document.getElementById("saveGroupBtn").textContent = "Spara";
+    document.getElementById("saveGroupBtn").title = "Spara planering";
     document.getElementById("groupNote").value = "";
     const visibilitySelect = document.getElementById("groupVisibility");
     visibilitySelect.value = "kar_edit";
@@ -2606,6 +2651,7 @@ function resetGroupModalState() {
     document.getElementById("changeOwnerBtn")?.classList.add("hidden");
     document.getElementById("changeOwnerSection")?.classList.add("hidden");
     document.getElementById("planningUpdatedInfo").classList.add("hidden");
+    document.getElementById("archiveGroupBtn").classList.add("hidden");
     document.getElementById("copyGroupBtn").classList.add("hidden");
     const removeButton = document.getElementById("removeGroupBtn");
     removeButton.classList.add("hidden");
@@ -3916,6 +3962,7 @@ const planningActionsBtn = document.getElementById("planningActionsBtn");
 const planningActionsDropdown = document.getElementById("planningActionsDropdown");
 const togglePlanningActivitiesBtn = document.getElementById("togglePlanningActivitiesBtn");
 const togglePlanningMeetingsBtn = document.getElementById("togglePlanningMeetingsBtn");
+const toggleArchivedPlanningsBtn = document.getElementById("toggleArchivedPlanningsBtn");
 function keepPlanningMenuSectionsExpandedOnDesktop() {
     if (!planningActionsDropdown) return;
     const shouldExpand = window.matchMedia("(min-width: 901px)").matches;
@@ -3954,6 +4001,9 @@ const updatePlanningDetailsToggles = () => {
     togglePlanningMeetingsBtn.querySelector(".planning-toggle-status").textContent = showPlanningMeetings ? "✓" : "–";
     togglePlanningMeetingsBtn.classList.toggle("planning-toggle-item--off", !showPlanningMeetings);
     togglePlanningMeetingsBtn.setAttribute("aria-pressed", String(showPlanningMeetings));
+    toggleArchivedPlanningsBtn.querySelector(".planning-toggle-status").textContent = showArchivedPlannings ? "✓" : "–";
+    toggleArchivedPlanningsBtn.classList.toggle("planning-toggle-item--off", !showArchivedPlannings);
+    toggleArchivedPlanningsBtn.setAttribute("aria-pressed", String(showArchivedPlannings));
 };
 updatePlanningStickyOffset();
 updatePlanningDetailsToggles();
@@ -3966,6 +4016,12 @@ togglePlanningActivitiesBtn.addEventListener("click", () => {
 togglePlanningMeetingsBtn.addEventListener("click", () => {
     showPlanningMeetings = !showPlanningMeetings;
     localStorage.setItem(SHOW_MEETINGS_STORAGE_KEY, String(showPlanningMeetings));
+    updatePlanningDetailsToggles();
+    renderPlanning();
+});
+toggleArchivedPlanningsBtn.addEventListener("click", () => {
+    showArchivedPlannings = !showArchivedPlannings;
+    localStorage.setItem(SHOW_ARCHIVED_PLANNINGS_STORAGE_KEY, String(showArchivedPlannings));
     updatePlanningDetailsToggles();
     renderPlanning();
 });
@@ -4022,6 +4078,14 @@ document.getElementById("copyGroupBtn").addEventListener("click", () => {
     const editingGroupId = groupModal.dataset.editingGroupId;
     if (!editingGroupId) return;
     copyGroup(editingGroupId);
+    groupModal.classList.add("hidden");
+    resetGroupModalState();
+});
+
+document.getElementById("archiveGroupBtn").addEventListener("click", () => {
+    const editingGroupId = groupModal.dataset.editingGroupId;
+    if (!editingGroupId) return;
+    toggleGroupArchived(editingGroupId);
     groupModal.classList.add("hidden");
     resetGroupModalState();
 });

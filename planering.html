@@ -67,6 +67,7 @@
                         <summary class="planning-menu-section-label">Visa</summary>
                         <button id="togglePlanningActivitiesBtn" class="planning-menu-item planning-toggle-item" type="button" role="menuitem" aria-pressed="true"><span>Visa aktiviteter</span><span class="planning-toggle-status" aria-hidden="true">✓</span></button>
                         <button id="togglePlanningMeetingsBtn" class="planning-menu-item planning-toggle-item" type="button" role="menuitem" aria-pressed="true"><span>Visa möten</span><span class="planning-toggle-status" aria-hidden="true">✓</span></button>
+                        <button id="toggleArchivedPlanningsBtn" class="planning-menu-item planning-toggle-item" type="button" role="menuitem" aria-pressed="false"><span>Visa arkiverade</span><span class="planning-toggle-status" aria-hidden="true">–</span></button>
                         <button class="planning-menu-item section-collapse-menu-item" type="button" role="menuitem" data-collapse-all="planning" aria-expanded="true">Fäll ihop alla målgrupper</button>
                     </details>
                     <div class="planning-menu-divider" role="separator"></div>
@@ -326,9 +327,10 @@
                 </div>
             </div>
             <div class="modal-actions group-modal-actions">
-                <button id="removeGroupBtn" class="btn-danger hidden" type="button">Ta bort</button>
-                <button id="copyGroupBtn" class="btn-secondary hidden" type="button">Kopiera</button>
-                <button id="saveGroupBtn" class="btn-primary" type="button">Spara</button>
+                <button id="removeGroupBtn" class="btn-danger group-delete-icon hidden" type="button" aria-label="Ta bort planering" title="Ta bort planering"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button>
+                <button id="archiveGroupBtn" class="btn-secondary hidden" type="button">Arkivera</button>
+                <button id="copyGroupBtn" class="btn-secondary hidden" type="button" title="Kopiera planering">Kopiera</button>
+                <button id="saveGroupBtn" class="btn-primary" type="button" title="Spara planering">Spara</button>
             </div>
             <ul class="modal-status-list">
                 <li id="planningUpdatedInfo" class="planning-owner-info hidden"></li>

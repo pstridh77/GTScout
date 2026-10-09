@@ -1649,6 +1649,22 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
     cursor: pointer;
 }
 
+.category-heading::after {
+    position: absolute;
+    right: 16px;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    content: "";
+    transform: rotate(45deg) translateY(-2px);
+    transition: transform 0.15s ease;
+}
+
+.category-heading[aria-expanded="false"]::after {
+    transform: rotate(-45deg) translate(-2px, 2px);
+}
+
 .category-group--collapsed .category-badges {
     display: none;
 }
@@ -1679,22 +1695,6 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
         position: sticky;
         justify-content: flex-start;
         padding-right: 42px;
-    }
-
-    .category-heading::after {
-        position: absolute;
-        right: 16px;
-        width: 8px;
-        height: 8px;
-        border-right: 2px solid currentColor;
-        border-bottom: 2px solid currentColor;
-        content: "";
-        transform: rotate(45deg) translateY(-2px);
-        transition: transform 0.15s ease;
-    }
-
-    .category-heading[aria-expanded="false"]::after {
-        transform: rotate(-45deg) translate(-2px, 2px);
     }
 
     .category-collapse-toggle,
@@ -4056,6 +4056,63 @@ select:focus {
     display: none;
 }
 
+.level-row--collapsed > .planning-year-group {
+    display: none;
+}
+
+.planning-year-group {
+    min-width: 0;
+}
+
+.planning-year-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 38px;
+    margin-bottom: 10px;
+    padding: 7px 12px;
+    border: 1px solid #d7e1eb;
+    border-radius: 7px;
+    background: #eaf0f4;
+    color: #003660;
+    font-size: 0.88rem;
+    font-weight: 700;
+    list-style: none;
+    cursor: pointer;
+}
+
+.planning-year-summary::-webkit-details-marker {
+    display: none;
+}
+
+.planning-year-summary::before {
+    flex: 0 0 7px;
+    width: 7px;
+    height: 7px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    content: "";
+    transform: rotate(-45deg);
+    transition: transform 0.15s ease;
+}
+
+.planning-year-group[open] > .planning-year-summary::before {
+    transform: rotate(45deg);
+}
+
+.planning-year-summary > span {
+    margin-left: auto;
+    color: #536477;
+    font-size: 0.78rem;
+    font-weight: 500;
+}
+
+.planning-year-summary:focus-visible {
+    outline: 2px solid #176b72;
+    outline-offset: 2px;
+}
+
 .level-remove-all-btn {
     border: 1px solid rgba(255, 255, 255, 0.35);
     border-radius: 999px;
@@ -4156,6 +4213,15 @@ select:focus {
     color: #64748b;
     font-size: 0.78rem;
     font-weight: 500;
+}
+
+.planning-archived-badge {
+    color: #7c4a12;
+    font-weight: 700;
+}
+
+.group-card--archived {
+    border-left: 4px solid #b7791f;
 }
 
 .planning-visibility-badge {
@@ -5040,8 +5106,15 @@ select:focus {
     margin-right: auto;
 }
 .modal-actions--split { justify-content: space-between; }
-.group-modal-actions { gap: 12px; }
-.group-modal-actions #removeGroupBtn { margin-right: auto; }
+.group-modal-actions { align-items: center; flex-wrap: wrap; gap: 10px; }
+.group-modal-actions--editing { display: grid; grid-template-columns: 44px repeat(3, minmax(0, 1fr)); align-items: stretch; gap: 10px; }
+.group-modal-actions--editing > button { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; width: 100%; min-width: 0; height: 44px; min-height: 44px; padding: 0 8px; white-space: nowrap; }
+.group-modal-actions--editing #removeGroupBtn { padding: 0; }
+.group-modal-actions--editing #removeGroupBtn svg { width: 19px; height: 19px; }
+@media (max-width: 600px) {
+    .group-modal-actions--editing { grid-template-columns: 40px repeat(3, minmax(0, 1fr)); gap: 6px; }
+    .group-modal-actions--editing > button:not(#removeGroupBtn) { padding: 0 3px; font-size: 0.76rem; }
+}
 .meeting-modal-actions { gap: 12px; }
 .meeting-modal-actions #removeMeetingBtn { margin-right: auto; }
 
