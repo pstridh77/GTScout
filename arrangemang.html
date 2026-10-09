@@ -223,6 +223,14 @@
         </form>
     </div>
 
+    <div id="mealRecipeModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="mealRecipeModalTitle">
+        <div class="modal-content modal-content--wide meal-recipe-modal-content">
+            <button id="closeMealRecipeModal" class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2 id="mealRecipeModalTitle">Måltidsrecept</h2>
+            <iframe id="mealRecipeFrame" title="Måltidsrecept" src="about:blank"></iframe>
+        </div>
+    </div>
+
     <div id="participantsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="participantsDialogTitle">
         <form id="participantsForm" class="modal-content participants-dialog-content">
             <button id="closeParticipantsModal" class="close-popup" type="button" aria-label="Stäng">&times;</button>

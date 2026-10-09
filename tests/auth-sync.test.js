@@ -117,7 +117,7 @@ test("arrangement participant totals include officials as leaders and only selec
 test("arrangement participant section hides unknown counts only in read mode", () => {
     const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
     const start = source.indexOf("function getParticipantTotals(");
-    const end = source.indexOf("function closeParticipantsDialog(", start);
+    const end = source.indexOf("function closeMealRecipeDialog(", start);
     const context = vm.createContext({ escapeArrangementHtml: value => String(value ?? "") });
     vm.runInContext(source.slice(start, end), context);
     const item = { id: "participants-test", title: "Test", departments: ["Spårare"] };
@@ -159,6 +159,88 @@ test("arrangement overview hides unknown participant totals when locked", () => 
     item.participants.departments["Spårare"].scouts = 18;
     assert.match(render(), />18 deltagare</);
     assert.doesNotMatch(render(), /scouter|ledare|föräldrar|ej angivet/);
+});
+
+test("arrangement meals link each recipe to the combined participant count", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
+    const totals = source.slice(source.indexOf("function getParticipantTotals("), source.indexOf("function getParticipantSummary("));
+    const render = source.slice(source.indexOf("function getArrangementRecipeUrl("), source.indexOf("function renderScheduleEntry("));
+    const context = vm.createContext({
+        URLSearchParams, recipes: [{ id: "soup&bread", namn: "Soup" }, { id: "bread", namn: "Bread" }],
+        collapsedArrangementMeals: new Set(), getMealRecipeIds: entry => entry.recipe_ids || [],
+        formatArrangementDate: date => date, escapeArrangementHtml: value => String(value ?? "")
+    });
+    vm.runInContext(totals + render, context);
+    const item = { id: "meal-test", departments: ["Spårare", "Ledare"], participants: { departments: {
+        "Spårare": { scouts: 41, leaders: 4, parents: 10 }, "Ledare": { leaders: 4 }
+    }, officials: 2 }, agenda: [{ id: "meal", kind: "meal", date: "2026-10-09", meal_type: "Lunch", recipe_ids: ["soup&bread", "bread"] }] };
+    const url = new URL(context.getArrangementRecipeUrl(item, "soup&bread"), "https://example.test/");
+    assert.equal(url.searchParams.get("recipe"), "soup&bread");
+    assert.equal(url.searchParams.get("servings"), "61");
+    const html = context.renderArrangementMealSummary(item);
+    assert.doesNotMatch(html, /target="_blank"/);
+    assert.match(html, /recipe=soup%26bread&servings=61/);
+    assert.match(html, /recipe=bread&servings=61/);
+    assert.match(context.renderArrangementMealSummary(item, true), /data-edit-agenda="meal"/);
+    item.participants = undefined;
+    assert.equal(new URL(context.getArrangementRecipeUrl(item, "bread"), "https://example.test/").searchParams.has("servings"), false);
+    item.agenda[0].recipe_ids = [];
+    assert.doesNotMatch(context.renderArrangementMealSummary(item), /<a /);
+});
+
+test("recipe links initialize valid serving counts for only the requested recipe", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "kokbok.js"), "utf8");
+    const setup = source.slice(source.indexOf("const recipeUrlParams ="), source.indexOf("const RECIPE_MEAL_TYPES ="));
+    const target = source.slice(source.indexOf("function getRecipeTargetServings("), source.indexOf("function openSharedRecipeFromUrl("));
+    for (const [search, expected] of [
+        ["?recipe=soup&servings=61", 61], ["?recipe=soup&servings=2", 2],
+        ["?recipe=soup", 4], ["?recipe=soup&servings=0", 4],
+        ["?recipe=soup&servings=-2", 4], ["?recipe=soup&servings=1.5", 4],
+        ["?recipe=soup&servings=invalid", 4], ["?servings=61", 4]
+    ]) {
+        const context = vm.createContext({ window: { location: { search } }, URLSearchParams });
+        vm.runInContext(setup + target, context);
+        assert.equal(context.getRecipeTargetServings({ id: "soup", portioner: 4 }), expected);
+        assert.equal(context.getRecipeTargetServings({ id: "other", portioner: 10 }), 10);
+        vm.runInContext("recipeServingSelections.set('soup', 12)", context);
+        assert.equal(context.getRecipeTargetServings({ id: "soup", portioner: 4 }), 12);
+    }
+});
+
+test("embedded recipe view shows only the selected recipe and forwards Escape", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "kokbok.js"), "utf8");
+    const setup = source.slice(source.indexOf("const recipeUrlParams ="), source.indexOf("const RECIPE_MEAL_TYPES ="));
+    const filter = source.slice(source.indexOf("function visibleRecipes("), source.indexOf("function parseAmount("));
+    let keydown;
+    let bodyClass;
+    let message;
+    const context = vm.createContext({
+        URLSearchParams, window: { location: { search: "?recipe=soup&servings=61&embedded=1" }, parent: { postMessage: value => { message = value; } } },
+        document: { body: { classList: { add: value => { bodyClass = value; } } }, addEventListener: (event, callback) => { keydown = callback; } },
+        recipes: [{ id: "soup", namn: "Soup", kategori: "Lunch", ingredienser: [] }, { id: "bread", namn: "Bread", kategori: "Lunch", ingredienser: [] }],
+        recipeSearch: { value: "" }, recipeCategoryFilter: { value: "Alla" }, recipeDifficultyFilter: { value: "Alla" },
+        getRecipeMealType: recipe => recipe.kategori
+    });
+    vm.runInContext(setup + filter, context);
+    assert.equal(bodyClass, "recipe-embedded-view");
+    assert.equal(context.visibleRecipes().length, 1);
+    assert.equal(context.visibleRecipes()[0].id, "soup");
+    keydown({ key: "Enter" });
+    assert.equal(message, undefined);
+    keydown({ key: "Escape" });
+    assert.equal(message.type, "gtscout-close-recipe");
+});
+
+test("recipe ingredients scale to arrangement counts including groups smaller than four", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "kokbok.js"), "utf8");
+    const start = source.indexOf("function parseAmount(");
+    const end = source.indexOf("function renderIngredientEditor(", start);
+    const context = vm.createContext({ RECIPE_SCALE_OPTIONS: [4, 10, 25, 50, 100] });
+    vm.runInContext(source.slice(start, end), context);
+    const ingredient = { mangder: { "4": "400 g", "10": "1000 g", "25": "2500 g", "50": "5000 g", "100": "10000 g" } };
+    assert.equal(context.scaleIngredientAmount(ingredient, {}, 61), "6,1 kg");
+    assert.equal(context.scaleIngredientAmount(ingredient, {}, 2), "200 g");
+    assert.equal(context.scaleIngredientAmount({ mangder: { "4": "1 st", "10": "10 st" } }, {}, 2), "0,5 st");
 });
 
 test("empty arrangement schedules hide only in read mode and retain every agenda kind", () => {

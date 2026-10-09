@@ -12,9 +12,21 @@ const recipeShareUrl = document.getElementById("recipeShareUrl");
 const recipeShareStatus = document.getElementById("recipeShareStatus");
 let editingRecipeId = null;
 let recipes = [];
-const sharedRecipeIdFromUrl = new URLSearchParams(window.location.search).get("recipe");
+const recipeUrlParams = new URLSearchParams(window.location.search);
+const sharedRecipeIdFromUrl = recipeUrlParams.get("recipe");
+const isEmbeddedRecipeView = recipeUrlParams.get("embedded") === "1" && Boolean(sharedRecipeIdFromUrl);
+if (isEmbeddedRecipeView) {
+    document.body.classList.add("recipe-embedded-view");
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape") window.parent.postMessage({ type: "gtscout-close-recipe" }, "*");
+    });
+}
 const RECIPE_SCALE_OPTIONS = [4, 10, 25, 50, 100];
 const recipeServingSelections = new Map();
+const requestedRecipeServings = Number(recipeUrlParams.get("servings"));
+if (sharedRecipeIdFromUrl && Number.isSafeInteger(requestedRecipeServings) && requestedRecipeServings > 0) {
+    recipeServingSelections.set(sharedRecipeIdFromUrl, requestedRecipeServings);
+}
 const RECIPE_MEAL_TYPES = ["Frukost", "Lunch", "Mellanmål", "Middag", "Kvällsmål", "Tillbehör", "Snacks"];
 const collapsedRecipeMealTypes = new Set();
 const collapseAllRecipeButtons = document.querySelectorAll('[data-collapse-all="recipes"]');
@@ -94,7 +106,7 @@ function visibleRecipes() {
     return recipes.filter(recipe => {
         const mealType = getRecipeMealType(recipe);
         const haystack = [recipe.namn, mealType, recipe.beskrivning, ...recipe.ingredienser].join(" ").toLocaleLowerCase("sv-SE");
-        return (!query || haystack.includes(query)) && (recipeCategoryFilter.value === "Alla" || mealType === recipeCategoryFilter.value) && (recipeDifficultyFilter.value === "Alla" || recipe.svarighet === recipeDifficultyFilter.value);
+        return (!isEmbeddedRecipeView || recipe.id === sharedRecipeIdFromUrl) && (!query || haystack.includes(query)) && (recipeCategoryFilter.value === "Alla" || mealType === recipeCategoryFilter.value) && (recipeDifficultyFilter.value === "Alla" || recipe.svarighet === recipeDifficultyFilter.value);
     });
 }
 
@@ -174,7 +186,7 @@ function scaleIngredientAmount(row, recipe, targetServings) {
         .filter((point, _, all) => point.comparable.category === all[0].comparable.category);
     if (!points.length) return "";
 
-    if (points.length === 1) {
+    if (points.length === 1 || targetServings < points[0].servings) {
         const point = points[0];
         return formatComparableAmount(point.comparable.value * targetServings / point.servings, point.comparable);
     }
@@ -235,7 +247,7 @@ function readIngredientRows() {
 
 function getRecipeTargetServings(recipe) {
     const selected = recipeServingSelections.get(recipe.id);
-    return Number.isFinite(selected) && selected >= 4 ? selected : (Number(recipe.portioner) >= 4 ? Number(recipe.portioner) : 4);
+    return Number.isSafeInteger(selected) && selected >= 1 ? selected : (Number(recipe.portioner) >= 1 ? Number(recipe.portioner) : 4);
 }
 
 function openSharedRecipeFromUrl() {
@@ -306,6 +318,7 @@ function createRecipeCard(recipe) {
         const targetServings = getRecipeTargetServings(recipe);
         const scaledIngredients = getIngredientRows(recipe).map(row => `${scaleIngredientAmount(row, recipe, targetServings)} ${row.namn}`.trim());
                 card.innerHTML = `<div class="recipe-card-top"><span class="recipe-category">${escapeRecipeHtml(recipe.kategori)}</span><span class="recipe-difficulty recipe-difficulty--${recipe.svarighet.toLocaleLowerCase("sv-SE")}">${escapeRecipeHtml(recipe.svarighet)}</span></div><h2>${escapeRecipeHtml(recipe.namn)}</h2><p class="recipe-description">${escapeRecipeHtml(recipe.beskrivning || "Ett recept för scoutköket.")}</p><dl class="recipe-meta"></dl><label class="recipe-serving-control"><span>Visa recept för</span><input data-recipe-servings="${recipe.id}" aria-label="Visa ${escapeRecipeHtml(recipe.namn)} för antal personer" type="number" min="4" step="1" value="${targetServings}"></label><details><summary>Visa recept</summary><div class="recipe-details"><h3>Ingredienser</h3><ul>${scaledIngredients.map(item => `<li>${escapeRecipeHtml(item)}</li>`).join("")}</ul><h3>Gör så här</h3><p>${escapeRecipeHtml(recipe.instruktioner).replace(/\n/g, "<br>")}</p></div></details><div class="recipe-card-actions"><button class="btn-secondary recipe-share-icon-btn" type="button" data-share-recipe="${recipe.id}" aria-label="Dela recept" title="Dela recept"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,16.08C17.24,16.08 16.54,16.38 16,16.85L8.91,12.74C8.96,12.5 9,12.25 9,12C9,11.75 8.96,11.5 8.91,11.26L15.92,7.17C16.47,7.66 17.2,7.97 18,7.97C19.66,7.97 21,6.63 21,4.97C21,3.31 19.66,1.97 18,1.97C16.34,1.97 15,1.97 15,4.97C15,5.22 15.04,5.47 15.09,5.71L8.08,9.8C7.53,9.31 6.8,9 6,9C4.34,9 3,10.34 3,12C3,13.66 4.34,15 6,15C6.8,15 7.53,14.69 8.08,14.2L15.17,18.31C15.12,18.54 15,18.77 15,19C15,20.66 16.34,22 18,22C19.66,22 21,20.66 21,19C21,17.34 19.66,16.08 18,16.08Z" /></svg></button><button class="btn-secondary" type="button" data-edit-recipe="${recipe.id}">Redigera</button></div>`;
+        card.querySelector("[data-recipe-servings]").min = "1";
         if (!window.GTScoutCookbook.canEdit?.()) card.querySelector("[data-edit-recipe]")?.remove();
         card.addEventListener("click", event => {
             if (event.target.closest("button, input, summary") || event.target.closest(".recipe-card details")) return;

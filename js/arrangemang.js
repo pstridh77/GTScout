@@ -39,6 +39,8 @@ let activeNotesArrangementId = "";
 let notesDialogTrigger = null;
 let activeParticipantsArrangementId = "";
 let participantsDialogTrigger = null;
+let mealRecipeDialogTrigger = null;
+const mealRecipeInertState = new Map();
 let draftParticipants = { departments: {}, officials: null };
 let arrangementToastTimer = null;
 let activeScheduleGesture = null;
@@ -372,6 +374,27 @@ function renderArrangementParticipants(item, canEdit) {
         : "";
     return `<details class="arrangement-participants-overview"><summary class="arrangement-section-summary"><strong>Deltagare</strong><span>${escapeArrangementHtml(getParticipantSummary(item.departments, item.participants))}</span></summary><div class="arrangement-participants-content">${renderParticipantTable(item.departments, item.participants)}${editButton}</div></details>`;
 }
+
+function closeMealRecipeDialog() {
+    document.getElementById("mealRecipeModal").classList.add("hidden");
+    document.getElementById("mealRecipeFrame").src = "about:blank";
+    mealRecipeInertState.forEach((inert, element) => { element.inert = inert; });
+    mealRecipeInertState.clear();
+    if (mealRecipeDialogTrigger?.isConnected) mealRecipeDialogTrigger.focus();
+    mealRecipeDialogTrigger = null;
+}
+
+document.getElementById("closeMealRecipeModal").addEventListener("click", closeMealRecipeDialog);
+document.getElementById("mealRecipeModal").addEventListener("click", event => {
+    if (event.target.id === "mealRecipeModal") closeMealRecipeDialog();
+});
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && !document.getElementById("mealRecipeModal").classList.contains("hidden")) closeMealRecipeDialog();
+});
+window.addEventListener("message", event => {
+    if (event.source !== document.getElementById("mealRecipeFrame").contentWindow) return;
+    if (event.data?.type === "gtscout-close-recipe") closeMealRecipeDialog();
+});
 
 function closeParticipantsDialog() {
     document.getElementById("participantsModal").classList.add("hidden");
@@ -810,6 +833,13 @@ function renderArrangementSchedule(item) {
     return `<details class="arrangement-schedule" data-arrangement-id="${escapeArrangementHtml(item.id)}"${isSchemaExpanded ? " open" : ""}><summary class="arrangement-section-summary"><strong>Schema</strong><span>${scheduleDateLabel} · ${scheduleEntryLabel}</span></summary><div class="arrangement-schedule-body">${viewControls}${scheduleContent}</div></details>`;
 }
 
+function getArrangementRecipeUrl(item, recipeId) {
+    const params = new URLSearchParams({ recipe: String(recipeId) });
+    const totals = getParticipantTotals(item.departments, item.participants);
+    if (totals.total > 0) params.set("servings", String(totals.total));
+    return `kokbok.html?${params}`;
+}
+
 function renderArrangementMealSummary(item, canEdit = false) {
     const mealsByDate = new Map();
     (item.agenda || []).filter(entry => entry.kind === "meal")
@@ -830,7 +860,20 @@ function renderArrangementMealSummary(item, canEdit = false) {
     const rows = [...mealsByDate].map(([date, meals]) =>
         `<section class="arrangement-meal-day"><h4><time datetime="${escapeArrangementHtml(date)}">${escapeArrangementHtml(formatArrangementDate(date))}</time></h4><ul>${meals.map(({ entry, name }) => {
             const mealLabel = escapeArrangementHtml(name);
-            const mealContent = canEdit
+            const totals = getParticipantTotals(item.departments, item.participants);
+            const servingLabel = totals.total > 0
+                ? `${totals.total} deltagare${totals.complete ? "" : " (preliminärt)"}`
+                : "receptets grundantal";
+            const recipeLinks = [...new Set(getMealRecipeIds(entry))].map(id => {
+                const recipe = recipes.find(recipe => String(recipe.id) === id);
+                return recipe ? `<a class="arrangement-meal-recipe-link" href="${escapeArrangementHtml(getArrangementRecipeUrl(item, id))}" title="Visa ${escapeArrangementHtml(recipe.namn)} för ${escapeArrangementHtml(servingLabel)}">${escapeArrangementHtml(recipe.namn)}</a>` : "";
+            }).filter(Boolean);
+            const editRecipeMeal = canEdit && recipeLinks.length
+                ? `<button class="btn-secondary arrangement-edit-details-icon arrangement-meal-edit" type="button" data-edit-agenda="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}" aria-label="Redigera måltid: ${mealLabel}" title="Redigera eller ta bort måltid"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/></svg></button>`
+                : "";
+            const mealContent = recipeLinks.length
+                ? `<span>${escapeArrangementHtml(entry.meal_type || entry.title || "Måltid")}: ${recipeLinks.join(", ")}</span>${editRecipeMeal}`
+                : canEdit
                 ? `<button class="arrangement-meal-entry" type="button" data-edit-agenda="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}" aria-label="Redigera måltid: ${mealLabel}" title="Redigera eller ta bort måltid">${mealLabel}</button>`
                 : mealLabel;
             return `<li>${mealContent}</li>`;
@@ -1590,6 +1633,25 @@ arrangementsGrid.addEventListener("click", async event => {
 });
 
 arrangementsGrid.addEventListener("click", async event => {
+    const recipeLink = event.target.closest(".arrangement-meal-recipe-link");
+    if (recipeLink) {
+        if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        const url = new URL(recipeLink.href);
+        url.searchParams.set("embedded", "1");
+        mealRecipeDialogTrigger = recipeLink;
+        const frame = document.getElementById("mealRecipeFrame");
+        frame.title = recipeLink.textContent.trim();
+        frame.src = url.href;
+        const modal = document.getElementById("mealRecipeModal");
+        [...document.body.children].filter(element => element !== modal && element.tagName !== "SCRIPT").forEach(element => {
+            mealRecipeInertState.set(element, element.inert);
+            element.inert = true;
+        });
+        modal.classList.remove("hidden");
+        document.getElementById("closeMealRecipeModal").focus();
+        return;
+    }
     const scheduleOverviewButton = event.target.closest("[data-toggle-schedule-overview]");
     if (scheduleOverviewButton) {
         event.preventDefault();
