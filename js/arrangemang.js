@@ -840,6 +840,16 @@ function getArrangementRecipeUrl(item, recipeId) {
     return `kokbok.html?${params}`;
 }
 
+function getArrangementShoppingUrl(item) {
+    const params = new URLSearchParams({ shopping: item.id });
+    const totals = getParticipantTotals(item.departments, item.participants);
+    if (totals.total > 0) params.set("servings", String(totals.total));
+    if (totals.hasCounts && !totals.complete) params.set("preliminary", "1");
+    const shareToken = new URLSearchParams(window.location.search).get("share");
+    if (shareToken) params.set("share", shareToken);
+    return `kokbok.html?${params}`;
+}
+
 function renderArrangementMealSummary(item, canEdit = false) {
     const mealsByDate = new Map();
     (item.agenda || []).filter(entry => entry.kind === "meal")
@@ -888,7 +898,10 @@ function renderArrangementMealSummary(item, canEdit = false) {
     const addMealButton = canEdit
         ? `<button class="btn-secondary arrangement-meal-add" type="button" data-add-meal="${escapeArrangementHtml(item.id)}">+ Lägg till mat</button>`
         : "";
-    return `<details class="arrangement-meal-summary" data-arrangement-id="${escapeArrangementHtml(item.id)}"${isOpen ? " open" : ""}><summary><h3>Måltider</h3><span>${mealCountLabel}</span></summary>${mealContent}${addMealButton}</details>`;
+    const shoppingLink = mealCount
+        ? `<a class="btn-secondary arrangement-shopping-link" href="${escapeArrangementHtml(getArrangementShoppingUrl(item))}" target="_blank" rel="noopener noreferrer">Inköpslista</a>`
+        : "";
+    return `<details class="arrangement-meal-summary" data-arrangement-id="${escapeArrangementHtml(item.id)}"${isOpen ? " open" : ""}><summary><h3>Måltider</h3><span>${mealCountLabel}</span></summary>${mealContent}<div class="arrangement-meal-actions">${shoppingLink}${addMealButton}</div></details>`;
 }
 
 function renderScheduleEntry(entry, departmentIndex = null, arrangementId = "", canEdit = false) {

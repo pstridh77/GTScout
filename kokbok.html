@@ -75,6 +75,24 @@
     </header>
 
     <main class="cookbook-page">
+        <section id="shoppingView" class="shopping-view hidden" aria-labelledby="shoppingTitle">
+            <div class="shopping-heading">
+                <h1 id="shoppingTitle">Inköpslista</h1>
+                <button id="printShoppingBtn" class="btn-secondary" type="button" disabled>Skriv ut</button>
+            </div>
+            <p id="shoppingStatus" class="shopping-status" role="status" aria-live="polite">Hämtar arrangemang...</p>
+            <label class="shopping-serving-control"><span>Deltagare</span><input id="shoppingServings" type="number" min="1" max="9007199254740991" step="1" inputmode="numeric"></label>
+            <label class="shopping-breakdown-control"><input id="shoppingBreakdown" type="checkbox" aria-controls="shoppingGrid">Visa måltidsfördelning</label>
+            <p id="shoppingCountNotice" class="detail-note-warning hidden"></p>
+            <div id="shoppingGrid" class="shopping-grid" role="region" aria-label="Ingredienser och måltidsfördelning" tabindex="0">
+                <table id="shoppingIngredients" class="shopping-ingredients"></table>
+            </div>
+            <p id="shoppingEmpty" class="hidden">Inga ingredienser att visa.</p>
+            <details id="shoppingWarnings" class="shopping-warnings hidden" open>
+                <summary id="shoppingWarningsTitle">Kontrollera underlaget</summary>
+                <ul id="shoppingWarningItems"></ul>
+            </details>
+        </section>
         <section class="page-hero" aria-labelledby="cookbookTitle">
             <div>
             <p class="page-kicker">Mat ute, tillsammans</p>

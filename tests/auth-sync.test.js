@@ -166,7 +166,7 @@ test("arrangement meals link each recipe to the combined participant count", () 
     const totals = source.slice(source.indexOf("function getParticipantTotals("), source.indexOf("function getParticipantSummary("));
     const render = source.slice(source.indexOf("function getArrangementRecipeUrl("), source.indexOf("function renderScheduleEntry("));
     const context = vm.createContext({
-        URLSearchParams, recipes: [{ id: "soup&bread", namn: "Soup" }, { id: "bread", namn: "Bread" }],
+        URLSearchParams, window: { location: { search: "" } }, recipes: [{ id: "soup&bread", namn: "Soup" }, { id: "bread", namn: "Bread" }],
         collapsedArrangementMeals: new Set(), getMealRecipeIds: entry => entry.recipe_ids || [],
         formatArrangementDate: date => date, escapeArrangementHtml: value => String(value ?? "")
     });
@@ -178,14 +178,21 @@ test("arrangement meals link each recipe to the combined participant count", () 
     assert.equal(url.searchParams.get("recipe"), "soup&bread");
     assert.equal(url.searchParams.get("servings"), "61");
     const html = context.renderArrangementMealSummary(item);
-    assert.doesNotMatch(html, /target="_blank"/);
+    assert.doesNotMatch(html, /class="arrangement-meal-recipe-link"[^>]*target=/);
+    assert.match(html, /shopping=meal-test&servings=61/);
+    context.window.location.search = "?share=token%26value";
+    item.participants.departments["Spårare"].leaders = null;
+    const shoppingUrl = new URL(context.getArrangementShoppingUrl(item), "https://example.test/");
+    assert.equal(shoppingUrl.searchParams.get("share"), "token&value");
+    assert.equal(shoppingUrl.searchParams.get("preliminary"), "1");
+    context.window.location.search = "";
     assert.match(html, /recipe=soup%26bread&servings=61/);
     assert.match(html, /recipe=bread&servings=61/);
     assert.match(context.renderArrangementMealSummary(item, true), /data-edit-agenda="meal"/);
     item.participants = undefined;
     assert.equal(new URL(context.getArrangementRecipeUrl(item, "bread"), "https://example.test/").searchParams.has("servings"), false);
     item.agenda[0].recipe_ids = [];
-    assert.doesNotMatch(context.renderArrangementMealSummary(item), /<a /);
+    assert.doesNotMatch(context.renderArrangementMealSummary(item), /class="arrangement-meal-recipe-link"/);
 });
 
 test("recipe links initialize valid serving counts for only the requested recipe", () => {
@@ -241,6 +248,64 @@ test("recipe ingredients scale to arrangement counts including groups smaller th
     assert.equal(context.scaleIngredientAmount(ingredient, {}, 61), "6,1 kg");
     assert.equal(context.scaleIngredientAmount(ingredient, {}, 2), "200 g");
     assert.equal(context.scaleIngredientAmount({ mangder: { "4": "1 st", "10": "10 st" } }, {}, 2), "0,5 st");
+});
+
+test("arrangement shopping lists sum repeated meals and compatible units without duplicating recipe selections", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "kokbok.js"), "utf8");
+    const start = source.indexOf("function parseAmount(");
+    const end = source.indexOf("function renderIngredientEditor(", start);
+    const context = vm.createContext({ RECIPE_SCALE_OPTIONS: [4, 10, 25, 50, 100] });
+    vm.runInContext(source.slice(start, end), context);
+    const catalog = [
+        { id: "rice", namn: "Rice", portioner: 4, ingredienser_skalningar: [
+            { namn: "Ris", mangder: { "4": "400 g" } }, { namn: "Vatten", mangder: { "4": "1 l" } }
+        ] },
+        { id: "other", namn: "Other", portioner: 4, ingredienser_skalningar: [
+            { namn: "ris", mangder: { "4": "0,2 kg" } }, { namn: "Vatten", mangder: { "4": "5 dl" } }
+        ] }
+    ];
+    const arrangement = { agenda: [
+        { kind: "meal", recipe_ids: ["rice", "rice"] }, { kind: "meal", recipe_ids: ["rice", "other"] },
+        { kind: "activity", recipe_ids: ["rice"] }
+    ] };
+    const list = context.buildArrangementShoppingList(arrangement, catalog, 8);
+    assert.equal(list.mealCount, 2);
+    assert.deepEqual(JSON.parse(JSON.stringify(list.ingredients)), [
+        { name: "Ris", amount: "2 kg", contributions: ["800 g", "1,2 kg"] },
+        { name: "Vatten", amount: "5 l", contributions: ["2 l", "3 l"] }
+    ]);
+    assert.equal(list.warnings.length, 0);
+    const base = context.buildArrangementShoppingList({ agenda: [{ kind: "meal", source_type: "recipe", source_id: "rice" }] }, catalog, 0);
+    assert.equal(base.ingredients[0].amount, "400 g");
+    const incomplete = context.buildArrangementShoppingList({ agenda: [
+        { kind: "meal", title: "Manual" }, { kind: "meal", recipe_ids: ["missing"] },
+        { kind: "meal", recipe_ids: ["salt"] }
+    ] }, [{ id: "salt", namn: "Salt", ingredienser: ["Salt efter smak"], portioner: 4 }], 8);
+    assert.equal(incomplete.warnings.length, 3);
+    assert.equal(incomplete.ingredients[0].amount, "Mängd ej angiven");
+    assert.deepEqual(JSON.parse(JSON.stringify(incomplete.ingredients[0].contributions)), [null, null, "Mängd ej angiven"]);
+    const incompatible = context.buildArrangementShoppingList({ agenda: [{ kind: "meal", recipe_ids: ["mixed"] }] }, [{
+        id: "mixed", namn: "Mixed", portioner: 4, ingredienser_skalningar: [
+            { namn: "Olja", mangder: { "4": "1 l" } }, { namn: "Olja", mangder: { "4": "1 kg" } }
+        ]
+    }], 4);
+    assert.equal(incompatible.ingredients.length, 2);
+    assert.deepEqual(JSON.parse(JSON.stringify(incompatible.ingredients.map(row => row.amount))), ["1 l", "1 kg"]);
+    context.checkedShoppingItems = new Set();
+    context.escapeRecipeHtml = value => String(value ?? "");
+    assert.doesNotMatch(context.renderShoppingIngredientGrid(list, false), /shopping-meal-cell/);
+    assert.match(context.renderShoppingIngredientGrid(list, true), /800 g/);
+    assert.match(context.renderShoppingIngredientGrid(list, true), /1,2 kg/);
+    const chronological = context.buildArrangementShoppingList({ agenda: [
+        { kind: "meal", date: "2026-10-10", time: "12:00", meal_type: "Lunch", recipe_ids: ["rice"] },
+        { kind: "meal", date: "2026-10-09", time: "18:00", meal_type: "Middag", recipe_ids: ["other"] }
+    ] }, catalog, 8);
+    assert.deepEqual(JSON.parse(JSON.stringify(chronological.meals.map(meal => meal.date))), ["2026-10-09", "2026-10-10"]);
+    assert.deepEqual(JSON.parse(JSON.stringify(chronological.ingredients[0].contributions)), ["0,4 kg", "0,8 kg"]);
+    const headers = context.renderShoppingIngredientGrid(chronological, true);
+    assert.match(headers, />fredag</);
+    assert.match(headers, />lördag</);
+    assert.doesNotMatch(headers, /2026|18:00|12:00/);
 });
 
 test("empty arrangement schedules hide only in read mode and retain every agenda kind", () => {
