@@ -251,6 +251,7 @@ body {
 .department-tone-3 { --department-color: #c84c08; --department-text: #fff; }
 .department-tone-4 { --department-color: #ca0753; --department-text: #fff; }
 .department-tone-5 { --department-color: #e1bd23; --department-text: #1f251b; }
+.department-tone-6 { --department-color: #455a64; --department-text: #fff; }
 .arrangement-department-tag[class*="department-tone-"] { background: var(--department-color); color: var(--department-text); }
 .arrangement-participant-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
 .arrangement-card--wide { grid-column: 1 / -1; }

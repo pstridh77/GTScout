@@ -7,6 +7,42 @@ const vm = require("node:vm");
 const leaderSession = { user: { id: "leader-1", email: "leader@example.test" } };
 const leaderProfile = { role: "ledare", kar_id: "kar-1", scout_read: true, scout_write: true };
 
+for (const signedIn of [false, true]) {
+    test(`arrangements preserve the Ledare department ${signedIn ? "in database writes" : "locally"}`, async () => {
+        const backend = createBackend(signedIn ? leaderSession : null);
+        const page = createPage(backend);
+        await page.auth.init();
+        await page.runTimers();
+        page.load("arrangemang-sync.js");
+        const sync = page.window.GTScoutArrangements;
+        const result = await sync.save({
+            id: "leader-kickoff",
+            title: "Kickoff",
+            start_date: "2026-10-09",
+            departments: ["Ledare"],
+            agenda: [
+                { id: "kickoff", date: "2026-10-09", title: "Kickoff", shared: false, departments: ["Ledare"] },
+                { id: "excluded", date: "2026-10-09", title: "Scoutprogram", shared: true, excluded_departments: ["Ledare"] }
+            ]
+        });
+        assert.equal(result.localOnly, !signedIn);
+        const stored = JSON.parse(page.storage.get("gtscout_arrangemang"))[0];
+        assert.deepEqual(stored.departments, ["Ledare"]);
+        assert.deepEqual(stored.agenda[0].departments, ["Ledare"]);
+        assert.deepEqual(stored.agenda[1].excluded_departments, ["Ledare"]);
+        if (signedIn) {
+            const write = backend.requests.find(request => request.table === "arrangemang" && request.operation === "upsert");
+            assert.equal(write.rows.data.departments[0], "Ledare");
+            assert.equal(write.rows.data.agenda[0].departments[0], "Ledare");
+        }
+        const reopened = createPage(createBackend(null), page.storage);
+        reopened.load("arrangemang-sync.js");
+        reopened.window.GTScoutArrangements.init({ onChange() {} });
+        assert.equal(reopened.window.GTScoutArrangements.getAll()[0].departments[0], "Ledare");
+        assert.equal(reopened.window.GTScoutArrangements.getAll()[0].agenda[0].departments[0], "Ledare");
+    });
+}
+
 function deferred() {
     let resolve;
     const promise = new Promise(done => { resolve = done; });
