@@ -241,6 +241,19 @@ body {
 .arrangement-departments-field { min-width: 0; margin: 0; padding: 12px; border: 1px solid #d1dbdc; border-radius: 5px; }
 .arrangement-departments-field legend { padding: 0 5px; color: #153c4a; font-size: .88rem; font-weight: 700; }
 .arrangement-departments-field p { margin: 0 0 9px; color: #65767b; font-size: .82rem; }
+.arrangement-participants-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: .84rem; }
+.arrangement-participants-table th, .arrangement-participants-table td { padding: 8px 6px; border-bottom: 1px solid #e2e8e8; text-align: right; overflow-wrap: anywhere; }
+.arrangement-participants-table th:first-child { width: 32%; text-align: left; }
+.arrangement-participants-table input { box-sizing: border-box; width: 100%; min-width: 0; padding: 7px 5px; border: 1px solid #c8d5d8; border-radius: 4px; background: #fff; color: #153c4a; font: inherit; text-align: right; }
+.arrangement-participants-table tfoot { font-weight: 700; }
+.arrangement-participants-total { margin: 12px 0 0; color: #52636a; font-size: .82rem; overflow-wrap: anywhere; }
+.arrangement-participant-count { flex-basis: 100%; color: #52636a; font-size: .75rem; text-align: right; overflow-wrap: anywhere; }
+.arrangement-participants-content { max-width: 620px; padding-top: 8px; }
+.arrangement-participants-edit { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; margin: 10px 0 0 auto; padding: 0; }
+.arrangement-participants-edit svg { width: 20px; height: 20px; }
+.participants-dialog-content { width: min(620px, 100%); }
+.arrangement-participants-overview .arrangement-section-summary { flex-wrap: wrap; }
+.arrangement-participants-overview .arrangement-section-summary > span { min-width: 0; overflow-wrap: anywhere; }
 .arrangement-department-options { display: flex; flex-wrap: wrap; gap: 7px; }
 .arrangement-department-choice { display: inline-flex; align-items: center; gap: 6px; min-width: 0; padding: 5px 8px; border: 1px solid #d1dbdc; border-radius: 4px; background: #fff; color: #263c42; font-size: .78rem; font-weight: 600; }
 .arrangement-department-choice input { width: 15px; height: 15px; margin: 0; accent-color: #286d60; }
@@ -300,7 +313,7 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
 .arrangement-section-summary { display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 2px 2px; color: #153c4a; cursor: pointer; list-style: none; }
 .arrangement-section-summary::-webkit-details-marker { display: none; }
 .arrangement-section-summary::before { width: 7px; height: 7px; flex: 0 0 7px; border-right: 2px solid #286d60; border-bottom: 2px solid #286d60; content: ""; transform: rotate(-45deg); transition: transform .15s ease; }
-.arrangement-schedule[open] > .arrangement-section-summary::before, .arrangement-responsibilities-summary[open] > .arrangement-section-summary::before { transform: rotate(45deg); }
+.arrangement-schedule[open] > .arrangement-section-summary::before, .arrangement-responsibilities-summary[open] > .arrangement-section-summary::before, .arrangement-participants-overview[open] > .arrangement-section-summary::before { transform: rotate(45deg); }
 .arrangement-section-summary > strong { font-size: .88rem; }
 .arrangement-section-summary > span { margin-left: auto; color: #65767b; font-size: .72rem; }
 .arrangement-section-summary:focus-visible { outline: 2px solid #4d8275; outline-offset: -2px; }

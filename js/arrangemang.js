@@ -37,6 +37,9 @@ let activeResponsibilityId = "";
 let responsibilityDialogTrigger = null;
 let activeNotesArrangementId = "";
 let notesDialogTrigger = null;
+let activeParticipantsArrangementId = "";
+let participantsDialogTrigger = null;
+let draftParticipants = { departments: {}, officials: null };
 let arrangementToastTimer = null;
 let activeScheduleGesture = null;
 let suppressScheduleClickUntil = 0;
@@ -280,6 +283,103 @@ function renderDepartmentOptions(selected = []) {
     ).join("");
 }
 
+function getParticipantTotals(selectedDepartments, participants) {
+    let scouts = 0;
+    let leaders = 0;
+    let parents = 0;
+    let complete = true;
+    let hasCounts = false;
+    const include = (value, category) => {
+        if (value === null || value === undefined) {
+            complete = false;
+            return;
+        }
+        hasCounts = true;
+        if (category === "scouts") scouts += value;
+        else if (category === "parents") parents += value;
+        else leaders += value;
+    };
+    selectedDepartments.forEach(department => {
+        const counts = participants?.departments?.[department];
+        if (department !== "Ledare") {
+            include(counts?.scouts, "scouts");
+            const parentCount = counts?.parents === undefined ? 0 : counts.parents;
+            if (parentCount !== 0) include(parentCount, "parents");
+        }
+        include(counts?.leaders, "leaders");
+    });
+    include(participants?.officials, "leaders");
+    return { scouts, leaders, parents, total: scouts + leaders + parents, complete, hasCounts };
+}
+
+function getParticipantSummary(selectedDepartments, participants, totalOnly = false) {
+    const totals = getParticipantTotals(selectedDepartments, participants);
+    if (totalOnly && totals.hasCounts) return `${totals.total} deltagare${totals.complete ? "" : " · Preliminärt"}`;
+    return totals.hasCounts
+        ? `${totals.total} deltagare · ${totals.scouts} scouter · ${totals.leaders} ledare${totals.parents ? ` · ${totals.parents} föräldrar` : ""}${totals.complete ? "" : " · Preliminärt"}`
+        : "Antal ej angivet";
+}
+
+function renderParticipantTable(selectedDepartments, participants, editable = false) {
+    const countCell = (department, field, value) => editable
+        ? `<input type="number" min="0" max="9007199254740991" step="1" inputmode="numeric" data-participant-department="${escapeArrangementHtml(department)}" data-participant-field="${field}" value="${value ?? ""}" aria-label="${field === "scouts" ? "Scouter" : field === "parents" ? "Föräldrar" : "Ledare"}, ${escapeArrangementHtml(department || "Övriga funktionärer")}">`
+        : value ?? "Ej angivet";
+    const rows = selectedDepartments.map(department => {
+        const counts = participants?.departments?.[department];
+        return `<tr><th scope="row">${escapeArrangementHtml(department)}</th><td>${department === "Ledare" ? "–" : countCell(department, "scouts", counts?.scouts)}</td><td>${countCell(department, "leaders", counts?.leaders)}</td><td>${department === "Ledare" ? "–" : countCell(department, "parents", counts?.parents === undefined ? 0 : counts.parents)}</td></tr>`;
+    }).join("");
+    const totals = getParticipantTotals(selectedDepartments, participants);
+    return `<table class="arrangement-participants-table"><thead><tr><th scope="col">Avdelning</th><th scope="col">Scouter</th><th scope="col">Ledare</th><th scope="col">Föräldrar</th></tr></thead><tbody>${rows}<tr><th scope="row">Övriga funktionärer</th><td>–</td><td>${countCell("", "officials", participants?.officials)}</td><td>–</td></tr></tbody><tfoot><tr><th scope="row">Totalt</th><td data-participant-total="scouts">${totals.hasCounts ? totals.scouts : "–"}</td><td data-participant-total="leaders">${totals.hasCounts ? totals.leaders : "–"}</td><td data-participant-total="parents">${totals.hasCounts ? totals.parents : "–"}</td></tr></tfoot></table><p class="arrangement-participants-total" data-participant-summary aria-live="polite">${getParticipantSummary(selectedDepartments, participants)}</p>`;
+}
+
+function readParticipantInputs(container) {
+    const participants = { departments: {}, officials: null };
+    container.querySelectorAll("[data-participant-field]").forEach(input => {
+        const value = input.value === "" || !input.validity.valid ? null : Number(input.value);
+        const department = input.dataset.participantDepartment;
+        if (!department) participants.officials = value;
+        else {
+            participants.departments[department] ||= {};
+            participants.departments[department][input.dataset.participantField] = value;
+        }
+    });
+    return participants;
+}
+
+function updateParticipantInputTotals(container, selectedDepartments) {
+    const participants = readParticipantInputs(container);
+    const totals = getParticipantTotals(selectedDepartments, participants);
+    container.querySelector('[data-participant-total="scouts"]').textContent = totals.hasCounts ? totals.scouts : "–";
+    container.querySelector('[data-participant-total="leaders"]').textContent = totals.hasCounts ? totals.leaders : "–";
+    container.querySelector('[data-participant-total="parents"]').textContent = totals.hasCounts ? totals.parents : "–";
+    container.querySelector("[data-participant-summary]").textContent = getParticipantSummary(selectedDepartments, participants);
+}
+
+function syncDraftParticipants() {
+    const current = readParticipantInputs(document.getElementById("arrangementParticipants"));
+    Object.assign(draftParticipants.departments, current.departments);
+    draftParticipants.officials = current.officials;
+}
+
+function renderParticipantEditor() {
+    document.getElementById("arrangementParticipants").innerHTML = renderParticipantTable(getSelectedArrangementDepartments(), draftParticipants, true);
+}
+
+function renderArrangementParticipants(item, canEdit) {
+    if (!canEdit && !getParticipantTotals(item.departments, item.participants).hasCounts) return "";
+    const editButton = canEdit
+        ? `<button class="btn-secondary arrangement-edit-details-icon arrangement-participants-edit" type="button" data-edit-participants="${escapeArrangementHtml(item.id)}" aria-label="Redigera deltagare för ${escapeArrangementHtml(item.title)}" title="Redigera deltagare"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/></svg></button>`
+        : "";
+    return `<details class="arrangement-participants-overview"><summary class="arrangement-section-summary"><strong>Deltagare</strong><span>${escapeArrangementHtml(getParticipantSummary(item.departments, item.participants))}</span></summary><div class="arrangement-participants-content">${renderParticipantTable(item.departments, item.participants)}${editButton}</div></details>`;
+}
+
+function closeParticipantsDialog() {
+    document.getElementById("participantsModal").classList.add("hidden");
+    activeParticipantsArrangementId = "";
+    if (participantsDialogTrigger?.isConnected) participantsDialogTrigger.focus();
+    participantsDialogTrigger = null;
+}
+
 function getCustomRoleDefinitions() {
     try {
         const stored = JSON.parse(localStorage.getItem(roleLibraryStorageKey) || "[]");
@@ -513,6 +613,7 @@ function renderArrangementSchedule(item) {
     const selectedDepartments = item.departments?.length ? item.departments : departments;
     const departmentCount = selectedDepartments.length;
     const canEditAgenda = isArrangementDetailEditable(item);
+    if (!canEditAgenda && !item.agenda.length) return "";
     const showOverview = arrangementScheduleOverview.has(item.id);
     const getSharedSegments = excludedDepartments => {
         const segments = [];
@@ -780,8 +881,12 @@ function renderArrangements() {
     const orderedVisible = [...visible].sort((left, right) => left.start_date.localeCompare(right.start_date) || left.title.localeCompare(right.title, "sv"));
     const renderedCards = orderedVisible.map(item => {
         const participantTags = item.departments.map((department, index) => `<span class="arrangement-department-tag department-tone-${departments.indexOf(department)}">${escapeArrangementHtml(department)}</span>`).join("");
-        const agendaHtml = renderArrangementSchedule(item);
         const canEditDetails = isArrangementDetailEditable(item);
+        const participantSummary = canEditDetails || getParticipantTotals(item.departments, item.participants).hasCounts
+            ? `<span class="arrangement-participant-count">${escapeArrangementHtml(getParticipantSummary(item.departments, item.participants, true))}</span>`
+            : "";
+        const agendaHtml = renderArrangementSchedule(item);
+        const participantsHtml = renderArrangementParticipants(item, canEditDetails);
         const mealSummaryHtml = renderArrangementMealSummary(item, canEditDetails);
         const link = item.planning_ref?.name ? `<p class="arrangement-card-planning">Planering: ${escapeArrangementHtml(item.planning_ref.name)}</p>` : "";
         const lockAction = canEditDetails ? "Lås redigering" : "Lås upp för redigering";
@@ -826,7 +931,7 @@ function renderArrangements() {
             : "";
         const checklistHtml = renderArrangementChecklist(checklist, item.id, canEditDetails);
         const timeRange = [item.start_time, item.end_time].filter(Boolean).join("–");
-        return `<details class="arrangement-card${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}</div></summary><div class="arrangement-card-details">${detailEditControl}${link}<div class="arrangement-card-sections">${notesHtml}${checklistHtml}${mealSummaryHtml}${responsibilityHtml}${agendaHtml}</div>${actions}</div></details>`;
+        return `<details class="arrangement-card${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}${participantSummary}</div></summary><div class="arrangement-card-details">${detailEditControl}${link}<div class="arrangement-card-sections">${participantsHtml}${notesHtml}${checklistHtml}${mealSummaryHtml}${responsibilityHtml}${agendaHtml}</div>${actions}</div></details>`;
     });
     const cardsByYear = new Map();
     orderedVisible.forEach((item, index) => {
@@ -1135,6 +1240,11 @@ async function openArrangementEditor(item = null, focusAgendaId = "", isCopy = f
     document.getElementById("deleteArrangementBtn").classList.toggle("hidden", !item || isCopy);
     document.getElementById("arrangementLocalNotice").classList.toggle("hidden", window.GTScoutArrangements?.canWrite());
     renderDepartmentOptions(item?.departments?.length ? item.departments : departments);
+    draftParticipants = {
+        departments: Object.fromEntries(Object.entries(item?.participants?.departments || {}).map(([department, counts]) => [department, { ...counts }])),
+        officials: item?.participants?.officials ?? null
+    };
+    renderParticipantEditor();
     populatePlanningOptions(item?.planning_ref?.id || "");
     draftResponsibilities = (item?.responsibilities || []).map(entry => {
         const roleDescription = entry.role_description || getRoleDefinition(entry.role)?.description || "";
@@ -1198,6 +1308,7 @@ function readFormPayload() {
         end_time: document.getElementById("arrangementEndTime").value,
         location: document.getElementById("arrangementLocation").value.trim(),
         departments: getSelectedArrangementDepartments(),
+        participants: readParticipantInputs(document.getElementById("arrangementParticipants")),
         planning_ref: planning ? { id: planning.id, name: planning.name } : null,
         agenda: readAgendaFromDom(),
         responsibilities: readResponsibilitiesFromDom(),
@@ -1495,6 +1606,19 @@ arrangementsGrid.addEventListener("click", async event => {
         [...arrangementsGrid.querySelectorAll(".arrangement-card")]
             .find(card => card.dataset.arrangementId === arrangementId)
             ?.querySelector(`[data-schedule-view="${showOverview ? "overview" : "days"}"]`)?.focus();
+        return;
+    }
+    const participantsButton = event.target.closest("[data-edit-participants]");
+    if (participantsButton) {
+        const item = arrangements.find(arrangement => arrangement.id === participantsButton.dataset.editParticipants);
+        if (!item || !isArrangementDetailEditable(item)) return;
+        activeParticipantsArrangementId = item.id;
+        participantsDialogTrigger = participantsButton;
+        document.getElementById("participantsDialogFields").innerHTML = renderParticipantTable(item.departments, item.participants, true);
+        document.getElementById("participantsDialogTitle").textContent = `Deltagare · ${item.title}`;
+        document.getElementById("participantsDialogStatus").textContent = "";
+        document.getElementById("participantsModal").classList.remove("hidden");
+        document.querySelector("#participantsDialogFields input")?.focus();
         return;
     }
     const detailEditButton = event.target.closest("[data-toggle-arrangement-edit]");
@@ -1877,8 +2001,48 @@ document.getElementById("addAgendaEntryBtn").addEventListener("click", () => {
 });
 
 document.getElementById("arrangementDepartments").addEventListener("change", () => {
+    syncDraftParticipants();
+    renderParticipantEditor();
     syncDraftAgenda();
     renderAgendaEditor();
+});
+
+document.getElementById("arrangementParticipants").addEventListener("input", () => {
+    updateParticipantInputTotals(document.getElementById("arrangementParticipants"), getSelectedArrangementDepartments());
+});
+document.getElementById("participantsDialogFields").addEventListener("input", () => {
+    const item = arrangements.find(arrangement => arrangement.id === activeParticipantsArrangementId);
+    if (item) updateParticipantInputTotals(document.getElementById("participantsDialogFields"), item.departments);
+});
+document.getElementById("closeParticipantsModal").addEventListener("click", closeParticipantsDialog);
+document.getElementById("cancelParticipantsBtn").addEventListener("click", closeParticipantsDialog);
+document.getElementById("participantsModal").addEventListener("click", event => {
+    if (event.target.id === "participantsModal") closeParticipantsDialog();
+});
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && !document.getElementById("participantsModal").classList.contains("hidden")) closeParticipantsDialog();
+});
+document.getElementById("participantsForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    const item = arrangements.find(arrangement => arrangement.id === activeParticipantsArrangementId);
+    if (!item || !isArrangementDetailEditable(item) || !event.currentTarget.reportValidity()) return;
+    const status = document.getElementById("participantsDialogStatus");
+    const saveButton = document.getElementById("saveParticipantsBtn");
+    saveButton.disabled = true;
+    status.textContent = "Sparar...";
+    try {
+        const result = await window.GTScoutArrangements.save({ ...item, participants: readParticipantInputs(document.getElementById("participantsDialogFields")) });
+        closeParticipantsDialog();
+        const card = [...arrangementsGrid.querySelectorAll(".arrangement-card")].find(element => element.dataset.arrangementId === item.id);
+        const overview = card?.querySelector(".arrangement-participants-overview");
+        if (overview) overview.open = true;
+        card?.querySelector("[data-edit-participants]")?.focus();
+        showArrangementToast(result.error ? "Deltagarantalet finns lokalt men kunde inte synkas." : "Deltagarantalet är sparat.", result.error ? "error" : "success");
+    } catch (error) {
+        status.textContent = error.message || "Kunde inte spara deltagarantalet.";
+    } finally {
+        saveButton.disabled = false;
+    }
 });
 
 arrangementAgendaList.addEventListener("input", event => {

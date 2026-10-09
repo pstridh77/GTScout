@@ -49,6 +49,167 @@ function deferred() {
     return { promise, resolve };
 }
 
+for (const signedIn of [false, true]) {
+    test(`arrangement participant counts survive ${signedIn ? "database writes" : "local storage"} and reload`, async () => {
+        const backend = createBackend(signedIn ? leaderSession : null);
+        const page = createPage(backend);
+        await page.auth.init();
+        await page.runTimers();
+        page.load("arrangemang-sync.js");
+        await page.window.GTScoutArrangements.save({
+            id: "participants-test", title: "Participants", start_date: "2026-10-09",
+            departments: ["Spårare", "Ledare"],
+            participants: { departments: {
+                "Spårare": { scouts: 18, leaders: 0, parents: 5 },
+                "Ledare": { scouts: 99, leaders: 6, parents: 99 },
+                "Rover": { scouts: 10, leaders: 1 }
+            }, officials: 2 }
+        });
+        const expected = { departments: { "Spårare": { scouts: 18, leaders: 0, parents: 5 }, "Ledare": { scouts: null, leaders: 6, parents: null } }, officials: 2 };
+        assert.deepEqual(JSON.parse(page.storage.get("gtscout_arrangemang"))[0].participants, expected);
+        if (signedIn) {
+            const write = backend.requests.find(request => request.table === "arrangemang" && request.operation === "upsert");
+            assert.deepEqual(JSON.parse(JSON.stringify(write.rows.data.participants)), expected);
+        }
+        const reopened = createPage(createBackend(null), page.storage);
+        reopened.load("arrangemang-sync.js");
+        reopened.window.GTScoutArrangements.init({ onChange() {} });
+        const first = reopened.window.GTScoutArrangements.getAll()[0];
+        assert.deepEqual(JSON.parse(JSON.stringify(first.participants)), expected);
+        first.participants.departments["Spårare"].scouts = 100;
+        assert.equal(reopened.window.GTScoutArrangements.getAll()[0].participants.departments["Spårare"].scouts, 18);
+    });
+}
+
+test("arrangement participant totals include officials as leaders and only selected departments", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
+    const start = source.indexOf("function getParticipantTotals(");
+    const end = source.indexOf("function renderParticipantTable(", start);
+    const context = vm.createContext({});
+    vm.runInContext(source.slice(start, end), context);
+    const participants = { departments: {
+        "Spårare": { scouts: 18, leaders: 4 },
+        "Upptäckare": { scouts: 12, leaders: 3 },
+        "Ledare": { scouts: 99, leaders: 6 },
+        "Rover": { scouts: 10, leaders: 1 }
+    }, officials: 2 };
+    const selected = ["Spårare", "Upptäckare", "Ledare"];
+    assert.deepEqual(JSON.parse(JSON.stringify(context.getParticipantTotals(selected, participants))),
+        { scouts: 30, leaders: 15, parents: 0, total: 45, complete: true, hasCounts: true });
+    assert.equal(context.getParticipantSummary(selected, participants), "45 deltagare · 30 scouter · 15 ledare");
+    assert.equal(context.getParticipantSummary(selected, participants, true), "45 deltagare");
+    assert.equal(context.getParticipantSummary(["Ledare"], participants), "8 deltagare · 0 scouter · 8 ledare");
+    participants.departments["Spårare"].scouts = null;
+    assert.equal(context.getParticipantSummary(selected, participants), "27 deltagare · 12 scouter · 15 ledare · Preliminärt");
+    assert.equal(context.getParticipantSummary(selected, participants, true), "27 deltagare · Preliminärt");
+    assert.equal(context.getParticipantSummary(selected, undefined), "Antal ej angivet");
+    assert.equal(context.getParticipantSummary(selected, undefined, true), "Antal ej angivet");
+    assert.equal(context.getParticipantSummary(["Ledare"], { departments: { "Ledare": { leaders: 0 } }, officials: 0 }),
+        "0 deltagare · 0 scouter · 0 ledare");
+    participants.departments["Spårare"].scouts = 18;
+    participants.departments["Spårare"].parents = 5;
+    assert.equal(context.getParticipantSummary(selected, participants), "50 deltagare · 30 scouter · 15 ledare · 5 föräldrar");
+    assert.equal(context.getParticipantSummary(selected, participants, true), "50 deltagare");
+    participants.departments["Spårare"].parents = null;
+    assert.equal(context.getParticipantSummary(selected, participants), "45 deltagare · 30 scouter · 15 ledare · Preliminärt");
+});
+
+test("arrangement participant section hides unknown counts only in read mode", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
+    const start = source.indexOf("function getParticipantTotals(");
+    const end = source.indexOf("function closeParticipantsDialog(", start);
+    const context = vm.createContext({ escapeArrangementHtml: value => String(value ?? "") });
+    vm.runInContext(source.slice(start, end), context);
+    const item = { id: "participants-test", title: "Test", departments: ["Spårare"] };
+    assert.equal(context.renderArrangementParticipants(item, false), "");
+    assert.match(context.renderArrangementParticipants(item, true), /data-edit-participants/);
+    item.participants = { departments: { "Spårare": { scouts: null, leaders: null } }, officials: null };
+    assert.equal(context.renderArrangementParticipants(item, false), "");
+    assert.match(context.renderArrangementParticipants(item, true), /data-edit-participants/);
+    item.participants.departments["Spårare"].scouts = 0;
+    assert.match(context.renderArrangementParticipants(item, false), /arrangement-participants-overview/);
+    item.participants.departments["Spårare"].scouts = null;
+    item.participants.officials = 2;
+    assert.match(context.renderArrangementParticipants(item, false), /arrangement-participants-overview/);
+    item.participants.officials = null;
+    item.participants.departments["Spårare"].parents = 3;
+    assert.match(context.renderArrangementParticipants(item, false), /3 föräldrar/);
+    assert.match(context.renderParticipantTable(item.departments, item.participants, true), /aria-label="Föräldrar, Spårare"/);
+});
+
+test("arrangement overview hides unknown participant totals when locked", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
+    const helpers = source.slice(source.indexOf("function getParticipantTotals("), source.indexOf("function renderParticipantTable("));
+    const start = source.indexOf("        const participantTags =");
+    const end = source.indexOf("        const participantsHtml =", start);
+    let editable = false;
+    const item = { departments: ["Spårare"] };
+    const context = vm.createContext({
+        item, departments: ["Spårare"], escapeArrangementHtml: value => String(value ?? ""),
+        isArrangementDetailEditable: () => editable, renderArrangementSchedule: () => ""
+    });
+    vm.runInContext(helpers, context);
+    const render = () => vm.runInContext(`{${source.slice(start, end)} participantSummary;}`, context);
+    assert.equal(render(), "");
+    editable = true;
+    assert.match(render(), /Antal ej angivet/);
+    editable = false;
+    item.participants = { departments: { "Spårare": { scouts: 0, leaders: 0, parents: 0 } }, officials: 0 };
+    assert.match(render(), />0 deltagare</);
+    item.participants.departments["Spårare"].scouts = 18;
+    assert.match(render(), />18 deltagare</);
+    assert.doesNotMatch(render(), /scouter|ledare|föräldrar|ej angivet/);
+});
+
+test("empty arrangement schedules hide only in read mode and retain every agenda kind", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
+    const start = source.indexOf("function renderArrangementSchedule(item)");
+    const end = source.indexOf("function renderArrangementMealSummary(", start);
+    let editable = false;
+    const context = vm.createContext({
+        departments: ["Spårare"],
+        isArrangementDetailEditable: () => editable,
+        arrangementScheduleOverview: new Set(["schedule-test"]),
+        arrangementDayExpansion: new Map(),
+        arrangementSchemaExpansion: new Set(),
+        arrangementDates: () => [],
+        renderArrangementScheduleOverview: () => "<p>Agenda</p>",
+        escapeArrangementHtml: value => String(value ?? "")
+    });
+    vm.runInContext(source.slice(start, end), context);
+    const item = { id: "schedule-test", departments: ["Spårare"], agenda: [] };
+    assert.equal(context.renderArrangementSchedule(item), "");
+    editable = true;
+    assert.match(context.renderArrangementSchedule(item), /class="arrangement-schedule"/);
+    editable = false;
+    for (const kind of ["program", "activity", "meal"]) {
+        item.agenda = [{ kind, title: "Test", date: "2026-10-09" }];
+        assert.match(context.renderArrangementSchedule(item), /class="arrangement-schedule"/);
+        assert.match(context.renderArrangementSchedule(item), /1 programpunkt/);
+    }
+});
+
+test("arrangement participant normalization keeps unknown counts distinct from zero", async () => {
+    const page = createPage(createBackend(null));
+    page.load("arrangemang-sync.js");
+    const sync = page.window.GTScoutArrangements;
+    await sync.save({ id: "legacy-participants", title: "Legacy", start_date: "2026-10-09", departments: ["Spårare"] });
+    assert.equal(sync.getAll()[0].participants.departments["Spårare"].scouts, null);
+    assert.equal(sync.getAll()[0].participants.departments["Spårare"].parents, 0);
+    assert.equal(sync.getAll()[0].participants.officials, null);
+    await sync.save({ id: "legacy-participants", title: "Legacy", start_date: "2026-10-09", departments: ["Spårare"],
+        participants: { departments: { "Spårare": { scouts: -1, leaders: 1.5, parents: -2 } }, officials: "" } });
+    assert.equal(sync.getAll()[0].participants.departments["Spårare"].scouts, null);
+    assert.equal(sync.getAll()[0].participants.departments["Spårare"].leaders, null);
+    assert.equal(sync.getAll()[0].participants.departments["Spårare"].parents, null);
+    await sync.save({ id: "legacy-participants", title: "Legacy", start_date: "2026-10-09", departments: ["Spårare"],
+        participants: { departments: { "Spårare": { scouts: "0", leaders: "3", parents: "0" } }, officials: 0 } });
+    assert.equal(sync.getAll()[0].participants.departments["Spårare"].scouts, 0);
+    assert.equal(sync.getAll()[0].participants.departments["Spårare"].leaders, 3);
+    assert.equal(sync.getAll()[0].participants.departments["Spårare"].parents, 0);
+    assert.equal(sync.getAll()[0].participants.officials, 0);
+});
+
 function createBackend(session = leaderSession, profile = leaderProfile) {
     return { session, profile, callbacks: [], locked: false, requests: [], pending: null };
 }

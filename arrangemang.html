@@ -126,6 +126,10 @@
                     <p>Välj vilka avdelningar som deltar.</p>
                     <div id="arrangementDepartments" class="arrangement-department-options"></div>
                 </fieldset>
+                <fieldset class="arrangement-departments-field arrangement-field-wide">
+                    <legend>Deltagare</legend>
+                    <div id="arrangementParticipants"></div>
+                </fieldset>
                 <label class="modal-field">
                     <span>Typ</span>
                     <select id="arrangementType">
@@ -215,6 +219,19 @@
                 <span class="modal-actions-spacer"></span>
                 <button id="cancelArrangementBtn" class="btn-secondary" type="button">Avbryt</button>
                 <button id="saveArrangementBtn" class="btn-primary" type="submit">Spara arrangemang</button>
+            </div>
+        </form>
+    </div>
+
+    <div id="participantsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="participantsDialogTitle">
+        <form id="participantsForm" class="modal-content participants-dialog-content">
+            <button id="closeParticipantsModal" class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2 id="participantsDialogTitle">Deltagare</h2>
+            <div id="participantsDialogFields"></div>
+            <p id="participantsDialogStatus" class="detail-planning-status" role="status" aria-live="polite"></p>
+            <div class="modal-actions">
+                <button id="cancelParticipantsBtn" class="btn-secondary" type="button">Avbryt</button>
+                <button id="saveParticipantsBtn" class="btn-primary" type="submit">Spara</button>
             </div>
         </form>
     </div>

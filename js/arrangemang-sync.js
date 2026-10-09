@@ -16,6 +16,12 @@
     const canRead = () => Boolean(client() && auth()?.isSignedIn?.() && karId());
     const canWrite = () => Boolean(canRead() && auth()?.isLeader?.());
 
+    function normalizeParticipantCount(value) {
+        if (value === null || value === undefined || value === "" || typeof value === "boolean") return null;
+        const count = Number(value);
+        return Number.isSafeInteger(count) && count >= 0 ? count : null;
+    }
+
     function normalize(item) {
         if (!item || typeof item !== "object") return null;
         const id = String(item.id || crypto.randomUUID());
@@ -25,6 +31,14 @@
         const departments = Array.isArray(item.departments)
             ? [...new Set(item.departments.filter(department => DEPARTMENTS.includes(department)))]
             : [...DEPARTMENTS];
+        const participants = {
+            departments: Object.fromEntries(departments.map(department => [department, {
+                scouts: department === "Ledare" ? null : normalizeParticipantCount(item.participants?.departments?.[department]?.scouts),
+                leaders: normalizeParticipantCount(item.participants?.departments?.[department]?.leaders),
+                parents: department === "Ledare" ? null : normalizeParticipantCount(item.participants?.departments?.[department]?.parents === undefined ? 0 : item.participants.departments[department].parents)
+            }])),
+            officials: normalizeParticipantCount(item.participants?.officials)
+        };
         const days = new Set();
         for (let date = new Date(`${startDate}T12:00:00`); date <= new Date(`${endDate}T12:00:00`); date.setDate(date.getDate() + 1)) {
             days.add(date.toISOString().slice(0, 10));
@@ -80,6 +94,7 @@
             location: String(item.location || "").trim(),
             status: ["planned", "completed", "cancelled"].includes(item.status) ? item.status : "planned",
             departments,
+            participants,
             planning_ref: item.planning_ref && typeof item.planning_ref === "object" ? {
                 id: String(item.planning_ref.id || ""),
                 name: String(item.planning_ref.name || "")
@@ -115,6 +130,10 @@
         return arrangements.map(item => ({
             ...item,
             departments: [...item.departments],
+            participants: {
+                departments: Object.fromEntries(Object.entries(item.participants.departments).map(([department, counts]) => [department, { ...counts }])),
+                officials: item.participants.officials
+            },
             agenda: item.agenda.map(entry => ({ ...entry, recipe_ids: [...entry.recipe_ids], departments: [...entry.departments], excluded_departments: [...entry.excluded_departments] })),
             checklist: item.checklist.map(task => ({ ...task })),
             responsibilities: item.responsibilities.map(entry => ({ ...entry })),
