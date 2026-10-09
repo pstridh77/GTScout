@@ -14,6 +14,7 @@
     const addButton = document.getElementById("addActivityBtn");
     const saveButton = document.getElementById("saveActivityBtn");
     const deleteButton = document.getElementById("deleteActivityBtn");
+    const collapseAllButtons = document.querySelectorAll('[data-collapse-all="activities"]');
     const collapsedCategories = new Set();
     let activities = [];
     let baseBadges = [];
@@ -87,6 +88,30 @@
         }));
     }
 
+    function updateCollapseAllButtons() {
+        const groups = [...grid.querySelectorAll(".activity-category-group")];
+        const allCollapsed = groups.length > 0 && groups.every(group => !group.open);
+        collapseAllButtons.forEach(button => {
+            const isMobileButton = button.classList.contains("section-collapse-toggle");
+            button.textContent = isMobileButton
+                ? (allCollapsed ? "Visa" : "Fäll ihop")
+                : (allCollapsed ? "Visa alla kategorier" : "Fäll ihop alla kategorier");
+            button.setAttribute("aria-expanded", String(!allCollapsed));
+            button.disabled = groups.length === 0;
+        });
+    }
+
+    function toggleAllCategories() {
+        const groups = [...grid.querySelectorAll(".activity-category-group")];
+        const collapse = groups.some(group => group.open);
+        groups.forEach(group => {
+            group.open = !collapse;
+            if (collapse) collapsedCategories.add(group.querySelector("summary strong")?.textContent || "");
+            else collapsedCategories.delete(group.querySelector("summary strong")?.textContent || "");
+        });
+        updateCollapseAllButtons();
+    }
+
     function renderBadgeIcons(activity) {
         return badgesFor(activity).map(badge => `<img src="${escapeHtml(badge.bild)}" alt="${escapeHtml(badge.namn)}" title="${escapeHtml(badge.namn)}" class="activity-linked-badge-icon" loading="lazy">`).join("");
     }
@@ -116,11 +141,13 @@
             group.addEventListener("toggle", () => {
                 if (group.open) collapsedCategories.delete(category);
                 else collapsedCategories.add(category);
+                updateCollapseAllButtons();
             });
             return group;
         }));
         empty.classList.toggle("hidden", visible.length > 0 || !loaded);
         empty.textContent = activities.length ? "Inga aktiviteter matchar filtreringen." : 'Inga aktiviteter ännu. Klicka på "+ Skapa aktivitet" för att börja.';
+        updateCollapseAllButtons();
     }
 
     function showDetail(activity) {
@@ -215,6 +242,7 @@
         if (activity) deleteActivity(activity);
     });
     [search, categoryFilter, karFilter].forEach(element => element.addEventListener("input", renderActivities));
+    collapseAllButtons.forEach(button => button.addEventListener("click", toggleAllCategories));
     document.querySelectorAll("[data-close-activity-form]").forEach(button => button.addEventListener("click", () => modal.classList.add("hidden")));
     document.querySelector("[data-close-activity-detail]").addEventListener("click", () => detailModal.classList.add("hidden"));
     [modal, detailModal].forEach(element => element.addEventListener("click", event => {

@@ -55,6 +55,11 @@
                             <button class="planning-menu-item hidden" type="button" role="menuitem" data-admin-panel>Administration</button>
                         </details>
                         <div class="planning-menu-divider" role="separator"></div>
+                        <details class="site-menu-section">
+                            <summary class="planning-menu-section-label">Visa</summary>
+                            <button class="planning-menu-item section-collapse-menu-item" type="button" role="menuitem" data-collapse-all="activities" aria-expanded="true">Fäll ihop alla kategorier</button>
+                        </details>
+                        <div class="planning-menu-divider" role="separator"></div>
                         <div class="site-menu-environment-note database-environment"></div>
                         <div class="site-menu-version-note"></div>
                     </div>
@@ -74,6 +79,7 @@
             <label class="filter-field"><span>Kategori</span><select id="activityCategoryFilter"><option value="Alla">Alla kategorier</option></select></label>
             <label class="filter-field"><span>Kår</span><select id="activityKarFilter"><option value="Alla">Alla kårer</option></select></label>
         </div>
+        <div class="section-collapse-controls"><button class="section-collapse-toggle" type="button" data-collapse-all="activities" aria-expanded="true">Fäll ihop alla kategorier</button></div>
         <div id="activityGrid" class="activity-grid"></div>
         <p id="activityEmpty" class="no-results hidden" role="status">Inga aktiviteter ännu.</p>
     </main>

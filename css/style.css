@@ -1607,7 +1607,12 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
     display: none;
 }
 
-.category-controls {
+.section-collapse-toggle {
+    display: none;
+}
+
+.category-controls,
+.section-collapse-controls {
     display: none;
 }
 
@@ -1692,7 +1697,8 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
         transform: rotate(-45deg) translate(-2px, 2px);
     }
 
-    .category-collapse-toggle {
+    .category-collapse-toggle,
+    .section-collapse-toggle {
         display: inline-flex;
         align-items: center;
         gap: 7px;
@@ -1707,7 +1713,9 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
     }
 
     .category-collapse-toggle::after,
-    .category-collapse-menu-item::before {
+    .section-collapse-toggle::after,
+    .category-collapse-menu-item::before,
+    .section-collapse-menu-item::before {
         display: inline-block;
         flex: 0 0 7px;
         width: 7px;
@@ -1720,11 +1728,14 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
     }
 
     .category-collapse-toggle[aria-expanded="false"]::after,
-    .category-collapse-menu-item[aria-expanded="false"]::before {
+    .section-collapse-toggle[aria-expanded="false"]::after,
+    .category-collapse-menu-item[aria-expanded="false"]::before,
+    .section-collapse-menu-item[aria-expanded="false"]::before {
         transform: rotate(45deg) translate(-1px, -1px);
     }
 
-    .category-controls {
+    .category-controls,
+    .section-collapse-controls {
         display: flex;
         justify-content: flex-end;
         margin: 0 20px 10px;
@@ -3876,6 +3887,12 @@ select:focus {
     gap: 8px;
 }
 
+.section-collapse-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .planning-toggle-item {
     display: flex;
     align-items: center;
@@ -4000,10 +4017,43 @@ select:focus {
     height: 28px;
 }
 
-.level-row-title {
+.level-row-toggle {
     display: flex;
     align-items: center;
     gap: 10px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.level-row-toggle::after {
+    flex: 0 0 7px;
+    width: 7px;
+    height: 7px;
+    margin-left: 2px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    content: "";
+    transform: rotate(45deg) translate(-1px, -1px);
+    transition: transform 0.15s ease;
+}
+
+.level-row-toggle[aria-expanded="false"]::after {
+    transform: rotate(-45deg) translate(-1px, -1px);
+}
+
+.level-row-toggle:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.8);
+    outline-offset: 4px;
+}
+
+.level-row--collapsed > .level-row-cards {
+    display: none;
 }
 
 .level-remove-all-btn {

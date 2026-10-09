@@ -60,6 +60,11 @@
                             <button class="planning-menu-item" type="button" role="menuitem" data-header-action="addArrangementBtn">Nytt arrangemang</button>
                         </details>
                         <div class="planning-menu-divider" role="separator"></div>
+                        <details class="site-menu-section">
+                            <summary class="planning-menu-section-label">Visa</summary>
+                            <button class="planning-menu-item section-collapse-menu-item" type="button" role="menuitem" data-collapse-all="arrangements" aria-expanded="true">Fäll ihop alla år</button>
+                        </details>
+                        <div class="planning-menu-divider" role="separator"></div>
                         <div class="site-menu-environment-note database-environment"></div>
                         <div class="site-menu-version-note">v1.0.0 (2026-08-30)</div>
                     </div>
@@ -97,6 +102,7 @@
         </section>
 
         <p id="arrangementsEmpty" class="no-results hidden" role="status"></p>
+        <div class="section-collapse-controls"><button class="section-collapse-toggle" type="button" data-collapse-all="arrangements" aria-expanded="true">Fäll ihop alla år</button></div>
         <section id="arrangementsGrid" class="arrangements-grid" aria-label="Arrangemang"></section>
     </main>
 

@@ -2106,6 +2106,36 @@ function getLevelIcon(level) {
 // ── Render planning grid ───────────────────────────────────────────────────
 
 const TARGET_GROUP_ORDER = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
+const collapsedPlanningLevels = new Set();
+const collapseAllPlanningButtons = document.querySelectorAll('[data-collapse-all="planning"]');
+
+function updateCollapseAllPlanningButtons() {
+    const levels = [...document.querySelectorAll("#planningGrid .level-row")];
+    const allCollapsed = levels.length > 0 && levels.every(level => level.classList.contains("level-row--collapsed"));
+    collapseAllPlanningButtons.forEach(button => {
+        const isMobileButton = button.classList.contains("section-collapse-toggle");
+        button.textContent = isMobileButton
+            ? (allCollapsed ? "Visa" : "Fäll ihop")
+            : (allCollapsed ? "Visa alla målgrupper" : "Fäll ihop alla målgrupper");
+        button.setAttribute("aria-expanded", String(!allCollapsed));
+        button.disabled = levels.length === 0;
+    });
+}
+
+function toggleAllPlanningLevels() {
+    const levels = [...document.querySelectorAll("#planningGrid .level-row")];
+    const collapse = levels.some(level => !level.classList.contains("level-row--collapsed"));
+    levels.forEach(level => {
+        const levelName = level.dataset.level;
+        level.classList.toggle("level-row--collapsed", collapse);
+        if (collapse) collapsedPlanningLevels.add(levelName);
+        else collapsedPlanningLevels.delete(levelName);
+        level.querySelector(".level-row-toggle")?.setAttribute("aria-expanded", String(!collapse));
+    });
+    updateCollapseAllPlanningButtons();
+}
+
+collapseAllPlanningButtons.forEach(button => button.addEventListener("click", toggleAllPlanningLevels));
 
 function populateGroupFilterOptions() {
     const yearFilter = document.getElementById("groupYearFilter");
@@ -2212,18 +2242,26 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
         });
 
         const col = document.createElement("div");
-        col.className = "level-row";
+        col.className = `level-row${collapsedPlanningLevels.has(level) ? " level-row--collapsed" : ""}`;
+        col.dataset.level = level;
 
         const icon = getLevelIcon(level);
         const colHeader = document.createElement("div");
         colHeader.className = "level-row-header";
         colHeader.innerHTML = `
-            <div class="level-row-title">
+            <button class="level-row-toggle" type="button" aria-expanded="${!collapsedPlanningLevels.has(level)}">
                 ${icon ? `<img src="${icon}" alt="${level}" class="group-level-icon">` : ""}
                 <span>${level}</span>
-            </div>
+            </button>
             <button class="level-remove-all-btn${window.GTScoutAuth?.isAdmin?.() ? "" : " hidden"}" type="button" data-level="${level}" title="Ta bort alla planeringar i målgruppen">Ta bort alla</button>
         `;
+        colHeader.querySelector(".level-row-toggle").addEventListener("click", () => {
+            const isCollapsed = col.classList.toggle("level-row--collapsed");
+            if (isCollapsed) collapsedPlanningLevels.add(level);
+            else collapsedPlanningLevels.delete(level);
+            colHeader.querySelector(".level-row-toggle").setAttribute("aria-expanded", String(!isCollapsed));
+            updateCollapseAllPlanningButtons();
+        });
         colHeader.querySelector(".level-remove-all-btn").addEventListener("click", () => removeLevelGroups(level));
         col.appendChild(colHeader);
 
@@ -2298,6 +2336,7 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
 
         grid.appendChild(col);
     });
+    updateCollapseAllPlanningButtons();
 
     // Bind remove-badge and dblclick on planned badges
     document.querySelectorAll(".remove-badge-btn").forEach(btn => {

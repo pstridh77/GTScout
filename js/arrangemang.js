@@ -49,6 +49,7 @@ const collapsedArrangementChecklist = new Set();
 const expandedArrangementIds = new Set();
 const collapsedArrangementYears = new Set();
 const arrangementDetailEditModes = new Set();
+const collapseAllArrangementButtons = document.querySelectorAll('[data-collapse-all="arrangements"]');
 let draftResponsibilities = [];
 let planningOptions = [];
 const departments = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
@@ -70,6 +71,54 @@ const defaultRoleDefinitionsLoaded = fetch("data/arrangemang-roller.json")
         console.error("Kunde inte läsa standardroller för arrangemang", error);
         return defaultRoleDefinitions;
     });
+
+function updateCollapseAllArrangementButtons() {
+    const groups = [...arrangementsGrid.querySelectorAll("details.arrangement-year-group")];
+    const allCollapsed = groups.length > 0 && groups.every(group => !group.open);
+    collapseAllArrangementButtons.forEach(button => {
+        const isMobileButton = button.classList.contains("section-collapse-toggle");
+        button.textContent = isMobileButton
+            ? (allCollapsed ? "Visa" : "Fäll ihop")
+            : (allCollapsed ? "Visa alla år" : "Fäll ihop alla år");
+        button.setAttribute("aria-expanded", String(!allCollapsed));
+        button.disabled = groups.length === 0;
+    });
+}
+
+function collapseOpenArrangementsInYear(yearGroup) {
+    const openCards = [...yearGroup.querySelectorAll("details.arrangement-card[open]")];
+    openCards.forEach(card => {
+        const arrangementId = card.dataset.arrangementId;
+        expandedArrangementIds.delete(arrangementId);
+        arrangementDetailEditModes.delete(arrangementId);
+        collapsedArrangementNotes.add(arrangementId);
+        collapsedArrangementMeals.add(arrangementId);
+        collapsedArrangementChecklist.add(arrangementId);
+        arrangementSchemaExpansion.delete(arrangementId);
+        arrangementDayExpansion.delete(arrangementId);
+    });
+    return openCards.length > 0;
+}
+
+function toggleAllArrangementYears() {
+    const groups = [...arrangementsGrid.querySelectorAll("details.arrangement-year-group")];
+    const collapse = groups.some(group => group.open);
+    let hasOpenArrangements = false;
+    groups.forEach(group => {
+        group.open = !collapse;
+        if (collapse) {
+            collapsedArrangementYears.add(group.dataset.arrangementYear);
+            hasOpenArrangements = collapseOpenArrangementsInYear(group) || hasOpenArrangements;
+        } else {
+            collapsedArrangementYears.delete(group.dataset.arrangementYear);
+        }
+    });
+    if (hasOpenArrangements) {
+        renderArrangements();
+        return;
+    }
+    updateCollapseAllArrangementButtons();
+}
 const statusLabels = { planned: "Planerat", completed: "Genomfört", cancelled: "Inställt" };
 
 function escapeArrangementHtml(value) {
@@ -790,6 +839,7 @@ function renderArrangements() {
         const isOpen = !collapsedArrangementYears.has(year);
         return `<details class="arrangement-year-group" data-arrangement-year="${escapeArrangementHtml(year)}"${isOpen ? " open" : ""}><summary class="arrangement-year-summary"><strong>${escapeArrangementHtml(year)}</strong><span>${countLabel}</span></summary><div class="arrangement-year-cards">${cards.join("")}</div></details>`;
     }).join("");
+    updateCollapseAllArrangementButtons();
     arrangementsGrid.querySelectorAll(".arrangement-card").forEach(card => {
         const editControl = card.querySelector(".arrangement-detail-edit-control");
         const actions = card.querySelector(".arrangement-card-actions");
@@ -1222,7 +1272,14 @@ arrangementsGrid.addEventListener("toggle", event => {
     const day = event.target;
     if (day.matches?.("details.arrangement-year-group[data-arrangement-year]")) {
         if (day.open) collapsedArrangementYears.delete(day.dataset.arrangementYear);
-        else collapsedArrangementYears.add(day.dataset.arrangementYear);
+        else {
+            collapsedArrangementYears.add(day.dataset.arrangementYear);
+            if (collapseOpenArrangementsInYear(day)) {
+                renderArrangements();
+                return;
+            }
+        }
+        updateCollapseAllArrangementButtons();
         return;
     }
     if (day.matches?.("details.arrangement-detail-notes[data-arrangement-id]")) {
@@ -1313,6 +1370,7 @@ arrangementsGrid.addEventListener("pointerdown", event => {
     showScheduleGesturePreview(event, initialPreview);
     event.preventDefault();
 });
+collapseAllArrangementButtons.forEach(button => button.addEventListener("click", toggleAllArrangementYears));
 
 arrangementsGrid.addEventListener("pointermove", event => {
     const gesture = activeScheduleGesture;

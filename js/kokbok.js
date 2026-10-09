@@ -17,6 +17,31 @@ const RECIPE_SCALE_OPTIONS = [4, 10, 25, 50, 100];
 const recipeServingSelections = new Map();
 const RECIPE_MEAL_TYPES = ["Frukost", "Lunch", "Mellanmål", "Middag", "Kvällsmål", "Tillbehör", "Snacks"];
 const collapsedRecipeMealTypes = new Set();
+const collapseAllRecipeButtons = document.querySelectorAll('[data-collapse-all="recipes"]');
+
+function updateCollapseAllRecipeButtons() {
+    const groups = [...recipeGrid.querySelectorAll(".recipe-meal-group")];
+    const allCollapsed = groups.length > 0 && groups.every(group => !group.open);
+    collapseAllRecipeButtons.forEach(button => {
+        const isMobileButton = button.classList.contains("section-collapse-toggle");
+        button.textContent = isMobileButton
+            ? (allCollapsed ? "Visa" : "Fäll ihop")
+            : (allCollapsed ? "Visa alla receptgrupper" : "Fäll ihop alla receptgrupper");
+        button.setAttribute("aria-expanded", String(!allCollapsed));
+        button.disabled = groups.length === 0;
+    });
+}
+
+function toggleAllRecipeGroups() {
+    const groups = [...recipeGrid.querySelectorAll(".recipe-meal-group")];
+    const collapse = groups.some(group => group.open);
+    groups.forEach(group => {
+        group.open = !collapse;
+        if (collapse) collapsedRecipeMealTypes.add(group.dataset.mealType);
+        else collapsedRecipeMealTypes.delete(group.dataset.mealType);
+    });
+    updateCollapseAllRecipeButtons();
+}
 
 function getRecipeMealType(recipe) {
     const category = recipe.kategori?.trim() || "Övrigt";
@@ -267,10 +292,12 @@ function renderRecipes() {
         group.addEventListener("toggle", () => {
             if (group.open) collapsedRecipeMealTypes.delete(mealType);
             else collapsedRecipeMealTypes.add(mealType);
+            updateCollapseAllRecipeButtons();
         });
         return group;
     }));
     openSharedRecipeFromUrl();
+    updateCollapseAllRecipeButtons();
 }
 
 function createRecipeCard(recipe) {
@@ -387,5 +414,6 @@ recipeGrid.addEventListener("click", event => {
     const recipe = recipes.find(item => item.id === button.dataset.editRecipe);
     if (recipe && window.GTScoutCookbook.canWrite()) openRecipeModal(recipe);
 });
+collapseAllRecipeButtons.forEach(button => button.addEventListener("click", toggleAllRecipeGroups));
 window.GTScoutCookbook.init({ onChange(nextRecipes) { recipes = nextRecipes; populateRecipeFilters(); renderRecipes(); updateRecipeSyncStatus(); } });
 window.GTScoutAuth?.onChange(updateRecipeSyncStatus);

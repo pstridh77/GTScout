@@ -67,6 +67,7 @@
                         <summary class="planning-menu-section-label">Visa</summary>
                         <button id="togglePlanningActivitiesBtn" class="planning-menu-item planning-toggle-item" type="button" role="menuitem" aria-pressed="true"><span>Visa aktiviteter</span><span class="planning-toggle-status" aria-hidden="true">✓</span></button>
                         <button id="togglePlanningMeetingsBtn" class="planning-menu-item planning-toggle-item" type="button" role="menuitem" aria-pressed="true"><span>Visa möten</span><span class="planning-toggle-status" aria-hidden="true">✓</span></button>
+                        <button class="planning-menu-item section-collapse-menu-item" type="button" role="menuitem" data-collapse-all="planning" aria-expanded="true">Fäll ihop alla målgrupper</button>
                     </details>
                     <div class="planning-menu-divider" role="separator"></div>
                     <details class="site-menu-section site-menu-section--collapsed">
@@ -143,6 +144,7 @@
         </div>
     </div>
 
+    <div class="section-collapse-controls"><button class="section-collapse-toggle" type="button" data-collapse-all="planning" aria-expanded="true">Fäll ihop alla målgrupper</button></div>
     <main id="planningGrid"></main>
 
     <div id="exportInfoModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="exportInfoTitle">
