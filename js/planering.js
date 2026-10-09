@@ -2260,7 +2260,6 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                 ${icon ? `<img src="${icon}" alt="${level}" class="group-level-icon">` : ""}
                 <span>${level}</span>
             </button>
-            <button class="level-remove-all-btn${window.GTScoutAuth?.isAdmin?.() ? "" : " hidden"}" type="button" data-level="${level}" title="Ta bort alla planeringar i målgruppen">Ta bort alla</button>
         `;
         colHeader.querySelector(".level-row-toggle").addEventListener("click", () => {
             const isCollapsed = col.classList.toggle("level-row--collapsed");
@@ -2269,7 +2268,6 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
             colHeader.querySelector(".level-row-toggle").setAttribute("aria-expanded", String(!isCollapsed));
             updateCollapseAllPlanningButtons();
         });
-        colHeader.querySelector(".level-remove-all-btn").addEventListener("click", () => removeLevelGroups(level));
         col.appendChild(colHeader);
 
         const groupsByYear = new Map();
@@ -2571,16 +2569,6 @@ function removeGroup(id) {
     if (!canDeleteGroup(group)) return;
     if (!confirm("Ta bort planeringen och alla planerade märken?")) return;
     groups = groups.filter(g => g.id !== id);
-    saveGroups();
-    renderPlanning();
-}
-
-function removeLevelGroups(level) {
-    if (!window.GTScoutAuth?.isAdmin?.()) return;
-    const count = groups.filter(g => g.level === level).length;
-    if (count === 0) return;
-    if (!confirm(`Ta bort alla ${count} planeringar för ${level}?`)) return;
-    groups = groups.filter(g => g.level !== level);
     saveGroups();
     renderPlanning();
 }

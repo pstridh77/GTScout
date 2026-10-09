@@ -4113,33 +4113,6 @@ select:focus {
     outline-offset: 2px;
 }
 
-.level-remove-all-btn {
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.92);
-    font: inherit;
-    font-size: 0.78rem;
-    font-weight: 600;
-    padding: 4px 10px;
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-
-.level-remove-all-btn.hidden {
-    display: none;
-}
-
-.level-remove-all-btn:hover {
-    background: rgba(255, 255, 255, 0.18);
-    border-color: rgba(255, 255, 255, 0.55);
-}
-
-.level-remove-all-btn:focus-visible {
-    outline: 2px solid rgba(255, 255, 255, 0.7);
-    outline-offset: 1px;
-}
-
 .level-row-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 420px));
@@ -5387,7 +5360,6 @@ select:focus {
 
 @media (max-width: 600px) {
     .level-row-header { align-items: flex-start; }
-    .level-remove-all-btn { margin-left: auto; }
     .modal-content--wide { max-width: 95vw; }
 
     /* På små skärmar visas planeringarna lodrätt, en planering per rad. */
