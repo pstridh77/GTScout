@@ -52,7 +52,7 @@ const arrangementDetailEditModes = new Set();
 const collapseAllArrangementButtons = document.querySelectorAll('[data-collapse-all="arrangements"]');
 let draftResponsibilities = [];
 let planningOptions = [];
-const departments = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
+const departments = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover", "Ledare"];
 const scheduleSnapMinutes = 15;
 const scheduleMaxMinutes = 23 * 60 + 45;
 let defaultRoleDefinitions = [];

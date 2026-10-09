@@ -8,7 +8,7 @@
     let loading = false;
     let loadError = false;
     let sharedToken = null;
-    const DEPARTMENTS = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
+    const DEPARTMENTS = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover", "Ledare"];
 
     const auth = () => window.GTScoutAuth;
     const client = () => auth()?.getClient?.() || null;

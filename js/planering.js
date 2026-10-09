@@ -982,6 +982,7 @@ function openEditActivitiesModal() {
 function createEditActivitiesMenuAction() {
     const modal = document.getElementById("editActivitiesModal");
     const editButton = document.getElementById("editActivitiesBtn");
+    if (!editButton) return;
     const syncVisibility = () => {
         editButton.classList.remove("hidden");
     };
@@ -2197,6 +2198,9 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
     const activeOpenMeetingGroupIds = new Set([...preservedOpenMeetingGroupIds, ...openMeetingGroupIds]);
     populateGroupFilterOptions();
     document.getElementById("addGroupBtn")?.classList.toggle("hidden", !canEditPlannings());
+    document.querySelectorAll('[data-header-action="addGroupBtn"]').forEach(button => {
+        button.classList.toggle("hidden", !canEditPlannings());
+    });
     const grid = document.getElementById("planningGrid");
     grid.innerHTML = "";
 
@@ -4029,6 +4033,8 @@ planningActionsDropdown.addEventListener("click", event => {
     if (event.target.closest("summary")) return;
     planningActionsDropdown.classList.add("hidden");
     planningActionsBtn.setAttribute("aria-expanded", "false");
+    const action = event.target.closest("[data-header-action]");
+    if (action) document.getElementById(action.dataset.headerAction)?.click();
 });
 document.getElementById("exportPlanningBtn").addEventListener("click", exportPlannings);
 document.getElementById("importPlanningBtn").addEventListener("click", () => importPlanningInput.click());
