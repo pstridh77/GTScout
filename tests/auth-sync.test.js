@@ -7,6 +7,11 @@ const vm = require("node:vm");
 const leaderSession = { user: { id: "leader-1", email: "leader@example.test" } };
 const leaderProfile = { role: "ledare", kar_id: "kar-1", scout_read: true, scout_write: true };
 
+function loadParticipantHelpers(context) {
+    context.window ||= {};
+    vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "js", "participants.js"), "utf8"), context);
+}
+
 for (const signedIn of [false, true]) {
     test(`arrangements preserve the Ledare department ${signedIn ? "in database writes" : "locally"}`, async () => {
         const backend = createBackend(signedIn ? leaderSession : null);
@@ -119,10 +124,13 @@ test("arrangement participant section hides unknown counts only in read mode", (
     const start = source.indexOf("function getParticipantTotals(");
     const end = source.indexOf("function closeMealRecipeDialog(", start);
     const context = vm.createContext({ escapeArrangementHtml: value => String(value ?? "") });
+    loadParticipantHelpers(context);
     vm.runInContext(source.slice(start, end), context);
     const item = { id: "participants-test", title: "Test", departments: ["Spårare"] };
     assert.equal(context.renderArrangementParticipants(item, false), "");
     assert.match(context.renderArrangementParticipants(item, true), /data-edit-participants/);
+    const editable = context.renderArrangementParticipants(item, true);
+    assert.ok(editable.indexOf("data-edit-participants") < editable.indexOf("</summary>"));
     item.participants = { departments: { "Spårare": { scouts: null, leaders: null } }, officials: null };
     assert.equal(context.renderArrangementParticipants(item, false), "");
     assert.match(context.renderArrangementParticipants(item, true), /data-edit-participants/);
@@ -135,6 +143,9 @@ test("arrangement participant section hides unknown counts only in read mode", (
     item.participants.departments["Spårare"].parents = 3;
     assert.match(context.renderArrangementParticipants(item, false), /3 föräldrar/);
     assert.match(context.renderParticipantTable(item.departments, item.participants, true), /aria-label="Föräldrar, Spårare"/);
+    const inheritedTable = context.renderParticipantTable(item.departments, null, true, { departments: { "Spårare": { scouts: 18, leaders: 3, parents: 0 } }, officials: 2 });
+    assert.match(inheritedTable, /data-participant-field="officials" value="" placeholder="2"/);
+    assert.match(inheritedTable, /data-participant-field="parents" value="" placeholder="0"/);
 });
 
 test("arrangement overview hides unknown participant totals when locked", () => {
@@ -170,6 +181,7 @@ test("arrangement meals link each recipe to the combined participant count", () 
         collapsedArrangementMeals: new Set(), getMealRecipeIds: entry => entry.recipe_ids || [],
         formatArrangementDate: date => date, escapeArrangementHtml: value => String(value ?? "")
     });
+    loadParticipantHelpers(context);
     vm.runInContext(totals + render, context);
     const item = { id: "meal-test", departments: ["Spårare", "Ledare"], participants: { departments: {
         "Spårare": { scouts: 41, leaders: 4, parents: 10 }, "Ledare": { leaders: 4 }
@@ -201,7 +213,7 @@ test("recipe links initialize valid serving counts for only the requested recipe
     const target = source.slice(source.indexOf("function getRecipeTargetServings("), source.indexOf("function openSharedRecipeFromUrl("));
     for (const [search, expected] of [
         ["?recipe=soup&servings=61", 61], ["?recipe=soup&servings=2", 2],
-        ["?recipe=soup", 4], ["?recipe=soup&servings=0", 4],
+        ["?recipe=soup", 4], ["?recipe=soup&servings=0", 0],
         ["?recipe=soup&servings=-2", 4], ["?recipe=soup&servings=1.5", 4],
         ["?recipe=soup&servings=invalid", 4], ["?servings=61", 4]
     ]) {
@@ -255,6 +267,7 @@ test("arrangement shopping lists sum repeated meals and compatible units without
     const start = source.indexOf("function parseAmount(");
     const end = source.indexOf("function renderIngredientEditor(", start);
     const context = vm.createContext({ RECIPE_SCALE_OPTIONS: [4, 10, 25, 50, 100] });
+    loadParticipantHelpers(context);
     vm.runInContext(source.slice(start, end), context);
     const catalog = [
         { id: "rice", namn: "Rice", portioner: 4, ingredienser_skalningar: [
@@ -306,6 +319,147 @@ test("arrangement shopping lists sum repeated meals and compatible units without
     assert.match(headers, />fredag</);
     assert.match(headers, />lördag</);
     assert.doesNotMatch(headers, /2026|18:00|12:00/);
+    const varying = { departments: ["Spårare"], participants: { departments: { "Spårare": { scouts: 8, leaders: 0, parents: 0 } }, officials: 0 },
+        participant_days: { "2026-10-10": { departments: { "Spårare": { scouts: 4 } } } }, agenda: [
+            { kind: "meal", date: "2026-10-09", recipe_ids: ["rice"] },
+            { kind: "meal", date: "2026-10-10", recipe_ids: ["rice"], participants_override: { departments: { "Spårare": { scouts: 2 } } } },
+            { kind: "meal", date: "2026-10-10", recipe_ids: ["rice"] }
+        ] };
+    const variedList = context.buildArrangementShoppingList(varying, catalog, 8);
+    assert.deepEqual(JSON.parse(JSON.stringify(variedList.meals.map(meal => meal.servings))), [8, 2, 4]);
+    assert.equal(variedList.ingredients[0].amount, "1,4 kg");
+    varying.agenda[1].participants_override.departments["Spårare"].scouts = 0;
+    const zeroMeal = context.buildArrangementShoppingList(varying, catalog, 8);
+    assert.equal(zeroMeal.meals[1].servings, 0);
+    assert.equal(zeroMeal.ingredients[0].contributions[1], null);
+    assert.equal(context.buildArrangementShoppingList(varying, catalog, 8, true).ingredients[0].amount, "2,4 kg");
+});
+
+test("participant overrides inherit by field from arrangement to day to meal and preserve zero", async () => {
+    const page = createPage(createBackend(null));
+    page.load("arrangemang-sync.js");
+    const item = { id: "inheritance", title: "Inheritance", start_date: "2026-10-09", end_date: "2026-10-10", departments: ["Spårare"],
+        participants: { departments: { "Spårare": { scouts: 41, leaders: 10, parents: 10 } }, officials: 0 },
+        participant_days: { "2026-10-10": { departments: { "Spårare": { scouts: 25 } } }, "2026-11-01": { officials: 10 } },
+        agenda: [{ id: "meal", kind: "meal", title: "Breakfast", date: "2026-10-10", participants_override: { departments: { "Spårare": { scouts: 20, parents: 0 } } } }]
+    };
+    await page.window.GTScoutArrangements.save(item);
+    const saved = page.window.GTScoutArrangements.getAll()[0];
+    const resolve = page.window.GTScoutParticipants.resolve;
+    assert.equal(resolve(saved, "2026-10-09").totals.total, 61);
+    assert.equal(resolve(saved, "2026-10-10").totals.total, 45);
+    assert.equal(resolve(saved, "2026-10-10", saved.agenda[0]).totals.total, 30);
+    assert.equal(resolve(saved, "2026-10-10", saved.agenda[0]).source, "meal");
+    assert.equal(resolve(saved, "2026-10-10").source, "day");
+    assert.equal(saved.participant_days["2026-11-01"], undefined);
+    saved.participant_days["2026-10-10"].departments["Spårare"].scouts = 99;
+    saved.agenda[0].participants_override.departments["Spårare"].parents = 99;
+    assert.equal(resolve(page.window.GTScoutArrangements.getAll()[0], "2026-10-10").totals.total, 45);
+    assert.equal(resolve(page.window.GTScoutArrangements.getAll()[0], "2026-10-10", page.window.GTScoutArrangements.getAll()[0].agenda[0]).totals.total, 30);
+    assert.equal(page.window.GTScoutParticipants.normalizeOverride({ officials: "", departments: { "Spårare": { scouts: -1 } } }, ["Spårare"]), null);
+    const reopened = createPage(createBackend(null), page.storage);
+    reopened.load("arrangemang-sync.js");
+    reopened.window.GTScoutArrangements.init({ onChange() {} });
+    assert.equal(resolve(reopened.window.GTScoutArrangements.getAll()[0], "2026-10-10").totals.total, 45);
+});
+
+test("participant overview days show only differences while the dialog retains all days", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
+    const start = source.indexOf("function getParticipantTotals(");
+    const end = source.indexOf("function closeMealRecipeDialog(", start);
+    const dates = ["2026-10-09", "2026-10-10", "2026-10-11"];
+    const context = vm.createContext({ escapeArrangementHtml: value => String(value ?? ""), arrangementDates: () => dates, formatArrangementDate: date => date });
+    loadParticipantHelpers(context);
+    vm.runInContext(source.slice(start, end), context);
+    const item = { departments: ["Spårare"], start_date: dates[0], end_date: dates[2],
+        participants: { departments: { "Spårare": { scouts: 18, leaders: 4, parents: 0 } }, officials: 0 } };
+    const container = { innerHTML: "", querySelectorAll: () => [] };
+    context.renderParticipantDaysEditor(container, item, item.participants, {}, false, true);
+    assert.equal(container.innerHTML, "");
+    const overrides = {
+        [dates[0]]: { departments: { "Spårare": { scouts: 18 } } },
+        [dates[1]]: { departments: { "Spårare": { scouts: 17, leaders: 5 } } },
+        [dates[2]]: { departments: { "Spårare": { scouts: 0 } } }
+    };
+    context.renderParticipantDaysEditor(container, item, item.participants, overrides, false, true);
+    assert.match(container.innerHTML, /Deltagare per dag/);
+    assert.doesNotMatch(container.innerHTML, /data-participant-date="2026-10-09"/);
+    assert.match(container.innerHTML, /data-participant-date="2026-10-10"/);
+    assert.match(container.innerHTML, /data-participant-date="2026-10-11"/);
+    context.renderParticipantDaysEditor(container, item, item.participants, {}, true);
+    assert.match(container.innerHTML, /class="participant-days-group"/);
+    assert.doesNotMatch(container.innerHTML, /class="participant-days-group" open/);
+    context.renderParticipantDaysEditor(container, item, item.participants, overrides, true);
+    assert.match(container.innerHTML, /class="participant-days-group" open/);
+    assert.doesNotMatch(container.innerHTML, /avvikande dagar/);
+    dates.forEach(date => assert.ok(container.innerHTML.includes(`data-participant-date="${date}"`)));
+    container.querySelectorAll = selector => selector === ".participant-days-group" ? [{ open: false }] : [];
+    context.renderParticipantDaysEditor(container, item, item.participants, overrides, true);
+    assert.doesNotMatch(container.innerHTML, /class="participant-days-group" open/);
+    container.querySelectorAll = () => [];
+    context.renderParticipantDaysEditor(container, item, item.participants, {}, false, false);
+    assert.match(container.innerHTML, /class="participant-days-group"/);
+    assert.doesNotMatch(container.innerHTML, /class="participant-days-group" open/);
+    context.renderParticipantDaysEditor(container, item, item.participants, overrides, false, false);
+    assert.match(container.innerHTML, /class="participant-days-group" open/);
+    assert.doesNotMatch(container.innerHTML, /<input/);
+    context.renderParticipantDaysEditor(container, item, item.participants, { [dates[0]]: overrides[dates[0]] }, false, false);
+    assert.doesNotMatch(container.innerHTML, /class="participant-days-group" open/);
+    context.document = { createElement: () => ({ innerHTML: "", querySelectorAll: () => [] }) };
+    for (const unlocked of [false, true]) {
+        item.participant_days = {};
+        assert.doesNotMatch(context.renderArrangementParticipants(item, unlocked), /Deltagare per dag/);
+        item.participant_days = overrides;
+        const overview = context.renderArrangementParticipants(item, unlocked);
+        assert.match(overview, /class="participant-days-group" open/);
+        assert.match(overview, /<span>2 avvikande dagar<\/span>/);
+        assert.doesNotMatch(overview, /data-participant-date="2026-10-09"/);
+        assert.match(overview, /data-participant-date="2026-10-10"/);
+        assert.match(overview, /data-participant-date="2026-10-11"/);
+        item.participant_days = { [dates[1]]: overrides[dates[1]] };
+        assert.match(context.renderArrangementParticipants(item, unlocked), /<span>1 avvikande dag<\/span>/);
+    }
+});
+
+test("arrangement deletion requires unlocked editing in cards and dialogs", async () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
+    const item = { id: "delete-test", title: "Test", local_only: true };
+    let editable = false;
+    let confirmations = 0;
+    let removals = 0;
+    let modalHandler;
+    const context = vm.createContext({
+        item, canEditDetails: false, arrangements: [item],
+        deleteButton: { dataset: { deleteArrangement: item.id } },
+        arrangementForm: { dataset: { arrangementId: item.id } },
+        arrangementModal: { classList: { add() {} } },
+        isArrangementEditable: () => true, isArrangementDetailEditable: () => editable,
+        escapeArrangementHtml: value => String(value ?? ""),
+        confirm: () => { confirmations++; return true; }, alert: message => assert.fail(message),
+        window: { GTScoutArrangements: { canWrite: () => false, remove: async () => { removals++; } } },
+        document: { getElementById: () => ({ addEventListener: (event, callback) => { modalHandler = callback; } }) }
+    });
+    const actionsStart = source.indexOf("        const canShare =");
+    const actionsEnd = source.indexOf("        const notes =", actionsStart);
+    const render = () => vm.runInContext(`{${source.slice(actionsStart, actionsEnd)} actions;}`, context);
+    assert.doesNotMatch(render(), /data-delete-arrangement/);
+    context.canEditDetails = true;
+    assert.match(render(), /data-delete-arrangement/);
+    const handlerStart = source.indexOf("    if (!deleteButton) return;");
+    const handlerEnd = source.indexOf("\n});", handlerStart);
+    const deleteFromCard = () => vm.runInContext(`(async () => {${source.slice(handlerStart, handlerEnd)}})()`, context);
+    const modalStart = source.indexOf('document.getElementById("deleteArrangementBtn").addEventListener');
+    const modalEnd = source.indexOf("\n});", modalStart);
+    vm.runInContext(source.slice(modalStart, modalEnd + 4), context);
+    await deleteFromCard();
+    await modalHandler();
+    assert.equal(confirmations, 0);
+    assert.equal(removals, 0);
+    editable = true;
+    await deleteFromCard();
+    await modalHandler();
+    assert.equal(confirmations, 2);
+    assert.equal(removals, 2);
 });
 
 test("empty arrangement schedules hide only in read mode and retain every agenda kind", () => {
@@ -586,6 +740,7 @@ function createPage(backend, storage = new Map(), displayStorage = new Map()) {
             await callback();
         }
     };
+    load("participants.js");
     load("auth.js");
     return { window: context.window, localStorage, storage, displayStorage, elements, load, emit, runTimers, auth: context.window.GTScoutAuth };
 }

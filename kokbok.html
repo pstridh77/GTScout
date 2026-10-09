@@ -82,6 +82,7 @@
             </div>
             <p id="shoppingStatus" class="shopping-status" role="status" aria-live="polite">Hämtar arrangemang...</p>
             <label class="shopping-serving-control"><span>Deltagare</span><input id="shoppingServings" type="number" min="1" max="9007199254740991" step="1" inputmode="numeric"></label>
+            <button id="resetShoppingServings" class="btn-secondary hidden" type="button">Använd planerade antal</button>
             <label class="shopping-breakdown-control"><input id="shoppingBreakdown" type="checkbox" aria-controls="shoppingGrid">Visa måltidsfördelning</label>
             <p id="shoppingCountNotice" class="detail-note-warning hidden"></p>
             <div id="shoppingGrid" class="shopping-grid" role="region" aria-label="Ingredienser och måltidsfördelning" tabindex="0">
@@ -171,6 +172,7 @@
 
     <script src="js/version.js"></script>
     <script src="js/kokbok-sync.js?v=recipe-sync-status-1"></script>
+    <script src="js/participants.js"></script>
     <script src="js/kokbok.js?v=recipe-sync-status-1"></script>
     <script src="js/header-controls.js"></script>
 </body>

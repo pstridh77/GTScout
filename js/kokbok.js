@@ -18,6 +18,7 @@ const shoppingArrangementId = recipeUrlParams.get("shopping");
 const isShoppingListView = Boolean(shoppingArrangementId);
 let shoppingArrangement = null;
 let shoppingServings = null;
+let useUniformShoppingCount = false;
 const checkedShoppingItems = new Set();
 if (isShoppingListView) {
     document.body.classList.add("shopping-list-view");
@@ -34,7 +35,7 @@ if (isEmbeddedRecipeView) {
 const RECIPE_SCALE_OPTIONS = [4, 10, 25, 50, 100];
 const recipeServingSelections = new Map();
 const requestedRecipeServings = Number(recipeUrlParams.get("servings"));
-if (sharedRecipeIdFromUrl && Number.isSafeInteger(requestedRecipeServings) && requestedRecipeServings > 0) {
+if (sharedRecipeIdFromUrl && recipeUrlParams.has("servings") && Number.isSafeInteger(requestedRecipeServings) && requestedRecipeServings >= 0) {
     recipeServingSelections.set(sharedRecipeIdFromUrl, requestedRecipeServings);
 }
 if (isShoppingListView && Number.isSafeInteger(requestedRecipeServings) && requestedRecipeServings > 0) shoppingServings = requestedRecipeServings;
@@ -184,6 +185,7 @@ function formatComparableAmount(value, comparable) {
 }
 
 function scaleIngredientAmount(row, recipe, targetServings) {
+    if (targetServings === 0) return "0";
     const exactAmount = row.mangder?.[String(targetServings)];
     const exactParsed = parseAmount(exactAmount);
     if (exactAmount) return exactParsed ? formatComparableAmount(toComparableAmount(exactParsed).value, toComparableAmount(exactParsed)) : exactAmount;
@@ -237,22 +239,28 @@ function getIngredientRows(recipe) {
     return recipe.ingredienser.map(parseLegacyIngredient).filter(row => row.namn);
 }
 
-function buildArrangementShoppingList(arrangement, catalog, targetServings) {
+function buildArrangementShoppingList(arrangement, catalog, targetServings, uniformCount = false) {
     const ingredients = new Map();
     const warnings = [];
     const mealColumns = [];
     const meals = (arrangement.agenda || []).filter(entry => entry.kind === "meal")
         .sort((left, right) => String(left.date || "").localeCompare(String(right.date || "")) || String(left.time || "").localeCompare(String(right.time || "")));
     meals.forEach((meal, mealIndex) => {
+        const effective = window.GTScoutParticipants.resolve(arrangement, meal.date, meal);
+        const hasMealCount = effective.totals.hasCounts;
+        const mealCount = uniformCount ? targetServings : hasMealCount ? effective.totals.total : targetServings;
         const mealLabel = `${meal.date}: ${meal.meal_type || meal.title || "Måltid"}`;
         const recipeIds = Array.isArray(meal.recipe_ids)
             ? [...new Set(meal.recipe_ids.map(String))]
             : meal.source_type === "recipe" && meal.source_id ? [String(meal.source_id)] : [];
         mealColumns.push({
             date: meal.date || "", time: meal.time || "", name: meal.meal_type || meal.title || "Måltid",
+            servings: mealCount ?? null,
             recipes: recipeIds.map(id => catalog.find(recipe => String(recipe.id) === id)?.namn).filter(Boolean)
         });
         if (!recipeIds.length) warnings.push(`${mealLabel} saknar länkat recept.`);
+        if (!uniformCount && hasMealCount && !effective.totals.complete) warnings.push(`${mealLabel}: preliminärt deltagarantal.`);
+        if (!uniformCount && hasMealCount && mealCount === 0) return;
         recipeIds.forEach(id => {
             const recipe = catalog.find(item => String(item.id) === id);
             if (!recipe) {
@@ -261,7 +269,7 @@ function buildArrangementShoppingList(arrangement, catalog, targetServings) {
             }
             const rows = getIngredientRows(recipe);
             if (!rows.length) warnings.push(`${mealLabel}: ${recipe.namn} saknar ingredienser.`);
-            const servings = targetServings > 0 ? targetServings : Number(recipe.portioner) || 4;
+            const servings = mealCount > 0 ? mealCount : Number(recipe.portioner) || 4;
             rows.forEach(row => {
                 const name = String(row.namn || "").trim().replace(/\s+/g, " ");
                 if (!name) return;
@@ -299,7 +307,7 @@ function renderShoppingIngredientGrid(list, expanded) {
     const headers = expanded ? list.meals.map(meal => {
         const parsedDate = new Date(`${meal.date}T12:00:00`);
         const day = Number.isNaN(parsedDate.getTime()) ? "" : parsedDate.toLocaleDateString("sv-SE", { weekday: "long" });
-        return `<th class="shopping-meal-cell" scope="col"><span>${escapeRecipeHtml(day)}</span><strong>${escapeRecipeHtml(meal.name)}</strong><small>${escapeRecipeHtml(meal.recipes.join(", "))}</small></th>`;
+        return `<th class="shopping-meal-cell" scope="col"><span>${escapeRecipeHtml(day)}</span><strong>${escapeRecipeHtml(meal.name)}</strong><small>${escapeRecipeHtml(meal.recipes.join(", "))}</small>${meal.servings !== null ? `<small>${meal.servings} deltagare</small>` : ""}</th>`;
     }).join("") : "";
     const columns = expanded ? list.meals.map(() => '<col class="shopping-meal-col">').join("") : "";
     const rows = list.ingredients.map(ingredient => {
@@ -331,12 +339,13 @@ function renderShoppingList() {
         document.getElementById("printShoppingBtn").disabled = true;
         return;
     }
-    const list = buildArrangementShoppingList(shoppingArrangement, recipes, shoppingServings);
+    const list = buildArrangementShoppingList(shoppingArrangement, recipes, shoppingServings, useUniformShoppingCount);
     if (window.GTScoutCookbook.getSyncState().error) list.warnings.unshift("Recept kunde inte hämtas. Listan använder tillgängliga lokala recept.");
     status.textContent = `${shoppingArrangement.title} · ${list.mealCount} måltider${shoppingServings ? ` · ${shoppingServings} deltagare` : ""}`;
     document.getElementById("shoppingServings").value = shoppingServings || "";
     const notice = document.getElementById("shoppingCountNotice");
-    notice.textContent = !shoppingServings
+    document.getElementById("resetShoppingServings").classList.toggle("hidden", !useUniformShoppingCount);
+    notice.textContent = useUniformShoppingCount ? "Tillfälligt gemensamt antal för alla måltider." : !shoppingServings
         ? "Deltagarantal saknas. Mängderna utgår från receptens grundantal."
         : recipeUrlParams.get("preliminary") === "1" ? "Preliminärt deltagarantal." : "";
     notice.classList.toggle("hidden", !notice.textContent);
@@ -373,7 +382,7 @@ function readIngredientRows() {
 
 function getRecipeTargetServings(recipe) {
     const selected = recipeServingSelections.get(recipe.id);
-    return Number.isSafeInteger(selected) && selected >= 1 ? selected : (Number(recipe.portioner) >= 1 ? Number(recipe.portioner) : 4);
+    return Number.isSafeInteger(selected) && selected >= 0 ? selected : (Number(recipe.portioner) >= 1 ? Number(recipe.portioner) : 4);
 }
 
 function openSharedRecipeFromUrl() {
@@ -448,7 +457,7 @@ function createRecipeCard(recipe) {
         const targetServings = getRecipeTargetServings(recipe);
         const scaledIngredients = getIngredientRows(recipe).map(row => `${scaleIngredientAmount(row, recipe, targetServings)} ${row.namn}`.trim());
                 card.innerHTML = `<div class="recipe-card-top"><span class="recipe-category">${escapeRecipeHtml(recipe.kategori)}</span><span class="recipe-difficulty recipe-difficulty--${recipe.svarighet.toLocaleLowerCase("sv-SE")}">${escapeRecipeHtml(recipe.svarighet)}</span></div><h2>${escapeRecipeHtml(recipe.namn)}</h2><p class="recipe-description">${escapeRecipeHtml(recipe.beskrivning || "Ett recept för scoutköket.")}</p><dl class="recipe-meta"></dl><label class="recipe-serving-control"><span>Visa recept för</span><input data-recipe-servings="${recipe.id}" aria-label="Visa ${escapeRecipeHtml(recipe.namn)} för antal personer" type="number" min="4" step="1" value="${targetServings}"></label><details><summary>Visa recept</summary><div class="recipe-details"><h3>Ingredienser</h3><ul>${scaledIngredients.map(item => `<li>${escapeRecipeHtml(item)}</li>`).join("")}</ul><h3>Gör så här</h3><p>${escapeRecipeHtml(recipe.instruktioner).replace(/\n/g, "<br>")}</p></div></details><div class="recipe-card-actions"><button class="btn-secondary recipe-share-icon-btn" type="button" data-share-recipe="${recipe.id}" aria-label="Dela recept" title="Dela recept"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,16.08C17.24,16.08 16.54,16.38 16,16.85L8.91,12.74C8.96,12.5 9,12.25 9,12C9,11.75 8.96,11.5 8.91,11.26L15.92,7.17C16.47,7.66 17.2,7.97 18,7.97C19.66,7.97 21,6.63 21,4.97C21,3.31 19.66,1.97 18,1.97C16.34,1.97 15,1.97 15,4.97C15,5.22 15.04,5.47 15.09,5.71L8.08,9.8C7.53,9.31 6.8,9 6,9C4.34,9 3,10.34 3,12C3,13.66 4.34,15 6,15C6.8,15 7.53,14.69 8.08,14.2L15.17,18.31C15.12,18.54 15,18.77 15,19C15,20.66 16.34,22 18,22C19.66,22 21,20.66 21,19C21,17.34 19.66,16.08 18,16.08Z" /></svg></button><button class="btn-secondary" type="button" data-edit-recipe="${recipe.id}">Redigera</button></div>`;
-        card.querySelector("[data-recipe-servings]").min = "1";
+        card.querySelector("[data-recipe-servings]").min = "0";
         if (!window.GTScoutCookbook.canEdit?.()) card.querySelector("[data-edit-recipe]")?.remove();
         card.addEventListener("click", event => {
             if (event.target.closest("button, input, summary") || event.target.closest(".recipe-card details")) return;
@@ -537,7 +546,9 @@ recipeGrid.addEventListener("change", event => {
     if (!select) return;
     const card = select.closest(".recipe-card");
     const wasDetailsOpen = Boolean(card?.querySelector("details")?.open);
-    recipeServingSelections.set(select.dataset.recipeServings, Number(select.value));
+    if (select.value !== "" && !select.reportValidity()) return;
+    if (select.value === "") recipeServingSelections.delete(select.dataset.recipeServings);
+    else recipeServingSelections.set(select.dataset.recipeServings, Number(select.value));
     renderRecipes();
     if (wasDetailsOpen) {
         const updatedSelect = [...recipeGrid.querySelectorAll("[data-recipe-servings]")]
@@ -563,8 +574,15 @@ document.getElementById("shoppingBreakdown").addEventListener("change", renderSh
 document.getElementById("shoppingServings").addEventListener("change", event => {
     if (!event.target.reportValidity()) return;
     shoppingServings = event.target.value ? Number(event.target.value) : null;
+    useUniformShoppingCount = shoppingServings !== null;
     checkedShoppingItems.clear();
     recipeUrlParams.delete("preliminary");
+    renderShoppingList();
+});
+document.getElementById("resetShoppingServings").addEventListener("click", () => {
+    useUniformShoppingCount = false;
+    shoppingServings = Number(recipeUrlParams.get("servings")) || null;
+    checkedShoppingItems.clear();
     renderShoppingList();
 });
 document.getElementById("shoppingIngredients").addEventListener("change", event => {

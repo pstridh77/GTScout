@@ -188,9 +188,12 @@ body {
 .arrangement-meal-day ul { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .arrangement-meal-day li { display: flex; align-items: center; gap: 8px; color: #354b51; font-size: .82rem; line-height: 1.45; overflow-wrap: anywhere; }
 .arrangement-meal-day li > span { min-width: 0; }
+.arrangement-meal-day li { flex-wrap: wrap; }
+.arrangement-meal-count { flex-basis: 100%; color: #65767b; font-size: .72rem; }
 .arrangement-meal-recipe-link { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 .arrangement-meal-recipe-link:focus-visible { outline: 2px solid #4d8275; outline-offset: 2px; }
 .arrangement-meal-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
+.arrangement-meal-actions > .btn-secondary { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-height: 36px; line-height: 1.4; }
 .arrangement-shopping-link { display: inline-flex; text-decoration: none; }
 .shopping-list-view .cookbook-page > .page-hero, .shopping-list-view .page-sync-status, .shopping-list-view .cookbook-toolbar, .shopping-list-view .section-collapse-controls, .shopping-list-view #recipeGrid, .shopping-list-view #recipeEmpty, .shopping-list-view .filters-visibility-toggle { display: none; }
 .shopping-view { max-width: 900px; margin: 0 auto; }
@@ -228,7 +231,7 @@ body {
 .arrangement-meal-entry:hover { color: #286d60; text-decoration: underline; }
 .arrangement-meal-entry:focus-visible { outline: 2px solid #4d8275; outline-offset: 2px; }
 .arrangement-meals-empty { margin: 8px 0 0; color: #65767b; font-size: .84rem; }
-.arrangement-meal-add { margin-top: 10px; }
+.arrangement-meal-add { margin: 0; }
 .arrangement-notes-preview { display: grid; gap: 9px; width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid #d1dbdc; border-radius: 4px; background: #f7f9f8; color: #354b51; font: inherit; font-size: .84rem; line-height: 1.45; text-align: left; white-space: pre-wrap; overflow-wrap: anywhere; cursor: pointer; }
 .arrangement-notes-preview:hover { border-color: #4d8275; background: #f1f6f3; }
 .arrangement-notes-preview:focus-visible { outline: 2px solid #4d8275; outline-offset: 2px; }
@@ -295,9 +298,16 @@ body {
 .arrangement-participants-total { margin: 12px 0 0; color: #52636a; font-size: .82rem; overflow-wrap: anywhere; }
 .arrangement-participant-count { flex-basis: 100%; color: #52636a; font-size: .75rem; text-align: right; overflow-wrap: anywhere; }
 .arrangement-participants-content { max-width: 620px; padding-top: 8px; }
-.arrangement-participants-edit { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; margin: 10px 0 0 auto; padding: 0; }
+.btn-secondary.arrangement-participants-edit { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; margin: 0; padding: 0; }
 .arrangement-participants-edit svg { width: 20px; height: 20px; }
-.participants-dialog-content { width: min(620px, 100%); }
+.participant-day { min-width: 0; padding: 12px 0; border-top: 1px solid #d7e1eb; }
+.participant-day > summary { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; cursor: pointer; font-size: .84rem; }
+.participant-day > summary span { color: #65767b; overflow-wrap: anywhere; }
+.participant-day > button { margin-top: 10px; }
+.participant-days-group { min-width: 0; margin-top: 12px; padding-top: 12px; border-top: 1px solid #d7e1eb; }
+.participant-days-group[open] > .arrangement-section-summary::before { transform: rotate(45deg); }
+.meal-participants-editor { grid-column: 1 / -1; min-width: 0; padding: 12px 0; border-top: 1px solid #d7e1eb; }
+.meal-participants-modes { display: flex; flex-wrap: wrap; gap: 14px; margin: 12px 0; }
 .arrangement-participants-overview .arrangement-section-summary { flex-wrap: wrap; }
 .arrangement-participants-overview .arrangement-section-summary > span { min-width: 0; overflow-wrap: anywhere; }
 .arrangement-department-options { display: flex; flex-wrap: wrap; gap: 7px; }
@@ -4895,18 +4905,43 @@ select:focus {
 .modal.hidden { display: none; }
 
 #arrangementModal,
-#agendaEntryModal { z-index: 3000; }
+#agendaEntryModal,
+#participantsModal { z-index: 3000; }
 
-#arrangementModal {
+#arrangementModal,
+#participantsModal {
     box-sizing: border-box;
     height: 100vh;
     height: 100dvh;
     padding: max(12px, env(safe-area-inset-top, 0px)) 0 max(12px, env(safe-area-inset-bottom, 0px));
 }
 
-#arrangementModal .modal-content {
+#arrangementModal .modal-content,
+#participantsModal .modal-content {
     max-height: 100%;
     overscroll-behavior-y: contain;
+}
+
+#participantsModal .modal-content {
+    box-sizing: border-box;
+    width: calc(100% - 24px);
+    max-width: 620px;
+    overflow-y: auto;
+}
+
+@media (max-width: 520px) {
+    #participantsModal .modal-content { width: calc(100% - 16px); padding: 28px 12px 16px; }
+    #participantsModal .arrangement-participants-table th:first-child { width: 23%; }
+    #participantsModal .arrangement-participants-table th,
+    #participantsModal .arrangement-participants-table td { padding: 8px 4px; }
+}
+
+@media (max-width: 360px) {
+    #participantsModal .arrangement-participants-table th,
+    #participantsModal .arrangement-participants-table td { padding: 8px 2px; }
+    #participantsModal .arrangement-participants-table th:first-child { width: 70px; }
+    #participantsModal .arrangement-participants-table thead th:nth-child(2) { width: 52px; }
+    #participantsModal .arrangement-participants-table thead th:nth-child(3) { width: 46px; }
 }
 
 #createActivityModal {
