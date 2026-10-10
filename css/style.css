@@ -4906,6 +4906,7 @@ select:focus {
 }
 
 .modal.hidden { display: none; }
+#mealRecipeModal.meal-recipe-modal--above-detail { z-index: 1010; }
 
 #arrangementModal,
 #agendaEntryModal,
@@ -5046,6 +5047,36 @@ select:focus {
     max-width: 700px;
     max-height: calc(100vh - 40px);
     overflow-y: auto;
+}
+
+.arrangement-entry-detail-content { max-width: 660px; padding: 30px 28px 26px; gap: 0; }
+.arrangement-entry-detail { display: grid; gap: 15px; }
+.arrangement-entry-detail-topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-right: 26px; color: #64777a; font-size: .82rem; }
+.arrangement-entry-detail-kind { display: inline-flex; align-items: center; min-height: 25px; box-sizing: border-box; padding: 4px 10px; border-radius: 4px; font-size: .72rem; font-weight: 800; }
+.arrangement-entry-detail-kind--activity { background: #e5f2e8; color: #256339; }
+.arrangement-entry-detail-kind--meal { background: #fff0d9; color: #884b08; }
+.arrangement-entry-detail-kind--program { background: #e1f1f4; color: #14566a; }
+.arrangement-entry-detail-content h3 { margin: 0 0 7px; color: #24434a; font-size: .95rem; }
+.arrangement-entry-detail-content p { margin: 0; color: #34484c; line-height: 1.55; }
+.arrangement-entry-detail-text { white-space: pre-line; }
+.arrangement-entry-detail-content ul { display: grid; gap: 7px; margin: 0; padding-left: 20px; color: #34484c; }
+.arrangement-entry-detail-recipe { padding: 0; border: 0; background: none; color: #0b6b88; font: inherit; text-align: left; text-decoration: underline; cursor: pointer; }
+.arrangement-entry-detail h2 { margin: 0; color: #163b46; font-size: 1.55rem; line-height: 1.2; overflow-wrap: anywhere; }
+.arrangement-entry-detail-meta { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; }
+.arrangement-entry-detail-meta-item { display: grid; flex: 1 1 130px; gap: 4px; min-width: 0; padding: 10px 12px; border: 1px solid #dce5e3; border-radius: 5px; background: #f5f8f6; }
+.arrangement-entry-detail-meta-item span { color: #697a7c; font-size: .7rem; font-weight: 700; text-transform: uppercase; }
+.arrangement-entry-detail-meta-item strong { color: #23434a; font-size: .92rem; overflow-wrap: anywhere; }
+.arrangement-entry-detail-audience { align-self: center; padding: 5px 8px; border: 1px solid #aebabe; border-radius: 4px; color: #44575c; font-size: .75rem; font-weight: 700; }
+.arrangement-entry-detail-departments { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.arrangement-entry-detail-department { display: inline-flex; align-items: center; min-height: 25px; box-sizing: border-box; padding: 4px 9px; border-radius: 3px; background: var(--department-color); color: var(--department-text); font-size: .75rem; font-weight: 700; }
+.arrangement-entry-detail-department--shared { background: #e8eeef; color: #43585d; }
+.arrangement-entry-detail-content { display: grid; gap: 13px; padding-top: 15px; border-top: 1px solid #e1e8e6; }
+.arrangement-entry-detail-notes { display: grid; gap: 4px; padding: 11px 13px; border-left: 3px solid #77a895; background: #f2f7f4; }
+@media (max-width: 520px) {
+    .arrangement-entry-detail-content { padding: 28px 16px 18px; }
+    .arrangement-entry-detail { gap: 12px; }
+    .arrangement-entry-detail h2 { font-size: 1.3rem; }
+    .arrangement-entry-detail-meta-item { flex-basis: 100px; }
 }
 
 .modal-content h2 { margin: 0; font-size: 1.2rem; color: #003660; }

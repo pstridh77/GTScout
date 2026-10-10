@@ -5,6 +5,7 @@ const arrangementForm = document.getElementById("arrangementForm");
 const agendaEntryModal = document.getElementById("agendaEntryModal");
 const agendaEntryForm = document.getElementById("agendaEntryForm");
 const agendaEntryDialogFields = document.getElementById("agendaEntryDialogFields");
+const agendaEntryDetailModal = document.getElementById("agendaEntryDetailModal");
 const responsibilityModal = document.getElementById("responsibilityModal");
 const responsibilityForm = document.getElementById("responsibilityForm");
 const arrangementNotesModal = document.getElementById("arrangementNotesModal");
@@ -32,6 +33,9 @@ let activeAgendaEntryId = "";
 let activeAgendaEntryIsCopy = false;
 let activeAgendaEntryIsNew = false;
 let agendaEntryDialogTrigger = null;
+let agendaEntryDetailTrigger = null;
+let agendaEntryDetailItem = null;
+let agendaEntryDetailEntry = null;
 let activeResponsibilityArrangementId = "";
 let activeResponsibilityId = "";
 let responsibilityDialogTrigger = null;
@@ -406,7 +410,9 @@ function renderArrangementParticipants(item, canEdit) {
 }
 
 function closeMealRecipeDialog() {
-    document.getElementById("mealRecipeModal").classList.add("hidden");
+    const modal = document.getElementById("mealRecipeModal");
+    modal.classList.add("hidden");
+    modal.classList.remove("meal-recipe-modal--above-detail");
     document.getElementById("mealRecipeFrame").src = "about:blank";
     mealRecipeInertState.forEach((inert, element) => { element.inert = inert; });
     mealRecipeInertState.clear();
@@ -419,7 +425,10 @@ document.getElementById("mealRecipeModal").addEventListener("click", event => {
     if (event.target.id === "mealRecipeModal") closeMealRecipeDialog();
 });
 document.addEventListener("keydown", event => {
-    if (event.key === "Escape" && !document.getElementById("mealRecipeModal").classList.contains("hidden")) closeMealRecipeDialog();
+    if (event.key !== "Escape" || document.getElementById("mealRecipeModal").classList.contains("hidden")) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    closeMealRecipeDialog();
 });
 window.addEventListener("message", event => {
     if (event.source !== document.getElementById("mealRecipeFrame").contentWindow) return;
@@ -619,7 +628,7 @@ function renderArrangementScheduleOverview(item, selectedDepartments, canEditAge
                 : `department-tone-${departments.indexOf(targetDepartment)}`;
             const editAttributes = canEditAgenda
                 ? `data-edit-agenda="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}" aria-label="Redigera programpunkt: ${escapeArrangementHtml(entry.title)}"`
-                : "disabled aria-disabled=\"true\"";
+                : `data-view-agenda="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}" aria-label="Visa programpunkt: ${escapeArrangementHtml(entry.title)}" title="Visa programpunktsdetaljer"`;
             return `<button type="button" class="arrangement-overview-all-day-item ${tone}" ${editAttributes}><strong>${escapeArrangementHtml(entry.title)}</strong><span>${escapeArrangementHtml(targetLabel)}</span></button>`;
         }).join("");
         return { events, allDayEntries };
@@ -954,8 +963,48 @@ function renderScheduleEntry(entry, departmentIndex = null, arrangementId = "", 
         ? `<span class="arrangement-schedule-drag-handle" data-agenda-drag-handle title="Dra för att flytta starttiden" aria-hidden="true"></span><span class="arrangement-schedule-resize-handle" data-agenda-resize-handle title="Dra för att ändra längden" aria-hidden="true"></span>`
         : "";
     const actionLabel = entry.kind === "activity" ? "Redigera aktivitet" : entry.kind === "meal" ? "Redigera måltid" : "Redigera programpunkt";
-    const editAttributes = canEdit ? `data-edit-agenda="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(arrangementId)}" aria-label="${actionLabel}: ${escapeArrangementHtml(entry.title)}" title="Klicka för att redigera. Dra i greppet för att flytta starttiden och i nederkanten för att ändra längden."` : "disabled aria-disabled=\"true\"";
-    return `<button type="button" class="arrangement-schedule-item ${tone}${leadersOnly ? " arrangement-schedule-item--leaders-only" : ""}" ${editAttributes}><span class="arrangement-schedule-heading"><strong>${title}</strong>${audienceLabel}</span>${responsible}${notes}${gestureHandles}</button>`;
+    const actionAttributes = canEdit
+        ? `data-edit-agenda="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(arrangementId)}" aria-label="${actionLabel}: ${escapeArrangementHtml(entry.title)}" title="Klicka för att redigera. Dra i greppet för att flytta starttiden och i nederkanten för att ändra längden."`
+        : `data-view-agenda="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(arrangementId)}" aria-label="Visa programpunkt: ${escapeArrangementHtml(entry.title)}" title="Visa programpunktsdetaljer"`;
+    return `<button type="button" class="arrangement-schedule-item ${tone}${leadersOnly ? " arrangement-schedule-item--leaders-only" : ""}" ${actionAttributes}><span class="arrangement-schedule-heading"><strong>${title}</strong>${audienceLabel}</span>${responsible}${notes}${gestureHandles}</button>`;
+}
+
+function showReadonlyAgendaEntryDetail(item, entry, trigger) {
+    const activity = activities.find(candidate => String(candidate.id) === String(entry.source_id));
+    const mealRecipeIds = entry.kind === "meal" ? [...new Set(getMealRecipeIds(entry))] : [];
+    const mealLabel = entry.meal_type || entry.title || "Måltid";
+    const start = entry.time || "Heldag";
+    const time = entry.end_time && entry.end_time > entry.time ? `${start}–${entry.end_time}` : start;
+    const activityDetails = entry.kind === "activity"
+        ? activity
+            ? `${activity.kategori ? `<p><strong>Kategori:</strong> ${escapeArrangementHtml(activity.kategori)}</p>` : ""}${activity.beskrivning ? `<h3>Beskrivning</h3><p class="arrangement-entry-detail-text">${escapeArrangementHtml(activity.beskrivning)}</p>` : ""}${activity.tid ? `<p><strong>Tidsåtgång:</strong> ${escapeArrangementHtml(activity.tid)}</p>` : ""}${activity.material?.length ? `<h3>Material</h3><ul>${activity.material.map(material => `<li>${escapeArrangementHtml(material)}</li>`).join("")}</ul>` : ""}${activity.genomforande ? `<h3>Genomförande</h3><p class="arrangement-entry-detail-text">${escapeArrangementHtml(activity.genomforande)}</p>` : ""}`
+            : '<p>Aktiviteten finns inte längre i aktivitetsbiblioteket.</p>'
+        : "";
+    const mealDetails = entry.kind === "meal"
+        ? `${mealRecipeIds.length ? `<h3>Recept</h3><ul>${mealRecipeIds.map(id => {
+            const recipe = recipes.find(candidate => String(candidate.id) === id);
+            return recipe
+                ? `<li><button type="button" class="arrangement-entry-detail-recipe" data-agenda-detail-recipe="${escapeArrangementHtml(id)}">${escapeArrangementHtml(recipe.namn)}</button></li>`
+                : `<li>${escapeArrangementHtml(id)} (receptet finns inte längre i biblioteket)</li>`;
+        }).join("")}</ul>` : "<p>Inget recept är kopplat till måltiden.</p>"}`
+        : "";
+    const title = entry.kind === "activity" ? activity?.namn || entry.title || "Aktivitet" : entry.title || mealLabel;
+    const kindLabel = entry.kind === "meal" ? "Måltid" : entry.kind === "activity" ? "Aktivitet" : "Programpunkt";
+    const kindClass = entry.kind === "meal" ? "meal" : entry.kind === "activity" ? "activity" : "program";
+    const selectedDepartments = item.departments?.length ? item.departments : departments;
+    const entryDepartments = entry.shared !== false
+        ? selectedDepartments.filter(department => !(entry.excluded_departments || []).includes(department))
+        : selectedDepartments.filter(department => (entry.departments || []).includes(department));
+    const departmentTags = entryDepartments.length
+        ? entryDepartments.map(department => `<span class="arrangement-entry-detail-department department-tone-${departments.indexOf(department)}">${escapeArrangementHtml(department)}</span>`).join("")
+        : `<span class="arrangement-entry-detail-department arrangement-entry-detail-department--shared">${entry.shared !== false ? "Gemensamt" : "Ingen avdelning vald"}</span>`;
+    const additionalDetails = entry.kind === "activity" ? activityDetails : mealDetails || (!entry.notes ? "<p>Inga ytterligare detaljer angivna.</p>" : "");
+    document.getElementById("agendaEntryDetailBody").innerHTML = `<div class="arrangement-entry-detail"><div class="arrangement-entry-detail-topline"><span class="arrangement-entry-detail-kind arrangement-entry-detail-kind--${kindClass}">${escapeArrangementHtml(kindLabel)}</span><time datetime="${escapeArrangementHtml(entry.date)}">${escapeArrangementHtml(formatArrangementDate(entry.date))}</time></div><h2 id="agendaEntryDetailTitle">${escapeArrangementHtml(title)}</h2><div class="arrangement-entry-detail-meta"><div class="arrangement-entry-detail-meta-item"><span>Tid</span><strong>${escapeArrangementHtml(time)}</strong></div>${entry.responsible ? `<div class="arrangement-entry-detail-meta-item"><span>Ansvarig</span><strong>${escapeArrangementHtml(entry.responsible)}</strong></div>` : ""}${entry.leaders_only ? '<span class="arrangement-entry-detail-audience">Endast ledare</span>' : ""}</div><div class="arrangement-entry-detail-departments" aria-label="Berörda avdelningar">${departmentTags}</div><div class="arrangement-entry-detail-content">${additionalDetails}${entry.notes ? `<section class="arrangement-entry-detail-notes"><h3>Anteckningar</h3><p class="arrangement-entry-detail-text">${escapeArrangementHtml(entry.notes)}</p></section>` : ""}</div></div>`;
+    agendaEntryDetailItem = item;
+    agendaEntryDetailEntry = entry;
+    agendaEntryDetailTrigger = trigger;
+    agendaEntryDetailModal.classList.remove("hidden");
+    document.getElementById("closeAgendaEntryDetail").focus();
 }
 
 function renderArrangements() {
@@ -1730,6 +1779,14 @@ arrangementsGrid.addEventListener("click", async event => {
         document.getElementById("closeMealRecipeModal").focus();
         return;
     }
+    const activityButton = event.target.closest("[data-view-agenda]");
+    if (activityButton) {
+        event.preventDefault();
+        const item = arrangements.find(arrangement => arrangement.id === activityButton.dataset.arrangementId);
+        const entry = item?.agenda.find(agendaEntry => agendaEntry.id === activityButton.dataset.viewAgenda);
+        if (item && entry && !isArrangementDetailEditable(item)) showReadonlyAgendaEntryDetail(item, entry, activityButton);
+        return;
+    }
     const scheduleOverviewButton = event.target.closest("[data-toggle-schedule-overview]");
     if (scheduleOverviewButton) {
         event.preventDefault();
@@ -2036,9 +2093,44 @@ document.getElementById("cancelAgendaEntryBtn").addEventListener("click", closeA
 agendaEntryModal.addEventListener("click", event => {
     if (event.target === agendaEntryModal) closeAgendaEntryDialog();
 });
+const closeAgendaEntryDetail = () => {
+    agendaEntryDetailModal.classList.add("hidden");
+    if (agendaEntryDetailTrigger?.isConnected) agendaEntryDetailTrigger.focus();
+    agendaEntryDetailTrigger = null;
+    agendaEntryDetailItem = null;
+    agendaEntryDetailEntry = null;
+};
+document.getElementById("closeAgendaEntryDetail").addEventListener("click", closeAgendaEntryDetail);
+agendaEntryDetailModal.addEventListener("click", event => {
+    if (event.target === agendaEntryDetailModal) closeAgendaEntryDetail();
+});
+document.getElementById("agendaEntryDetailBody").addEventListener("click", event => {
+    const recipeButton = event.target.closest("[data-agenda-detail-recipe]");
+    if (!recipeButton || !agendaEntryDetailItem || !agendaEntryDetailEntry) return;
+    const recipeId = recipeButton.dataset.agendaDetailRecipe;
+    const recipe = recipes.find(candidate => String(candidate.id) === recipeId);
+    if (!recipe) return;
+    const url = new URL(getArrangementRecipeUrl(agendaEntryDetailItem, recipeId, agendaEntryDetailEntry), window.location.href);
+    url.searchParams.set("embedded", "1");
+    mealRecipeDialogTrigger = recipeButton;
+    const frame = document.getElementById("mealRecipeFrame");
+    frame.title = recipe.namn;
+    frame.src = url.href;
+    const modal = document.getElementById("mealRecipeModal");
+    modal.classList.toggle("meal-recipe-modal--above-detail", !agendaEntryDetailModal.classList.contains("hidden"));
+    [...document.body.children].filter(element => element !== modal && element.tagName !== "SCRIPT").forEach(element => {
+        mealRecipeInertState.set(element, element.inert);
+        element.inert = true;
+    });
+    modal.classList.remove("hidden");
+    document.getElementById("closeMealRecipeModal").focus();
+});
 document.addEventListener("keydown", event => {
     if (event.key !== "Escape") return;
-    if (!arrangementNotesModal.classList.contains("hidden")) {
+    if (!agendaEntryDetailModal.classList.contains("hidden")) {
+        event.preventDefault();
+        closeAgendaEntryDetail();
+    } else if (!arrangementNotesModal.classList.contains("hidden")) {
         event.preventDefault();
         closeArrangementNotesDialog();
     } else if (!responsibilityModal.classList.contains("hidden")) {
