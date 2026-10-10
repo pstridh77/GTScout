@@ -2298,12 +2298,15 @@ async function saveAgendaEntryChanges(arrangement, agenda, completionMessage) {
     try {
         const result = await window.GTScoutArrangements.save({ ...arrangement, agenda });
         closeAgendaEntryDialog();
+        const errorDetails = result.error
+            ? [result.error.code, result.error.message].filter(Boolean).join(": ") || "Okänt databasfel"
+            : "";
         const storageFeedback = result.localOnly
-            ? result.error ? "Kunde inte synka, men ändringen finns sparad lokalt." : "Ändringen sparas bara i den här webbläsaren."
+            ? result.error ? `Kunde inte synka, men ändringen finns sparad lokalt. ${errorDetails}` : "Ändringen sparas bara i den här webbläsaren."
             : "Ändringen har sparats i databasen.";
         showArrangementToast(`${completionMessage} ${storageFeedback}`, result.error ? "error" : result.localOnly ? "info" : "success");
         arrangementSyncStatus.textContent = result.localOnly
-            ? result.error ? "Kunde inte nå databasen · ändringen finns lokalt" : "Sparas lokalt i den här webbläsaren"
+            ? result.error ? `Kunde inte synka · ändringen finns lokalt · ${errorDetails}` : "Sparas lokalt i den här webbläsaren"
             : "Sparat i databasen";
     } catch (error) {
         const message = error.message || "Kunde inte spara programpunkten.";
