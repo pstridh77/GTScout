@@ -515,6 +515,76 @@ function createBackend(session = leaderSession, profile = leaderProfile) {
     return { session, profile, callbacks: [], locked: false, requests: [], pending: null };
 }
 
+test("new agenda entries stay pending locally until the database confirms the save", async () => {
+    const backend = createBackend();
+    const page = createPage(backend);
+    await page.auth.init();
+    await page.runTimers();
+    page.load("arrangemang-sync.js");
+    const sync = page.window.GTScoutArrangements;
+    const response = deferred();
+    backend.pending = { table: "arrangemang", ...response };
+    const saving = sync.save({
+        id: "agenda-save", title: "Camp", start_date: "2026-10-09",
+        agenda: [{ id: "new-entry", date: "2026-10-09", title: "Opening" }]
+    });
+    assert.equal(JSON.parse(page.storage.get("gtscout_arrangemang"))[0].local_only, true);
+    response.resolve({ data: [] });
+    const result = await saving;
+    assert.equal(result.localOnly, false);
+    assert.equal(JSON.parse(page.storage.get("gtscout_arrangemang"))[0].local_only, false);
+    assert.equal(sync.getAll()[0].agenda[0].title, "Opening");
+});
+
+test("failed agenda writes preserve new entries and a subsequent update syncs them", async () => {
+    const backend = createBackend();
+    const page = createPage(backend);
+    await page.auth.init();
+    await page.runTimers();
+    page.load("arrangemang-sync.js");
+    const sync = page.window.GTScoutArrangements;
+    const error = { code: "42501", message: "Permission denied" };
+    backend.pending = { table: "arrangemang", promise: Promise.resolve({ error }) };
+    const first = await sync.save({
+        id: "failed-agenda", title: "Camp", start_date: "2026-10-09",
+        agenda: [{ id: "new-entry", date: "2026-10-09", title: "Opening" }]
+    });
+    assert.equal(first.localOnly, true);
+    assert.equal(first.error, error);
+    assert.equal(JSON.parse(page.storage.get("gtscout_arrangemang"))[0].agenda[0].title, "Opening");
+    backend.pending = null;
+    const updated = await sync.save(sync.getAll()[0]);
+    assert.equal(updated.localOnly, false);
+    assert.equal(sync.getAll()[0].local_only, false);
+    assert.equal(sync.getAll()[0].agenda[0].title, "Opening");
+});
+
+test("agenda save feedback includes the database error and preserves local fallback", async () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
+    const start = source.indexOf("async function saveAgendaEntryChanges(");
+    const end = source.indexOf('document.getElementById("responsibilityDialogRole")', start);
+    const saveButton = { disabled: false };
+    const status = { textContent: "" };
+    const syncStatus = { textContent: "" };
+    let toast;
+    const context = vm.createContext({
+        document: { getElementById: id => id === "saveAgendaEntryBtn" ? saveButton : status },
+        window: { GTScoutArrangements: { save: async () => ({
+            localOnly: true, error: { code: "42501", message: "Permission denied" }
+        }) } },
+        isArrangementDetailEditable: () => true,
+        closeAgendaEntryDialog() {},
+        showArrangementToast: (message, type) => { toast = { message, type }; },
+        arrangementSyncStatus: syncStatus
+    });
+    vm.runInContext(source.slice(start, end), context);
+    await context.saveAgendaEntryChanges({}, [], "Saved locally.");
+    assert.match(toast.message, /42501: Permission denied/);
+    assert.equal(toast.type, "error");
+    assert.match(syncStatus.textContent, /42501: Permission denied/);
+    assert.equal(saveButton.disabled, false);
+});
+
 test("local activities remain editable through the shared save API", async () => {
     const original = { id: "egen-local-test", namn: "Original", material: [], kar_id: null };
     const page = createPage(createBackend(null), new Map([["gtscout_custom_activities", JSON.stringify([original])]]));

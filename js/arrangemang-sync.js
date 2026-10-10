@@ -220,7 +220,7 @@
         const item = normalize({ ...input, updated_at: new Date().toISOString() });
         if (!item) throw new Error("Kontrollera titel och datumintervall.");
         item.created_by = item.created_by || auth()?.getUser?.()?.id || null;
-        item.local_only = !canWrite();
+        item.local_only = true;
         const index = arrangements.findIndex(existing => existing.id === item.id);
         if (index < 0) arrangements.push(item); else arrangements[index] = item;
         writeLocal();
