@@ -360,22 +360,6 @@ function updateParticipantInputTotals(container, selectedDepartments, inherited 
     container.querySelector("[data-participant-summary]").textContent = getParticipantSummary(selectedDepartments, participants);
 }
 
-function syncDraftParticipants() {
-    const current = readParticipantInputs(document.getElementById("arrangementParticipants"));
-    Object.assign(draftParticipants.departments, current.departments);
-    draftParticipants.officials = current.officials;
-}
-
-function renderParticipantEditor() {
-    document.getElementById("arrangementParticipants").innerHTML = renderParticipantTable(getSelectedArrangementDepartments(), draftParticipants, true);
-    renderParticipantDaysEditor(document.getElementById("arrangementParticipantDays"), getDraftParticipantArrangement(), draftParticipants, draftParticipantDays);
-}
-
-function getDraftParticipantArrangement() {
-    return { departments: getSelectedArrangementDepartments(), start_date: document.getElementById("arrangementStartDate").value,
-        end_date: document.getElementById("arrangementEndDate").value, participants: readParticipantInputs(document.getElementById("arrangementParticipants")) };
-}
-
 function readParticipantDays(container) {
     return Object.fromEntries([...container.querySelectorAll("[data-participant-date]")].map(row => [row.dataset.participantDate, readParticipantInputs(row)]));
 }
@@ -1058,17 +1042,23 @@ function renderArrangements() {
         if (editControl && actions) actions.prepend(editControl);
         const editUnlocked = arrangementDetailEditModes.has(card.dataset.arrangementId);
         const editArrangementButton = actions?.querySelector("[data-edit-arrangement]");
+        const summaryActions = document.createElement("div");
+        summaryActions.className = "arrangement-summary-actions";
+        const shareButton = actions?.querySelector("[data-share-arrangement]");
+        if (shareButton) summaryActions.append(shareButton.cloneNode(true));
+        if (editControl) summaryActions.append(editControl.cloneNode(true));
         if (editArrangementButton) {
             if (editUnlocked) {
                 editArrangementButton.className = "btn-secondary arrangement-edit-details-icon";
                 editArrangementButton.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/></svg>`;
                 editArrangementButton.setAttribute("aria-label", `Redigera arrangemangsdetaljer för ${card.querySelector(".arrangement-card-summary h2")?.textContent || "arrangemanget"}`);
                 editArrangementButton.title = "Redigera arrangemangsdetaljer";
-                card.querySelector(".arrangement-card-summary-title")?.append(editArrangementButton);
+                summaryActions.prepend(editArrangementButton);
             } else {
                 editArrangementButton.remove();
             }
         }
+        if (summaryActions.childElementCount) card.querySelector(".arrangement-card-summary-title")?.append(summaryActions);
     });
 
     arrangementsEmpty.classList.toggle("hidden", visible.length > 0);
@@ -1371,12 +1361,10 @@ async function openArrangementEditor(item = null, focusAgendaId = "", isCopy = f
     document.getElementById("arrangementLocalNotice").classList.toggle("hidden", window.GTScoutArrangements?.canWrite());
     renderDepartmentOptions(item?.departments?.length ? item.departments : departments);
     draftParticipantDays = JSON.parse(JSON.stringify(item?.participant_days || {}));
-    document.getElementById("arrangementParticipantDays").replaceChildren();
     draftParticipants = {
         departments: Object.fromEntries(Object.entries(item?.participants?.departments || {}).map(([department, counts]) => [department, { ...counts }])),
         officials: item?.participants?.officials ?? null
     };
-    renderParticipantEditor();
     populatePlanningOptions(item?.planning_ref?.id || "");
     draftResponsibilities = (item?.responsibilities || []).map(entry => {
         const roleDescription = entry.role_description || getRoleDefinition(entry.role)?.description || "";
@@ -1440,8 +1428,8 @@ function readFormPayload() {
         end_time: document.getElementById("arrangementEndTime").value,
         location: document.getElementById("arrangementLocation").value.trim(),
         departments: getSelectedArrangementDepartments(),
-        participants: readParticipantInputs(document.getElementById("arrangementParticipants")),
-        participant_days: readParticipantDays(document.getElementById("arrangementParticipantDays")),
+        participants: draftParticipants,
+        participant_days: draftParticipantDays,
         planning_ref: planning ? { id: planning.id, name: planning.name } : null,
         agenda: readAgendaFromDom(),
         responsibilities: readResponsibilitiesFromDom(),
@@ -2156,19 +2144,10 @@ document.getElementById("addAgendaEntryBtn").addEventListener("click", () => {
 });
 
 document.getElementById("arrangementDepartments").addEventListener("change", () => {
-    Object.assign(draftParticipantDays, readParticipantDays(document.getElementById("arrangementParticipantDays")));
-    syncDraftParticipants();
-    renderParticipantEditor();
     syncDraftAgenda();
     renderAgendaEditor();
 });
 
-document.getElementById("arrangementParticipants").addEventListener("input", () => {
-    updateParticipantInputTotals(document.getElementById("arrangementParticipants"), getSelectedArrangementDepartments());
-    Object.assign(draftParticipantDays, readParticipantDays(document.getElementById("arrangementParticipantDays")));
-    const item = getDraftParticipantArrangement();
-    renderParticipantDaysEditor(document.getElementById("arrangementParticipantDays"), item, item.participants, draftParticipantDays);
-});
 document.getElementById("participantsDialogFields").addEventListener("input", () => {
     const item = arrangements.find(arrangement => arrangement.id === activeParticipantsArrangementId);
     if (item) updateParticipantInputTotals(document.getElementById("participantsDialogFields"), item.departments);
@@ -2177,10 +2156,10 @@ document.getElementById("participantsDialogFields").addEventListener("input", ()
         renderParticipantDaysEditor(container, item, readParticipantInputs(document.getElementById("participantsDialogFields")), readParticipantDays(container));
     }
 });
-for (const id of ["arrangementParticipantDays", "participantsDialogDays"]) {
-    const container = document.getElementById(id);
-    const current = () => id === "arrangementParticipantDays" ? getDraftParticipantArrangement() : arrangements.find(item => item.id === activeParticipantsArrangementId);
-    const base = () => readParticipantInputs(document.getElementById(id === "arrangementParticipantDays" ? "arrangementParticipants" : "participantsDialogFields"));
+{
+    const container = document.getElementById("participantsDialogDays");
+    const current = () => arrangements.find(item => item.id === activeParticipantsArrangementId);
+    const base = () => readParticipantInputs(document.getElementById("participantsDialogFields"));
     container.addEventListener("input", event => {
         const row = event.target.closest("[data-participant-date]");
         if (row && current()) updateParticipantDay(row, current(), base());
@@ -2532,9 +2511,6 @@ document.getElementById("deleteAgendaEntryBtn").addEventListener("click", async 
 
 for (const fieldId of ["arrangementStartDate", "arrangementEndDate"]) {
     document.getElementById(fieldId).addEventListener("change", () => {
-    Object.assign(draftParticipantDays, readParticipantDays(document.getElementById("arrangementParticipantDays")));
-    const item = getDraftParticipantArrangement();
-    renderParticipantDaysEditor(document.getElementById("arrangementParticipantDays"), item, item.participants, draftParticipantDays);
         syncDraftAgenda();
         const startDate = document.getElementById("arrangementStartDate").value;
         const endDate = document.getElementById("arrangementEndDate").value || startDate;

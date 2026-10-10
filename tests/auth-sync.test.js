@@ -511,6 +511,37 @@ test("arrangement participant normalization keeps unknown counts distinct from z
     assert.equal(sync.getAll()[0].participants.officials, 0);
 });
 
+test("arrangement detail edits preserve participants without a duplicate participant editor", async () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
+    const html = fs.readFileSync(path.join(__dirname, "..", "arrangemang.html"), "utf8");
+    assert.doesNotMatch(html, /id="arrangementParticipants"|id="arrangementParticipantDays"/);
+    assert.match(html, /id="participantsModal"/);
+    assert.doesNotMatch(source, /"arrangementParticipants"|"arrangementParticipantDays"/);
+    const participants = { departments: { "Spårare": { scouts: 18, leaders: 4, parents: 0 } }, officials: 2 };
+    const participantDays = { "2026-10-09": { departments: { "Spårare": { scouts: 0, leaders: null, parents: null } }, officials: 0 } };
+    const fields = {
+        arrangementTitle: "Updated camp", arrangementStartDate: "2026-10-09",
+        arrangementEndDate: "2026-10-10", arrangementStatus: "planned"
+    };
+    const context = vm.createContext({
+        document: { getElementById: id => ({ value: fields[id] || "" }) },
+        arrangementForm: { dataset: { arrangementId: "detail-edit" } },
+        planningOptions: [], draftParticipants: participants, draftParticipantDays: participantDays,
+        getSelectedArrangementDepartments: () => ["Spårare"],
+        readAgendaFromDom: () => [], readResponsibilitiesFromDom: () => []
+    });
+    vm.runInContext(source.slice(source.indexOf("function readFormPayload("), source.indexOf("async function openResponsibilityDialog(")), context);
+    const payload = context.readFormPayload();
+    assert.deepEqual(payload.participants, participants);
+    assert.deepEqual(payload.participant_days, participantDays);
+    const page = createPage(createBackend(null));
+    page.load("arrangemang-sync.js");
+    await page.window.GTScoutArrangements.save(payload);
+    const stored = JSON.parse(page.storage.get("gtscout_arrangemang"))[0];
+    assert.deepEqual(stored.participants, participants);
+    assert.deepEqual(stored.participant_days, participantDays);
+});
+
 function createBackend(session = leaderSession, profile = leaderProfile) {
     return { session, profile, callbacks: [], locked: false, requests: [], pending: null };
 }

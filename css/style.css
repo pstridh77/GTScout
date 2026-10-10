@@ -144,6 +144,9 @@ body {
 .arrangement-card-location span { overflow-wrap: anywhere; }
 .arrangement-card-summary .arrangement-participant-tags { grid-area: tags; justify-content: flex-end; margin: 0; }
 .arrangement-card-details { padding: 0 18px 18px; border-top: 1px solid #e2e8e8; }
+.arrangement-summary-actions { display: flex; align-items: center; align-self: center; gap: 8px; margin-left: auto; }
+.arrangement-summary-actions .share-arrangement-btn { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 36px; width: 36px; height: 36px; padding: 0; }
+.arrangement-summary-actions .arrangement-edit-details-icon { margin-left: 0; }
 .btn-secondary.arrangement-edit-details-icon { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 1px solid #d7e1eb; border-radius: 5px; background: #fff; color: #286d60; cursor: pointer; }
 .btn-secondary.arrangement-edit-details-icon { align-self: center; flex: 0 0 36px; margin-left: auto; }
 .btn-secondary.arrangement-edit-details-icon svg { flex: 0 0 20px; width: 20px; height: 20px; }
