@@ -127,6 +127,9 @@ body {
 .arrangement-year-summary:focus-visible, .recipe-meal-summary:focus-visible { outline: 2px solid #b8d5ec; outline-offset: -3px; }
 .arrangement-year-cards { display: grid; gap: 14px; padding-top: 8px; }
 .arrangement-card { min-width: 0; padding: 0; border: 1px solid #d1dbdc; border-top: 3px solid #4d8275; border-radius: 6px; background: #fff; }
+.arrangement-card--planned { border-top-color: #0876a8; }
+.arrangement-card--completed { border-top-color: #2f7a4b; }
+.arrangement-card--cancelled { border-top-color: #a34b3e; }
 .arrangement-card > .arrangement-card-summary { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, auto) minmax(0, auto); grid-template-rows: auto auto auto; grid-template-areas: "title location tags" "dates location tags" "description location tags"; align-items: center; column-gap: 28px; row-gap: 4px; min-height: 72px; padding: 13px 48px 13px 16px; cursor: pointer; list-style: none; }
 .arrangement-card > .arrangement-card-summary::-webkit-details-marker { display: none; }
 .arrangement-card > .arrangement-card-summary::after { position: absolute; top: 50%; right: 18px; width: 8px; height: 8px; border-right: 2px solid #286d60; border-bottom: 2px solid #286d60; content: ""; transform: translateY(-70%) rotate(45deg); transition: transform .15s ease; }
@@ -161,10 +164,11 @@ body {
 .arrangement-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .arrangement-card-type { margin: 0 0 6px; color: #a25235; font-size: .73rem; font-weight: 700; text-transform: uppercase; }
 .arrangement-card h2 { margin: 0; color: #153c4a; font-size: 1.22rem; overflow-wrap: anywhere; }
-.arrangement-status { flex: 0 0 auto; padding: 4px 7px; border-radius: 4px; background: #eef1f1; color: #52636a; font-size: .7rem; font-weight: 700; }
-.arrangement-status--planned { background: #e7f1ed; color: #24624e; }
-.arrangement-status--completed { background: #e5eef2; color: #315b6b; }
-.arrangement-status--cancelled { background: #f8eae5; color: #8e4634; }
+.arrangement-status { display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto; padding: 4px 8px; border: 1px solid transparent; border-radius: 4px; background: #eef1f1; color: #52636a; font-size: .72rem; font-weight: 750; line-height: 1; }
+.arrangement-status svg { width: 15px; height: 15px; flex: 0 0 15px; }
+.arrangement-status--planned { border-color: #9ac9dc; background: #e4f3f8; color: #075b7b; }
+.arrangement-status--completed { border-color: #9bc7a7; background: #e6f3e9; color: #246038; }
+.arrangement-status--cancelled { border-color: #ddb0a6; background: #f9eae7; color: #8e352a; }
 .arrangement-card-dates { margin: 14px 0 4px; color: #153c4a; font-weight: 700; }
 .arrangement-card-location, .arrangement-card-planning { margin: 5px 0; color: #52636a; font-size: .88rem; }
 .arrangement-card-agenda { display: grid; gap: 7px; margin: 15px 0 0; padding: 12px 0 0; border-top: 1px solid #e2e8e8; list-style: none; }
