@@ -255,6 +255,40 @@ body {
 .arrangement-checklist-empty { margin: 0; color: #65767b; font-size: .84rem; }
 .arrangement-checklist-add { display: flex; gap: 8px; max-width: 520px; }
 .arrangement-checklist-add input { min-width: 0; flex: 1; padding: 8px 10px; border: 1px solid #cbd7dc; border-radius: 4px; font: inherit; }
+.arrangement-equipment-content { display: grid; gap: 9px; margin-top: 8px; }
+.arrangement-equipment-content h4 { margin: 5px 0 0; color: #153c4a; font-size: .82rem; }
+.arrangement-equipment-material-groups { display: grid; gap: 7px; }
+.arrangement-equipment-group { min-width: 0; padding: 7px 10px; border-left: 3px solid #4d8275; background: #f7f9f8; }
+.arrangement-equipment-group--general { border-left-color: #003660; background: #f3f7fb; }
+.arrangement-equipment-group--general > h5 { color: #003660; }
+.arrangement-equipment-group--department { border-left-color: var(--department-color, #4d8275); }
+.arrangement-equipment-group--agenda { border-left-color: #0876a8; }
+.arrangement-equipment-group > h5 { display: flex; align-items: baseline; gap: 8px; min-width: 0; margin: 0 0 4px; color: #153c4a; font-size: .8rem; overflow-wrap: anywhere; }
+.arrangement-equipment-group > h5 > span { margin-left: auto; color: #65767b; font-size: .7rem; font-weight: 500; }
+.arrangement-equipment-list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.arrangement-equipment-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; padding: 7px 2px; border-bottom: 1px solid #e2e8e8; }
+.arrangement-equipment-row:last-child { border-bottom: 0; }
+.arrangement-equipment-row > span { display: grid; min-width: 0; gap: 2px; overflow-wrap: anywhere; }
+.arrangement-equipment-row strong { color: #263c42; font-size: .82rem; font-weight: 600; }
+.arrangement-equipment-row small { color: #65767b; font-size: .72rem; }
+.arrangement-equipment-row--source { border-left: 2px solid #789a77; }
+.arrangement-equipment-remove { flex: 0 0 28px; width: 28px; height: 28px; border: 0; background: transparent; color: #8e4634; font-size: 1.1rem; cursor: pointer; }
+.arrangement-equipment-empty { margin: 0; color: #65767b; font-size: .82rem; }
+.arrangement-equipment-entry { display: grid; gap: 7px; padding-top: 8px; border-top: 1px solid #e2e8e8; }
+.arrangement-equipment-entry > h5 { margin: 0; color: #153c4a; font-size: .8rem; }
+.arrangement-equipment-add { display: grid; grid-template-columns: minmax(180px, 2fr) minmax(130px, 1fr) minmax(145px, 1fr) auto; align-items: end; gap: 8px; }
+.arrangement-equipment-add label { display: grid; gap: 4px; min-width: 0; color: #52636a; font-size: .72rem; font-weight: 600; }
+.arrangement-equipment-add input, .arrangement-equipment-add select { box-sizing: border-box; width: 100%; min-width: 0; min-height: 36px; padding: 7px 8px; border: 1px solid #c8d5d8; border-radius: 4px; background: #fff; color: #153c4a; font: inherit; font-size: .8rem; }
+.arrangement-equipment-add button { min-height: 36px; padding: 6px 10px; }
+.arrangement-equipment-add [data-equipment-status] { grid-column: 1 / -1; margin: 0; }
+.arrangement-equipment-department { display: grid; grid-template-columns: minmax(100px, .5fr) minmax(0, 2fr); align-items: center; gap: 10px; padding: 7px 6px; border-top: 1px solid #e2e8e8; }
+.arrangement-equipment-department > strong { color: #263c42; font-size: .8rem; }
+.arrangement-equipment-tent-options { display: flex; flex-wrap: wrap; gap: 6px 12px; }
+.arrangement-equipment-tent-options label { display: inline-flex; align-items: center; gap: 5px; color: #354b51; font-size: .78rem; cursor: pointer; }
+.arrangement-equipment-tent-options input { width: 15px; height: 15px; margin: 0; accent-color: #286d60; }
+.arrangement-equipment-tent { color: #354b51; font-size: .78rem; }
+.arrangement-equipment[open] > .arrangement-section-summary::before { transform: rotate(45deg); }
+@media (max-width: 760px) { .arrangement-equipment-add { grid-template-columns: repeat(2, minmax(0, 1fr)); } .arrangement-equipment-add label:first-child, .arrangement-equipment-add [data-equipment-status] { grid-column: 1 / -1; } .arrangement-equipment-department { grid-template-columns: minmax(90px, .65fr) minmax(0, 1.5fr); } }
 #arrangementNotesModal { z-index: 3100; }
 .arrangement-notes-dialog-content { box-sizing: border-box; max-height: calc(100vh - 24px); overflow-y: auto; }
 .arrangement-notes-dialog-content .modal-field textarea { min-height: 160px; resize: vertical; }

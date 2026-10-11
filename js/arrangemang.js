@@ -56,13 +56,16 @@ const arrangementScheduleOverview = new Set();
 const collapsedArrangementNotes = new Set();
 const collapsedArrangementMeals = new Set();
 const collapsedArrangementChecklist = new Set();
+const collapsedArrangementEquipment = new Set();
 const expandedArrangementIds = new Set();
 const collapsedArrangementYears = new Set();
 const arrangementDetailEditModes = new Set();
 const collapseAllArrangementButtons = document.querySelectorAll('[data-collapse-all="arrangements"]');
 let draftResponsibilities = [];
+let draftEquipment = { items: [], tents_by_department: {} };
 let planningOptions = [];
 const departments = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover", "Ledare"];
+const tentTypes = ["3-manna", "4-manna", "Y-Tält", "Militärtält"];
 const scheduleSnapMinutes = 15;
 const scheduleMaxMinutes = 23 * 60 + 45;
 let defaultRoleDefinitions = [];
@@ -239,6 +242,103 @@ function renderArrangementChecklist(checklist, arrangementId, editable) {
         ? `<form class="arrangement-checklist-add" data-add-checklist-form="${escapeArrangementHtml(arrangementId)}"><input type="text" maxlength="160" placeholder="Ny uppgift" data-checklist-new-task="${escapeArrangementHtml(arrangementId)}" aria-label="Ny uppgift"><button class="btn-secondary" type="submit">Lägg till</button></form>`
         : "";
     return `<details class="arrangement-checklist-overview" data-arrangement-id="${escapeArrangementHtml(arrangementId)}"${isOpen ? " open" : ""}><summary class="arrangement-section-summary"><strong>Att göra</strong><span>${visibleTasks.length}</span></summary><div class="arrangement-checklist-content">${rows}${addControl}</div></details>`;
+}
+
+function getEquipmentActivityMaterials(item) {
+    return item.agenda.flatMap(entry => {
+        if (entry.kind !== "activity" || entry.source_type !== "activity") return [];
+        const activity = activities.find(candidate => String(candidate.id) === String(entry.source_id));
+        if (!Array.isArray(activity?.material)) return [];
+        const targetDepartments = entry.shared !== false
+            ? item.departments.filter(department => !(entry.excluded_departments || []).includes(department))
+            : item.departments.filter(department => (entry.departments || []).includes(department));
+        return activity.material.map((name, materialIndex) => ({
+            name: String(name || "").trim(),
+            activityName: activity.namn || entry.title,
+            agendaId: entry.id,
+            materialIndex,
+            agendaName: entry.title,
+            targetDepartments
+        })).filter(material => material.name);
+    });
+}
+
+function renderArrangementEquipment(item, editable) {
+    const equipment = item.equipment || { items: [], tents_by_department: {} };
+    const materials = equipment.items || [];
+    const excludedActivityMaterials = equipment.excluded_activity_materials || [];
+    const activityMaterials = getEquipmentActivityMaterials(item).filter(material =>
+        !excludedActivityMaterials.some(excluded => excluded.agenda_id === material.agendaId && excluded.index === material.materialIndex)
+    );
+    const tents = equipment.tents_by_department || {};
+    const hasTents = Object.values(tents).some(values => values.length);
+    if (!editable && !materials.length && !activityMaterials.length && !hasTents) return "";
+    const renderRemoveButton = (attributes, label) => editable
+        ? `<button type="button" class="arrangement-equipment-remove" ${attributes} aria-label="Ta bort ${escapeArrangementHtml(label)}" title="Ta bort material">&times;</button>`
+        : "";
+    const compareMaterialNames = (left, right) => left.name.localeCompare(right.name, "sv");
+    const renderManualMaterialRow = (entry, source = "") =>
+        `<li class="arrangement-equipment-row"><span><strong>${escapeArrangementHtml(entry.name)}</strong>${source ? `<small>${escapeArrangementHtml(source)}</small>` : ""}</span>${renderRemoveButton(`data-remove-equipment="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}"`, entry.name)}</li>`;
+    const renderActivityMaterialRow = entry => {
+        const targets = entry.targetDepartments.length ? ` · ${entry.targetDepartments.join(", ")}` : "";
+        const source = `Från ${entry.agendaName} · ${entry.activityName}${targets}`;
+        const removeAttributes = `data-remove-activity-material="${entry.materialIndex}" data-agenda-id="${escapeArrangementHtml(entry.agendaId)}" data-arrangement-id="${escapeArrangementHtml(item.id)}"`;
+        return `<li class="arrangement-equipment-row arrangement-equipment-row--source"><span><strong>${escapeArrangementHtml(entry.name)}</strong><small>${escapeArrangementHtml(source)}</small></span>${renderRemoveButton(removeAttributes, entry.name)}</li>`;
+    };
+    const renderMaterialGroup = (title, rows, groupClass = "") => rows.length
+        ? `<section class="arrangement-equipment-group ${groupClass}"><h5><strong>${escapeArrangementHtml(title)}</strong><span>${rows.length}</span></h5><ul class="arrangement-equipment-list">${rows.join("")}</ul></section>`
+        : "";
+    const generalMaterials = materials.filter(entry => entry.scope === "general").sort(compareMaterialNames);
+    const departmentGroups = item.departments.map(department => renderMaterialGroup(
+        department,
+        materials.filter(entry => entry.scope === "department" && entry.department === department).sort(compareMaterialNames).map(entry => renderManualMaterialRow(entry)),
+        `arrangement-equipment-group--department department-tone-${departments.indexOf(department)}`
+    )).filter(Boolean);
+    const programMaterials = materials.filter(entry => entry.scope === "agenda").map(entry => ({
+        name: entry.name,
+        markup: renderManualMaterialRow(entry, item.agenda.find(point => point.id === entry.agenda_id)?.title || "Programpunkt")
+    }));
+    const programActivityMaterials = activityMaterials.map(entry => ({ name: entry.name, markup: renderActivityMaterialRow(entry) }));
+    const programRows = [...programMaterials, ...programActivityMaterials]
+        .sort((left, right) => compareMaterialNames(left, right))
+        .map(entry => entry.markup);
+    const materialGroups = [
+        renderMaterialGroup("Allmänt", generalMaterials.map(entry => renderManualMaterialRow(entry)), "arrangement-equipment-group--general"),
+        ...departmentGroups,
+        renderMaterialGroup("Programpunkter och aktiviteter", programRows, "arrangement-equipment-group--agenda")
+    ].filter(Boolean);
+    const materialList = materialGroups.length
+        ? `<div class="arrangement-equipment-material-groups">${materialGroups.join("")}</div>`
+        : `<p class="arrangement-equipment-empty">Inget material tillagt.</p>`;
+    const tentSections = item.departments.map(department => {
+        const selected = new Set(tents[department] || []);
+        const choices = tentTypes.map(type => editable
+            ? `<label><input type="checkbox" data-equipment-tent data-department="${escapeArrangementHtml(department)}" value="${escapeArrangementHtml(type)}"${selected.has(type) ? " checked" : ""}><span>${escapeArrangementHtml(type)}</span></label>`
+            : selected.has(type) ? `<span class="arrangement-equipment-tent">${escapeArrangementHtml(type)}</span>` : "").join("");
+        return editable || selected.size
+            ? `<div class="arrangement-equipment-department"><strong>${escapeArrangementHtml(department)}</strong><div class="arrangement-equipment-tent-options">${choices || "<span>Inga tält valda</span>"}</div></div>`
+            : "";
+    }).join("");
+    const agendaOptions = item.agenda.map(entry => `<option value="${escapeArrangementHtml(entry.id)}">${escapeArrangementHtml(`${formatArrangementDate(entry.date, false)} · ${entry.title}`)}</option>`).join("");
+    const editor = editable ? `<form class="arrangement-equipment-add" data-add-equipment="${escapeArrangementHtml(item.id)}"><label><span>Material</span><input type="text" name="name" maxlength="120" required placeholder="Till exempel stormkök"></label><label><span>Gäller</span><select name="scope"><option value="general">Allmänt</option><option value="department">Avdelning</option><option value="agenda">Programpunkt</option></select></label><label class="hidden" data-equipment-department-field><span>Avdelning</span><select name="department">${item.departments.map(department => `<option value="${escapeArrangementHtml(department)}">${escapeArrangementHtml(department)}</option>`).join("")}</select></label><label class="hidden" data-equipment-agenda-field><span>Programpunkt</span><select name="agenda_id">${agendaOptions}</select></label><button class="btn-secondary" type="submit">Lägg till</button><p class="detail-planning-status" data-equipment-status role="status" aria-live="polite"></p></form>` : "";
+    const selectedTentCount = Object.values(tents).reduce((count, values) => count + values.length, 0);
+    const materialCount = materials.length + activityMaterials.length;
+    const countLabel = `${materialCount} material${selectedTentCount ? ` · ${selectedTentCount} tältval` : ""}`;
+    const isOpen = !collapsedArrangementEquipment.has(item.id);
+    return `<details class="arrangement-equipment" data-arrangement-id="${escapeArrangementHtml(item.id)}"${isOpen ? " open" : ""}><summary class="arrangement-section-summary"><strong>Utrustning och material</strong><span>${editable && !materialCount && !selectedTentCount ? "Lägg till" : countLabel}</span></summary><div class="arrangement-equipment-content"><h4>Material</h4>${materialList}${editor ? `<div class="arrangement-equipment-entry"><h5>Lägg till material</h5>${editor}</div>` : ""}<h4>Tält per avdelning</h4>${tentSections || `<p class="arrangement-equipment-empty">Välj tält för att tilldela dem till avdelningarna.</p>`}</div></details>`;
+}
+
+function cloneArrangementEquipment(equipment = {}) {
+    return {
+        items: (equipment.items || []).map(entry => ({ ...entry })),
+        tents_by_department: Object.fromEntries(Object.entries(equipment.tents_by_department || {}).map(([department, tents]) => [department, [...tents]])),
+        excluded_activity_materials: (equipment.excluded_activity_materials || []).map(entry => ({ ...entry }))
+    };
+}
+
+async function saveArrangementEquipment(arrangement, equipment) {
+    const result = await window.GTScoutArrangements.save({ ...arrangement, equipment });
+    showArrangementToast(result.error ? "Utrustningen sparades lokalt men kunde inte synkas." : result.localOnly ? "Utrustningen sparades lokalt." : "Utrustningen har sparats.", result.error ? "error" : result.localOnly ? "info" : "success");
 }
 
 async function saveArrangementChecklist(arrangement, checklist) {
@@ -1075,8 +1175,9 @@ function renderArrangements() {
             ? `<details class="arrangement-detail-notes" data-arrangement-id="${escapeArrangementHtml(item.id)}"${notesOpen ? " open" : ""}><summary><h3>Anteckningar</h3></summary>${notesContent}</details>`
             : "";
         const checklistHtml = renderArrangementChecklist(checklist, item.id, canEditDetails);
+        const equipmentHtml = renderArrangementEquipment(item, canEditDetails);
         const timeRange = [item.start_time, item.end_time].filter(Boolean).join("–");
-        return `<details class="arrangement-card arrangement-card--${escapeArrangementHtml(item.status)}${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${statusIcon}${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}${participantSummary}</div></summary><div class="arrangement-card-details">${detailEditControl}${link}<div class="arrangement-card-sections">${participantsHtml}${notesHtml}${checklistHtml}${mealSummaryHtml}${responsibilityHtml}${agendaHtml}</div>${actions}</div></details>`;
+        return `<details class="arrangement-card arrangement-card--${escapeArrangementHtml(item.status)}${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${statusIcon}${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}${participantSummary}</div></summary><div class="arrangement-card-details">${detailEditControl}${link}<div class="arrangement-card-sections">${participantsHtml}${notesHtml}${checklistHtml}${equipmentHtml}${mealSummaryHtml}${responsibilityHtml}${agendaHtml}</div>${actions}</div></details>`;
     });
     const cardsByYear = new Map();
     orderedVisible.forEach((item, index) => {
@@ -1425,7 +1526,24 @@ async function openArrangementEditor(item = null, focusAgendaId = "", isCopy = f
         return { ...entry, id: isCopy ? crypto.randomUUID() : entry.id, role_description: roleDescription, description: entry.description || roleDescription };
     });
     renderResponsibilityList();
-    draftAgenda = (item?.agenda || []).map(entry => ({ ...entry, id: isCopy ? crypto.randomUUID() : entry.id }));
+    const copiedAgendaIds = new Map();
+    draftAgenda = (item?.agenda || []).map(entry => {
+        const id = isCopy ? crypto.randomUUID() : entry.id;
+        copiedAgendaIds.set(entry.id, id);
+        return { ...entry, id };
+    });
+    draftEquipment = {
+        items: (item?.equipment?.items || []).map(entry => ({
+            ...entry,
+            id: isCopy ? crypto.randomUUID() : entry.id,
+            agenda_id: isCopy ? copiedAgendaIds.get(entry.agenda_id) || "" : entry.agenda_id
+        })).filter(entry => entry.scope !== "agenda" || entry.agenda_id),
+        tents_by_department: Object.fromEntries(Object.entries(item?.equipment?.tents_by_department || {}).map(([department, tents]) => [department, [...tents]])),
+        excluded_activity_materials: (item?.equipment?.excluded_activity_materials || []).map(entry => ({
+            ...entry,
+            agenda_id: isCopy ? copiedAgendaIds.get(entry.agenda_id) || "" : entry.agenda_id
+        })).filter(entry => entry.agenda_id)
+    };
     renderAgendaEditor();
     arrangementModal.classList.remove("hidden");
     if (focusAgendaId) {
@@ -1487,6 +1605,7 @@ function readFormPayload() {
         planning_ref: planning ? { id: planning.id, name: planning.name } : null,
         agenda: readAgendaFromDom(),
         responsibilities: readResponsibilitiesFromDom(),
+        equipment: draftEquipment,
         experience: document.getElementById("arrangementExperience").value.trim()
     };
 }
@@ -1578,6 +1697,11 @@ arrangementsGrid.addEventListener("toggle", event => {
         else collapsedArrangementChecklist.add(day.dataset.arrangementId);
         return;
     }
+    if (day.matches?.("details.arrangement-equipment[data-arrangement-id]")) {
+        if (day.open) collapsedArrangementEquipment.delete(day.dataset.arrangementId);
+        else collapsedArrangementEquipment.add(day.dataset.arrangementId);
+        return;
+    }
     if (day.matches?.("details.arrangement-meal-summary[data-arrangement-id]")) {
         if (day.open) collapsedArrangementMeals.delete(day.dataset.arrangementId);
         else collapsedArrangementMeals.add(day.dataset.arrangementId);
@@ -1616,6 +1740,89 @@ arrangementsGrid.addEventListener("toggle", event => {
         .map(openDay => openDay.dataset.arrangementDate));
     arrangementDayExpansion.set(day.dataset.arrangementId, openDates);
 }, true);
+
+arrangementsGrid.addEventListener("change", async event => {
+    const checkbox = event.target.closest("[data-equipment-tent]");
+    if (checkbox) {
+        const arrangementId = checkbox.closest(".arrangement-equipment")?.dataset.arrangementId;
+        const arrangement = arrangements.find(item => item.id === arrangementId);
+        if (!arrangement || !isArrangementDetailEditable(arrangement)) return;
+        const equipment = cloneArrangementEquipment(arrangement.equipment);
+        const selected = new Set(equipment.tents_by_department[checkbox.dataset.department] || []);
+        if (checkbox.checked) selected.add(checkbox.value);
+        else selected.delete(checkbox.value);
+        if (selected.size) equipment.tents_by_department[checkbox.dataset.department] = [...selected];
+        else delete equipment.tents_by_department[checkbox.dataset.department];
+        try {
+            await saveArrangementEquipment(arrangement, equipment);
+        } catch (error) {
+            showArrangementToast(error.message || "Tältvalet kunde inte sparas.", "error");
+        }
+        return;
+    }
+    const scope = event.target.closest(".arrangement-equipment-add select[name='scope']");
+    if (!scope) return;
+    const form = scope.closest("form");
+    form.querySelector("[data-equipment-department-field]").classList.toggle("hidden", scope.value !== "department");
+    form.querySelector("[data-equipment-agenda-field]").classList.toggle("hidden", scope.value !== "agenda");
+});
+
+arrangementsGrid.addEventListener("submit", async event => {
+    const form = event.target.closest("[data-add-equipment]");
+    if (!form) return;
+    event.preventDefault();
+    const arrangement = arrangements.find(item => item.id === form.dataset.addEquipment);
+    const status = form.querySelector("[data-equipment-status]");
+    if (!arrangement || !isArrangementDetailEditable(arrangement)) return;
+    const formData = new FormData(form);
+    const name = String(formData.get("name") || "").trim();
+    const scope = String(formData.get("scope") || "general");
+    const department = String(formData.get("department") || "");
+    const agendaId = String(formData.get("agenda_id") || "");
+    if (!name || (scope === "department" && !department) || (scope === "agenda" && !arrangement.agenda.some(entry => entry.id === agendaId))) {
+        status.textContent = "Välj material och ange var det ska användas.";
+        return;
+    }
+    const equipment = cloneArrangementEquipment(arrangement.equipment);
+    equipment.items.push({
+            id: crypto.randomUUID(),
+            name,
+            scope,
+            department: scope === "department" ? department : "",
+            agenda_id: scope === "agenda" ? agendaId : ""
+        });
+    try {
+        await saveArrangementEquipment(arrangement, equipment);
+    } catch (error) {
+        status.textContent = error.message || "Materialet kunde inte sparas.";
+        return;
+    }
+    form.reset();
+    form.querySelector("[data-equipment-department-field]").classList.add("hidden");
+    form.querySelector("[data-equipment-agenda-field]").classList.add("hidden");
+});
+
+arrangementsGrid.addEventListener("click", async event => {
+    const button = event.target.closest("[data-remove-equipment]");
+    const activityButton = event.target.closest("[data-remove-activity-material]");
+    if (!button && !activityButton) return;
+    const targetButton = button || activityButton;
+    const arrangement = arrangements.find(item => item.id === targetButton.dataset.arrangementId);
+    if (!arrangement || !isArrangementDetailEditable(arrangement)) return;
+    const equipment = cloneArrangementEquipment(arrangement.equipment);
+    if (button) equipment.items = equipment.items.filter(entry => entry.id !== button.dataset.removeEquipment);
+    else {
+        const exclusion = { agenda_id: activityButton.dataset.agendaId, index: Number(activityButton.dataset.removeActivityMaterial) };
+        if (!equipment.excluded_activity_materials.some(entry => entry.agenda_id === exclusion.agenda_id && entry.index === exclusion.index)) {
+            equipment.excluded_activity_materials.push(exclusion);
+        }
+    }
+    try {
+        await saveArrangementEquipment(arrangement, equipment);
+    } catch (error) {
+        showArrangementToast(error.message || "Materialet kunde inte tas bort.", "error");
+    }
+});
 
 arrangementsGrid.addEventListener("pointerdown", event => {
     const handle = event.target.closest("[data-agenda-drag-handle], [data-agenda-resize-handle]");
@@ -2324,9 +2531,6 @@ arrangementAgendaList.addEventListener("change", event => {
         shouldRender = true;
     }
     if (item && event.target.dataset.agendaField === "shared") {
-        item.shared = event.target.checked;
-        item.departments = item.shared ? [] : getSelectedArrangementDepartments();
-        item.excluded_departments = [];
         shouldRender = true;
     }
     if (item && event.target.dataset.agendaField === "source") {
@@ -2527,8 +2731,6 @@ agendaEntryDialogFields.addEventListener("change", event => {
         entry.meal_type = "";
         renderAgendaEntryDialog(arrangement, entry, "kind");
     } else if (field === "shared") {
-        entry.departments = entry.shared ? [] : arrangement.departments;
-        entry.excluded_departments = [];
         renderAgendaEntryDialog(arrangement, entry, "shared");
     } else if (field === "source") {
         const source = entry.source_type === "recipe" ? recipes.find(recipe => String(recipe.id) === entry.source_id)

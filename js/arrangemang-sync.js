@@ -9,6 +9,7 @@
     let loadError = false;
     let sharedToken = null;
     const DEPARTMENTS = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover", "Ledare"];
+    const TENT_TYPES = ["3-manna", "4-manna", "Y-Tält", "Militärtält"];
 
     const auth = () => window.GTScoutAuth;
     const client = () => auth()?.getClient?.() || null;
@@ -85,6 +86,30 @@
             };
             return responsibility;
         }).filter(entry => entry.person || entry.role || entry.description) : [];
+        const equipment = item.equipment && typeof item.equipment === "object" ? item.equipment : {};
+        const equipmentItems = Array.isArray(equipment.items) ? equipment.items.map(entry => {
+            const scope = ["general", "department", "agenda"].includes(entry?.scope) ? entry.scope : "general";
+            return {
+                id: String(entry?.id || crypto.randomUUID()),
+                name: String(entry?.name || "").trim(),
+                scope,
+                department: DEPARTMENTS.includes(entry?.department) ? entry.department : "",
+                agenda_id: String(entry?.agenda_id || "")
+            };
+        }).filter(entry => entry.name && (entry.scope !== "department" || entry.department) && (entry.scope !== "agenda" || agenda.some(point => point.id === entry.agenda_id))) : [];
+        const excludedActivityMaterials = Array.isArray(equipment.excluded_activity_materials)
+            ? equipment.excluded_activity_materials.map(entry => ({ agenda_id: String(entry?.agenda_id || ""), index: Number(entry?.index) }))
+                .filter(entry => agenda.some(point => point.id === entry.agenda_id) && Number.isSafeInteger(entry.index) && entry.index >= 0)
+            : [];
+        const tentsByDepartment = Object.fromEntries(
+            Object.entries(equipment.tents_by_department || {})
+                .filter(([department]) => departments.includes(department))
+                .map(([department, tents]) => [
+                    department,
+                    [...new Set((Array.isArray(tents) ? tents : []).filter(tent => TENT_TYPES.includes(tent)))]
+                ])
+                .filter(([, tents]) => tents.length)
+        );
         return {
             id,
             title: String(item.title).trim(),
@@ -106,6 +131,7 @@
             agenda,
             checklist,
             responsibilities,
+            equipment: { items: equipmentItems, tents_by_department: tentsByDepartment, excluded_activity_materials: excludedActivityMaterials },
             notes: String(item.notes || "").trim(),
             experience: String(item.experience || item.after_notes || "").trim(),
             created_by: item.created_by || null,
@@ -142,6 +168,11 @@
             agenda: item.agenda.map(entry => ({ ...entry, participants_override: window.GTScoutParticipants.normalizeOverride(entry.participants_override, item.departments), recipe_ids: [...entry.recipe_ids], departments: [...entry.departments], excluded_departments: [...entry.excluded_departments] })),
             checklist: item.checklist.map(task => ({ ...task })),
             responsibilities: item.responsibilities.map(entry => ({ ...entry })),
+            equipment: {
+                items: item.equipment.items.map(entry => ({ ...entry })),
+                tents_by_department: Object.fromEntries(Object.entries(item.equipment.tents_by_department).map(([department, tents]) => [department, [...tents]])),
+                excluded_activity_materials: item.equipment.excluded_activity_materials.map(entry => ({ ...entry }))
+            },
             planning_ref: item.planning_ref ? { ...item.planning_ref } : null
         }));
     }

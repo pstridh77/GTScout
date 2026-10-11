@@ -12,7 +12,7 @@ function loadParticipantHelpers(context) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "js", "participants.js"), "utf8"), context);
 }
 
-for (const signedIn of [false, true]) {
+    for (const signedIn of [false, true]) {
     test(`arrangements preserve the Ledare department ${signedIn ? "in database writes" : "locally"}`, async () => {
         const backend = createBackend(signedIn ? leaderSession : null);
         const page = createPage(backend);
@@ -85,6 +85,79 @@ for (const signedIn of [false, true]) {
         assert.equal(reopened.window.GTScoutArrangements.getAll()[0].participants.departments["Spårare"].scouts, 18);
     });
 }
+
+for (const signedIn of [false, true]) {
+    test(`arrangement equipment survives ${signedIn ? "database writes" : "local storage"} and reload`, async () => {
+        const backend = createBackend(signedIn ? leaderSession : null);
+        const page = createPage(backend);
+        await page.auth.init();
+        await page.runTimers();
+        page.load("arrangemang-sync.js");
+        const equipment = {
+            items: [
+                { id: "general-item", name: "Stormkök", quantity: 2, unit: "st.", scope: "general" },
+                { id: "agenda-item", name: "Rep", quantity: 12, unit: "m", scope: "agenda", agenda_id: "program-1" }
+            ],
+            tents_by_department: { "Spårare": ["3-manna", "4-manna", "3-manna"], Rover: ["Y-Tält"] },
+            excluded_activity_materials: [{ agenda_id: "program-1", index: 1 }]
+        };
+        await page.window.GTScoutArrangements.save({
+            id: "equipment-test", title: "Equipment", start_date: "2026-10-09", departments: ["Spårare"],
+            agenda: [{ id: "program-1", date: "2026-10-09", title: "Lägerbål" }], equipment
+        });
+        const expected = {
+            items: equipment.items.map(({ id, name, scope, agenda_id = "" }) => ({ id, name, scope, department: "", agenda_id })),
+            tents_by_department: { "Spårare": ["3-manna", "4-manna"] },
+            excluded_activity_materials: [{ agenda_id: "program-1", index: 1 }]
+        };
+        assert.deepEqual(JSON.parse(page.storage.get("gtscout_arrangemang"))[0].equipment, expected);
+        if (signedIn) {
+            const write = backend.requests.find(request => request.table === "arrangemang" && request.operation === "upsert");
+            assert.deepEqual(JSON.parse(JSON.stringify(write.rows.data.equipment)), expected);
+        }
+        const reopened = createPage(createBackend(null), page.storage);
+        reopened.load("arrangemang-sync.js");
+        reopened.window.GTScoutArrangements.init({ onChange() {} });
+        const first = reopened.window.GTScoutArrangements.getAll()[0];
+        assert.deepEqual(JSON.parse(JSON.stringify(first.equipment)), expected);
+        first.equipment.tents_by_department["Spårare"].push("Y-Tält");
+        first.equipment.excluded_activity_materials[0].index = 2;
+        assert.deepEqual(JSON.parse(JSON.stringify(reopened.window.GTScoutArrangements.getAll()[0].equipment)), expected);
+    });
+}
+
+test("arrangement materials sort general, department, then program groups", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
+    const start = source.indexOf("function getEquipmentActivityMaterials(");
+    const end = source.indexOf("function cloneArrangementEquipment(", start);
+    const context = vm.createContext({
+        activities: [{ id: "activity-1", namn: "Baka", material: ["Tändstål"] }],
+        departments: ["Spårare", "Upptäckare"],
+        tentTypes: [],
+        collapsedArrangementEquipment: new Set(),
+        escapeArrangementHtml: value => String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]),
+        formatArrangementDate: date => date
+    });
+    vm.runInContext(source.slice(start, end), context);
+    const html = context.renderArrangementEquipment({
+        id: "materials-sort-test",
+        departments: ["Spårare", "Upptäckare"],
+        agenda: [{ id: "bake-point", date: "2026-10-09", title: "Lägerbål", kind: "activity", source_type: "activity", source_id: "activity-1", shared: false, departments: ["Spårare"] }],
+        equipment: { items: [
+            { id: "general-lid", name: "Låda kompass", scope: "general" },
+            { id: "general-compass", name: "Kompass", scope: "general" },
+            { id: "department-stove", name: "Stormkök", scope: "department", department: "Spårare" },
+            { id: "department-map", name: "Karta", scope: "department", department: "Spårare" },
+            { id: "agenda-rope", name: "Rep", scope: "agenda", agenda_id: "bake-point" }
+        ], tents_by_department: {}, excluded_activity_materials: [] }
+    }, false);
+    const groupTitles = [...html.matchAll(/<h5><strong>(.*?)<\/strong><span>/g)].map(match => match[1]);
+    assert.deepEqual(groupTitles, ["Allmänt", "Spårare", "Programpunkter och aktiviteter"]);
+    assert.ok(html.indexOf("Kompass") < html.indexOf("Låda kompass"));
+    assert.ok(html.indexOf("Karta") < html.indexOf("Stormkök"));
+    assert.ok(html.indexOf("Stormkök") < html.indexOf("Rep"));
+    assert.ok(html.indexOf("Rep") < html.indexOf("Tändstål"));
+});
 
 test("arrangement participant totals include officials as leaders and only selected departments", () => {
     const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
@@ -527,6 +600,7 @@ test("arrangement detail edits preserve participants without a duplicate partici
         document: { getElementById: id => ({ value: fields[id] || "" }) },
         arrangementForm: { dataset: { arrangementId: "detail-edit" } },
         planningOptions: [], draftParticipants: participants, draftParticipantDays: participantDays,
+        draftEquipment: { items: [], tents_by_department: {} },
         getSelectedArrangementDepartments: () => ["Spårare"],
         readAgendaFromDom: () => [], readResponsibilitiesFromDom: () => []
     });
@@ -540,6 +614,7 @@ test("arrangement detail edits preserve participants without a duplicate partici
     const stored = JSON.parse(page.storage.get("gtscout_arrangemang"))[0];
     assert.deepEqual(stored.participants, participants);
     assert.deepEqual(stored.participant_days, participantDays);
+    assert.deepEqual(stored.equipment, { items: [], tents_by_department: {}, excluded_activity_materials: [] });
 });
 
 function createBackend(session = leaderSession, profile = leaderProfile) {
