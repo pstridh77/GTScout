@@ -68,7 +68,8 @@
                 excluded_departments: Array.isArray(entry.excluded_departments) ? [...new Set(entry.excluded_departments.filter(department => DEPARTMENTS.includes(department)))] : [],
                 title: String(entry.title || "").trim(),
                 responsible: String(entry.responsible || "").trim(),
-                notes: String(entry.notes || "").trim()
+                notes: String(entry.notes || "").trim(),
+                materials: Array.isArray(entry.materials) ? [...new Set(entry.materials.map(name => String(name || "").trim()).filter(Boolean))] : []
             };
         }).filter(entry => entry?.title) : [];
         const checklist = Array.isArray(item.checklist) ? item.checklist.map(task => ({
@@ -97,6 +98,14 @@
                 agenda_id: String(entry?.agenda_id || "")
             };
         }).filter(entry => entry.name && (entry.scope !== "department" || entry.department) && (entry.scope !== "agenda" || agenda.some(point => point.id === entry.agenda_id))) : [];
+        const agendaWithMaterials = agenda.map(entry => ({
+            ...entry,
+            materials: [...new Set([
+                ...entry.materials,
+                ...equipmentItems.filter(material => material.scope === "agenda" && material.agenda_id === entry.id).map(material => material.name)
+            ])]
+        }));
+        const nonAgendaEquipmentItems = equipmentItems.filter(entry => entry.scope !== "agenda");
         const excludedActivityMaterials = Array.isArray(equipment.excluded_activity_materials)
             ? equipment.excluded_activity_materials.map(entry => ({ agenda_id: String(entry?.agenda_id || ""), index: Number(entry?.index) }))
                 .filter(entry => agenda.some(point => point.id === entry.agenda_id) && Number.isSafeInteger(entry.index) && entry.index >= 0)
@@ -132,10 +141,10 @@
                 id: String(item.planning_ref.id || ""),
                 name: String(item.planning_ref.name || "")
             } : null,
-            agenda,
+            agenda: agendaWithMaterials,
             checklist,
             responsibilities,
-            equipment: { items: equipmentItems, tents_by_department: tentsByDepartment, excluded_activity_materials: excludedActivityMaterials },
+            equipment: { items: nonAgendaEquipmentItems, tents_by_department: tentsByDepartment, excluded_activity_materials: excludedActivityMaterials },
             notes: String(item.notes || "").trim(),
             experience: String(item.experience || item.after_notes || "").trim(),
             created_by: item.created_by || null,
@@ -169,7 +178,7 @@
                 officials: item.participants.officials
             },
             participant_days: Object.fromEntries(Object.entries(item.participant_days).map(([date, counts]) => [date, window.GTScoutParticipants.normalizeOverride(counts, item.departments)])),
-            agenda: item.agenda.map(entry => ({ ...entry, participants_override: window.GTScoutParticipants.normalizeOverride(entry.participants_override, item.departments), recipe_ids: [...entry.recipe_ids], departments: [...entry.departments], excluded_departments: [...entry.excluded_departments] })),
+            agenda: item.agenda.map(entry => ({ ...entry, participants_override: window.GTScoutParticipants.normalizeOverride(entry.participants_override, item.departments), recipe_ids: [...entry.recipe_ids], departments: [...entry.departments], excluded_departments: [...entry.excluded_departments], materials: [...entry.materials] })),
             checklist: item.checklist.map(task => ({ ...task })),
             responsibilities: item.responsibilities.map(entry => ({ ...entry })),
             equipment: {

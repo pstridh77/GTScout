@@ -243,14 +243,18 @@ function renderArrangementChecklist(checklist, arrangementId, editable) {
     return `<details class="arrangement-checklist-overview" data-arrangement-id="${escapeArrangementHtml(arrangementId)}"${isOpen ? " open" : ""}><summary class="arrangement-section-summary"><strong>Att göra</strong><span>${visibleTasks.length}</span></summary><div class="arrangement-checklist-content">${rows}${addControl}</div></details>`;
 }
 
+function getAgendaTargetDepartments(entry, activeDepartments) {
+    return entry.shared !== false
+        ? activeDepartments.filter(department => !(entry.excluded_departments || []).includes(department))
+        : activeDepartments.filter(department => (entry.departments || []).includes(department));
+}
+
 function getEquipmentActivityMaterials(item) {
     return item.agenda.flatMap(entry => {
         if (entry.kind !== "activity" || entry.source_type !== "activity") return [];
         const activity = activities.find(candidate => String(candidate.id) === String(entry.source_id));
         if (!Array.isArray(activity?.material)) return [];
-        const targetDepartments = entry.shared !== false
-            ? item.departments.filter(department => !(entry.excluded_departments || []).includes(department))
-            : item.departments.filter(department => (entry.departments || []).includes(department));
+        const targetDepartments = getAgendaTargetDepartments(entry, item.departments);
         return activity.material.map((name, materialIndex) => ({
             name: String(name || "").trim(),
             activityName: activity.namn || entry.title,
@@ -265,6 +269,11 @@ function getEquipmentActivityMaterials(item) {
 function renderArrangementEquipment(item, editable) {
     const equipment = item.equipment || { items: [], tents_by_department: {} };
     const materials = equipment.items || [];
+    const programMaterials = (item.agenda || []).flatMap(entry => (entry.materials || []).map(name => ({
+        name,
+        agendaName: entry.title,
+        targetDepartments: getAgendaTargetDepartments(entry, item.departments)
+    })));
     const excludedActivityMaterials = equipment.excluded_activity_materials || [];
     const activityMaterials = getEquipmentActivityMaterials(item).filter(material =>
         !excludedActivityMaterials.some(excluded => excluded.agenda_id === material.agendaId && excluded.index === material.materialIndex)
@@ -273,7 +282,7 @@ function renderArrangementEquipment(item, editable) {
     const getTentCount = (department, type) => Number(tents[department]?.[type] || 0);
     const getDepartmentTentTotal = department => tentTypes.reduce((total, type) => total + getTentCount(department, type), 0);
     const hasTents = Object.keys(tents).some(department => getDepartmentTentTotal(department) > 0);
-    if (!editable && !materials.length && !activityMaterials.length && !hasTents) return "";
+    if (!editable && !materials.length && !programMaterials.length && !activityMaterials.length && !hasTents) return "";
     const renderRemoveButton = (attributes, label) => editable
         ? `<button type="button" class="arrangement-equipment-remove" ${attributes} aria-label="Ta bort ${escapeArrangementHtml(label)}" title="Ta bort material">&times;</button>`
         : "";
@@ -286,53 +295,69 @@ function renderArrangementEquipment(item, editable) {
         const removeAttributes = `data-remove-activity-material="${entry.materialIndex}" data-agenda-id="${escapeArrangementHtml(entry.agendaId)}" data-arrangement-id="${escapeArrangementHtml(item.id)}"`;
         return `<li class="arrangement-equipment-row arrangement-equipment-row--source"><span><strong>${escapeArrangementHtml(entry.name)}</strong><small>${escapeArrangementHtml(source)}</small></span>${renderRemoveButton(removeAttributes, entry.name)}</li>`;
     };
+    const renderProgramMaterialRow = entry =>
+        `<li class="arrangement-equipment-row"><span><strong>${escapeArrangementHtml(entry.name)}</strong><small>${escapeArrangementHtml(entry.agendaName)}</small></span></li>`;
     const renderMaterialGroup = (title, rows, groupClass = "") => rows.length
         ? `<section class="arrangement-equipment-group ${groupClass}"><h5><strong>${escapeArrangementHtml(title)}</strong><span>${rows.length}</span></h5><ul class="arrangement-equipment-list">${rows.join("")}</ul></section>`
         : "";
-    const generalMaterials = materials.filter(entry => entry.scope === "general").sort(compareMaterialNames);
-    const departmentGroups = item.departments.map(department => renderMaterialGroup(
-        department,
-        materials.filter(entry => entry.scope === "department" && entry.department === department).sort(compareMaterialNames).map(entry => renderManualMaterialRow(entry)),
-        `arrangement-equipment-group--department department-tone-${departments.indexOf(department)}`
-    )).filter(Boolean);
-    const programMaterials = materials.filter(entry => entry.scope === "agenda").map(entry => ({
-        name: entry.name,
-        markup: renderManualMaterialRow(entry, item.agenda.find(point => point.id === entry.agenda_id)?.title || "Programpunkt")
-    }));
-    const programActivityMaterials = activityMaterials.map(entry => ({ name: entry.name, markup: renderActivityMaterialRow(entry) }));
-    const programRows = [...programMaterials, ...programActivityMaterials]
-        .sort((left, right) => compareMaterialNames(left, right))
-        .map(entry => entry.markup);
+    const generalProgramRows = [];
+    const departmentProgramRows = new Map(item.departments.map(department => [department, []]));
+    const assignProgramMaterial = entry => {
+        const appliesToAll = item.departments.every(department => entry.targetDepartments.includes(department));
+        const row = {
+            name: entry.name,
+            markup: entry.activityName ? renderActivityMaterialRow(entry) : renderProgramMaterialRow(entry)
+        };
+        if (appliesToAll) generalProgramRows.push(row);
+        else entry.targetDepartments.forEach(department => departmentProgramRows.get(department)?.push(row));
+    };
+    programMaterials.forEach(assignProgramMaterial);
+    activityMaterials.forEach(assignProgramMaterial);
+    const generalRows = [
+        ...materials.filter(entry => entry.scope === "general").map(entry => ({ name: entry.name, markup: renderManualMaterialRow(entry) })),
+        ...generalProgramRows
+    ].sort((left, right) => compareMaterialNames(left, right)).map(entry => entry.markup);
+    const departmentGroups = item.departments.map(department => {
+        const rows = [
+            ...materials.filter(entry => entry.scope === "department" && entry.department === department).map(entry => ({ name: entry.name, markup: renderManualMaterialRow(entry) })),
+            ...(departmentProgramRows.get(department) || [])
+        ].sort((left, right) => compareMaterialNames(left, right)).map(entry => entry.markup);
+        return renderMaterialGroup(
+            department,
+            rows,
+            `arrangement-equipment-group--department department-tone-${departments.indexOf(department)}`
+        );
+    }).filter(Boolean);
     const materialGroups = [
-        renderMaterialGroup("Allmänt", generalMaterials.map(entry => renderManualMaterialRow(entry)), "arrangement-equipment-group--general"),
+        renderMaterialGroup("Allmänt", generalRows, "arrangement-equipment-group--general"),
         ...departmentGroups,
-        renderMaterialGroup("Programpunkter och aktiviteter", programRows, "arrangement-equipment-group--agenda")
     ].filter(Boolean);
     const materialList = materialGroups.length
         ? `<div class="arrangement-equipment-material-groups">${materialGroups.join("")}</div>`
         : `<p class="arrangement-equipment-empty">Inget material tillagt.</p>`;
     const tentTotals = Object.fromEntries(tentTypes.map(type => [type, item.departments.reduce((total, department) => total + getTentCount(department, type), 0)]));
     const tentGrandTotal = Object.values(tentTotals).reduce((total, count) => total + count, 0);
-    const visibleTentTypes = editable ? tentTypes : tentTypes.filter(type => tentTotals[type] > 0);
     const tentRows = item.departments.map(department => {
         const departmentTotal = getDepartmentTentTotal(department);
-        if (!editable && !departmentTotal) return "";
-        const cells = visibleTentTypes.map(type => {
+        const cells = tentTypes.map(type => {
             const count = getTentCount(department, type);
-            return `<td>${editable
-                ? `<input type="number" min="0" step="1" inputmode="numeric" value="${count || ""}" data-equipment-tent-count data-department="${escapeArrangementHtml(department)}" data-tent-type="${escapeArrangementHtml(type)}" aria-label="Antal ${escapeArrangementHtml(type)} för ${escapeArrangementHtml(department)}">`
-                : count}</td>`;
+            return `<td><input type="number" min="0" step="1" inputmode="numeric" value="${count || ""}" data-equipment-tent-count data-department="${escapeArrangementHtml(department)}" data-tent-type="${escapeArrangementHtml(type)}" aria-label="Antal ${escapeArrangementHtml(type)} för ${escapeArrangementHtml(department)}"></td>`;
         }).join("");
         return `<tr><th scope="row">${escapeArrangementHtml(department)}</th>${cells}<td class="arrangement-equipment-tent-total">${departmentTotal}</td></tr>`;
     }).join("");
-    const tentHeaders = visibleTentTypes.map(type => `<th scope="col">${escapeArrangementHtml(type)}</th>`).join("");
-    const tentSections = editable || hasTents
-        ? `<div class="arrangement-equipment-tent-matrix-wrap"><table class="arrangement-equipment-tent-matrix"><thead><tr><th scope="col">Avdelning</th>${tentHeaders}<th scope="col">Totalt</th></tr></thead><tbody>${tentRows}</tbody><tfoot><tr><th scope="row">Totalt</th>${visibleTentTypes.map(type => `<td>${tentTotals[type]}</td>`).join("")}<td>${tentGrandTotal}</td></tr></tfoot></table></div>`
-        : "";
-    const agendaOptions = item.agenda.map(entry => `<option value="${escapeArrangementHtml(entry.id)}">${escapeArrangementHtml(`${formatArrangementDate(entry.date, false)} · ${entry.title}`)}</option>`).join("");
-    const editor = editable ? `<form class="arrangement-equipment-add" data-add-equipment="${escapeArrangementHtml(item.id)}"><label><span>Material</span><input type="text" name="name" maxlength="120" required placeholder="Till exempel stormkök"></label><label><span>Gäller</span><select name="scope"><option value="general">Allmänt</option><option value="department">Avdelning</option><option value="agenda">Programpunkt</option></select></label><label class="hidden" data-equipment-department-field><span>Avdelning</span><select name="department">${item.departments.map(department => `<option value="${escapeArrangementHtml(department)}">${escapeArrangementHtml(department)}</option>`).join("")}</select></label><label class="hidden" data-equipment-agenda-field><span>Programpunkt</span><select name="agenda_id">${agendaOptions}</select></label><button class="btn-secondary" type="submit">Lägg till</button><p class="detail-planning-status" data-equipment-status role="status" aria-live="polite"></p></form>` : "";
+    const tentHeaders = tentTypes.map(type => `<th scope="col">${escapeArrangementHtml(type)}</th>`).join("");
+    const tentDepartmentList = item.departments.map(department => {
+        const tentsForDepartment = tentTypes.map(type => ({ type, count: getTentCount(department, type) })).filter(tent => tent.count > 0);
+        if (!tentsForDepartment.length) return "";
+        const labels = tentsForDepartment.map(tent => `${tent.count} × ${escapeArrangementHtml(tent.type)}`).join(", ");
+        return `<div class="arrangement-equipment-tent-department"><strong>${escapeArrangementHtml(department)}</strong><span>${labels}</span></div>`;
+    }).join("");
+    const tentSections = editable
+        ? `<div class="arrangement-equipment-tent-matrix-wrap"><table class="arrangement-equipment-tent-matrix"><thead><tr><th scope="col">Avdelning</th>${tentHeaders}<th scope="col">Totalt</th></tr></thead><tbody>${tentRows}</tbody><tfoot><tr><th scope="row">Totalt</th>${tentTypes.map(type => `<td>${tentTotals[type]}</td>`).join("")}<td>${tentGrandTotal}</td></tr></tfoot></table></div>`
+        : hasTents ? `<div class="arrangement-equipment-tent-list">${tentDepartmentList}</div>` : "";
+    const editor = editable ? `<form class="arrangement-equipment-add" data-add-equipment="${escapeArrangementHtml(item.id)}"><label><span>Material</span><input type="text" name="name" maxlength="120" required placeholder="Till exempel stormkök"></label><label><span>Gäller</span><select name="scope"><option value="general">Allmänt</option><option value="department">Avdelning</option></select></label><label class="hidden" data-equipment-department-field><span>Avdelning</span><select name="department">${item.departments.map(department => `<option value="${escapeArrangementHtml(department)}">${escapeArrangementHtml(department)}</option>`).join("")}</select></label><button class="btn-secondary" type="submit">Lägg till</button><p class="detail-planning-status" data-equipment-status role="status" aria-live="polite"></p></form>` : "";
     const selectedTentCount = tentGrandTotal;
-    const materialCount = materials.length + activityMaterials.length;
+    const materialCount = materials.length + programMaterials.length + activityMaterials.length;
     const countLabel = `${materialCount} material${selectedTentCount ? ` · ${selectedTentCount} tält` : ""}`;
     const isOpen = !collapsedArrangementEquipment.has(item.id);
     return `<details class="arrangement-equipment" data-arrangement-id="${escapeArrangementHtml(item.id)}"${isOpen ? " open" : ""}><summary class="arrangement-section-summary"><strong>Utrustning och material</strong><span>${editable && !materialCount && !selectedTentCount ? "Lägg till" : countLabel}</span></summary><div class="arrangement-equipment-content"><h4>Material</h4>${materialList}${editor ? `<div class="arrangement-equipment-entry"><h5>Lägg till material</h5>${editor}</div>` : ""}${tentSections ? `<h4>Tält per avdelning</h4>${tentSections}` : ""}</div></details>`;
@@ -1352,6 +1377,24 @@ function appendAgendaLeadersOnlyField(container, entry) {
     toggles.append(sharedChoice, label);
 }
 
+function parseAgendaMaterials(value) {
+    return [...new Set(String(value || "").split(/\r?\n/).map(name => name.trim()).filter(Boolean))];
+}
+
+function createAgendaMaterialsField(materials) {
+    const label = document.createElement("label");
+    label.className = "agenda-entry-field agenda-entry-materials";
+    const caption = document.createElement("span");
+    caption.textContent = "Materiel (en sak per rad)";
+    const textarea = document.createElement("textarea");
+    textarea.dataset.agendaField = "materials";
+    textarea.rows = 3;
+    textarea.placeholder = "Skriv här...";
+    textarea.value = Array.isArray(materials) ? materials.join("\n") : "";
+    label.append(caption, textarea);
+    return label;
+}
+
 function renderAgendaEditor() {
     const startDate = document.getElementById("arrangementStartDate").value;
     const endDate = document.getElementById("arrangementEndDate").value || startDate;
@@ -1378,7 +1421,9 @@ function renderAgendaEditor() {
     arrangementAgendaList.querySelectorAll(".arrangement-agenda-entry").forEach(row => {
         const entry = draftAgenda.find(item => item.id === row.dataset.agendaId);
         if (!entry) return;
-        appendAgendaLeadersOnlyField(row.querySelector(".arrangement-agenda-entry-grid"), entry);
+        const grid = row.querySelector(".arrangement-agenda-entry-grid");
+        grid.append(createAgendaMaterialsField(entry.materials));
+        appendAgendaLeadersOnlyField(grid, entry);
         row.classList.toggle("arrangement-agenda-entry--leaders-only", entry.kind !== "meal" && Boolean(entry.leaders_only));
     });
     arrangementAgendaList.querySelectorAll(".agenda-recipe-picker").forEach(updateMealRecipePicker);
@@ -1422,6 +1467,7 @@ function renderAgendaEntryDialog(arrangement, entry, focusField = "title") {
         ? `<small class="agenda-scope-hidden-note">Posten visas bara om dess avdelning väljs för arrangemanget.</small>`
         : "";
     agendaEntryDialogFields.innerHTML = `<div class="agenda-entry-scope"><span>${shared ? "Avdelningar som deltar" : "Gäller avdelningar"}</span><label class="agenda-shared-choice"><input data-agenda-field="shared" type="checkbox"${shared ? " checked" : ""}>Gemensamt för alla</label>${shared ? "<small class=\"agenda-scope-help\">Avmarkera avdelningar som inte ska delta.</small>" : ""}<div class="agenda-scope-options">${scopeOptions}</div>${inactiveScopeNote}</div><label class="agenda-entry-field agenda-entry-title"><span>Namn</span><input data-agenda-field="title" type="text" maxlength="160" value="${escapeArrangementHtml(entry.title)}" required placeholder="${entry.kind === "meal" ? "Till exempel Frukost" : "Till exempel lägerbål"}"></label><label class="agenda-entry-field"><span>Datum</span><input data-agenda-field="date" type="date" min="${escapeArrangementHtml(arrangement.start_date)}" max="${escapeArrangementHtml(arrangement.end_date)}" value="${escapeArrangementHtml(entry.date)}" required></label><label class="agenda-entry-field"><span>Start</span><input data-agenda-field="time" type="time" value="${escapeArrangementHtml(entry.time || "")}"></label><label class="agenda-entry-field"><span>Slut</span><input data-agenda-field="end_time" type="time" value="${escapeArrangementHtml(entry.end_time || "")}"></label><label class="agenda-entry-field"><span>Typ</span><select data-agenda-field="kind"><option value="meal"${entry.kind === "meal" ? " selected" : ""}>Mat</option><option value="activity"${entry.kind === "activity" ? " selected" : ""}>Aktivitet</option><option value="program"${entry.kind === "program" ? " selected" : ""}>Program</option></select></label>${recipeField}${sourceField}<label class="agenda-entry-field"><span>Ansvarig</span><input data-agenda-field="responsible" type="text" maxlength="120" value="${escapeArrangementHtml(entry.responsible || "")}" placeholder="Namn"></label><label class="agenda-entry-field agenda-entry-notes"><span>Anteckningar</span><textarea data-agenda-field="notes" rows="3" maxlength="240" placeholder="Skriv anteckningar">${escapeArrangementHtml(entry.notes)}</textarea></label>`;
+    agendaEntryDialogFields.append(createAgendaMaterialsField(entry.materials));
     appendAgendaLeadersOnlyField(agendaEntryDialogFields, entry);
     if (entry.kind === "meal") agendaEntryDialogFields.insertAdjacentHTML("beforeend", renderMealParticipantEditor(arrangement, entry));
     const entryLabel = entry.kind === "meal" ? "måltid" : "programpunkt";
@@ -1464,7 +1510,8 @@ function readAgendaEntryDialog() {
         excluded_departments: shared ? activeDepartments.filter(department => !selectedScopeDepartments.includes(department)) : [],
         title: value("title").trim(),
         responsible: value("responsible").trim(),
-        notes: value("notes").trim()
+        notes: value("notes").trim(),
+        materials: parseAgendaMaterials(value("materials"))
     };
 }
 
@@ -1497,7 +1544,8 @@ function readAgendaFromDom() {
             excluded_departments: shared ? activeDepartments.filter(department => !selectedScopeDepartments.includes(department)) : [],
             title: value("title").trim(),
             responsible: value("responsible").trim(),
-            notes: value("notes").trim()
+            notes: value("notes").trim(),
+            materials: parseAgendaMaterials(value("materials"))
         };
     });
 }
@@ -1776,7 +1824,6 @@ arrangementsGrid.addEventListener("change", async event => {
     if (!scope) return;
     const form = scope.closest("form");
     form.querySelector("[data-equipment-department-field]").classList.toggle("hidden", scope.value !== "department");
-    form.querySelector("[data-equipment-agenda-field]").classList.toggle("hidden", scope.value !== "agenda");
 });
 
 arrangementsGrid.addEventListener("submit", async event => {
@@ -1790,8 +1837,7 @@ arrangementsGrid.addEventListener("submit", async event => {
     const name = String(formData.get("name") || "").trim();
     const scope = String(formData.get("scope") || "general");
     const department = String(formData.get("department") || "");
-    const agendaId = String(formData.get("agenda_id") || "");
-    if (!name || (scope === "department" && !department) || (scope === "agenda" && !arrangement.agenda.some(entry => entry.id === agendaId))) {
+    if (!name || (scope === "department" && !department)) {
         status.textContent = "Välj material och ange var det ska användas.";
         return;
     }
@@ -1801,7 +1847,7 @@ arrangementsGrid.addEventListener("submit", async event => {
             name,
             scope,
             department: scope === "department" ? department : "",
-            agenda_id: scope === "agenda" ? agendaId : ""
+            agenda_id: ""
         });
     try {
         await saveArrangementEquipment(arrangement, equipment);
@@ -1811,7 +1857,6 @@ arrangementsGrid.addEventListener("submit", async event => {
     }
     form.reset();
     form.querySelector("[data-equipment-department-field]").classList.add("hidden");
-    form.querySelector("[data-equipment-agenda-field]").classList.add("hidden");
 });
 
 arrangementsGrid.addEventListener("click", async event => {

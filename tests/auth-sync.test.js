@@ -106,20 +106,24 @@ for (const signedIn of [false, true]) {
             agenda: [{ id: "program-1", date: "2026-10-09", title: "Lägerbål" }], equipment
         });
         const expected = {
-            items: equipment.items.map(({ id, name, scope, agenda_id = "" }) => ({ id, name, scope, department: "", agenda_id })),
+            items: [{ id: "general-item", name: "Stormkök", scope: "general", department: "", agenda_id: "" }],
             tents_by_department: { "Spårare": { "3-manna": 2, "4-manna": 1 }, Rover: { "Y-Tält": 1 } },
             excluded_activity_materials: [{ agenda_id: "program-1", index: 1 }]
         };
         assert.deepEqual(JSON.parse(page.storage.get("gtscout_arrangemang"))[0].equipment, expected);
+        assert.deepEqual(JSON.parse(page.storage.get("gtscout_arrangemang"))[0].agenda[0].materials, ["Rep"]);
         if (signedIn) {
             const write = backend.requests.find(request => request.table === "arrangemang" && request.operation === "upsert");
             assert.deepEqual(JSON.parse(JSON.stringify(write.rows.data.equipment)), expected);
+            assert.deepEqual(JSON.parse(JSON.stringify(write.rows.data.agenda[0].materials)), ["Rep"]);
         }
         const reopened = createPage(createBackend(null), page.storage);
         reopened.load("arrangemang-sync.js");
         reopened.window.GTScoutArrangements.init({ onChange() {} });
         const first = reopened.window.GTScoutArrangements.getAll()[0];
         assert.deepEqual(JSON.parse(JSON.stringify(first.equipment)), expected);
+        first.agenda[0].materials.push("Yxa");
+        assert.deepEqual(JSON.parse(JSON.stringify(reopened.window.GTScoutArrangements.getAll()[0].agenda[0].materials)), ["Rep"]);
         first.equipment.tents_by_department["Spårare"]["Y-Tält"] = 1;
         first.equipment.excluded_activity_materials[0].index = 2;
         assert.deepEqual(JSON.parse(JSON.stringify(reopened.window.GTScoutArrangements.getAll()[0].equipment)), expected);
@@ -128,7 +132,7 @@ for (const signedIn of [false, true]) {
 
 test("arrangement materials sort general, department, then program groups", () => {
     const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
-    const start = source.indexOf("function getEquipmentActivityMaterials(");
+    const start = source.indexOf("function getAgendaTargetDepartments(");
     const end = source.indexOf("function cloneArrangementEquipment(", start);
     const context = vm.createContext({
         activities: [{ id: "activity-1", namn: "Baka", material: ["Tändstål"] }],
@@ -142,23 +146,43 @@ test("arrangement materials sort general, department, then program groups", () =
     const html = context.renderArrangementEquipment({
         id: "materials-sort-test",
         departments: ["Spårare", "Upptäckare"],
-        agenda: [{ id: "bake-point", date: "2026-10-09", title: "Lägerbål", kind: "activity", source_type: "activity", source_id: "activity-1", shared: false, departments: ["Spårare"] }],
+        agenda: [
+            { id: "bake-point", date: "2026-10-09", title: "Lägerbål", kind: "activity", source_type: "activity", source_id: "activity-1", shared: false, departments: ["Spårare"], materials: ["Rep"] },
+            { id: "all-point", date: "2026-10-09", title: "Samling", materials: ["Ved"] }
+        ],
         equipment: { items: [
             { id: "general-lid", name: "Låda kompass", scope: "general" },
             { id: "general-compass", name: "Kompass", scope: "general" },
             { id: "department-stove", name: "Stormkök", scope: "department", department: "Spårare" },
             { id: "department-map", name: "Karta", scope: "department", department: "Spårare" },
-            { id: "agenda-rope", name: "Rep", scope: "agenda", agenda_id: "bake-point" }
         ], tents_by_department: { "Spårare": { "3-manna": 2, "4-manna": 1 }, "Upptäckare": { "3-manna": 1 } }, excluded_activity_materials: [] }
     }, false);
     const groupTitles = [...html.matchAll(/<h5><strong>(.*?)<\/strong><span>/g)].map(match => match[1]);
-    assert.deepEqual(groupTitles, ["Allmänt", "Spårare", "Programpunkter och aktiviteter"]);
+    assert.deepEqual(groupTitles, ["Allmänt", "Spårare"]);
     assert.ok(html.indexOf("Kompass") < html.indexOf("Låda kompass"));
     assert.ok(html.indexOf("Karta") < html.indexOf("Stormkök"));
-    assert.ok(html.indexOf("Stormkök") < html.indexOf("Rep"));
-    assert.ok(html.indexOf("Rep") < html.indexOf("Tändstål"));
-    assert.match(html, /<tfoot><tr><th scope="row">Totalt<\/th><td>3<\/td><td>1<\/td><td>4<\/td><\/tr><\/tfoot>/);
+    const generalStart = html.indexOf('class="arrangement-equipment-group arrangement-equipment-group--general"');
+    const departmentStart = html.indexOf('class="arrangement-equipment-group arrangement-equipment-group--department');
+    const generalMarkup = html.slice(generalStart, departmentStart);
+    const departmentMarkup = html.slice(departmentStart, html.indexOf("</section>", departmentStart));
+    assert.match(generalMarkup, /<strong>Ved<\/strong><small>Samling<\/small>/);
+    assert.doesNotMatch(generalMarkup, /Rep|Tändstål/);
+    assert.match(departmentMarkup, /<strong>Rep<\/strong><small>Lägerbål<\/small>/);
+    assert.match(departmentMarkup, /<strong>Tändstål<\/strong><small>Från Lägerbål · Baka · Spårare<\/small>/);
+    assert.match(html, /<strong>Rep<\/strong><small>Lägerbål<\/small>/);
+    assert.match(html, /<strong>Spårare<\/strong><span>2 × 3-manna, 1 × 4-manna<\/span>/);
+    assert.match(html, /<strong>Upptäckare<\/strong><span>1 × 3-manna<\/span>/);
+    assert.doesNotMatch(html, /<table class="arrangement-equipment-tent-matrix"|<tfoot>/);
     assert.doesNotMatch(html, /Y-Tält|Militärtält/);
+});
+
+test("agenda material text parses one trimmed item per line", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
+    const start = source.indexOf("function parseAgendaMaterials(");
+    const end = source.indexOf("function createAgendaMaterialsField(", start);
+    const context = vm.createContext({});
+    vm.runInContext(source.slice(start, end), context);
+    assert.deepEqual(Array.from(context.parseAgendaMaterials(" Rep \n\n Stormkök\nRep  ")), ["Rep", "Stormkök"]);
 });
 
 test("arrangement participant totals include officials as leaders and only selected departments", () => {
