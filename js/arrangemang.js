@@ -102,7 +102,6 @@ function collapseOpenArrangementsInYear(yearGroup) {
     const openCards = [...yearGroup.querySelectorAll("details.arrangement-card[open]")];
     openCards.forEach(card => {
         const arrangementId = card.dataset.arrangementId;
-        expandedArrangementIds.delete(arrangementId);
         arrangementDetailEditModes.delete(arrangementId);
         collapsedArrangementNotes.add(arrangementId);
         collapsedArrangementMeals.add(arrangementId);
@@ -271,7 +270,9 @@ function renderArrangementEquipment(item, editable) {
         !excludedActivityMaterials.some(excluded => excluded.agenda_id === material.agendaId && excluded.index === material.materialIndex)
     );
     const tents = equipment.tents_by_department || {};
-    const hasTents = Object.values(tents).some(values => values.length);
+    const getTentCount = (department, type) => Number(tents[department]?.[type] || 0);
+    const getDepartmentTentTotal = department => tentTypes.reduce((total, type) => total + getTentCount(department, type), 0);
+    const hasTents = Object.keys(tents).some(department => getDepartmentTentTotal(department) > 0);
     if (!editable && !materials.length && !activityMaterials.length && !hasTents) return "";
     const renderRemoveButton = (attributes, label) => editable
         ? `<button type="button" class="arrangement-equipment-remove" ${attributes} aria-label="Ta bort ${escapeArrangementHtml(label)}" title="Ta bort material">&times;</button>`
@@ -310,28 +311,37 @@ function renderArrangementEquipment(item, editable) {
     const materialList = materialGroups.length
         ? `<div class="arrangement-equipment-material-groups">${materialGroups.join("")}</div>`
         : `<p class="arrangement-equipment-empty">Inget material tillagt.</p>`;
-    const tentSections = item.departments.map(department => {
-        const selected = new Set(tents[department] || []);
-        const choices = tentTypes.map(type => editable
-            ? `<label><input type="checkbox" data-equipment-tent data-department="${escapeArrangementHtml(department)}" value="${escapeArrangementHtml(type)}"${selected.has(type) ? " checked" : ""}><span>${escapeArrangementHtml(type)}</span></label>`
-            : selected.has(type) ? `<span class="arrangement-equipment-tent">${escapeArrangementHtml(type)}</span>` : "").join("");
-        return editable || selected.size
-            ? `<div class="arrangement-equipment-department"><strong>${escapeArrangementHtml(department)}</strong><div class="arrangement-equipment-tent-options">${choices || "<span>Inga tält valda</span>"}</div></div>`
-            : "";
+    const tentTotals = Object.fromEntries(tentTypes.map(type => [type, item.departments.reduce((total, department) => total + getTentCount(department, type), 0)]));
+    const tentGrandTotal = Object.values(tentTotals).reduce((total, count) => total + count, 0);
+    const visibleTentTypes = editable ? tentTypes : tentTypes.filter(type => tentTotals[type] > 0);
+    const tentRows = item.departments.map(department => {
+        const departmentTotal = getDepartmentTentTotal(department);
+        if (!editable && !departmentTotal) return "";
+        const cells = visibleTentTypes.map(type => {
+            const count = getTentCount(department, type);
+            return `<td>${editable
+                ? `<input type="number" min="0" step="1" inputmode="numeric" value="${count || ""}" data-equipment-tent-count data-department="${escapeArrangementHtml(department)}" data-tent-type="${escapeArrangementHtml(type)}" aria-label="Antal ${escapeArrangementHtml(type)} för ${escapeArrangementHtml(department)}">`
+                : count}</td>`;
+        }).join("");
+        return `<tr><th scope="row">${escapeArrangementHtml(department)}</th>${cells}<td class="arrangement-equipment-tent-total">${departmentTotal}</td></tr>`;
     }).join("");
+    const tentHeaders = visibleTentTypes.map(type => `<th scope="col">${escapeArrangementHtml(type)}</th>`).join("");
+    const tentSections = editable || hasTents
+        ? `<div class="arrangement-equipment-tent-matrix-wrap"><table class="arrangement-equipment-tent-matrix"><thead><tr><th scope="col">Avdelning</th>${tentHeaders}<th scope="col">Totalt</th></tr></thead><tbody>${tentRows}</tbody><tfoot><tr><th scope="row">Totalt</th>${visibleTentTypes.map(type => `<td>${tentTotals[type]}</td>`).join("")}<td>${tentGrandTotal}</td></tr></tfoot></table></div>`
+        : "";
     const agendaOptions = item.agenda.map(entry => `<option value="${escapeArrangementHtml(entry.id)}">${escapeArrangementHtml(`${formatArrangementDate(entry.date, false)} · ${entry.title}`)}</option>`).join("");
     const editor = editable ? `<form class="arrangement-equipment-add" data-add-equipment="${escapeArrangementHtml(item.id)}"><label><span>Material</span><input type="text" name="name" maxlength="120" required placeholder="Till exempel stormkök"></label><label><span>Gäller</span><select name="scope"><option value="general">Allmänt</option><option value="department">Avdelning</option><option value="agenda">Programpunkt</option></select></label><label class="hidden" data-equipment-department-field><span>Avdelning</span><select name="department">${item.departments.map(department => `<option value="${escapeArrangementHtml(department)}">${escapeArrangementHtml(department)}</option>`).join("")}</select></label><label class="hidden" data-equipment-agenda-field><span>Programpunkt</span><select name="agenda_id">${agendaOptions}</select></label><button class="btn-secondary" type="submit">Lägg till</button><p class="detail-planning-status" data-equipment-status role="status" aria-live="polite"></p></form>` : "";
-    const selectedTentCount = Object.values(tents).reduce((count, values) => count + values.length, 0);
+    const selectedTentCount = tentGrandTotal;
     const materialCount = materials.length + activityMaterials.length;
-    const countLabel = `${materialCount} material${selectedTentCount ? ` · ${selectedTentCount} tältval` : ""}`;
+    const countLabel = `${materialCount} material${selectedTentCount ? ` · ${selectedTentCount} tält` : ""}`;
     const isOpen = !collapsedArrangementEquipment.has(item.id);
-    return `<details class="arrangement-equipment" data-arrangement-id="${escapeArrangementHtml(item.id)}"${isOpen ? " open" : ""}><summary class="arrangement-section-summary"><strong>Utrustning och material</strong><span>${editable && !materialCount && !selectedTentCount ? "Lägg till" : countLabel}</span></summary><div class="arrangement-equipment-content"><h4>Material</h4>${materialList}${editor ? `<div class="arrangement-equipment-entry"><h5>Lägg till material</h5>${editor}</div>` : ""}<h4>Tält per avdelning</h4>${tentSections || `<p class="arrangement-equipment-empty">Välj tält för att tilldela dem till avdelningarna.</p>`}</div></details>`;
+    return `<details class="arrangement-equipment" data-arrangement-id="${escapeArrangementHtml(item.id)}"${isOpen ? " open" : ""}><summary class="arrangement-section-summary"><strong>Utrustning och material</strong><span>${editable && !materialCount && !selectedTentCount ? "Lägg till" : countLabel}</span></summary><div class="arrangement-equipment-content"><h4>Material</h4>${materialList}${editor ? `<div class="arrangement-equipment-entry"><h5>Lägg till material</h5>${editor}</div>` : ""}${tentSections ? `<h4>Tält per avdelning</h4>${tentSections}` : ""}</div></details>`;
 }
 
 function cloneArrangementEquipment(equipment = {}) {
     return {
         items: (equipment.items || []).map(entry => ({ ...entry })),
-        tents_by_department: Object.fromEntries(Object.entries(equipment.tents_by_department || {}).map(([department, tents]) => [department, [...tents]])),
+        tents_by_department: Object.fromEntries(Object.entries(equipment.tents_by_department || {}).map(([department, tents]) => [department, { ...tents }])),
         excluded_activity_materials: (equipment.excluded_activity_materials || []).map(entry => ({ ...entry }))
     };
 }
@@ -1538,7 +1548,7 @@ async function openArrangementEditor(item = null, focusAgendaId = "", isCopy = f
             id: isCopy ? crypto.randomUUID() : entry.id,
             agenda_id: isCopy ? copiedAgendaIds.get(entry.agenda_id) || "" : entry.agenda_id
         })).filter(entry => entry.scope !== "agenda" || entry.agenda_id),
-        tents_by_department: Object.fromEntries(Object.entries(item?.equipment?.tents_by_department || {}).map(([department, tents]) => [department, [...tents]])),
+        tents_by_department: Object.fromEntries(Object.entries(item?.equipment?.tents_by_department || {}).map(([department, tents]) => [department, { ...tents }])),
         excluded_activity_materials: (item?.equipment?.excluded_activity_materials || []).map(entry => ({
             ...entry,
             agenda_id: isCopy ? copiedAgendaIds.get(entry.agenda_id) || "" : entry.agenda_id
@@ -1742,21 +1752,23 @@ arrangementsGrid.addEventListener("toggle", event => {
 }, true);
 
 arrangementsGrid.addEventListener("change", async event => {
-    const checkbox = event.target.closest("[data-equipment-tent]");
-    if (checkbox) {
-        const arrangementId = checkbox.closest(".arrangement-equipment")?.dataset.arrangementId;
+    const tentInput = event.target.closest("[data-equipment-tent-count]");
+    if (tentInput) {
+        const count = Number(tentInput.value);
+        if (!Number.isSafeInteger(count) || count < 0) return;
+        const arrangementId = tentInput.closest(".arrangement-equipment")?.dataset.arrangementId;
         const arrangement = arrangements.find(item => item.id === arrangementId);
         if (!arrangement || !isArrangementDetailEditable(arrangement)) return;
         const equipment = cloneArrangementEquipment(arrangement.equipment);
-        const selected = new Set(equipment.tents_by_department[checkbox.dataset.department] || []);
-        if (checkbox.checked) selected.add(checkbox.value);
-        else selected.delete(checkbox.value);
-        if (selected.size) equipment.tents_by_department[checkbox.dataset.department] = [...selected];
-        else delete equipment.tents_by_department[checkbox.dataset.department];
+        const departmentTents = equipment.tents_by_department[tentInput.dataset.department] || {};
+        if (count) departmentTents[tentInput.dataset.tentType] = count;
+        else delete departmentTents[tentInput.dataset.tentType];
+        if (Object.keys(departmentTents).length) equipment.tents_by_department[tentInput.dataset.department] = departmentTents;
+        else delete equipment.tents_by_department[tentInput.dataset.department];
         try {
             await saveArrangementEquipment(arrangement, equipment);
         } catch (error) {
-            showArrangementToast(error.message || "Tältvalet kunde inte sparas.", "error");
+            showArrangementToast(error.message || "Tältantalet kunde inte sparas.", "error");
         }
         return;
     }

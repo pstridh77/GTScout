@@ -106,9 +106,13 @@
                 .filter(([department]) => departments.includes(department))
                 .map(([department, tents]) => [
                     department,
-                    [...new Set((Array.isArray(tents) ? tents : []).filter(tent => TENT_TYPES.includes(tent)))]
+                    Object.fromEntries(TENT_TYPES.map(type => {
+                        const rawCount = Array.isArray(tents) ? (tents.includes(type) ? 1 : 0) : tents?.[type];
+                        const count = Number(rawCount);
+                        return [type, Number.isSafeInteger(count) && count > 0 ? count : 0];
+                    }).filter(([, count]) => count))
                 ])
-                .filter(([, tents]) => tents.length)
+                .filter(([, tents]) => Object.keys(tents).length)
         );
         return {
             id,
@@ -170,7 +174,7 @@
             responsibilities: item.responsibilities.map(entry => ({ ...entry })),
             equipment: {
                 items: item.equipment.items.map(entry => ({ ...entry })),
-                tents_by_department: Object.fromEntries(Object.entries(item.equipment.tents_by_department).map(([department, tents]) => [department, [...tents]])),
+                tents_by_department: Object.fromEntries(Object.entries(item.equipment.tents_by_department).map(([department, tents]) => [department, { ...tents }])),
                 excluded_activity_materials: item.equipment.excluded_activity_materials.map(entry => ({ ...entry }))
             },
             planning_ref: item.planning_ref ? { ...item.planning_ref } : null

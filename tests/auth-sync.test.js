@@ -98,16 +98,16 @@ for (const signedIn of [false, true]) {
                 { id: "general-item", name: "Stormkök", quantity: 2, unit: "st.", scope: "general" },
                 { id: "agenda-item", name: "Rep", quantity: 12, unit: "m", scope: "agenda", agenda_id: "program-1" }
             ],
-            tents_by_department: { "Spårare": ["3-manna", "4-manna", "3-manna"], Rover: ["Y-Tält"] },
+            tents_by_department: { "Spårare": { "3-manna": 2, "4-manna": 1 }, Rover: ["Y-Tält"] },
             excluded_activity_materials: [{ agenda_id: "program-1", index: 1 }]
         };
         await page.window.GTScoutArrangements.save({
-            id: "equipment-test", title: "Equipment", start_date: "2026-10-09", departments: ["Spårare"],
+            id: "equipment-test", title: "Equipment", start_date: "2026-10-09", departments: ["Spårare", "Rover"],
             agenda: [{ id: "program-1", date: "2026-10-09", title: "Lägerbål" }], equipment
         });
         const expected = {
             items: equipment.items.map(({ id, name, scope, agenda_id = "" }) => ({ id, name, scope, department: "", agenda_id })),
-            tents_by_department: { "Spårare": ["3-manna", "4-manna"] },
+            tents_by_department: { "Spårare": { "3-manna": 2, "4-manna": 1 }, Rover: { "Y-Tält": 1 } },
             excluded_activity_materials: [{ agenda_id: "program-1", index: 1 }]
         };
         assert.deepEqual(JSON.parse(page.storage.get("gtscout_arrangemang"))[0].equipment, expected);
@@ -120,7 +120,7 @@ for (const signedIn of [false, true]) {
         reopened.window.GTScoutArrangements.init({ onChange() {} });
         const first = reopened.window.GTScoutArrangements.getAll()[0];
         assert.deepEqual(JSON.parse(JSON.stringify(first.equipment)), expected);
-        first.equipment.tents_by_department["Spårare"].push("Y-Tält");
+        first.equipment.tents_by_department["Spårare"]["Y-Tält"] = 1;
         first.equipment.excluded_activity_materials[0].index = 2;
         assert.deepEqual(JSON.parse(JSON.stringify(reopened.window.GTScoutArrangements.getAll()[0].equipment)), expected);
     });
@@ -133,7 +133,7 @@ test("arrangement materials sort general, department, then program groups", () =
     const context = vm.createContext({
         activities: [{ id: "activity-1", namn: "Baka", material: ["Tändstål"] }],
         departments: ["Spårare", "Upptäckare"],
-        tentTypes: [],
+        tentTypes: ["3-manna", "4-manna", "Y-Tält", "Militärtält"],
         collapsedArrangementEquipment: new Set(),
         escapeArrangementHtml: value => String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]),
         formatArrangementDate: date => date
@@ -149,7 +149,7 @@ test("arrangement materials sort general, department, then program groups", () =
             { id: "department-stove", name: "Stormkök", scope: "department", department: "Spårare" },
             { id: "department-map", name: "Karta", scope: "department", department: "Spårare" },
             { id: "agenda-rope", name: "Rep", scope: "agenda", agenda_id: "bake-point" }
-        ], tents_by_department: {}, excluded_activity_materials: [] }
+        ], tents_by_department: { "Spårare": { "3-manna": 2, "4-manna": 1 }, "Upptäckare": { "3-manna": 1 } }, excluded_activity_materials: [] }
     }, false);
     const groupTitles = [...html.matchAll(/<h5><strong>(.*?)<\/strong><span>/g)].map(match => match[1]);
     assert.deepEqual(groupTitles, ["Allmänt", "Spårare", "Programpunkter och aktiviteter"]);
@@ -157,6 +157,8 @@ test("arrangement materials sort general, department, then program groups", () =
     assert.ok(html.indexOf("Karta") < html.indexOf("Stormkök"));
     assert.ok(html.indexOf("Stormkök") < html.indexOf("Rep"));
     assert.ok(html.indexOf("Rep") < html.indexOf("Tändstål"));
+    assert.match(html, /<tfoot><tr><th scope="row">Totalt<\/th><td>3<\/td><td>1<\/td><td>4<\/td><\/tr><\/tfoot>/);
+    assert.doesNotMatch(html, /Y-Tält|Militärtält/);
 });
 
 test("arrangement participant totals include officials as leaders and only selected departments", () => {
