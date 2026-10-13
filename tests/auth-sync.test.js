@@ -397,6 +397,50 @@ test("recipe ingredients scale to arrangement counts including groups smaller th
     assert.equal(context.scaleIngredientAmount({ mangder: { "4": "1 st", "10": "10 st" } }, {}, 2), "0,5 st");
 });
 
+test("kitchen recipe packets scale repeated recipes to each meal's participant count", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "kokbok.js"), "utf8");
+    const start = source.indexOf("function parseAmount(");
+    const end = source.indexOf("function renderIngredientEditor(", start);
+    const elements = {
+        kitchenStatus: { textContent: "" },
+        kitchenRecipePages: { innerHTML: "", replaceChildren() { this.innerHTML = ""; } }
+    };
+    const recipe = {
+        id: "porridge", namn: "Havregröt", portioner: 4,
+        ingredienser_skalningar: [{ namn: "Havregryn", mangder: { "4": "400 g", "10": "1000 g", "25": "2500 g", "50": "5000 g", "100": "10000 g" } }],
+        instruktioner: "Koka upp vatten.\nRör ner grynen."
+    };
+    const context = vm.createContext({
+        RECIPE_SCALE_OPTIONS: [4, 10, 25, 50, 100],
+        isKitchenPacketView: true,
+        recipes: [recipe],
+        shoppingArrangement: {
+            title: "Hösthajk",
+            departments: ["Spårare"],
+            participants: { departments: { "Spårare": { scouts: 8, leaders: 0, parents: 0 } }, officials: 0 },
+            agenda: [
+                { kind: "meal", date: "2026-10-10", time: "08:00", title: "Frukost", recipe_ids: ["porridge", "porridge"] },
+                { kind: "meal", date: "2026-10-10", time: "18:00", title: "Kvällsmål", recipe_ids: ["porridge"], participants_override: { departments: { "Spårare": { scouts: 2, leaders: 0, parents: 0 } }, officials: 0 } }
+            ]
+        },
+        window: { GTScoutCookbook: { getSyncState: () => ({ loading: false, error: false }) } },
+        document: { getElementById(id) { return elements[id]; } }
+    });
+    loadParticipantHelpers(context);
+    context.escapeRecipeHtml = value => String(value ?? "");
+    vm.runInContext(source.slice(start, end), context);
+    context.renderKitchenPacket();
+    const html = elements.kitchenRecipePages.innerHTML;
+    assert.match(html, /Frukost/);
+    assert.match(html, /8 portioner/);
+    assert.match(html, /800 g Havregryn/);
+    assert.match(html, /Kvällsmål/);
+    assert.match(html, /2 portioner/);
+    assert.match(html, /200 g Havregryn/);
+    assert.equal((html.match(/Havregröt/g) || []).length, 2);
+    assert.match(html, /Koka upp vatten\.<br>Rör ner grynen\./);
+});
+
 test("arrangement shopping lists sum repeated meals and compatible units without duplicating recipe selections", () => {
     const source = fs.readFileSync(path.join(__dirname, "..", "js", "kokbok.js"), "utf8");
     const start = source.indexOf("function parseAmount(");

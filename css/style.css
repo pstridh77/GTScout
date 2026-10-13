@@ -178,6 +178,85 @@ body {
 .arrangement-agenda-more, .arrangement-card-no-agenda { color: #65767b; font-size: .84rem; }
 .arrangement-card-no-agenda { margin: 14px 0 0; }
 .arrangement-card-actions { display: flex; align-items: center; gap: 8px; margin-top: 0; padding-top: 14px; border-top: 1px solid #cbd5d8; }
+.arrangement-card-print { display: flex; justify-content: flex-end; margin: 10px 0; }
+.arrangement-print-menu { position: relative; }
+.arrangement-print-menu > summary { display: inline-flex; align-items: center; cursor: pointer; list-style: none; }
+.arrangement-print-menu > summary::-webkit-details-marker { display: none; }
+.arrangement-print-menu-options { position: absolute; z-index: 5; top: calc(100% + 4px); right: 0; display: grid; min-width: 230px; padding: 5px; border: 1px solid #cbd5d8; border-radius: 6px; background: #fff; box-shadow: 0 8px 22px rgba(15, 35, 40, .14); }
+.arrangement-print-menu-options button { padding: 9px 10px; border: 0; background: transparent; color: #153c4a; font: inherit; text-align: left; cursor: pointer; }
+.arrangement-print-menu-options button:hover, .arrangement-print-menu-options button:focus-visible { background: #edf4f2; }
+.arrangement-print-preview-open { overflow: hidden; }
+.arrangement-print-preview { position: fixed; z-index: 10000; inset: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; padding: 14px; background: rgba(16, 35, 39, .82); }
+.arrangement-print-preview-toolbar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; width: min(100%, 1200px); margin: 0 auto; color: #fff; }
+.arrangement-print-preview-toolbar-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
+.arrangement-print-preview-toolbar-heading > strong { min-width: 0; overflow-wrap: anywhere; }
+.arrangement-print-preview-toolbar--overview .arrangement-print-preview-toolbar-heading > strong { flex: 0 0 auto; }
+.arrangement-print-preview-toolbar-actions { display: flex; flex: 0 0 auto; gap: 8px; }
+.arrangement-print-days { width: 100%; min-width: 0; margin: 0; padding: 3px 8px 5px; border: 1px solid rgba(255,255,255,.45); border-radius: 4px; color: #fff; }
+.arrangement-print-days legend { padding: 0 4px; color: rgba(255,255,255,.8); font-size: .72rem; }
+.arrangement-print-days-options { display: flex; flex-wrap: wrap; gap: 5px; max-width: 100%; padding: 2px 0; }
+.arrangement-print-days-options label { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 5px; padding: 4px 7px; border: 1px solid rgba(255,255,255,.32); border-radius: 4px; background: rgba(255,255,255,.1); color: #fff; font-size: .75rem; white-space: nowrap; cursor: pointer; }
+.arrangement-print-days-options input { width: 14px; height: 14px; margin: 0; accent-color: #58c5a4; }
+.arrangement-print-days-options input:disabled { opacity: .65; }
+.arrangement-print-preview iframe { width: min(100%, 1200px); height: 100%; justify-self: center; border: 0; background: #fff; box-shadow: 0 6px 24px rgba(0, 0, 0, .2); }
+@media (max-width: 520px) {
+    .arrangement-print-preview { padding: 8px; }
+    .arrangement-print-preview-toolbar-heading { align-items: flex-start; flex-direction: column; }
+    .arrangement-print-preview-toolbar-actions { align-self: flex-end; }
+}
+@media print {
+    .arrangement-print-preview-open > :not(#arrangementPrintPreview) { display: none !important; }
+    .arrangement-print-preview-open #arrangementPrintPreview { position: static; display: block; padding: 0; background: #fff; }
+    .arrangement-print-preview-toolbar { display: none; }
+    .arrangement-print-preview iframe { width: 100%; height: 100vh; border: 0; box-shadow: none; }
+}
+.kitchen-packet-view .cookbook-page { max-width: 980px; margin: 28px auto; }
+.kitchen-packet-view .site-header,
+.kitchen-packet-view .page-hero,
+.kitchen-packet-view .page-sync-status,
+.kitchen-packet-view #recipeFilters,
+.kitchen-packet-view #recipeGrid,
+.kitchen-packet-view #recipeEmpty { display: none !important; }
+.kitchen-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.kitchen-heading h1 { margin: 0; color: #153c4a; font-size: 1.7rem; }
+.kitchen-recipe-card { padding: 14px 0; border-bottom: 1px solid #cbd5d8; }
+.kitchen-meal-page > header { margin: 12px 0; padding-bottom: 8px; border-bottom: 2px solid #286d60; }
+.kitchen-meal-page > header p { margin: 0 0 4px; color: #52636a; }
+.kitchen-meal-page > header h2 { margin: 0; color: #153c4a; }
+.kitchen-recipe-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.kitchen-recipe-heading h3 { margin: 0; color: #153c4a; }
+.kitchen-recipe-heading strong { color: #286d60; font-size: .88rem; }
+.kitchen-recipe-content { display: grid; grid-template-columns: minmax(220px, .8fr) minmax(0, 1.2fr); gap: 24px; }
+.kitchen-recipe-content h4 { margin: 12px 0 6px; color: #286d60; }
+.kitchen-recipe-content ul { margin: 0; padding-left: 20px; }
+.kitchen-recipe-content li { padding: 2px 0; }
+.kitchen-instructions { white-space: normal; line-height: 1.55; }
+.kitchen-warning { padding: 8px 10px; border-left: 3px solid #bc732b; background: #fff7e8; color: #61451f; }
+@media (max-width: 620px) {
+    .kitchen-recipe-content { grid-template-columns: 1fr; gap: 4px; }
+    .kitchen-recipe-heading { align-items: flex-start; flex-direction: column; gap: 3px; }
+}
+@media print {
+    body.kitchen-packet-view { background: #fff; }
+    .kitchen-packet-view .site-header,
+    .kitchen-packet-view .page-hero,
+    .kitchen-packet-view .site-footer,
+    .kitchen-packet-view #shoppingView,
+    .kitchen-packet-view #recipeFilters,
+    .kitchen-packet-view #recipeGrid,
+    .kitchen-packet-view #recipeEmpty,
+    .kitchen-packet-view #recipeSyncStatus,
+    .kitchen-packet-view .kitchen-heading button,
+    .kitchen-packet-view #kitchenStatus { display: none !important; }
+    .kitchen-packet-view .cookbook-page { max-width: none; margin: 0; padding: 0; }
+    .kitchen-packet-view #kitchenView { display: block !important; }
+    .kitchen-packet-view #kitchenRecipePages header { display: block !important; }
+    .kitchen-packet-view .kitchen-heading h1 { font-size: 20pt; }
+    .kitchen-packet-view .kitchen-meal-page { break-before: page; }
+    .kitchen-packet-view .kitchen-meal-page:first-child { break-before: auto; }
+    .kitchen-packet-view .kitchen-recipe-card { break-inside: avoid; }
+    .kitchen-packet-view .kitchen-warning { border: 1px solid #777; background: #fff; color: #222; }
+}
 .arrangement-card-sections { display: grid; gap: 0; }
 .arrangement-detail-notes { display: grid; gap: 9px; margin: 0; padding: 0; border: 0; }
 .arrangement-detail-notes > summary, .arrangement-meal-summary > summary { display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none; }

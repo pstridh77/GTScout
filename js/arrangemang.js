@@ -1186,6 +1186,7 @@ function renderArrangements() {
             : "";
         const detailsOpen = expandedArrangementIds.has(item.id);
         const cardWidth = detailsOpen && item.departments.length > 2 ? " arrangement-card--wide" : "";
+        const printActions = `<div class="arrangement-card-print"><details class="arrangement-print-menu"><summary class="btn-secondary">Skriv ut</summary><div class="arrangement-print-menu-options" role="group" aria-label="Utskriftsformat"><button type="button" data-print-arrangement="planning" data-arrangement-id="${escapeArrangementHtml(item.id)}">Planering och packning · A4</button><button type="button" data-print-arrangement="overview" data-arrangement-id="${escapeArrangementHtml(item.id)}">Schemaöversikt · A3</button><button type="button" data-print-arrangement="kitchen" data-arrangement-id="${escapeArrangementHtml(item.id)}">Recept till köket · A4</button></div></details></div>`;
         const canShare = !item.local_only && window.GTScoutArrangements?.canWrite?.();
         const deleteAction = canEditDetails
             ? `<button class="arrangement-delete-icon" type="button" data-delete-arrangement="${escapeArrangementHtml(item.id)}" aria-label="Ta bort ${escapeArrangementHtml(item.title)}" title="Ta bort arrangemang"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button>`
@@ -1211,7 +1212,7 @@ function renderArrangements() {
         const checklistHtml = renderArrangementChecklist(checklist, item.id, canEditDetails);
         const equipmentHtml = renderArrangementEquipment(item, canEditDetails);
         const timeRange = [item.start_time, item.end_time].filter(Boolean).join("–");
-        return `<details class="arrangement-card arrangement-card--${escapeArrangementHtml(item.status)}${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${statusIcon}${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}${participantSummary}</div></summary><div class="arrangement-card-details">${detailEditControl}${link}<div class="arrangement-card-sections">${participantsHtml}${notesHtml}${checklistHtml}${equipmentHtml}${mealSummaryHtml}${responsibilityHtml}${agendaHtml}</div>${actions}</div></details>`;
+        return `<details class="arrangement-card arrangement-card--${escapeArrangementHtml(item.status)}${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${statusIcon}${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}${participantSummary}</div></summary><div class="arrangement-card-details">${detailEditControl}${printActions}${link}<div class="arrangement-card-sections">${participantsHtml}${notesHtml}${checklistHtml}${equipmentHtml}${mealSummaryHtml}${responsibilityHtml}${agendaHtml}</div>${actions}</div></details>`;
     });
     const cardsByYear = new Map();
     orderedVisible.forEach((item, index) => {
@@ -2311,6 +2312,24 @@ arrangementsGrid.addEventListener("click", async event => {
 });
 
 document.getElementById("addArrangementBtn").addEventListener("click", () => openArrangementEditor());
+arrangementsGrid.addEventListener("click", event => {
+    const button = event.target.closest("[data-print-arrangement]");
+    if (!button) return;
+    event.preventDefault();
+    const arrangement = arrangements.find(item => item.id === button.dataset.arrangementId);
+    if (!arrangement) return;
+    if (button.dataset.printArrangement === "kitchen") {
+        const url = new URL("kokbok.html", window.location.href);
+        url.searchParams.set("shopping", arrangement.id);
+        url.searchParams.set("kitchen", "1");
+        const shareToken = new URLSearchParams(window.location.search).get("share");
+        if (shareToken) url.searchParams.set("share", shareToken);
+        window.location.assign(url.href);
+        return;
+    }
+    const opened = window.GTScoutArrangementPrint?.openDocument(arrangement, button.dataset.printArrangement, recipes, activities);
+    if (!opened) showArrangementToast("Tillåt popup-fönster för att öppna utskriften.", "error");
+});
 document.getElementById("arrangementSearch").addEventListener("input", renderArrangements);
 document.getElementById("arrangementStatusFilter").addEventListener("change", renderArrangements);
 document.getElementById("closeArrangementModal").addEventListener("click", () => arrangementModal.classList.add("hidden"));
