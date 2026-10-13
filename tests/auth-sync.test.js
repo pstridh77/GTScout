@@ -209,6 +209,18 @@ test("new agenda points default to one hour after their start", () => {
     assert.equal(endInput.value, "11:30");
 });
 
+test("changing an arrangement start date preserves its day span", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
+    const start = source.indexOf("function getArrangementDateSpan(");
+    const end = source.indexOf("async function openArrangementEditor(", start);
+    const context = vm.createContext({});
+    vm.runInContext(source.slice(start, end), context);
+    const duration = context.getArrangementDateSpan("2026-10-09", "2026-10-11");
+    assert.equal(duration, 2);
+    assert.equal(context.addDaysToArrangementDate("2026-10-10", duration), "2026-10-12");
+    assert.equal(context.addDaysToArrangementDate("2026-10-09", 0), "2026-10-09");
+});
+
 test("arrangement participant totals include officials as leaders and only selected departments", () => {
     const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
     const start = source.indexOf("function getParticipantTotals(");

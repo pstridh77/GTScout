@@ -1572,6 +1572,21 @@ function syncDraftAgenda() {
     draftAgenda = readAgendaFromDom();
 }
 
+function getArrangementDateSpan(startDate, endDate) {
+    const start = Date.parse(`${startDate}T00:00:00Z`);
+    const end = Date.parse(`${endDate}T00:00:00Z`);
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return 0;
+    return Math.max(0, Math.round((end - start) / 86400000));
+}
+
+function addDaysToArrangementDate(date, days) {
+    const timestamp = Date.parse(`${date}T00:00:00Z`);
+    if (!Number.isFinite(timestamp)) return date || "";
+    const result = new Date(timestamp);
+    result.setUTCDate(result.getUTCDate() + days);
+    return result.toISOString().slice(0, 10);
+}
+
 async function openArrangementEditor(item = null, focusAgendaId = "", isCopy = false) {
     await defaultRoleDefinitionsLoaded;
     const form = arrangementForm;
@@ -1583,6 +1598,7 @@ async function openArrangementEditor(item = null, focusAgendaId = "", isCopy = f
     document.getElementById("arrangementStatus").value = isCopy ? "planned" : item?.status || "planned";
     document.getElementById("arrangementStartDate").value = item?.start_date || new Date().toISOString().slice(0, 10);
     document.getElementById("arrangementEndDate").value = item?.end_date || item?.start_date || new Date().toISOString().slice(0, 10);
+    document.getElementById("arrangementStartDate").dataset.previousValue = document.getElementById("arrangementStartDate").value;
     document.getElementById("arrangementStartTime").value = item?.start_time || "";
     document.getElementById("arrangementEndTime").value = item?.end_time || "";
     document.getElementById("arrangementLocation").value = item?.location || "";
@@ -2897,9 +2913,18 @@ document.getElementById("deleteAgendaEntryBtn").addEventListener("click", async 
 
 for (const fieldId of ["arrangementStartDate", "arrangementEndDate"]) {
     document.getElementById(fieldId).addEventListener("change", () => {
+        const startDateInput = document.getElementById("arrangementStartDate");
+        const endDateInput = document.getElementById("arrangementEndDate");
+        if (fieldId === "arrangementStartDate" && startDateInput.value) {
+            const previousStartDate = startDateInput.dataset.previousValue || startDateInput.value;
+            const previousEndDate = endDateInput.value || previousStartDate;
+            const duration = getArrangementDateSpan(previousStartDate, previousEndDate);
+            endDateInput.value = addDaysToArrangementDate(startDateInput.value, duration);
+            startDateInput.dataset.previousValue = startDateInput.value;
+        }
         syncDraftAgenda();
-        const startDate = document.getElementById("arrangementStartDate").value;
-        const endDate = document.getElementById("arrangementEndDate").value || startDate;
+        const startDate = startDateInput.value;
+        const endDate = endDateInput.value || startDate;
         if (startDate && endDate >= startDate) {
             draftAgenda.forEach(entry => {
                 if (entry.date < startDate) entry.date = startDate;
