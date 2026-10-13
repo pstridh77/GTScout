@@ -157,7 +157,7 @@ test("arrangement materials sort general, department, then program groups", () =
             { id: "department-map", name: "Karta", scope: "department", department: "Spårare" },
         ], tents_by_department: { "Spårare": { "3-manna": 2, "4-manna": 1 }, "Upptäckare": { "3-manna": 1 } }, excluded_activity_materials: [] }
     }, false);
-    const groupTitles = [...html.matchAll(/<h5><strong>(.*?)<\/strong><span>/g)].map(match => match[1]);
+    const groupTitles = [...html.matchAll(/<h5><strong>(.*?)<\/strong><\/h5>/g)].map(match => match[1]);
     assert.deepEqual(groupTitles, ["Allmänt", "Spårare"]);
     assert.ok(html.indexOf("Kompass") < html.indexOf("Låda kompass"));
     assert.ok(html.indexOf("Karta") < html.indexOf("Stormkök"));
@@ -165,10 +165,12 @@ test("arrangement materials sort general, department, then program groups", () =
     const departmentStart = html.indexOf('class="arrangement-equipment-group arrangement-equipment-group--department');
     const generalMarkup = html.slice(generalStart, departmentStart);
     const departmentMarkup = html.slice(departmentStart, html.indexOf("</section>", departmentStart));
+    assert.doesNotMatch(html, /<h4>Material<\/h4>/);
+    assert.match(html, /<h4>Tält per avdelning<\/h4>/);
     assert.match(generalMarkup, /<strong>Ved<\/strong><small>Samling<\/small>/);
     assert.doesNotMatch(generalMarkup, /Rep|Tändstål/);
     assert.match(departmentMarkup, /<strong>Rep<\/strong><small>Lägerbål<\/small>/);
-    assert.match(departmentMarkup, /<strong>Tändstål<\/strong><small>Från Lägerbål · Baka · Spårare<\/small>/);
+    assert.match(departmentMarkup, /<strong>Tändstål<\/strong><small>Lägerbål<\/small>/);
     assert.match(html, /<strong>Rep<\/strong><small>Lägerbål<\/small>/);
     assert.match(html, /<strong>Spårare<\/strong><span>2 × 3-manna, 1 × 4-manna<\/span>/);
     assert.match(html, /<strong>Upptäckare<\/strong><span>1 × 3-manna<\/span>/);
@@ -183,6 +185,28 @@ test("agenda material text parses one trimmed item per line", () => {
     const context = vm.createContext({});
     vm.runInContext(source.slice(start, end), context);
     assert.deepEqual(Array.from(context.parseAgendaMaterials(" Rep \n\n Stormkök\nRep  ")), ["Rep", "Stormkök"]);
+});
+
+test("new agenda points default to one hour after their start", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
+    const start = source.indexOf("function getAgendaDefaultEndTime(");
+    const end = source.indexOf("function parseAgendaMaterials(", start);
+    const context = vm.createContext({});
+    vm.runInContext(source.slice(start, end), context);
+    assert.equal(context.getAgendaDefaultEndTime("09:15"), "10:15");
+    assert.equal(context.getAgendaDefaultEndTime("23:30"), "");
+    assert.equal(context.getAgendaDefaultEndTime(""), "");
+    const startInput = { value: "09:15" };
+    const endInput = { value: "" };
+    context.updateAgendaEndTimeFromStart(startInput, endInput, "");
+    assert.equal(endInput.value, "10:15");
+    startInput.value = "10:00";
+    context.updateAgendaEndTimeFromStart(startInput, endInput, "09:15");
+    assert.equal(endInput.value, "11:00");
+    endInput.value = "11:30";
+    startInput.value = "10:30";
+    context.updateAgendaEndTimeFromStart(startInput, endInput, "10:00");
+    assert.equal(endInput.value, "11:30");
 });
 
 test("arrangement participant totals include officials as leaders and only selected departments", () => {

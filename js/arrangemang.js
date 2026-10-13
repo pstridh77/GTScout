@@ -106,6 +106,7 @@ function collapseOpenArrangementsInYear(yearGroup) {
         collapsedArrangementNotes.add(arrangementId);
         collapsedArrangementMeals.add(arrangementId);
         collapsedArrangementChecklist.add(arrangementId);
+        collapsedArrangementEquipment.add(arrangementId);
         arrangementSchemaExpansion.delete(arrangementId);
         arrangementDayExpansion.delete(arrangementId);
     });
@@ -290,15 +291,13 @@ function renderArrangementEquipment(item, editable) {
     const renderManualMaterialRow = (entry, source = "") =>
         `<li class="arrangement-equipment-row"><span><strong>${escapeArrangementHtml(entry.name)}</strong>${source ? `<small>${escapeArrangementHtml(source)}</small>` : ""}</span>${renderRemoveButton(`data-remove-equipment="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}"`, entry.name)}</li>`;
     const renderActivityMaterialRow = entry => {
-        const targets = entry.targetDepartments.length ? ` · ${entry.targetDepartments.join(", ")}` : "";
-        const source = `Från ${entry.agendaName} · ${entry.activityName}${targets}`;
         const removeAttributes = `data-remove-activity-material="${entry.materialIndex}" data-agenda-id="${escapeArrangementHtml(entry.agendaId)}" data-arrangement-id="${escapeArrangementHtml(item.id)}"`;
-        return `<li class="arrangement-equipment-row arrangement-equipment-row--source"><span><strong>${escapeArrangementHtml(entry.name)}</strong><small>${escapeArrangementHtml(source)}</small></span>${renderRemoveButton(removeAttributes, entry.name)}</li>`;
+        return `<li class="arrangement-equipment-row arrangement-equipment-row--source"><span><strong>${escapeArrangementHtml(entry.name)}</strong><small>${escapeArrangementHtml(entry.agendaName)}</small></span>${renderRemoveButton(removeAttributes, entry.name)}</li>`;
     };
     const renderProgramMaterialRow = entry =>
         `<li class="arrangement-equipment-row"><span><strong>${escapeArrangementHtml(entry.name)}</strong><small>${escapeArrangementHtml(entry.agendaName)}</small></span></li>`;
     const renderMaterialGroup = (title, rows, groupClass = "") => rows.length
-        ? `<section class="arrangement-equipment-group ${groupClass}"><h5><strong>${escapeArrangementHtml(title)}</strong><span>${rows.length}</span></h5><ul class="arrangement-equipment-list">${rows.join("")}</ul></section>`
+        ? `<section class="arrangement-equipment-group ${groupClass}"><h5><strong>${escapeArrangementHtml(title)}</strong></h5><ul class="arrangement-equipment-list">${rows.join("")}</ul></section>`
         : "";
     const generalProgramRows = [];
     const departmentProgramRows = new Map(item.departments.map(department => [department, []]));
@@ -360,7 +359,7 @@ function renderArrangementEquipment(item, editable) {
     const materialCount = materials.length + programMaterials.length + activityMaterials.length;
     const countLabel = `${materialCount} material${selectedTentCount ? ` · ${selectedTentCount} tält` : ""}`;
     const isOpen = !collapsedArrangementEquipment.has(item.id);
-    return `<details class="arrangement-equipment" data-arrangement-id="${escapeArrangementHtml(item.id)}"${isOpen ? " open" : ""}><summary class="arrangement-section-summary"><strong>Utrustning och material</strong><span>${editable && !materialCount && !selectedTentCount ? "Lägg till" : countLabel}</span></summary><div class="arrangement-equipment-content"><h4>Material</h4>${materialList}${editor ? `<div class="arrangement-equipment-entry"><h5>Lägg till material</h5>${editor}</div>` : ""}${tentSections ? `<h4>Tält per avdelning</h4>${tentSections}` : ""}</div></details>`;
+    return `<details class="arrangement-equipment" data-arrangement-id="${escapeArrangementHtml(item.id)}"${isOpen ? " open" : ""}><summary class="arrangement-section-summary"><strong>Utrustning och material</strong><span>${editable && !materialCount && !selectedTentCount ? "Lägg till" : countLabel}</span></summary><div class="arrangement-equipment-content">${materialList}${editor ? `<div class="arrangement-equipment-entry"><h5>Lägg till material</h5>${editor}</div>` : ""}${tentSections ? `<h4>Tält per avdelning</h4>${tentSections}` : ""}</div></details>`;
 }
 
 function cloneArrangementEquipment(equipment = {}) {
@@ -1377,6 +1376,23 @@ function appendAgendaLeadersOnlyField(container, entry) {
     toggles.append(sharedChoice, label);
 }
 
+function getAgendaDefaultEndTime(time) {
+    const match = /^(\d{2}):(\d{2})$/.exec(time || "");
+    if (!match) return "";
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    if (hours > 23 || minutes > 59) return "";
+    const endMinutes = hours * 60 + minutes + 60;
+    return endMinutes < 1440 ? `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}` : "";
+}
+
+function updateAgendaEndTimeFromStart(startInput, endInput, previousStart) {
+    const previousDefaultEnd = getAgendaDefaultEndTime(previousStart);
+    if (!endInput.value || endInput.value === previousDefaultEnd) {
+        endInput.value = getAgendaDefaultEndTime(startInput.value);
+    }
+}
+
 function parseAgendaMaterials(value) {
     return [...new Set(String(value || "").split(/\r?\n/).map(name => name.trim()).filter(Boolean))];
 }
@@ -1470,6 +1486,8 @@ function renderAgendaEntryDialog(arrangement, entry, focusField = "title") {
     agendaEntryDialogFields.append(createAgendaMaterialsField(entry.materials));
     appendAgendaLeadersOnlyField(agendaEntryDialogFields, entry);
     if (entry.kind === "meal") agendaEntryDialogFields.insertAdjacentHTML("beforeend", renderMealParticipantEditor(arrangement, entry));
+    const startTimeInput = agendaEntryDialogFields.querySelector('[data-agenda-field="time"]');
+    if (startTimeInput) startTimeInput.dataset.previousValue = startTimeInput.value;
     const entryLabel = entry.kind === "meal" ? "måltid" : "programpunkt";
     document.getElementById("agendaEntryDialogTitle").textContent = activeAgendaEntryIsCopy ? `Kopiera ${entryLabel}` : activeAgendaEntryIsNew ? `Ny ${entryLabel}` : `Redigera ${entryLabel}`;
     document.getElementById("agendaEntryDialogStatus").textContent = "";
@@ -1775,6 +1793,7 @@ arrangementsGrid.addEventListener("toggle", event => {
             collapsedArrangementNotes.add(arrangementId);
             collapsedArrangementMeals.add(arrangementId);
             collapsedArrangementChecklist.add(arrangementId);
+            collapsedArrangementEquipment.add(arrangementId);
             arrangementSchemaExpansion.delete(arrangementId);
             arrangementDayExpansion.delete(arrangementId);
             day.querySelectorAll("details").forEach(section => { section.open = false; });
@@ -2172,7 +2191,7 @@ arrangementsGrid.addEventListener("click", async event => {
                 id: crypto.randomUUID(),
                 date: addAgendaButton.dataset.addAgendaDate,
                 time: addAgendaButton.dataset.addAgendaTime,
-                end_time: "",
+                end_time: getAgendaDefaultEndTime(addAgendaButton.dataset.addAgendaTime),
                 kind: "program",
                 meal_type: "",
                 source_type: "",
@@ -2566,6 +2585,12 @@ document.getElementById("participantsForm").addEventListener("submit", async eve
 
 arrangementAgendaList.addEventListener("input", event => {
     if (event.target.matches(".agenda-recipe-search")) updateMealRecipePicker(event.target.closest(".agenda-recipe-picker"));
+    if (event.target.matches('[data-agenda-field="time"]')) {
+        const row = event.target.closest(".arrangement-agenda-entry");
+        const entry = draftAgenda.find(item => item.id === row?.dataset.agendaId);
+        const endInput = row?.querySelector('[data-agenda-field="end_time"]');
+        if (endInput) updateAgendaEndTimeFromStart(event.target, endInput, entry?.time || "");
+    }
     syncDraftAgenda();
 });
 arrangementAgendaList.addEventListener("change", event => {
@@ -2803,6 +2828,11 @@ agendaEntryDialogFields.addEventListener("change", event => {
 
 agendaEntryDialogFields.addEventListener("input", event => {
     if (event.target.matches(".agenda-recipe-search")) updateMealRecipePicker(event.target.closest(".agenda-recipe-picker"));
+    if (event.target.matches('[data-agenda-field="time"]')) {
+        const endInput = agendaEntryDialogFields.querySelector('[data-agenda-field="end_time"]');
+        if (endInput) updateAgendaEndTimeFromStart(event.target, endInput, event.target.dataset.previousValue || "");
+        event.target.dataset.previousValue = event.target.value;
+    }
     if (event.target.matches("[data-participant-field]")) {
         const arrangement = arrangements.find(item => item.id === activeAgendaArrangementId);
         if (arrangement) updateMealParticipantEditor(arrangement);

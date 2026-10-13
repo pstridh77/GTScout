@@ -265,13 +265,11 @@ body {
 .arrangement-equipment-group--agenda { border-left-color: #0876a8; }
 .arrangement-equipment-group > h5 { display: flex; align-items: baseline; gap: 8px; min-width: 0; margin: 0 0 4px; color: #153c4a; font-size: .8rem; overflow-wrap: anywhere; }
 .arrangement-equipment-group > h5 > span { margin-left: auto; color: #65767b; font-size: .7rem; font-weight: 500; }
-.arrangement-equipment-list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
-.arrangement-equipment-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; padding: 4px 2px; border-bottom: 1px solid #e2e8e8; }
-.arrangement-equipment-row:last-child { border-bottom: 0; }
-.arrangement-equipment-row > span { display: grid; min-width: 0; gap: 2px; overflow-wrap: anywhere; }
-.arrangement-equipment-row strong { color: #263c42; font-size: .82rem; font-weight: 600; }
+.arrangement-equipment-list { display: grid; gap: 0; margin: 0; padding: 0 0 0 8px; list-style: none; }
+.arrangement-equipment-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; padding: 4px 2px; }
+.arrangement-equipment-row > span { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 5px; min-width: 0; overflow-wrap: anywhere; }
+.arrangement-equipment-row strong { color: #263c42; font-size: .82rem; font-weight: 400; }
 .arrangement-equipment-row small { color: #65767b; font-size: .72rem; }
-.arrangement-equipment-row--source { border-left: 2px solid #789a77; }
 .arrangement-equipment-remove { flex: 0 0 28px; width: 28px; height: 28px; border: 0; background: transparent; color: #8e4634; font-size: 1.1rem; cursor: pointer; }
 .arrangement-equipment-empty { margin: 0; color: #65767b; font-size: .82rem; }
 .arrangement-equipment-entry { display: grid; gap: 7px; padding-top: 8px; border-top: 1px solid #e2e8e8; }
