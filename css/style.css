@@ -5318,6 +5318,29 @@ select:focus {
     background: #f8fafc;
 }
 
+@media (max-width: 480px) {
+    .meeting-activity-option {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+
+    .meeting-activity-details {
+        grid-column: 2;
+    }
+
+    .meeting-activity-responsible-input {
+        grid-column: 2 / -1;
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+
+    .meeting-activity-option .activity-info-button {
+        grid-column: 3;
+        grid-row: 1;
+    }
+}
+
 .meeting-badge-picker {
     display: flex;
     flex-wrap: wrap;
