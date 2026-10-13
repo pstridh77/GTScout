@@ -180,6 +180,8 @@
         const mealColor = { background: "#d94c79", color: "#fff" };
         return pages.map((pageDates, pageIndex) => {
             const pageEntries = (arrangement.agenda || []).filter(entry => pageDates.includes(entry.date));
+            const scheduleStartMinutes = 6 * 60;
+            const scheduleEndMinutes = 23 * 60;
             const timedEntries = pageEntries.filter(entry => /^\d{2}:\d{2}$/.test(entry.time || "")).flatMap(entry => {
                 const [hours, minutes] = entry.time.split(":").map(Number);
                 const startMinutes = hours * 60 + minutes;
@@ -187,6 +189,9 @@
                     ? Number(entry.end_time.slice(0, 2)) * 60 + Number(entry.end_time.slice(3))
                     : null;
                 const endMinutes = parsedEnd !== null && parsedEnd > startMinutes ? parsedEnd : Math.min(1440, startMinutes + 60);
+                if (endMinutes <= scheduleStartMinutes || startMinutes >= scheduleEndMinutes) return [];
+                const visibleStartMinutes = Math.max(startMinutes, scheduleStartMinutes);
+                const visibleEndMinutes = Math.min(endMinutes, scheduleEndMinutes);
                 const targets = entry.leaders_only
                     ? [{ department: "Ledare", ...leadersOnlyColor }]
                     : entry.shared === false
@@ -195,7 +200,7 @@
                         return { department, ...color };
                     })
                     : [{ department: "Gemensamt", ...sharedColor }];
-                return targets.map(target => ({ entry, startMinutes, endMinutes, ...target }));
+                return targets.map(target => ({ entry, startMinutes: visibleStartMinutes, endMinutes: visibleEndMinutes, ...target }));
             });
             const mealGroups = new Map();
             if (pageDates.length > 1) {
@@ -210,10 +215,8 @@
                 entries.length === pageDates.length && new Set(entries.map(entry => entry.date)).size === pageDates.length
             );
             const recurringMealEntries = new Set(recurringMeals.flat());
-            const timeBounds = timedEntries.flatMap(event => [event.startMinutes, event.endMinutes]);
-            const startMinutes = timeBounds.length ? Math.floor(Math.min(...timeBounds) / 60) * 60 : 8 * 60;
-            let endMinutes = timeBounds.length ? Math.ceil(Math.max(...timeBounds) / 60) * 60 : 22 * 60;
-            if (endMinutes <= startMinutes) endMinutes = Math.min(1440, startMinutes + 60);
+            const startMinutes = scheduleStartMinutes;
+            const endMinutes = scheduleEndMinutes;
             const timePoints = new Set([startMinutes, endMinutes]);
             timedEntries.forEach(event => {
                 timePoints.add(event.startMinutes);
@@ -224,9 +227,15 @@
             const formatTime = minute => `${String(Math.floor(minute / 60) % 24).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`;
             const rowHeights = times.map((minute, index) => {
                 const nextMinute = times[index + 1];
-                return `${nextMinute === undefined ? 24 : Math.max(24, (nextMinute - minute) * 0.42)}px`;
+                return `${nextMinute === undefined ? 24 : nextMinute - minute}fr`;
             });
             const timeLabels = times.map((minute, index) => `<div class="overview-time-cell" style="grid-column:1;grid-row:${index + 3}">${minute % 60 === 0 || index === 0 ? escapeHtml(formatTime(minute)) : ""}</div>`).join("");
+            const hourLines = times.map((minute, index) => minute % 60 === 0 && minute !== startMinutes
+                ? `<div class="overview-hour-line" aria-hidden="true" style="grid-column:2/-1;grid-row:${index + 3}"></div>`
+                : "").join("");
+            const dayLines = pageDates.map((date, index) => index
+                ? `<div class="overview-day-line" aria-hidden="true" style="grid-column:${index + 2};grid-row:2/-1"></div>`
+                : "").join("");
             const allDayEntries = pageDates.map((date, index) => {
                 const entries = pageEntries.filter(entry => entry.date === date && !/^\d{2}:\d{2}$/.test(entry.time || ""));
                 return `<div class="overview-time-slot overview-all-day" style="grid-column:${index + 2};grid-row:2">${entries.map(entry => {
@@ -300,7 +309,7 @@
             const teams = participantLegend || `<span class="overview-team" style="--team-color:${sharedColor.background};--team-text:${sharedColor.color}">Gemensamt</span>${(arrangement.departments || []).map(department => { const color = getDepartmentColor(department, legendDepartmentColors); return `<span class="overview-team" style="--team-color:${color.background};--team-text:${color.color}">${escapeHtml(department)}</span>`; }).join("")}`;
             const legend = `<div class="overview-legend-row"><strong>Avdelningar</strong><div class="overview-legend">${teams}</div></div>`;
             const pageHeader = renderOverviewHeader(arrangement, pageIndex === 0);
-            return `<section class="overview-page${pageIndex ? " page-break" : ""}">${pageHeader}${emptyState}${legend}<div class="overview-grid" style="--overview-day-count:${pageDates.length || 1};--overview-rows:${rowHeights.join(" ")}"><div class="overview-time-heading" style="grid-column:1;grid-row:1 / 2">Tid</div>${dayHeaders}<div class="overview-time-cell overview-all-day-label" style="grid-column:1;grid-row:2">Heldag</div>${allDayEntries}${timeLabels}${eventMarkup}${mealBandMarkup}</div></section>`;
+            return `<section class="overview-page${pageIndex ? " page-break" : ""}">${pageHeader}${emptyState}${legend}<div class="overview-grid" style="--overview-day-count:${pageDates.length || 1};--overview-rows:${rowHeights.join(" ")}"><div class="overview-time-heading" style="grid-column:1;grid-row:1 / 2">Tid</div>${dayHeaders}<div class="overview-time-cell overview-all-day-label" style="grid-column:1;grid-row:2">Heldag</div>${allDayEntries}${timeLabels}${hourLines}${dayLines}${eventMarkup}${mealBandMarkup}</div></section>`;
         }).join("");
     }
 
@@ -332,13 +341,14 @@
         const frame = document.createElement("iframe");
         frame.title = `Förhandsvisning: ${title}`;
         const extraStyles = mode === "overview" ? `${overviewStyles()}.overview-grid .overview-timed-entry{display:block}.overview-grid .overview-wide-meal{display:flex;align-items:center;justify-content:center;width:auto;margin-left:0;text-align:center;z-index:1}.overview-timed-entry>strong,.overview-timed-entry>small{color:inherit}.overview-timed-entry .overview-entry-label{width:fit-content;max-width:100%;margin:0 auto 1mm;padding:1mm 1.5mm;border-radius:2mm;background:#fff;color:#123f60!important;font-size:7.5pt;line-height:1.1;text-align:center;white-space:normal;overflow-wrap:anywhere}.overview-wide-meal .overview-entry-label{background:transparent;color:#fff!important;font-size:11pt}.overview-page>.document-header h1{text-align:center;color:#123f60;font-size:22pt}.overview-page>.document-header{margin-bottom:2mm;padding-bottom:2mm}.overview-page>.document-header .eyebrow{text-align:center}.overview-legend-row{margin-bottom:2mm}` : "";
+        const guideStyles = mode === "overview" ? `.overview-page{height:279mm}.overview-grid{flex:1 1 auto;min-height:0;grid-template-rows:14mm minmax(30px,auto) var(--overview-rows);border-right:1px solid #aebfbc}.overview-grid .overview-time-cell:not(.overview-all-day-label),.overview-grid .overview-time-slot{border-bottom:0}.overview-grid .overview-all-day{border-bottom:1px solid #aebfbc}.overview-grid .overview-day-heading,.overview-grid .overview-time-slot{border-right:0}.overview-grid .overview-hour-line{height:0!important;border-top:1px solid #aebfbc!important;background:none!important;z-index:1}.overview-grid .overview-day-line{width:0!important;border-left:1px solid #aebfbc!important;background:none!important;z-index:1}` : "";
         const headerStyles = mode === "overview" ? `.overview-document-header{text-align:center;margin-bottom:2mm;padding-bottom:2mm}.overview-document-header>.eyebrow{margin-bottom:2mm;text-align:center}.overview-title-line{display:flex;align-items:baseline;justify-content:center;flex-wrap:wrap;gap:1mm 7mm;margin:0}.overview-page>.overview-document-header .overview-title-line h1{margin:0;color:#123f60;font-size:22pt}.overview-location{display:inline-flex;align-items:center;gap:2mm;color:#52636a;font-size:12pt;font-weight:600}.overview-location>span{color:#93a7a7}.overview-document-header>.description{margin-top:2mm}` : "";
         const renderFrame = () => {
             const content = mode === "overview"
                 ? renderOverviewPages(item, recipes, [...selectedDates])
                 : renderPlanningDocument(item, recipes, activities);
             preview.querySelector("[data-print-preview]").disabled = true;
-            frame.srcdoc = `<!DOCTYPE html><html lang="sv"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title><style>${documentStyles(mode)}${extraStyles}${headerStyles}</style></head><body>${content}</body></html>`;
+            frame.srcdoc = `<!DOCTYPE html><html lang="sv"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title><style>${documentStyles(mode)}${extraStyles}${headerStyles}${guideStyles}</style></head><body>${content}</body></html>`;
         };
         preview.append(frame);
         document.body.append(preview);
