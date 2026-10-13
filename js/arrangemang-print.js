@@ -238,14 +238,17 @@
                 : "").join("");
             const allDayEntries = pageDates.map((date, index) => {
                 const entries = pageEntries.filter(entry => entry.date === date && !/^\d{2}:\d{2}$/.test(entry.time || ""));
-                return `<div class="overview-time-slot overview-all-day" style="grid-column:${index + 2};grid-row:2">${entries.map(entry => {
-                    const targets = entry.leaders_only ? ["Ledare"] : entry.shared === false ? getTargetDepartments(entry, arrangement) : ["Gemensamt"];
-                    const color = entry.leaders_only
-                        ? leadersOnlyColor
-                        : entry.shared === false && targets.length
-                        ? getDepartmentColor(targets[0], departmentColors)
-                        : sharedColor;
-                    return `<article class="overview-entry" style="--event-color:${color.background};--event-text:${color.color}"><strong>${escapeHtml(entry.title || "Programpunkt")}</strong>${targets.map(escapeHtml).join(", ")}</article>`;
+                return `<div class="overview-time-slot overview-all-day" style="grid-column:${index + 2};grid-row:2">${entries.flatMap(entry => {
+                    const targetGroups = entry.leaders_only
+                        ? ["Ledare"]
+                        : entry.shared === false ? getTargetDepartments(entry, arrangement) : [];
+                    const groups = targetGroups.length ? targetGroups : [null];
+                    return groups.map(group => {
+                        const leadersOnly = entry.leaders_only || group === "Ledare";
+                        const color = leadersOnly ? leadersOnlyColor : group ? getDepartmentColor(group, departmentColors) : sharedColor;
+                        const title = `${leadersOnly ? "Ledare · " : ""}${entry.title || "Programpunkt"}`;
+                        return `<article class="overview-entry" style="--event-color:${color.background};--event-text:${color.color}"><strong class="overview-entry-label">${escapeHtml(title)}</strong></article>`;
+                    });
                 }).join("") || `<span class="overview-empty-slot" aria-hidden="true"></span>`}</div>`;
             }).join("");
             const dayHeaders = pageDates.map((date, index) => `<div class="overview-day-heading" style="grid-column:${index + 2};grid-row:1"><span>${escapeHtml(formatDate(date, { weekday: "long" }) || "")}</span><strong>${escapeHtml(formatDate(date, { day: "numeric", month: "short" }) || "Datum saknas")}</strong></div>`).join("");
@@ -340,7 +343,7 @@
         preview.innerHTML = `<div class="arrangement-print-preview-toolbar${mode === "overview" ? " arrangement-print-preview-toolbar--overview" : ""}"><div class="arrangement-print-preview-toolbar-heading"><strong>${escapeHtml(title)}</strong>${toolbarActions}</div>${dayPicker}</div>`;
         const frame = document.createElement("iframe");
         frame.title = `Förhandsvisning: ${title}`;
-        const extraStyles = mode === "overview" ? `${overviewStyles()}.overview-grid .overview-timed-entry{display:block}.overview-grid .overview-wide-meal{display:flex;align-items:center;justify-content:center;width:auto;margin-left:0;text-align:center;z-index:1}.overview-timed-entry>strong,.overview-timed-entry>small{color:inherit}.overview-timed-entry .overview-entry-label{width:fit-content;max-width:100%;margin:0 auto 1mm;padding:1mm 1.5mm;border-radius:2mm;background:#fff;color:#123f60!important;font-size:7.5pt;line-height:1.1;text-align:center;white-space:normal;overflow-wrap:anywhere}.overview-wide-meal .overview-entry-label{background:transparent;color:#fff!important;font-size:11pt}.overview-page>.document-header h1{text-align:center;color:#123f60;font-size:22pt}.overview-page>.document-header{margin-bottom:2mm;padding-bottom:2mm}.overview-page>.document-header .eyebrow{text-align:center}.overview-legend-row{margin-bottom:2mm}` : "";
+        const extraStyles = mode === "overview" ? `${overviewStyles()}.overview-grid .overview-timed-entry{display:block}.overview-grid .overview-wide-meal{display:flex;align-items:center;justify-content:center;width:auto;margin-left:0;text-align:center;z-index:1}.overview-timed-entry>strong,.overview-timed-entry>small{color:inherit}.overview-entry-label{width:fit-content;max-width:100%;margin:0 auto 1mm;padding:1mm 1.5mm;border-radius:2mm;background:#fff;color:#123f60!important;font-size:7.5pt;line-height:1.1;text-align:center;white-space:normal;overflow-wrap:anywhere}.overview-wide-meal .overview-entry-label{background:transparent;color:#fff!important;font-size:11pt}.overview-page>.document-header h1{text-align:center;color:#123f60;font-size:22pt}.overview-page>.document-header{margin-bottom:2mm;padding-bottom:2mm}.overview-page>.document-header .eyebrow{text-align:center}.overview-legend-row{margin-bottom:2mm}` : "";
         const guideStyles = mode === "overview" ? `.overview-page{height:279mm}.overview-grid{flex:1 1 auto;min-height:0;grid-template-rows:14mm minmax(30px,auto) var(--overview-rows);border-right:1px solid #aebfbc}.overview-grid .overview-time-cell:not(.overview-all-day-label),.overview-grid .overview-time-slot{border-bottom:0}.overview-grid .overview-all-day{border-bottom:1px solid #aebfbc}.overview-grid .overview-day-heading,.overview-grid .overview-time-slot{border-right:0}.overview-grid .overview-hour-line{height:0!important;border-top:1px solid #aebfbc!important;background:none!important;z-index:1}.overview-grid .overview-day-line{width:0!important;border-left:1px solid #aebfbc!important;background:none!important;z-index:1}` : "";
         const headerStyles = mode === "overview" ? `.overview-document-header{text-align:center;margin-bottom:2mm;padding-bottom:2mm}.overview-document-header>.eyebrow{margin-bottom:2mm;text-align:center}.overview-title-line{display:flex;align-items:baseline;justify-content:center;flex-wrap:wrap;gap:1mm 7mm;margin:0}.overview-page>.overview-document-header .overview-title-line h1{margin:0;color:#123f60;font-size:22pt}.overview-location{display:inline-flex;align-items:center;gap:2mm;color:#52636a;font-size:12pt;font-weight:600}.overview-location>span{color:#93a7a7}.overview-document-header>.description{margin-top:2mm}` : "";
         const renderFrame = () => {

@@ -753,17 +753,21 @@ function renderArrangementScheduleOverview(item, selectedDepartments, canEditAge
         });
         assignClusterLanes();
 
-        const allDayEntries = entriesForDate.filter(entry => !isTime(entry.time)).map(entry => {
-            const targetLabel = entry.shared !== false
-                ? "Gemensamt"
-                : selectedDepartments.filter(department => entry.departments.includes(department)).join(", ");
-            const targetDepartment = selectedDepartments.find(department => entry.departments.includes(department));
-            const tone = entry.shared !== false || !targetDepartment ? "arrangement-schedule-item--shared"
-                : `department-tone-${departments.indexOf(targetDepartment)}`;
+        const allDayEntries = entriesForDate.filter(entry => !isTime(entry.time)).flatMap(entry => {
+            const targetDepartments = entry.shared === false
+                ? selectedDepartments.filter(department => entry.departments.includes(department))
+                : [];
+            const groups = targetDepartments.length ? targetDepartments : [null];
             const editAttributes = canEditAgenda
                 ? `data-edit-agenda="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}" aria-label="Redigera programpunkt: ${escapeArrangementHtml(entry.title)}"`
                 : `data-view-agenda="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}" aria-label="Visa programpunkt: ${escapeArrangementHtml(entry.title)}" title="Visa programpunktsdetaljer"`;
-            return `<button type="button" class="arrangement-overview-all-day-item ${tone}" ${editAttributes}><strong>${escapeArrangementHtml(entry.title)}</strong><span>${escapeArrangementHtml(targetLabel)}</span></button>`;
+            return groups.map(department => {
+                const targetLabel = department || (entry.shared !== false ? "Gemensamt" : "");
+                const tone = department
+                    ? `department-tone-${departments.indexOf(department)}`
+                    : "arrangement-schedule-item--shared";
+                return `<button type="button" class="arrangement-overview-all-day-item ${tone}" ${editAttributes}><strong>${escapeArrangementHtml(entry.title)}</strong><span>${escapeArrangementHtml(targetLabel)}</span></button>`;
+            });
         }).join("");
         return { events, allDayEntries };
     });
