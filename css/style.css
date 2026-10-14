@@ -3695,6 +3695,9 @@ select:focus {
     transition: background 0.15s;
 }
 
+.print-group-btn svg { transform: scale(1.5); }
+.share-group-btn svg { transform: scale(1.5); }
+
 .btn-secondary:hover { background: #c5d8f6; }
 
 .meeting-series-open-btn {
