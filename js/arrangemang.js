@@ -1238,6 +1238,16 @@ function renderArrangements() {
         const editArrangementButton = actions?.querySelector("[data-edit-arrangement]");
         const summaryActions = document.createElement("div");
         summaryActions.className = "arrangement-summary-actions";
+        const printMenu = card.querySelector(".arrangement-card-print");
+        const printTrigger = printMenu?.querySelector(".arrangement-print-menu > summary");
+        if (printTrigger) {
+            printTrigger.className = "btn-secondary arrangement-print-icon";
+            printTrigger.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,3H6V7H18M19,8H5A3,3 0,0 0 2,11V17H6V21H18V17H22V11A3,3 0,0 0 19,8M16,19H8V14H16M19,13A1,1 0,1 1 20,12A1,1 0,0 1 19,13Z" /></svg>';
+            printTrigger.setAttribute("aria-label", `Skriv ut ${card.querySelector(".arrangement-card-summary h2")?.textContent || "arrangemanget"}`);
+            printTrigger.title = "Skriv ut";
+            printTrigger.addEventListener("click", event => event.stopPropagation());
+            summaryActions.append(printMenu);
+        }
         const shareButton = actions?.querySelector("[data-share-arrangement]");
         if (shareButton) summaryActions.append(shareButton.cloneNode(true));
         if (editControl) summaryActions.append(editControl.cloneNode(true));
@@ -2320,6 +2330,7 @@ arrangementsGrid.addEventListener("click", event => {
     const button = event.target.closest("[data-print-arrangement]");
     if (!button) return;
     event.preventDefault();
+    event.stopPropagation();
     const arrangement = arrangements.find(item => item.id === button.dataset.arrangementId);
     if (!arrangement) return;
     if (button.dataset.printArrangement === "kitchen") {
