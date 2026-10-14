@@ -1249,8 +1249,14 @@ function renderArrangements() {
             summaryActions.append(printMenu);
         }
         const shareButton = actions?.querySelector("[data-share-arrangement]");
-        if (shareButton) summaryActions.append(shareButton.cloneNode(true));
-        if (editControl) summaryActions.append(editControl.cloneNode(true));
+        if (shareButton) {
+            summaryActions.append(shareButton.cloneNode(true));
+            shareButton.remove();
+        }
+        if (editControl) {
+            summaryActions.append(editControl.cloneNode(true));
+            editControl.remove();
+        }
         if (editArrangementButton) {
             if (editUnlocked) {
                 editArrangementButton.className = "btn-secondary arrangement-edit-details-icon";
@@ -1263,6 +1269,14 @@ function renderArrangements() {
             }
         }
         if (summaryActions.childElementCount) card.querySelector(".arrangement-card-summary-title")?.append(summaryActions);
+        const summaryLock = summaryActions.querySelector(".arrangement-detail-edit-control");
+        if (summaryLock) {
+            const stickyLock = summaryLock.cloneNode(true);
+            stickyLock.classList.add("arrangement-sticky-lock", "hidden");
+            stickyLock.setAttribute("aria-hidden", "true");
+            stickyLock.querySelector("button")?.setAttribute("tabindex", "-1");
+            card.append(stickyLock);
+        }
     });
 
     arrangementsEmpty.classList.toggle("hidden", visible.length > 0);
@@ -1272,7 +1286,40 @@ function renderArrangements() {
             ? "Det delade arrangemanget kunde inte visas. Kontrollera att länken fortfarande är aktiv."
             : arrangements.length ? "Inga arrangemang matchar filtreringen." : "Inga arrangemang ännu. Skapa ett för att börja planera.";
     }
+    updateStickyArrangementLocks();
 }
+
+function updateStickyArrangementLocks() {
+    arrangementsGrid.querySelectorAll(".arrangement-card").forEach(card => {
+        const summary = card.querySelector(":scope > .arrangement-card-summary");
+        const originalLock = card.querySelector(".arrangement-summary-actions .arrangement-detail-edit-control");
+        const stickyLock = card.querySelector(":scope > .arrangement-sticky-lock");
+        if (!summary || !originalLock || !stickyLock || !card.open) {
+            stickyLock?.classList.add("hidden");
+            stickyLock?.setAttribute("aria-hidden", "true");
+            return;
+        }
+        const yearSummary = card.closest(".arrangement-year-group")?.querySelector(":scope > .arrangement-year-summary");
+        const yearTop = yearSummary ? Number.parseFloat(getComputedStyle(yearSummary).top) || 0 : 0;
+        const stickyTop = yearSummary ? yearTop + yearSummary.getBoundingClientRect().height + 8 : yearTop;
+        const originalLockRect = originalLock.getBoundingClientRect();
+        const shouldStick = originalLockRect.top <= stickyTop
+            && card.getBoundingClientRect().bottom > stickyTop + originalLock.offsetHeight;
+        if (!shouldStick) {
+            stickyLock.classList.add("hidden");
+            stickyLock.setAttribute("aria-hidden", "true");
+            return;
+        }
+        stickyLock.style.left = `${originalLockRect.left}px`;
+        stickyLock.style.top = `${stickyTop}px`;
+        stickyLock.classList.remove("hidden");
+        stickyLock.setAttribute("aria-hidden", "false");
+        stickyLock.querySelector("button")?.removeAttribute("tabindex");
+    });
+}
+
+window.addEventListener("scroll", updateStickyArrangementLocks, { passive: true });
+window.addEventListener("resize", updateStickyArrangementLocks);
 
 function getPlanningOptions() {
     try {
@@ -1830,6 +1877,7 @@ arrangementsGrid.addEventListener("toggle", event => {
             day.querySelectorAll("details").forEach(section => { section.open = false; });
         }
         day.classList.toggle("arrangement-card--wide", day.open && Number(day.dataset.departmentCount) > 2);
+        updateStickyArrangementLocks();
         if (!day.open) renderArrangements();
         return;
     }

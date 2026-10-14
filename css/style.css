@@ -147,6 +147,7 @@ body {
 .arrangement-card-location span { overflow-wrap: anywhere; }
 .arrangement-card-summary .arrangement-participant-tags { grid-area: tags; justify-content: flex-end; margin: 0; }
 .arrangement-card-details { padding: 0 18px 18px; border-top: 1px solid #e2e8e8; }
+.arrangement-sticky-lock { position: fixed; z-index: 9; }
 .arrangement-summary-actions { display: flex; align-items: center; align-self: center; gap: 8px; margin-left: auto; }
 .arrangement-summary-actions .arrangement-card-print { margin: 0; }
 .arrangement-summary-actions .arrangement-print-menu > summary { justify-content: center; width: 36px; height: 36px; padding: 0; }
