@@ -63,7 +63,6 @@ const arrangementDetailEditModes = new Set();
 const collapseAllArrangementButtons = document.querySelectorAll('[data-collapse-all="arrangements"]');
 let draftResponsibilities = [];
 let draftEquipment = { items: [], tents_by_department: {} };
-let planningOptions = [];
 const departments = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover", "Ledare"];
 const tentTypes = ["3-manna", "4-manna", "Y-Tält", "Militärtält"];
 const scheduleSnapMinutes = 15;
@@ -1163,7 +1162,7 @@ function renderArrangements() {
         const agendaHtml = renderArrangementSchedule(item);
         const participantsHtml = renderArrangementParticipants(item, canEditDetails);
         const mealSummaryHtml = renderArrangementMealSummary(item, canEditDetails);
-        const link = item.planning_ref?.name ? `<p class="arrangement-card-planning">Planering: ${escapeArrangementHtml(item.planning_ref.name)}</p>` : "";
+        const link = "";
         const lockAction = canEditDetails ? "Lås redigering" : "Lås upp för redigering";
         const lockIcon = canEditDetails
             ? `<path fill="currentColor" d="M18 8h-1V6a5 5 0 0 0-9.9-1h2.05A3 3 0 0 1 15 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2Zm-6 11a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z"/>`
@@ -1320,22 +1319,6 @@ function updateStickyArrangementLocks() {
 
 window.addEventListener("scroll", updateStickyArrangementLocks, { passive: true });
 window.addEventListener("resize", updateStickyArrangementLocks);
-
-function getPlanningOptions() {
-    try {
-        const stored = JSON.parse(localStorage.getItem("gtscout_planering") || "[]");
-        return Array.isArray(stored) ? stored.filter(item => item?.id && item?.name).map(item => ({ id: String(item.id), name: String(item.name) })) : [];
-    } catch {
-        return [];
-    }
-}
-
-function populatePlanningOptions(selectedId = "") {
-    planningOptions = getPlanningOptions();
-    const select = document.getElementById("arrangementPlanningRef");
-    select.innerHTML = `<option value="">Ingen koppling</option>${planningOptions.map(item => `<option value="${escapeArrangementHtml(item.id)}">${escapeArrangementHtml(item.name)}</option>`).join("")}`;
-    select.value = planningOptions.some(item => item.id === selectedId) ? selectedId : "";
-}
 
 function getCatalogOptions(kind, selectedSourceType = "", selectedSourceId = "", fallbackTitle = "") {
     const catalog = kind === "meal" ? recipes.map(item => ({ sourceType: "recipe", id: String(item.id), name: String(item.namn || "") }))
@@ -1674,7 +1657,6 @@ async function openArrangementEditor(item = null, focusAgendaId = "", isCopy = f
         departments: Object.fromEntries(Object.entries(item?.participants?.departments || {}).map(([department, counts]) => [department, { ...counts }])),
         officials: item?.participants?.officials ?? null
     };
-    populatePlanningOptions(item?.planning_ref?.id || "");
     draftResponsibilities = (item?.responsibilities || []).map(entry => {
         const roleDescription = entry.role_description || getRoleDefinition(entry.role)?.description || "";
         return { ...entry, id: isCopy ? crypto.randomUUID() : entry.id, role_description: roleDescription, description: entry.description || roleDescription };
@@ -1740,8 +1722,6 @@ function updateSyncStatus() {
 }
 
 function readFormPayload() {
-    const planningId = document.getElementById("arrangementPlanningRef").value;
-    const planning = planningOptions.find(item => item.id === planningId);
     return {
         id: arrangementForm.dataset.arrangementId || crypto.randomUUID(),
         title: document.getElementById("arrangementTitle").value.trim(),
@@ -1756,7 +1736,6 @@ function readFormPayload() {
         departments: getSelectedArrangementDepartments(),
         participants: draftParticipants,
         participant_days: draftParticipantDays,
-        planning_ref: planning ? { id: planning.id, name: planning.name } : null,
         agenda: readAgendaFromDom(),
         responsibilities: readResponsibilitiesFromDom(),
         equipment: draftEquipment,

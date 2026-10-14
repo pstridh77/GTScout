@@ -137,10 +137,6 @@
             departments,
             participants,
             participant_days: participantDays,
-            planning_ref: item.planning_ref && typeof item.planning_ref === "object" ? {
-                id: String(item.planning_ref.id || ""),
-                name: String(item.planning_ref.name || "")
-            } : null,
             agenda: agendaWithMaterials,
             checklist,
             responsibilities,
@@ -186,7 +182,6 @@
                 tents_by_department: Object.fromEntries(Object.entries(item.equipment.tents_by_department).map(([department, tents]) => [department, { ...tents }])),
                 excluded_activity_materials: item.equipment.excluded_activity_materials.map(entry => ({ ...entry }))
             },
-            planning_ref: item.planning_ref ? { ...item.planning_ref } : null
         }));
     }
 
