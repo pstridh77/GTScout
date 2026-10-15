@@ -174,6 +174,11 @@ body {
 .arrangement-status--planned { border-color: #9ac9dc; background: #e4f3f8; color: #075b7b; }
 .arrangement-status--completed { border-color: #9bc7a7; background: #e6f3e9; color: #246038; }
 .arrangement-status--cancelled { border-color: #ddb0a6; background: #f9eae7; color: #8e352a; }
+.arrangement-experience-button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 26px; width: 26px; height: 26px; padding: 3px; border: 1px solid #9bc7a7; border-radius: 50%; background: #f4faf5; color: #246038; cursor: pointer; }
+.arrangement-experience-button svg { width: 18px; height: 18px; }
+.arrangement-experience-button:hover { background: #e6f3e9; }
+.arrangement-experience-button:focus-visible { outline: 2px solid #4d8275; outline-offset: 2px; }
+.arrangement-experience-dialog-body { margin: 12px 0 0; color: #263c42; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 .arrangement-card-dates { margin: 14px 0 4px; color: #153c4a; font-weight: 700; }
 .arrangement-card-location, .arrangement-card-planning { margin: 5px 0; color: #52636a; font-size: .88rem; }
 .arrangement-card-agenda { display: grid; gap: 7px; margin: 15px 0 0; padding: 12px 0 0; border-top: 1px solid #e2e8e8; list-style: none; }

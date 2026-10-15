@@ -36,6 +36,7 @@ let agendaEntryDialogTrigger = null;
 let agendaEntryDetailTrigger = null;
 let agendaEntryDetailItem = null;
 let agendaEntryDetailEntry = null;
+let experienceDialogTrigger = null;
 let activeResponsibilityArrangementId = "";
 let activeResponsibilityId = "";
 let responsibilityDialogTrigger = null;
@@ -1198,6 +1199,7 @@ function renderArrangements() {
             ? `<div class="arrangement-card-actions"><button class="btn-secondary" type="button" data-edit-arrangement="${escapeArrangementHtml(item.id)}">Redigera</button><button class="btn-secondary" type="button" data-copy-arrangement="${escapeArrangementHtml(item.id)}">Kopiera</button>${canShare ? `<button class="btn-secondary share-arrangement-btn" type="button" data-share-arrangement="${escapeArrangementHtml(item.id)}" aria-label="Dela arrangemang" title="Dela arrangemang"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,16.08C17.24,16.08 16.54,16.38 16,16.85L8.91,12.74C8.96,12.5 9,12.25 8.91,11.26L15.92,7.17C16.47,7.66 17.2,7.97 18,7.97C19.66,7.97 21,6.63 21,4.97C21,3.31 19.66,1.97 18,1.97C16.34,1.97 15,3.31 15,4.97C15,5.22 15.04,5.47 15.09,5.71L8.08,9.8C7.53,9.31 6.8,9 6,9C4.34,9 3,10.34 3,12C3,13.66 4.34,15 6,15C6.8,15 7.53,14.69 8.08,14.2L15.17,18.31C15.12,18.54 15,18.77 15,19C15,20.66 16.34,22 18,22C19.66,22 21,20.66 21,19C21,17.34 19.66,16.08 18,16.08Z"/></svg></button>` : ""}${deleteAction}</div>`
             : "";
         const notes = String(item.notes || "").trim();
+        const experience = String(item.experience || item.after_notes || "").trim();
         const checklist = item.checklist || [];
         const description = String(item.description || "").trim();
         const statusIcon = item.status === "completed"
@@ -1215,7 +1217,10 @@ function renderArrangements() {
         const checklistHtml = renderArrangementChecklist(checklist, item.id, canEditDetails);
         const equipmentHtml = renderArrangementEquipment(item, canEditDetails);
         const timeRange = [item.start_time, item.end_time].filter(Boolean).join("–");
-        return `<details class="arrangement-card arrangement-card--${escapeArrangementHtml(item.status)}${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${statusIcon}${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span></div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}${participantSummary}</div></summary><div class="arrangement-card-details">${detailEditControl}${printActions}${link}<div class="arrangement-card-sections">${participantsHtml}${notesHtml}${checklistHtml}${equipmentHtml}${mealSummaryHtml}${responsibilityHtml}${agendaHtml}</div>${actions}</div></details>`;
+        const experienceButton = item.status === "completed" && experience
+            ? `<button class="arrangement-experience-button" type="button" data-show-experience="${escapeArrangementHtml(item.id)}" aria-label="Visa erfarenheter för ${escapeArrangementHtml(item.title)}" title="Visa erfarenheter"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 15h-2v-6h2v6Zm0-8h-2V7h2v2Z"/></svg></button>`
+            : "";
+        return `<details class="arrangement-card arrangement-card--${escapeArrangementHtml(item.status)}${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${statusIcon}${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span>${experienceButton}</div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}${participantSummary}</div></summary><div class="arrangement-card-details">${detailEditControl}${printActions}${link}<div class="arrangement-card-sections">${participantsHtml}${notesHtml}${checklistHtml}${equipmentHtml}${mealSummaryHtml}${responsibilityHtml}${agendaHtml}</div>${actions}</div></details>`;
     });
     const cardsByYear = new Map();
     orderedVisible.forEach((item, index) => {
@@ -2374,6 +2379,28 @@ arrangementsGrid.addEventListener("click", event => {
 });
 document.getElementById("arrangementSearch").addEventListener("input", renderArrangements);
 document.getElementById("arrangementStatusFilter").addEventListener("change", renderArrangements);
+arrangementsGrid.addEventListener("click", event => {
+    const button = event.target.closest("[data-show-experience]");
+    if (!button) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const arrangement = arrangements.find(item => item.id === button.dataset.showExperience);
+    if (!arrangement) return;
+    experienceDialogTrigger = button;
+    document.getElementById("arrangementExperienceDialogTitle").textContent = `Erfarenheter: ${arrangement.title}`;
+    document.getElementById("arrangementExperienceDialogBody").textContent = String(arrangement.experience || arrangement.after_notes || "").trim();
+    document.getElementById("arrangementExperienceModal").classList.remove("hidden");
+    document.getElementById("closeArrangementExperienceModal").focus();
+});
+const arrangementExperienceModal = document.getElementById("arrangementExperienceModal");
+function closeArrangementExperienceDialog() {
+    arrangementExperienceModal.classList.add("hidden");
+    if (experienceDialogTrigger?.isConnected) experienceDialogTrigger.focus();
+}
+document.getElementById("closeArrangementExperienceModal").addEventListener("click", closeArrangementExperienceDialog);
+arrangementExperienceModal.addEventListener("click", event => {
+    if (event.target === arrangementExperienceModal) closeArrangementExperienceDialog();
+});
 document.getElementById("closeArrangementModal").addEventListener("click", () => arrangementModal.classList.add("hidden"));
 document.getElementById("cancelArrangementBtn").addEventListener("click", () => arrangementModal.classList.add("hidden"));
 arrangementModal.addEventListener("click", event => {
@@ -2492,7 +2519,10 @@ document.getElementById("agendaEntryDetailBody").addEventListener("click", event
 });
 document.addEventListener("keydown", event => {
     if (event.key !== "Escape") return;
-    if (!agendaEntryDetailModal.classList.contains("hidden")) {
+    if (!arrangementExperienceModal.classList.contains("hidden")) {
+        event.preventDefault();
+        closeArrangementExperienceDialog();
+    } else if (!agendaEntryDetailModal.classList.contains("hidden")) {
         event.preventDefault();
         closeAgendaEntryDetail();
     } else if (!arrangementNotesModal.classList.contains("hidden")) {
