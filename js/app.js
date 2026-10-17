@@ -162,6 +162,29 @@ if (siteMenuBtn && siteMenuDropdown) {
     });
 }
 
+const showSiteQrBtn = document.getElementById("showSiteQrBtn");
+const siteQrDialog = document.getElementById("siteQrDialog");
+const closeSiteQrDialog = document.getElementById("closeSiteQrDialog");
+function closeSiteQrModal() {
+    siteQrDialog?.close();
+    window.setTimeout(() => siteMenuBtn?.focus(), 100);
+}
+
+showSiteQrBtn?.addEventListener("click", () => {
+    siteMenuDropdown?.classList.add("hidden");
+    siteMenuBtn?.setAttribute("aria-expanded", "false");
+    siteQrDialog?.showModal();
+    closeSiteQrDialog?.focus();
+});
+closeSiteQrDialog?.addEventListener("click", closeSiteQrModal);
+siteQrDialog?.addEventListener("click", event => {
+    if (event.target === siteQrDialog) closeSiteQrModal();
+});
+siteQrDialog?.addEventListener("cancel", event => {
+    event.preventDefault();
+    closeSiteQrModal();
+});
+
 targetGroupDropdownBtn?.addEventListener("click", event => {
     event.stopPropagation();
     const isOpen = !targetGroupDropdownMenu.classList.contains("hidden");

@@ -59,6 +59,7 @@
                     <div class="planning-menu-divider" role="separator"></div>
                     <details class="site-menu-section">
                         <summary class="planning-menu-section-label">Funktioner</summary>
+                        <a href="utvecklingstrappa.html" class="site-menu-item" role="menuitem">Utvecklingstrappa</a>
                         <button class="planning-menu-item hidden" type="button" role="menuitem" data-create-custom-badge>Skapa märke</button>
                         <button class="planning-menu-item hidden" type="button" role="menuitem" data-admin-panel>Administration</button>
                     </details>
@@ -67,6 +68,7 @@
                         <summary class="planning-menu-section-label">Visa</summary>
                         <button id="targetGroupViewBtn" class="planning-menu-item planning-toggle-item" type="button" role="menuitem" aria-pressed="false"><span>Målgruppsvy</span><span class="planning-toggle-status" aria-hidden="true"></span></button>
                         <button class="planning-menu-item category-collapse-menu-item" type="button" role="menuitem" data-category-collapse-toggle aria-expanded="true">Fäll ihop kategorier</button>
+                        <button id="showSiteQrBtn" class="planning-menu-item" type="button" role="menuitem">Dela...</button>
                     </details>
                     <div class="planning-menu-divider" role="separator"></div>
                     <div class="site-menu-environment-note database-environment"></div>
@@ -150,6 +152,13 @@
             <span id="databaseEnvironment" class="database-environment"></span>
         </div>
     </footer>
+
+    <dialog id="siteQrDialog" class="site-qr-dialog" aria-labelledby="siteQrDialogTitle">
+        <button id="closeSiteQrDialog" class="close-popup" type="button" aria-label="Stäng QR-kod">&times;</button>
+        <h2 id="siteQrDialogTitle">QR-kod till sidan</h2>
+        <img src="images/qrcode_pstridh77.github.io.png" alt="QR-kod som leder till pstridh77.github.io">
+        <p>pstridh77.github.io</p>
+    </dialog>
 
     <script src="js/admin.js"></script>
     <script src="js/activities-sync.js"></script>
