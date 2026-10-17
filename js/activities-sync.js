@@ -15,6 +15,7 @@
     let badgeLinks = [];
     let loaded = false;
     let loadError = false;
+    let loadErrorDetails = "";
     let loadPromise = null;
     const listeners = new Set();
 
@@ -61,6 +62,27 @@
             badge_id: String(link?.badge_id || "").trim(),
             activity_id: String(link?.activity_id || "").trim()
         };
+    }
+
+    function formatErrorPart(value) {
+        if (value === undefined || value === null || value === "") return "";
+        return String(value).replace(/\s+/g, " ").trim().slice(0, 240);
+    }
+
+    function withDatabaseError(operation, error) {
+        if (error?.syncOperation) return error;
+        const status = error?.status ?? error?.statusCode;
+        const parts = [operation, `tid=${new Date().toISOString()}`];
+        if (error?.code) parts.push(`kod=${formatErrorPart(error.code)}`);
+        parts.push(status === undefined ? "HTTP-status saknas" : `HTTP=${formatErrorPart(status)}`);
+        for (const [label, value] of [["fel", error?.message], ["detaljer", error?.details], ["hint", error?.hint]]) {
+            const part = formatErrorPart(value);
+            if (part) parts.push(`${label}=${part}`);
+        }
+        const diagnosed = new Error(parts.join(" | "));
+        diagnosed.name = error?.name || "DatabaseError";
+        diagnosed.syncOperation = operation;
+        return diagnosed;
     }
 
     function readLocalActivities() {
@@ -116,6 +138,7 @@
         const state = {
             loaded,
             error: loadError,
+            errorDetails: loadErrorDetails,
             activities: activities.map(item => ({ ...item })),
             badgeLinks: badgeLinks.map(item => ({ ...item }))
         };
@@ -161,6 +184,7 @@
 
     async function reload() {
         loadError = false;
+        loadErrorDetails = "";
         if (!client()) {
             activities = readLocalActivities();
             badgeLinks = readLocalBadgeLinks();
@@ -198,14 +222,21 @@
                 client()
                     .from("aktiviteter")
                     .select("id, namn, kategori, beskrivning, tid, material, genomforande, kar_id, kar:kar_id(namn)")
-                    .order("namn"),
+                    .order("namn")
+                    .then(result => {
+                        if (result.error) throw withDatabaseError("aktiviteter.select", result.error);
+                        return result;
+                    })
+                    .catch(error => { throw withDatabaseError("aktiviteter.select", error); }),
                 client()
                     .from("badge_activities")
                     .select("kar_id, badge_id, activity_id")
+                    .then(result => {
+                        if (result.error) throw withDatabaseError("badge_activities.select", result.error);
+                        return result;
+                    })
+                    .catch(error => { throw withDatabaseError("badge_activities.select", error); })
             ]);
-
-            if (activitiesResult.error) throw activitiesResult.error;
-            if (linksResult.error) throw linksResult.error;
 
             const dbActivities = (activitiesResult.data || []).map(row => normalizeActivity({
                 ...row,
@@ -226,7 +257,9 @@
             writeLocalBadgeLinks(badgeLinks);
         } catch (error) {
             loadError = true;
-            console.error("Kunde inte hämta aktiviteter från databasen", error);
+            const diagnosed = withDatabaseError(error?.syncOperation || "aktiviteter.load", error);
+            loadErrorDetails = diagnosed.message;
+            console.error("Kunde inte hämta aktiviteter från databasen", { diagnostic: diagnosed.message, error });
             activities = readLocalActivities();
             badgeLinks = readLocalBadgeLinks();
         }
@@ -303,21 +336,28 @@
         if (!canWrite()) return normalized;
         if (!client()) return normalized;
 
-        const { error } = await client().from("aktiviteter").upsert({
-            id: normalized.id,
-            kar_id: normalized.kar_id,
-            created_by: auth()?.getUser()?.id || null,
-            namn: normalized.namn,
-            kategori: normalized.kategori || null,
-            beskrivning: normalized.beskrivning || null,
-            tid: normalized.tid || null,
-            material: normalized.material,
-            genomforande: normalized.genomforande || null
-        }, { onConflict: "id" });
-
-        if (error) {
-            console.error("Kunde inte spara aktivitet i databasen", error);
-            throw error;
+        let result;
+        try {
+            result = await client().from("aktiviteter").upsert({
+                id: normalized.id,
+                kar_id: normalized.kar_id,
+                created_by: auth()?.getUser()?.id || null,
+                namn: normalized.namn,
+                kategori: normalized.kategori || null,
+                beskrivning: normalized.beskrivning || null,
+                tid: normalized.tid || null,
+                material: normalized.material,
+                genomforande: normalized.genomforande || null
+            }, { onConflict: "id" });
+        } catch (error) {
+            const diagnosed = withDatabaseError("aktiviteter.upsert", error);
+            console.error("Kunde inte spara aktivitet i databasen", { diagnostic: diagnosed.message, error });
+            throw diagnosed;
+        }
+        if (result.error) {
+            const diagnosed = withDatabaseError("aktiviteter.upsert", result.error);
+            console.error("Kunde inte spara aktivitet i databasen", { diagnostic: diagnosed.message, error: result.error });
+            throw diagnosed;
         }
 
         await reload();

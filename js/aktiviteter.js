@@ -22,6 +22,7 @@
     let detailId = null;
     let loaded = false;
     let loadFailed = false;
+    let loadErrorDetails = "";
     let saving = false;
 
     const deleteIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z"/></svg>';
@@ -64,7 +65,7 @@
     function updateStatus() {
         if (auth.getState().loading) return setStatus("Kontrollerar inloggning...");
         if (!loaded) return setStatus("Hämtar aktiviteter...");
-        if (loadFailed) return setStatus("Kunde inte hämta från databasen – använder lokal data.", true);
+        if (loadFailed) return setStatus(`Kunde inte hämta från databasen – använder lokal data. ${loadErrorDetails}`, true);
         if (!auth.isOnline()) return setStatus("Aktiviteter sparas lokalt i den här webbläsaren.");
         if (sync.canWrite()) return setStatus(`Synkad med databasen (${activities.length} aktiviteter)`);
         setStatus(`Aktivitetsbiblioteket visas (${activities.length} st) – egna aktiviteter sparas lokalt.`);
@@ -264,6 +265,7 @@
         activities = state.activities;
         loaded = state.loaded;
         loadFailed = Boolean(state.error);
+        loadErrorDetails = state.errorDetails || "";
         populateFilters();
         renderActivities();
         updateStatus();

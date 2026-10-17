@@ -866,14 +866,39 @@ test("activity sync reports a failed fetch while preserving its local fallback",
     const page = createPage(backend, new Map([["gtscout_custom_activities", JSON.stringify([cached])]]));
     await page.auth.init();
     await page.runTimers();
-    backend.pending = { table: "aktiviteter", promise: Promise.resolve({ error: { message: "Simulated fetch failure" } }) };
+    backend.pending = { table: "aktiviteter", promise: Promise.resolve({ error: {
+        code: "42501", status: 403, message: "Simulated fetch failure", details: "Policy denied", hint: "Check RLS"
+    } }) };
     page.load("activities-sync.js");
     let lastState;
     page.window.GTScoutActivities.init({ onChange(state) { lastState = state; } });
     await page.window.GTScoutActivities.ensureLoaded();
     assert.equal(lastState.loaded, true);
     assert.equal(lastState.error, true);
+    assert.match(lastState.errorDetails, /aktiviteter\.select.*kod=42501.*HTTP=403.*Policy denied.*Check RLS/);
     assert.equal(lastState.activities[0].namn, "Cached activity");
+});
+
+test("activity save error includes operation and database diagnostics", async () => {
+    const backend = createBackend();
+    const page = createPage(backend);
+    await page.auth.init();
+    await page.runTimers();
+    page.load("activities-sync.js");
+    const sync = page.window.GTScoutActivities;
+    await sync.ensureLoaded();
+    backend.pending = { table: "aktiviteter", promise: Promise.resolve({ error: {
+        code: "23505", status: 409, message: "Duplicate key", details: "Key already exists", hint: "Use a unique id"
+    } }) };
+
+    await assert.rejects(sync.saveActivity({ id: "activity-1", namn: "Test" }), error => {
+        assert.match(error.message, /aktiviteter\.upsert/);
+        assert.match(error.message, /kod=23505/);
+        assert.match(error.message, /HTTP=409/);
+        assert.match(error.message, /Duplicate key.*Key already exists.*Use a unique id/);
+        assert.match(error.message, /tid=\d{4}-\d{2}-\d{2}T/);
+        return true;
+    });
 });
 
 for (const fails of [false, true]) {
@@ -1143,6 +1168,42 @@ test("auth UI shows local mode immediately when Supabase is not configured", asy
     assert.equal(status.textContent, "Gäst (lokalt läge)");
     assert.equal(environment.textContent, "Lokalt läge");
     assert.equal(button.classList.contains("hidden"), true);
+});
+
+test("planning sync exposes details for a failed database load", async () => {
+    const backend = createBackend();
+    const page = createPage(backend);
+    const status = createElement();
+    page.elements.set("planningSyncStatus", status);
+    backend.pending = { table: "planeringar", promise: Promise.resolve({ error: {
+        code: "42501", status: 403, message: "Load Error", details: "Policy denied", hint: "Check select policy"
+    } }) };
+    page.load("planering-sync.js");
+    page.window.GTScoutPlanningSync.init({ getGroups: () => [], applyGroups() {} });
+    await page.auth.init();
+    await page.runTimers();
+
+    assert.match(status.textContent, /planeringar\.select.*kod=42501.*HTTP=403.*Load Error.*Policy denied.*Check select policy/);
+});
+
+test("planning save status includes the failed database operation and diagnostics", async () => {
+    const backend = createBackend();
+    const page = createPage(backend);
+    const status = createElement();
+    page.elements.set("planningSyncStatus", status);
+    page.load("planering-sync.js");
+    page.window.GTScoutPlanningSync.init({ getGroups: () => [], applyGroups() {} });
+    await page.auth.init();
+    await page.runTimers();
+    backend.pending = { table: "planeringar", promise: Promise.resolve({ error: {
+        code: "42501", status: 403, message: "Write denied", details: "Policy denied", hint: "Check update policy"
+    } }) };
+
+    page.window.GTScoutPlanningSync.scheduleSave([{ id: "planning-1", name: "Test" }]);
+    await page.runTimers();
+
+    assert.match(status.textContent, /planeringar\.upsert.*kod=42501.*HTTP=403.*Write denied.*Policy denied.*Check update policy/);
+    assert.match(status.textContent, /ändringarna finns kvar lokalt/);
 });
 
 test("planning finishes loading while INITIAL_SESSION revalidates the same profile", async () => {

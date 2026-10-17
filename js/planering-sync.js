@@ -38,6 +38,27 @@
         el.classList.toggle("detail-note-warning", !isError && /lokalt|lokal data|den här webbläsaren/i.test(text || ""));
     }
 
+    function formatErrorPart(value) {
+        if (value === undefined || value === null || value === "") return "";
+        return String(value).replace(/\s+/g, " ").trim().slice(0, 240);
+    }
+
+    function withDatabaseError(operation, error) {
+        if (error?.syncOperation) return error;
+        const status = error?.status ?? error?.statusCode;
+        const parts = [operation, `tid=${new Date().toISOString()}`];
+        if (error?.code) parts.push(`kod=${formatErrorPart(error.code)}`);
+        parts.push(status === undefined ? "HTTP-status saknas" : `HTTP=${formatErrorPart(status)}`);
+        for (const [label, value] of [["fel", error?.message], ["detaljer", error?.details], ["hint", error?.hint]]) {
+            const part = formatErrorPart(value);
+            if (part) parts.push(`${label}=${part}`);
+        }
+        const diagnosed = new Error(parts.join(" | "));
+        diagnosed.name = error?.name || "DatabaseError";
+        diagnosed.syncOperation = operation;
+        return diagnosed;
+    }
+
     function toRow(group) {
         return {
             id: group.id,
@@ -54,11 +75,17 @@
     }
 
     async function fetchGroups() {
-        const { data, error } = await client()
-            .from("planeringar")
-            .select("id, created_by, data, visibility, share_token")
-            .eq("kar_id", karId());
-        if (error) throw error;
+        let result;
+        try {
+            result = await client()
+                .from("planeringar")
+                .select("id, created_by, data, visibility, share_token")
+                .eq("kar_id", karId());
+        } catch (error) {
+            throw withDatabaseError("planeringar.select", error);
+        }
+        if (result.error) throw withDatabaseError("planeringar.select", result.error);
+        const { data } = result;
         return (data || [])
             .map(row => (row.data && typeof row.data === "object" ? { ...row.data, id: row.id, created_by: row.created_by || null, share_token: row.share_token || row.data.share_token || null, visibility: row.visibility || row.data.visibility || "kar_edit" } : null))
             .filter(Boolean);
@@ -76,8 +103,13 @@
         // utesluts så att upsert inte stöter på RLS-fel för dem.
         const rows = groups.filter(group => group?.id && canWriteRow(group)).map(toRow);
         if (rows.length) {
-            const { error } = await client().from("planeringar").upsert(rows, { onConflict: "id" });
-            if (error) throw error;
+            let result;
+            try {
+                result = await client().from("planeringar").upsert(rows, { onConflict: "id" });
+            } catch (error) {
+                throw withDatabaseError("planeringar.upsert", error);
+            }
+            if (result.error) throw withDatabaseError("planeringar.upsert", result.error);
         }
 
         const keepIds = rows.map(row => row.id);
@@ -90,8 +122,13 @@
         if (keepIds.length) {
             deleteQuery = deleteQuery.not("id", "in", `(${keepIds.join(",")})`);
         }
-        const { error: deleteError } = await deleteQuery;
-        if (deleteError) throw deleteError;
+        let deleteResult;
+        try {
+            deleteResult = await deleteQuery;
+        } catch (error) {
+            throw withDatabaseError("planeringar.delete", error);
+        }
+        if (deleteResult.error) throw withDatabaseError("planeringar.delete", deleteResult.error);
     }
 
     async function flush() {
@@ -105,8 +142,9 @@
             await pushGroups(groups);
             setStatus("Sparat i databasen", false);
         } catch (error) {
-            console.error("Kunde inte spara planeringar till databasen", error);
-            setStatus("Kunde inte spara till databasen – ändringarna finns kvar lokalt.", true);
+            const diagnosed = withDatabaseError("planeringar.save", error);
+            console.error("Kunde inte spara planeringar till databasen", { diagnostic: diagnosed.message, error });
+            setStatus(`Kunde inte spara till databasen – ändringarna finns kvar lokalt. ${diagnosed.message}`, true);
         }
     }
 
@@ -189,8 +227,9 @@
             setStatus(`Synkad med databasen (${remote.length} planeringar)`, false);
         } catch (error) {
             if (revision !== loadRevision || !canRead()) return;
-            console.error("Kunde inte hämta planeringar från databasen", error);
-            setStatus("Kunde inte hämta från databasen – använder lokal data.", true);
+            const diagnosed = withDatabaseError("planeringar.load", error);
+            console.error("Kunde inte hämta planeringar från databasen", { diagnostic: diagnosed.message, error });
+            setStatus(`Kunde inte hämta från databasen – använder lokal data. ${diagnosed.message}`, true);
         }
     }
 
