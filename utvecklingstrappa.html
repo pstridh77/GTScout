@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Utvecklingstrappa – GTScout</title>
+    <link rel="icon" type="image/png" href="images/icons/klattra_everest.png">
+    <link rel="shortcut icon" type="image/png" href="images/marken/klattra_everest.png">
+    <link rel="apple-touch-icon" href="images/marken/klattra_everest.png">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/supabase-config.js"></script>
+    <script src="js/supabase-config.local.js"></script>
+    <script src="js/auth.js"></script>
+</head>
+<body>
+    <header class="site-header site-header--library">
+        <div class="utility-bar">
+            <span class="utility-spacer" aria-hidden="true"></span>
+            <nav class="utility-nav" aria-label="Externa länkar">
+                <a href="https://www.scouterna.se/" target="_blank" rel="noreferrer">Scouterna</a>
+                <a href="https://www.scoutnet.se/" target="_blank" rel="noreferrer">Scoutnet</a>
+                <a href="https://www.scoutshop.se/" target="_blank" rel="noreferrer">Scoutshop</a>
+            </nav>
+            <div id="authArea" class="auth-area"></div>
+            <script>window.GTScoutAuth?.renderPreview();</script>
+        </div>
+        <div class="header-main">
+            <a class="site-brand" href="index.html" aria-label="Gullbrandstorps scoutkår">
+                <img src="images/icons/GTorp_banner.png" alt="Gullbrandstorps Scoutkår" class="site-brand-banner">
+            </a>
+            <nav class="main-nav" aria-label="Huvudnavigation">
+                <a href="index.html" class="nav-link">Märken</a>
+                <a href="aktiviteter.html" class="nav-link">Aktiviteter</a>
+                <a href="planering.html" class="nav-link">Planering</a>
+                <a href="arrangemang.html" class="nav-link">Arrangemang</a>
+                <a href="kokbok.html" class="nav-link">Scoutrecept</a>
+            </nav>
+            <div class="library-header-actions">
+                <button id="filtersVisibilityToggle" class="filters-visibility-toggle" type="button" aria-label="Dölj mallval" aria-pressed="true" aria-expanded="true" aria-controls="developmentLadderControls" title="Dölj mallval">
+                    <span class="filters-visibility-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M3 5h18l-7 8v5l-4 2v-7L3 5z"/></svg></span>
+                </button>
+                <div class="planning-actions-menu">
+                    <button id="planningActionsBtn" class="header-menu-button" type="button" aria-label="Meny" aria-expanded="false" aria-controls="planningActionsDropdown" title="Meny">
+                        <span></span><span></span><span></span>
+                    </button>
+                    <div id="planningActionsDropdown" class="planning-actions-dropdown hidden" role="menu">
+                        <details class="site-menu-section" open>
+                            <summary class="planning-menu-section-label">Navigering</summary>
+                            <a href="index.html" class="site-menu-item" role="menuitem">Märken</a>
+                            <a href="aktiviteter.html" class="site-menu-item" role="menuitem">Aktiviteter</a>
+                            <a href="planering.html" class="site-menu-item" role="menuitem">Planering</a>
+                            <a href="arrangemang.html" class="site-menu-item" role="menuitem">Arrangemang</a>
+                            <a href="kokbok.html" class="site-menu-item" role="menuitem">Scoutrecept</a>
+                        </details>
+                        <div class="site-menu-environment-note database-environment"></div>
+                        <div class="site-menu-version-note"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="development-ladder-page">
+        <section class="page-hero development-ladder-hero" aria-labelledby="developmentLadderTitle">
+            <div>
+                <p class="page-kicker">Familjescouter · Spårare · Upptäckare · Äventyrare · Utmanare · Rover</p>
+                <h1 id="developmentLadderTitle">Utvecklingstrappan</h1>
+                <p>Se hur märkena följer med från de första upptäckterna till rover. Ordningen visas enligt vald standardplanering.</p>
+            </div>
+        </section>
+
+        <div class="development-ladder-content">
+        <section id="developmentLadderControls" class="development-ladder-toolbar filters" data-page-filters aria-label="Välj standardplanering">
+            <label class="filter-field">
+                <span>Standardplanering</span>
+                <select id="developmentTemplateSelect" aria-label="Välj standardplanering"></select>
+            </label>
+            <p id="developmentLadderSummary" class="development-ladder-summary" aria-live="polite"></p>
+        </section>
+        <p id="developmentLadderStatus" class="development-ladder-status" role="status" aria-live="polite">Hämtar standardplaneringar…</p>
+        <div id="developmentLadder" class="development-ladder" aria-live="polite"></div>
+        </div>
+    </main>
+
+    <dialog id="developmentBadgeDialog" class="development-badge-dialog" aria-labelledby="developmentBadgeTitle">
+        <button id="closeDevelopmentBadgeDialog" class="close-popup" type="button" aria-label="Stäng märkesinformation">&times;</button>
+        <div class="popup-body"><div id="developmentBadgeDetails"></div></div>
+    </dialog>
+
+    <footer class="site-footer" aria-label="Sidfot och version">
+        <div class="site-footer-content">
+            <span class="site-footer-title">GTScout</span><span class="site-footer-dot" aria-hidden="true">•</span>
+            <span class="site-footer-version"></span><span class="site-footer-dot" aria-hidden="true">•</span>
+            <span class="site-footer-build"></span><span class="site-footer-dot" aria-hidden="true">•</span>
+            <span id="databaseEnvironment" class="database-environment"></span>
+        </div>
+    </footer>
+    <script src="js/version.js"></script>
+    <script src="js/header-controls.js"></script>
+    <script src="js/development-ladder.js"></script>
+</body>
+</html>
