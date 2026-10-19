@@ -215,6 +215,22 @@
         </div>
     </div>
 
+    <div id="planningArrangementPickerModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="planningArrangementPickerTitle">
+        <div class="modal-content modal-content--wide">
+            <button class="close-popup" type="button" id="closePlanningArrangementPicker" aria-label="Stäng">&times;</button>
+            <h2 id="planningArrangementPickerTitle">Koppla arrangemang till terminen</h2>
+            <label class="filter-field planning-arrangement-search">
+                <span>Sök arrangemang</span>
+                <input id="planningArrangementSearch" type="search" placeholder="Namn, plats eller avdelning">
+            </label>
+            <div id="planningArrangementPickerList" class="planning-arrangement-picker-list"></div>
+            <div class="modal-actions">
+                <button id="cancelPlanningArrangementPicker" class="btn-secondary" type="button">Avbryt</button>
+                <button id="savePlanningArrangementSelection" class="btn-primary" type="button">Spara kopplingar</button>
+            </div>
+        </div>
+    </div>
+
     <div id="editActivitiesModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="editActivitiesTitle">
         <div class="modal-content modal-content--wide">
             <button class="close-popup" type="button" id="closeEditActivitiesModal" aria-label="Stäng">&times;</button>
@@ -247,10 +263,10 @@
                 </label>
             </fieldset>
             <div id="meetingPrintSelection">
-                <p class="pdf-selection-intro">Välj planering och markera de möten som ska skrivas ut.</p>
+                <p class="pdf-selection-intro">Välj planering och markera möten och arrangemang som ska skrivas ut.</p>
                 <label class="filter-field pdf-selection-filter">
                     <span>Planering</span>
-                    <select id="meetingPlanningSelect" aria-label="Välj planering för mötesutskrift"></select>
+                    <select id="meetingPlanningSelect" aria-label="Välj planering för utskrift"></select>
                 </label>
                 <p id="meetingPrintAvailability" class="detail-note-warning hidden" aria-live="polite"></p>
                 <div id="meetingSelectionList" class="pdf-selection-list"></div>
@@ -493,6 +509,8 @@
     <script src="js/admin.js"></script>
     <script src="js/activities-sync.js"></script>
     <script src="js/badges-sync.js"></script>
+    <script src="js/participants.js"></script>
+    <script src="js/arrangemang-sync.js"></script>
     <script src="js/planering-sync.js"></script>
     <script src="js/notes-sync.js"></script>
     <script src="js/version.js"></script>
