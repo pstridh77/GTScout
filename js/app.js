@@ -193,8 +193,27 @@ targetGroupDropdownBtn?.addEventListener("click", event => {
 });
 
 const targetGroupViewBtn = document.getElementById("targetGroupViewBtn");
+const STANDARD_PLANNING_BADGES_STORAGE_KEY = "gtscout_show_standard_planning_badges";
+const standardPlanningBadgeIds = new Set();
+const standardPlanningBadgesBtn = document.getElementById("standardPlanningBadgesBtn");
+let showStandardPlanningBadges = getStoredBoolean(STANDARD_PLANNING_BADGES_STORAGE_KEY, false);
 let showMissingBadges = getStoredBoolean(SHOW_MISSING_BADGES_STORAGE_KEY, false);
 let badgeStacksExpanded = getStoredBoolean(EXPANDED_BADGES_STORAGE_KEY, true);
+standardPlanningBadgesBtn?.addEventListener("click", () => {
+    showStandardPlanningBadges = !showStandardPlanningBadges;
+    localStorage.setItem(STANDARD_PLANNING_BADGES_STORAGE_KEY, String(showStandardPlanningBadges));
+    expandedBadgeStacks.clear();
+    updateStandardPlanningBadgesToggle();
+    updateTargetGroupViewToggle();
+    renderMarken(allMarken);
+});
+
+function updateStandardPlanningBadgesToggle() {
+    if (!standardPlanningBadgesBtn) return;
+    standardPlanningBadgesBtn.setAttribute("aria-pressed", String(showStandardPlanningBadges));
+    standardPlanningBadgesBtn.querySelector(".planning-toggle-status").textContent = showStandardPlanningBadges ? "✓" : "";
+}
+
 targetGroupViewBtn?.addEventListener("click", () => {
     const targetGroupViewEnabled = !(showMissingBadges && !badgeStacksExpanded);
     showMissingBadges = targetGroupViewEnabled;
@@ -208,11 +227,16 @@ targetGroupViewBtn?.addEventListener("click", () => {
 
 function updateTargetGroupViewToggle() {
     if (!targetGroupViewBtn) return;
-    const targetGroupViewEnabled = showMissingBadges && !badgeStacksExpanded;
+    const targetGroupViewEnabled = showStandardPlanningBadges || (showMissingBadges && !badgeStacksExpanded);
     targetGroupViewBtn.setAttribute("aria-pressed", String(targetGroupViewEnabled));
+    targetGroupViewBtn.disabled = showStandardPlanningBadges;
+    targetGroupViewBtn.title = showStandardPlanningBadges
+        ? "Målgruppsvyn används alltid för standardplaneringens märken"
+        : "";
     targetGroupViewBtn.querySelector(".planning-toggle-status").textContent = targetGroupViewEnabled ? "✓" : "";
 }
 
+updateStandardPlanningBadgesToggle();
 updateTargetGroupViewToggle();
 
 let baseMarken = [];
@@ -255,11 +279,30 @@ const filters = {
 
 async function loadMarken() {
     try {
-        const markenResponse = await fetch("data/marken.json");
-        if (!markenResponse.ok) {
-            throw new Error("Datafiler kunde inte laddas");
+        const [markenResponse, planningResponse] = await Promise.all([
+            fetch("data/marken.json"),
+            fetch("data/default-planeringar.json")
+        ]);
+        if (!markenResponse.ok || !planningResponse.ok) {
+            throw new Error("Märkeskatalogen eller standardplaneringarna kunde inte hämtas.");
         }
-        const marken = await markenResponse.json();
+        const [marken, planningTemplates] = await Promise.all([
+            markenResponse.json(),
+            planningResponse.json()
+        ]);
+        if (!Array.isArray(planningTemplates) || planningTemplates.length === 0) {
+            throw new Error("Standardplaneringarna har ett ogiltigt format.");
+        }
+        standardPlanningBadgeIds.clear();
+        planningTemplates.forEach(template => {
+            (Array.isArray(template.plannings) ? template.plannings : []).forEach(level => {
+                (Array.isArray(level.plans) ? level.plans : []).forEach(plan => {
+                    (Array.isArray(plan.badges) ? plan.badges : []).forEach(badgeId => {
+                        if (badgeId) standardPlanningBadgeIds.add(String(badgeId));
+                    });
+                });
+            });
+        });
         await Promise.all([
             window.GTScoutActivities?.ensureLoaded?.(),
             sharedBadgeIdFromUrl
@@ -276,7 +319,7 @@ async function loadMarken() {
         console.error("Failed to load marken.json", error);
         const details = document.getElementById("details");
         if (details) {
-            details.innerHTML = "<p>Data kunde inte laddas. Kontrollera filen data/marken.json och kör sidan via en webserver.</p>";
+            details.innerHTML = "<p>Märkeskatalogen eller standardplaneringarna kunde inte laddas. Kontrollera att båda datafilerna går att hämta.</p>";
         }
     }
 }
@@ -707,6 +750,7 @@ function getFilteredMarken() {
     const searchTerm = filters.search.trim().toLowerCase();
 
     return allMarken.filter(marke => {
+        const matchesStandardPlanning = !showStandardPlanningBadges || standardPlanningBadgeIds.has(String(marke.id));
         const matchesCategory = filters.category === "Alla" || (marke.kategori || "Övrigt") === filters.category;
         const matchesTargetGroup = filters.targetGroup.includes("Alla") || getTargetGroups(marke).some(group => filters.targetGroup.includes(group));
         const badgePrograms = Array.isArray(marke.program) ? marke.program : [marke.program || "Båda"];
@@ -715,7 +759,7 @@ function getFilteredMarken() {
         const matchesType = filters.type === "Alla" || markeType === filters.type;
 
         if (!searchTerm && filters.type === "Alla") {
-            return matchesCategory && matchesTargetGroup && matchesProgram && matchesType;
+            return matchesStandardPlanning && matchesCategory && matchesTargetGroup && matchesProgram && matchesType;
         }
 
         const searchableText = [
@@ -731,7 +775,7 @@ function getFilteredMarken() {
             .toLowerCase();
 
         const matchesSearch = searchableText.includes(searchTerm);
-        return matchesCategory && matchesTargetGroup && matchesProgram && matchesType && (searchTerm ? matchesSearch : true);
+        return matchesStandardPlanning && matchesCategory && matchesTargetGroup && matchesProgram && matchesType && (searchTerm ? matchesSearch : true);
     });
 }
 
@@ -739,7 +783,7 @@ function renderMarken(marken) {
     allMarken = marken;
     populateFilters(marken);
     updateFilterCount();
-    const targetGroupViewEnabled = showMissingBadges && !badgeStacksExpanded;
+    const targetGroupViewEnabled = showStandardPlanningBadges || (showMissingBadges && !badgeStacksExpanded);
     grid.classList.toggle("target-group-view", targetGroupViewEnabled);
 
     const filteredMarken = getFilteredMarken();
@@ -819,11 +863,12 @@ function renderMarken(marken) {
             const groupItems = groupedByTargetGroup[targetGroup] || [];
             const stackKey = `${category}::${targetGroup}`;
             const stackExpanded = targetGroupViewEnabled && expandedBadgeStacks.has(stackKey);
-            const categoryHasTargetGroup = allMarken
-                .filter(marke => (marke.kategori || "Övrigt") === category)
+            const categoryHasTargetGroup = (showStandardPlanningBadges ? categories[category] : allMarken
+                .filter(marke => (marke.kategori || "Övrigt") === category))
                 .some(marke => getTargetGroups(marke).includes(targetGroup));
             const targetGroupIsFilteredOut = !filters.targetGroup.includes("Alla") && !filters.targetGroup.includes(targetGroup);
-            if (showMissingBadges && !categoryHasTargetGroup && !targetGroupIsFilteredOut) {
+            if (((showMissingBadges && !categoryHasTargetGroup) || (showStandardPlanningBadges && groupItems.length === 0))
+                && !targetGroupIsFilteredOut) {
                 groupItems.push({
                     isEmptyBadge: true,
                     malgrupp: [targetGroup]
