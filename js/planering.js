@@ -2473,16 +2473,56 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
     });
 
     document.querySelectorAll(".planned-arrangement-responsible-input").forEach(input => {
+        const editor = input.closest(".planned-arrangement-responsible");
+        const editButton = editor.querySelector(".planned-arrangement-responsible-edit");
+        const display = editor.querySelector(".planned-arrangement-responsible-value");
+        const closeEditor = () => {
+            input.hidden = true;
+            editButton.hidden = false;
+            editButton.setAttribute("aria-expanded", "false");
+            display.hidden = false;
+        };
+
+        editButton.addEventListener("click", event => {
+            event.stopPropagation();
+            input.hidden = false;
+            editButton.hidden = true;
+            editButton.setAttribute("aria-expanded", "true");
+            display.hidden = true;
+            input.focus();
+            input.select();
+        });
         input.addEventListener("change", () => {
             const group = groups.find(item => item.id === input.dataset.groupId);
-            if (!group || !canEditGroup(group)) return;
+            if (!group || !canEditGroup(group)) {
+                closeEditor();
+                return;
+            }
             const links = normalizePlanningArrangementLinks(group.arrangements);
             const link = links.find(item => item.id === input.dataset.arrangementId);
-            if (!link) return;
+            if (!link) {
+                closeEditor();
+                return;
+            }
             link.responsible = input.value.trim();
             group.arrangements = links;
+            display.textContent = link.responsible || "Ej angiven";
             saveGroups();
+            closeEditor();
         });
+        input.addEventListener("keydown", event => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                input.blur();
+            } else if (event.key === "Escape") {
+                const group = groups.find(item => item.id === input.dataset.groupId);
+                const link = normalizePlanningArrangementLinks(group?.arrangements)
+                    .find(item => item.id === input.dataset.arrangementId);
+                input.value = link?.responsible || "";
+                closeEditor();
+            }
+        });
+        input.addEventListener("blur", closeEditor);
     });
 
     document.querySelectorAll(".edit-meeting-btn, .view-meeting-btn").forEach(btn => {
@@ -2559,7 +2599,7 @@ function renderPlanningArrangementSection(group, editable) {
         const status = arrangement?.status || link.status;
         const responsible = link.responsible || "";
         const responsibleMarkup = editable
-            ? `<label class="planned-arrangement-responsible"><span>Ansvarig</span><input class="planned-arrangement-responsible-input" type="text" data-group-id="${escapeHtml(group.id)}" data-arrangement-id="${escapeHtml(link.id)}" value="${escapeHtml(responsible)}" placeholder="Namn" aria-label="Ansvarig för ${escapeHtml(details.title || "arrangemanget")}"></label>`
+            ? `<div class="planned-arrangement-responsible"><span class="planned-arrangement-responsible-label">Ansvarig:</span><span class="planned-arrangement-responsible-value">${escapeHtml(responsible || "Ej angiven")}</span><button class="btn-secondary planned-arrangement-responsible-edit" type="button" aria-label="Redigera ansvarig för ${escapeHtml(details.title || "arrangemanget")}" title="Redigera ansvarig" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/></svg></button><input class="planned-arrangement-responsible-input" type="text" data-group-id="${escapeHtml(group.id)}" data-arrangement-id="${escapeHtml(link.id)}" value="${escapeHtml(responsible)}" placeholder="Namn" aria-label="Ansvarig för ${escapeHtml(details.title || "arrangemanget")}" hidden></div>`
             : responsible ? `<small class="planned-arrangement-responsible-readonly"><strong>Ansvarig:</strong> ${escapeHtml(responsible)}</small>` : "";
         return `<article class="planned-arrangement${arrangement ? "" : " planned-arrangement--missing"}" data-arrangement-id="${escapeHtml(link.id)}"><div class="planned-arrangement-main"><span class="planned-arrangement-label">${arrangement ? "Arrangemang" : "Arrangemang saknas, kanske blivit borttaget"}</span><strong>${escapeHtml(details.title || `Arrangemang (${details.id})`)}</strong><small>${escapeHtml(getPlanningArrangementDateLabel(details))}${details.location ? ` · ${escapeHtml(details.location)}` : ""}</small>${details.departments.length ? `<div class="planned-arrangement-departments">${details.departments.map(department => `<span class="arrangement-department-tag department-tone-${ARRANGEMENT_DEPARTMENTS.indexOf(department)}">${escapeHtml(department)}</span>`).join("")}</div>` : ""}${responsibleMarkup}</div><span class="planned-arrangement-status planned-arrangement-status--${escapeHtml(status)}">${status === "completed" ? "Genomfört" : status === "cancelled" ? "Inställt" : "Planerat"}</span><button class="remove-planning-arrangement-btn" type="button" data-group-id="${escapeHtml(group.id)}" data-arrangement-id="${escapeHtml(link.id)}" aria-label="Ta bort kopplingen till ${escapeHtml(details.title || "arrangemanget")}" title="Ta bort från planeringen"${editable ? "" : " disabled"}>&times;</button></article>`;
     }).join("") : `<p class="group-empty">Inga arrangemang kopplade till terminen.</p>`}</div></details>`;
