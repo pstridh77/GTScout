@@ -12,12 +12,14 @@
     const ladder = document.getElementById("developmentLadder");
     const summary = document.getElementById("developmentLadderSummary");
     const status = document.getElementById("developmentLadderStatus");
+    const viewButtons = [...document.querySelectorAll("[data-development-view]")];
     const badgeDialog = document.getElementById("developmentBadgeDialog");
     const badgeDialogContent = document.getElementById("developmentBadgeDetails");
     const closeBadgeDialogButton = document.getElementById("closeDevelopmentBadgeDialog");
     let templates = [];
     let badgesById = new Map();
     let badgeDialogTrigger = null;
+    let viewMode = "overview";
 
     function escapeHtml(value) {
         return String(value ?? "").replace(/[&<>"']/g, character => ({
@@ -105,16 +107,70 @@
         return `<section class="development-level" aria-labelledby="developmentLevel${index}">${heading}<div class="development-years">${yearMarkup}</div></section>`;
     }
 
+    function renderOverview(templateLevels) {
+        const indexedLevels = LEVELS.map(level => {
+            const plans = templateLevels.get(level)?.plans || [];
+            const badgesByTerm = new Map();
+            plans.forEach(plan => {
+                const position = parsePlan(plan);
+                if (!position) return;
+                const key = `${position.year}-${position.term}`;
+                if (!badgesByTerm.has(key)) badgesByTerm.set(key, []);
+                badgesByTerm.get(key).push(...(Array.isArray(plan.badges) ? plan.badges : []));
+            });
+            return { level, badgesByTerm };
+        });
+        const maxYear = Math.max(0, ...indexedLevels.flatMap(({ badgesByTerm }) =>
+            [...badgesByTerm.keys()].map(key => Number(key.split("-")[0]))
+        ));
+        const headers = indexedLevels.map(({ level }) => {
+            const icon = LEVEL_ICONS[level];
+            return `<th class="development-overview-group" data-target-group="${escapeHtml(level)}" scope="col">${icon ? `<img src="${escapeHtml(icon)}" alt="">` : ""}<span>${escapeHtml(level)}</span></th>`;
+        }).join("");
+        const rows = [];
+
+        for (let year = 1; year <= maxYear; year += 1) {
+            ["HT", "VT"].forEach((term, termIndex) => {
+                const termLabel = term === "HT" ? "Hösttermin · HT" : "Vårtermin · VT";
+                const cells = indexedLevels.map(({ level, badgesByTerm }) => {
+                    const badgeIds = badgesByTerm.get(`${year}-${term}`) || [];
+                    const badges = badgeIds.map(badgeId => {
+                        const badge = badgesById.get(badgeId);
+                        if (!badge) return `<span class="development-overview-missing" title="Märket ${escapeHtml(badgeId)} saknas i märkeskatalogen">${escapeHtml(badgeId)}</span>`;
+                        return `<button class="development-overview-badge" type="button" data-badge-id="${escapeHtml(badge.id)}" title="${escapeHtml(badge.namn)}" aria-label="Visa information om ${escapeHtml(badge.namn)}, målgrupp ${escapeHtml(level)}"><img src="${escapeHtml(badge.bild || "")}" alt="" loading="lazy"></button>`;
+                    }).join("");
+                    return `<td data-target-group="${escapeHtml(level)}"><div class="development-overview-cell">${badges}</div></td>`;
+                }).join("");
+                rows.push(`<tr>${termIndex === 0 ? `<th class="development-overview-year" scope="rowgroup" rowspan="2">År ${year}</th>` : ""}<th class="development-overview-term" scope="row" data-term="${term}">${termLabel}</th>${cells}</tr>`);
+            });
+        }
+
+        return `<div class="development-overview-scroll"><table class="development-overview-table"><caption>Märken per målgrupp, år och termin</caption><thead><tr><th class="development-overview-axis" scope="col" colspan="2">År och termin</th>${headers}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
+    }
+
     function render() {
         const template = templates[Number(templateSelect.value)] || templates[0];
         if (!template) return;
         const templateLevels = new Map((template.plannings || []).map(level => [level.level, level]));
-        ladder.innerHTML = LEVELS.map((level, index) => renderLevel(level, index, templateLevels)).join("");
         const badgeCount = (template.plannings || []).reduce((count, level) => count + (level.plans || []).reduce((levelCount, plan) => levelCount + (plan.badges || []).length, 0), 0);
-        summary.textContent = `${LEVELS.length} åldersgrupper · ${badgeCount} märkesplatser i standardplaneringen`;
+        ladder.innerHTML = viewMode === "overview"
+            ? renderOverview(templateLevels)
+            : LEVELS.map((level, index) => renderLevel(level, index, templateLevels)).join("");
+        ladder.classList.toggle("development-ladder--overview", viewMode === "overview");
+        summary.textContent = viewMode === "overview"
+            ? `${LEVELS.length} målgrupper · ${badgeCount} märkesplatser`
+            : `${LEVELS.length} åldersgrupper · ${badgeCount} märkesplatser i standardplaneringen`;
         status.textContent = `Visar ${template.name}.`;
         status.classList.remove("development-ladder-status--error");
     }
+
+    viewButtons.forEach(button => {
+        button.addEventListener("click", () => {
+            viewMode = button.dataset.developmentView;
+            viewButtons.forEach(viewButton => viewButton.setAttribute("aria-pressed", String(viewButton === button)));
+            render();
+        });
+    });
 
     ladder.addEventListener("click", event => {
         const trigger = event.target.closest("[data-badge-id]");

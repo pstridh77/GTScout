@@ -3996,7 +3996,7 @@ select:focus {
 
 .development-ladder-toolbar {
     display: grid;
-    grid-template-columns: minmax(220px, 360px) minmax(0, 1fr);
+    grid-template-columns: auto minmax(220px, 360px) minmax(0, 1fr);
     align-items: end;
     gap: 16px 28px;
     margin: 22px 0 12px;
@@ -4012,6 +4012,39 @@ select:focus {
     font-size: 0.92rem;
 }
 
+.development-view-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 3px;
+    padding: 4px;
+    border: 1px solid #cbd8da;
+    border-radius: 9px;
+    background: #f4f7f6;
+}
+
+.development-view-button {
+    min-height: 36px;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #38545b;
+    font: inherit;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.development-view-button[aria-pressed="true"] {
+    background: #28634f;
+    color: #fff;
+}
+
+.development-view-button:focus-visible {
+    outline: 3px solid #d99b27;
+    outline-offset: 2px;
+}
+
 .development-ladder-status {
     min-height: 1.4em;
     margin: 12px 0;
@@ -4024,6 +4057,205 @@ select:focus {
 
 .development-ladder {
     border-top: 1px solid #cbd8da;
+}
+
+.development-ladder--overview {
+    border-top: 0;
+}
+
+.development-overview-scroll {
+    width: 100%;
+    overflow: visible;
+    border: 1px solid #d7e1e0;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.development-overview-table {
+    width: 100%;
+    min-width: 1120px;
+    border-collapse: separate;
+    border-spacing: 0;
+    color: #253b3c;
+}
+
+.development-overview-table caption {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    clip-path: inset(50%);
+}
+
+.development-overview-table th,
+.development-overview-table td {
+    padding: 10px;
+    border-right: 1px solid #e2e9e8;
+    border-bottom: 1px solid #e2e9e8;
+    text-align: left;
+    vertical-align: top;
+}
+
+.development-overview-table thead th {
+    position: sticky;
+    top: calc(var(--site-header-height, 146px) + 76px);
+    z-index: 10;
+}
+
+.development-ladder-page:has(.development-ladder-toolbar.filters--hidden) .development-overview-table thead th {
+    top: var(--site-header-height, 146px);
+}
+
+.development-overview-table tr > :last-child {
+    border-right: 0;
+}
+
+.development-overview-table tbody tr:last-child > * {
+    border-bottom: 0;
+}
+
+.development-overview-axis {
+    width: 170px;
+    background: #eef2f2;
+    color: #38545b;
+    font-size: 0.82rem;
+    text-align: center !important;
+}
+
+.development-overview-group {
+    min-width: 145px;
+    background: #f4f7f6;
+    color: #28634f;
+    font-size: 0.91rem;
+    text-align: center !important;
+}
+
+.development-overview-group[data-target-group="Familjescouter"],
+.development-overview-table td[data-target-group="Familjescouter"] {
+    background-color: #f1e8f8;
+}
+
+.development-overview-group[data-target-group="Spårare"],
+.development-overview-table td[data-target-group="Spårare"] {
+    background-color: #e8f5e4;
+}
+
+.development-overview-group[data-target-group="Upptäckare"],
+.development-overview-table td[data-target-group="Upptäckare"] {
+    background-color: #e3f6fc;
+}
+
+.development-overview-group[data-target-group="Äventyrare"],
+.development-overview-table td[data-target-group="Äventyrare"] {
+    background-color: #fff0e6;
+}
+
+.development-overview-group[data-target-group="Utmanare"],
+.development-overview-table td[data-target-group="Utmanare"] {
+    background-color: #fde7f0;
+}
+
+.development-overview-group[data-target-group="Rover"],
+.development-overview-table td[data-target-group="Rover"] {
+    background-color: #fffedb;
+}
+
+.development-overview-group img {
+    width: 26px;
+    height: 26px;
+    margin: 0 6px 0 0;
+    object-fit: contain;
+    vertical-align: middle;
+}
+
+.development-overview-group span {
+    vertical-align: middle;
+}
+
+.development-overview-year {
+    width: 66px;
+    min-width: 66px;
+    background: #f4f6f7;
+    color: #38545b;
+    font-size: 0.88rem;
+    vertical-align: middle !important;
+}
+
+.development-overview-term {
+    width: 104px;
+    min-width: 104px;
+    background: #fafbfb;
+    color: #38545b;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.development-overview-term::before {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin: 0 6px 1px 0;
+    border-radius: 50%;
+    background: var(--ladder-gold);
+    content: "";
+}
+
+.development-overview-term[data-term="VT"]::before {
+    background: var(--ladder-blue);
+}
+
+.development-overview-cell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 68px;
+    justify-items: center;
+    gap: 8px;
+}
+
+.development-overview-badge {
+    display: flex;
+    width: 72px;
+    max-width: 100%;
+    aspect-ratio: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 6px;
+    border: 1px solid rgba(26, 73, 91, 0.08);
+    border-radius: 14px;
+    background: #fff;
+    color: #003660;
+    font: inherit;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(0, 54, 96, 0.09);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.development-overview-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(0, 54, 96, 0.15);
+}
+
+.development-overview-badge:focus-visible {
+    outline: 3px solid #d99b27;
+    outline-offset: 2px;
+}
+
+.development-overview-badge img {
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+}
+
+.development-overview-missing {
+    color: #a3332d;
+    font-size: 0.8rem;
 }
 
 .development-level {
@@ -4212,6 +4444,13 @@ select:focus {
     padding: 8px 0;
 }
 
+@media (max-width: 1160px) {
+    .development-overview-scroll {
+        overflow-x: auto;
+    }
+
+}
+
 @media (max-width: 760px) {
     .development-ladder-page {
         padding: 20px 12px 40px;
@@ -4224,6 +4463,10 @@ select:focus {
     .development-ladder-toolbar {
         grid-template-columns: minmax(0, 1fr);
         gap: 8px;
+    }
+
+    .development-view-toggle {
+        justify-self: start;
     }
 
     .development-level {

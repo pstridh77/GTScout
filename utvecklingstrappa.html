@@ -68,7 +68,11 @@
         </section>
 
         <div class="development-ladder-content">
-        <section id="developmentLadderControls" class="development-ladder-toolbar filters" data-page-filters aria-label="Välj standardplanering">
+        <section id="developmentLadderControls" class="development-ladder-toolbar filters" data-page-filters aria-label="Inställningar för utvecklingstrappan">
+            <div class="development-view-toggle" role="group" aria-label="Välj visning">
+                <button type="button" class="development-view-button" data-development-view="overview" aria-pressed="true">Översikt</button>
+                <button type="button" class="development-view-button" data-development-view="list" aria-pressed="false">Detaljer</button>
+            </div>
             <label class="filter-field">
                 <span>Standardplanering</span>
                 <select id="developmentTemplateSelect" aria-label="Välj standardplanering"></select>
