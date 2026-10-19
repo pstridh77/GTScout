@@ -3509,6 +3509,11 @@ function bindMeetingModalActions() {
 
 bindMeetingModalActions();
 
+function addMeetingActivitiesToPlanning(group, meeting) {
+    const meetingActivityIds = (meeting.activities || []).filter(Boolean);
+    group.activities = [...new Set([...(Array.isArray(group.activities) ? group.activities : []), ...meetingActivityIds])];
+}
+
 function createMeetingForGroup(groupId, meetingInput = {}) {
     const group = groups.find(item => item.id === groupId);
     if (!group) return null;
@@ -3533,6 +3538,7 @@ function createMeetingForGroup(groupId, meetingInput = {}) {
         notes: String(meetingInput.notes ?? meetingInput.note ?? "").trim()
     };
     group.meetings = normalizeMeetingList([...(Array.isArray(group.meetings) ? group.meetings : []), meeting]);
+    addMeetingActivitiesToPlanning(group, meeting);
     saveGroups();
     renderPlanning(new Set(), new Set([groupId]));
     return meeting;
@@ -3574,6 +3580,8 @@ function updateMeetingForGroup(groupId, meetingId, meetingInput = {}) {
             notes: String(meetingInput.notes ?? meetingInput.note ?? meeting.notes ?? "").trim()
         };
     }));
+    const updatedMeeting = group.meetings.find(meeting => meeting.id === meetingId);
+    if (updatedMeeting) addMeetingActivitiesToPlanning(group, updatedMeeting);
     saveGroups();
     renderPlanning();
     return group.meetings.find(meeting => meeting.id === meetingId) || null;

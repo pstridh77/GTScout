@@ -727,6 +727,26 @@ function createBackend(session = leaderSession, profile = leaderProfile) {
     return { session, profile, callbacks: [], locked: false, requests: [], pending: null };
 }
 
+test("meeting activities are included in the planning activity list", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "planering.js"), "utf8");
+    const start = source.indexOf("function addMeetingActivitiesToPlanning(");
+    const end = source.indexOf("function removeMeetingFromGroup(", start);
+    const context = vm.createContext({
+        groups: [{ id: "planning-1", activities: ["existing"], meetings: [{ id: "meeting-1", activities: ["older"], games: [] }] }],
+        normalizeMeetingBadgeIds: input => input.flat().filter(Boolean),
+        normalizeMeetingList: meetings => meetings,
+        saveGroups() {},
+        renderPlanning() {},
+        crypto: { randomUUID: () => "meeting-2" }
+    });
+    vm.runInContext(source.slice(start, end), context);
+    context.createMeetingForGroup("planning-1", { id: "meeting-2", activities: ["new-activity"], games: ["new-game"] });
+    context.updateMeetingForGroup("planning-1", "meeting-1", { activities: ["updated-activity"], games: ["updated-game"] });
+    assert.deepEqual(JSON.parse(JSON.stringify(context.groups[0].activities)), [
+        "existing", "new-activity", "updated-activity"
+    ]);
+});
+
 test("new agenda entries stay pending locally until the database confirms the save", async () => {
     const backend = createBackend();
     const page = createPage(backend);
