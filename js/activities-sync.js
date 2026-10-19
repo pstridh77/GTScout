@@ -10,6 +10,7 @@
 (function () {
     const CUSTOM_ACTIVITIES_STORAGE_KEY = "gtscout_custom_activities";
     const CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY = "gtscout_custom_badge_activities";
+    const TARGET_GROUPS = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
 
     let activities = [];
     let badgeLinks = [];
@@ -41,10 +42,12 @@
     }
 
     function normalizeActivity(activity) {
+        const selectedTargetGroups = new Set((Array.isArray(activity?.malgrupp) ? activity.malgrupp : []).map(String));
         return {
             id: String(activity?.id || ""),
             namn: String(activity?.namn || "").trim(),
             kategori: String(activity?.kategori || "").trim(),
+            malgrupp: TARGET_GROUPS.filter(group => selectedTargetGroups.has(group)),
             beskrivning: String(activity?.beskrivning || "").trim(),
             tid: String(activity?.tid ?? "").trim(),
             material: Array.isArray(activity?.material)
@@ -209,6 +212,7 @@
                         created_by: userId,
                         namn: a.namn,
                         kategori: a.kategori || null,
+                        malgrupp: a.malgrupp || [],
                         beskrivning: a.beskrivning || null,
                         tid: a.tid || null,
                         material: a.material || [],
@@ -221,7 +225,7 @@
             const [activitiesResult, linksResult] = await Promise.all([
                 client()
                     .from("aktiviteter")
-                    .select("id, namn, kategori, beskrivning, tid, material, genomforande, kar_id, kar:kar_id(namn)")
+                    .select("id, namn, kategori, malgrupp, beskrivning, tid, material, genomforande, kar_id, kar:kar_id(namn)")
                     .order("namn")
                     .then(result => {
                         if (result.error) throw withDatabaseError("aktiviteter.select", result.error);
@@ -344,6 +348,7 @@
                 created_by: auth()?.getUser()?.id || null,
                 namn: normalized.namn,
                 kategori: normalized.kategori || null,
+                malgrupp: normalized.malgrupp,
                 beskrivning: normalized.beskrivning || null,
                 tid: normalized.tid || null,
                 material: normalized.material,

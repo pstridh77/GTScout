@@ -809,6 +809,34 @@ test("local activities remain editable through the shared save API", async () =>
     assert.equal(sync.getAllActivities()[0].kar_id, null);
 });
 
+for (const signedIn of [false, true]) {
+    test(`activity target groups survive ${signedIn ? "database writes" : "local storage"}`, async () => {
+        const backend = createBackend(signedIn ? leaderSession : null);
+        const id = signedIn ? "database-target-groups" : "egen-target-groups";
+        const activity = { id, namn: "Målgruppstest", kar_id: signedIn ? "kar-1" : null, material: [], malgrupp: ["Rover"] };
+        const page = createPage(backend, new Map([["gtscout_custom_activities", JSON.stringify([activity])]]));
+        if (signedIn) {
+            await page.auth.init();
+            await page.runTimers();
+            backend.pending = { table: "aktiviteter", promise: Promise.resolve({ data: [{ ...activity, kategori: "Lek" }] }) };
+        }
+        page.load("activities-sync.js");
+        const sync = page.window.GTScoutActivities;
+        sync.init({ onChange() {} });
+        await sync.ensureLoaded();
+        await sync.saveActivity({ ...sync.getAllActivities()[0], malgrupp: ["Rover", "Familjescouter", "Rover"] });
+        const expected = ["Familjescouter", "Rover"];
+        if (signedIn) {
+            const write = backend.requests.find(request => request.table === "aktiviteter" && request.operation === "upsert");
+            assert.deepEqual(JSON.parse(JSON.stringify(write.rows.malgrupp)), expected);
+        } else {
+            assert.deepEqual(JSON.parse(JSON.stringify(sync.getAllActivities()[0].malgrupp)), expected);
+            const stored = JSON.parse(page.storage.get("gtscout_custom_activities"))[0];
+            assert.deepEqual(JSON.parse(JSON.stringify(stored.malgrupp)), expected);
+        }
+    });
+}
+
 test("leaders cannot edit or delete activities from another kar", async () => {
     const backend = createBackend();
     const page = createPage(backend);

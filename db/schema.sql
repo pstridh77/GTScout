@@ -314,6 +314,7 @@ create table if not exists public.aktiviteter (
     created_by uuid references public.profiles(id) on delete set null,
     namn text not null,
     kategori text,
+    malgrupp text[] not null default '{}',
     beskrivning text,
     tid text,
     material text[] not null default '{}',
@@ -321,6 +322,9 @@ create table if not exists public.aktiviteter (
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
+
+alter table public.aktiviteter
+    add column if not exists malgrupp text[] not null default '{}';
 
 create index if not exists aktiviteter_kar_id_idx on public.aktiviteter (kar_id);
 create index if not exists aktiviteter_namn_idx on public.aktiviteter (namn);

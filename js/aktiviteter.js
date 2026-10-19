@@ -5,6 +5,7 @@
     const empty = document.getElementById("activityEmpty");
     const search = document.getElementById("activitySearch");
     const categoryFilter = document.getElementById("activityCategoryFilter");
+    const targetFilter = document.getElementById("activityTargetFilter");
     const karFilter = document.getElementById("activityKarFilter");
     const modal = document.getElementById("activityModal");
     const detailModal = document.getElementById("activityDetailModal");
@@ -16,6 +17,7 @@
     const deleteButton = document.getElementById("deleteActivityBtn");
     const collapseAllButtons = document.querySelectorAll('[data-collapse-all="activities"]');
     const collapsedCategories = new Set();
+    const targetGroups = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover"];
     let activities = [];
     let baseBadges = [];
     let editingId = null;
@@ -80,6 +82,7 @@
     function populateFilters() {
         const categories = [...new Set(activities.flatMap(categoriesFor))].sort((left, right) => left.localeCompare(right, "sv"));
         populateSelect(categoryFilter, [["Alla", "Alla kategorier"], ...categories.map(category => [category, category])]);
+        populateSelect(targetFilter, [["Alla", "Alla målgrupper"], ...targetGroups.map(group => [group, group])]);
         populateSelect(karFilter, [["Alla", "Alla kårer"], ["__saknas", "Kår saknas"], ...sync.getKarFilters().map(kar => [kar.id, kar.namn])]);
         const suggestions = [...new Set([...categories, ...baseBadges.map(badge => badge.kategori).filter(Boolean)])].sort((left, right) => left.localeCompare(right, "sv"));
         document.getElementById("activityCategories").replaceChildren(...suggestions.map(category => {
@@ -117,12 +120,17 @@
         return badgesFor(activity).map(badge => `<img src="${escapeHtml(badge.bild)}" alt="${escapeHtml(badge.namn)}" title="${escapeHtml(badge.namn)}" class="activity-linked-badge-icon" loading="lazy">`).join("");
     }
 
+    function renderTargetGroups(activity) {
+        return (activity.malgrupp || []).map(group => `<span class="arrangement-department-tag department-tone-${targetGroups.indexOf(group)}">${escapeHtml(group)}</span>`).join("");
+    }
+
     function renderActivities() {
         const query = search.value.trim().toLocaleLowerCase("sv");
         const visible = activities.filter(activity => {
-            const text = [activity.namn, activity.beskrivning, activity.genomforande, activity.tid, owner(activity), ...activity.material].join(" ").toLocaleLowerCase("sv");
+            const text = [activity.namn, activity.beskrivning, activity.genomforande, activity.tid, owner(activity), ...(activity.malgrupp || []), ...activity.material].join(" ").toLocaleLowerCase("sv");
             return (!query || text.includes(query))
                 && (categoryFilter.value === "Alla" || categoriesFor(activity).includes(categoryFilter.value))
+                && (targetFilter.value === "Alla" || (activity.malgrupp || []).includes(targetFilter.value))
                 && (karFilter.value === "Alla" || (karFilter.value === "__saknas" ? !activity.kar_id : activity.kar_id === karFilter.value));
         });
         const groups = new Map();
@@ -137,7 +145,7 @@
             group.innerHTML = `<summary class="recipe-meal-summary"><strong>${escapeHtml(category)}</strong><span>${items.length} st.</span></summary><div class="activity-cards"></div>`;
             group.querySelector(".activity-cards").innerHTML = items.sort((left, right) => left.namn.localeCompare(right.namn, "sv")).map(activity => {
                 const own = activity.kar_id && activity.kar_id === auth.getState().karId;
-                return `<article class="activity-card"><span class="recipe-category">${escapeHtml(category)}</span><div class="activity-card-meta"><span class="activity-owner-badge ${own ? "activity-owner-badge--mine" : "activity-owner-badge--other"}">${own ? "Min kår" : "Annan kår"}</span><span>${escapeHtml(owner(activity))}</span></div><h2><button class="activity-card-title" type="button" data-activity-action="view" data-activity-id="${escapeHtml(activity.id)}">${escapeHtml(activity.namn)}</button></h2><p class="activity-card-description">${escapeHtml(activity.beskrivning || "")}</p><div class="activity-card-bottom"><span>${escapeHtml(activity.tid || "Ingen tidsangivelse")}</span><div class="activity-linked-badge-list">${renderBadgeIcons(activity)}</div></div><div class="activity-card-actions">${sync.canDeleteActivity(activity) ? `<button class="btn-danger activity-tool-button" type="button" data-activity-action="delete" data-activity-id="${escapeHtml(activity.id)}" aria-label="Radera ${escapeHtml(activity.namn)}" title="Radera">${deleteIcon}</button>` : ""}</div></article>`;
+                return `<article class="activity-card"><span class="recipe-category">${escapeHtml(category)}</span><div class="activity-card-meta"><span class="activity-owner-badge ${own ? "activity-owner-badge--mine" : "activity-owner-badge--other"}">${own ? "Min kår" : "Annan kår"}</span><span>${escapeHtml(owner(activity))}</span></div>${activity.malgrupp?.length ? `<div class="activity-target-tags" aria-label="Målgrupper">${renderTargetGroups(activity)}</div>` : ""}<h2><button class="activity-card-title" type="button" data-activity-action="view" data-activity-id="${escapeHtml(activity.id)}">${escapeHtml(activity.namn)}</button></h2><p class="activity-card-description">${escapeHtml(activity.beskrivning || "")}</p><div class="activity-card-bottom"><span>${escapeHtml(activity.tid || "Ingen tidsangivelse")}</span><div class="activity-linked-badge-list">${renderBadgeIcons(activity)}</div></div><div class="activity-card-actions">${sync.canDeleteActivity(activity) ? `<button class="btn-danger activity-tool-button" type="button" data-activity-action="delete" data-activity-id="${escapeHtml(activity.id)}" aria-label="Radera ${escapeHtml(activity.namn)}" title="Radera">${deleteIcon}</button>` : ""}</div></article>`;
             }).join("");
             group.addEventListener("toggle", () => {
                 if (group.open) collapsedCategories.delete(category);
@@ -153,7 +161,7 @@
 
     function showDetail(activity) {
         detailId = activity.id;
-        document.getElementById("activityDetailBody").innerHTML = `<h2 id="activityDetailTitle">${escapeHtml(activity.namn)}</h2><p>${renderText(activity.beskrivning)}</p><p><strong>Kår:</strong> ${escapeHtml(owner(activity))}</p>${activity.tid ? `<p><strong>Tid:</strong> ${escapeHtml(activity.tid)}</p>` : ""}${activity.material.length ? `<h3>Material</h3><ul>${activity.material.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : ""}${activity.genomforande ? `<h3>Genomförande</h3><p>${renderText(activity.genomforande)}</p>` : ""}${badgesFor(activity).length ? `<h3>Kopplade märken</h3><div class="activity-linked-badge-list">${renderBadgeIcons(activity)}</div>` : ""}`;
+        document.getElementById("activityDetailBody").innerHTML = `<h2 id="activityDetailTitle">${escapeHtml(activity.namn)}</h2><p>${renderText(activity.beskrivning)}</p><p><strong>Kår:</strong> ${escapeHtml(owner(activity))}</p>${activity.malgrupp?.length ? `<p><strong>Målgrupp:</strong> ${activity.malgrupp.map(escapeHtml).join(", ")}</p>` : ""}${activity.tid ? `<p><strong>Tid:</strong> ${escapeHtml(activity.tid)}</p>` : ""}${activity.material.length ? `<h3>Material</h3><ul>${activity.material.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : ""}${activity.genomforande ? `<h3>Genomförande</h3><p>${renderText(activity.genomforande)}</p>` : ""}${badgesFor(activity).length ? `<h3>Kopplade märken</h3><div class="activity-linked-badge-list">${renderBadgeIcons(activity)}</div>` : ""}`;
         document.getElementById("activityDetailActions").innerHTML = `${sync.canEditActivity(activity) ? '<button class="btn-secondary" type="button" data-activity-action="edit">Redigera</button>' : ""}${sync.canDeleteActivity(activity) ? '<button class="btn-danger" type="button" data-activity-action="delete">Radera</button>' : ""}${sync.canWrite() && activity.kar_id && !sync.canEditActivity(activity) ? '<button class="btn-secondary" type="button" data-activity-action="copy">Kopiera till min kår</button>' : ""}`;
         detailModal.classList.remove("hidden");
     }
@@ -167,6 +175,7 @@
         document.getElementById("activityName").value = activity?.namn || "";
         document.getElementById("activityCategory").value = activity?.kategori || "";
         document.getElementById("activityTime").value = activity?.tid || "";
+        document.querySelectorAll("#activityTargetOptions input").forEach(input => { input.checked = (activity?.malgrupp || []).includes(input.value); });
         document.getElementById("activityDescription").value = activity?.beskrivning || "";
         document.getElementById("activityMaterial").value = activity?.material.join("\n") || "";
         document.getElementById("activityInstructions").value = activity?.genomforande || "";
@@ -192,6 +201,7 @@
                 id: editingId || undefined,
                 namn: document.getElementById("activityName").value.trim(),
                 kategori: document.getElementById("activityCategory").value.trim() || "Övrigt",
+                malgrupp: [...document.querySelectorAll("#activityTargetOptions input:checked")].map(input => input.value),
                 tid: document.getElementById("activityTime").value.trim(),
                 beskrivning: document.getElementById("activityDescription").value.trim(),
                 material: document.getElementById("activityMaterial").value.split(/\r?\n/).map(item => item.trim()).filter(Boolean),
@@ -242,7 +252,7 @@
         const activity = activities.find(item => item.id === editingId);
         if (activity) deleteActivity(activity);
     });
-    [search, categoryFilter, karFilter].forEach(element => element.addEventListener("input", renderActivities));
+    [search, categoryFilter, targetFilter, karFilter].forEach(element => element.addEventListener("input", renderActivities));
     collapseAllButtons.forEach(button => button.addEventListener("click", toggleAllCategories));
     document.querySelectorAll("[data-close-activity-form]").forEach(button => button.addEventListener("click", () => modal.classList.add("hidden")));
     document.querySelector("[data-close-activity-detail]").addEventListener("click", () => detailModal.classList.add("hidden"));
@@ -270,6 +280,14 @@
         renderActivities();
         updateStatus();
     } });
+    document.getElementById("activityTargetOptions").replaceChildren(...targetGroups.map(group => {
+        const label = document.createElement("label");
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = group;
+        label.append(checkbox, document.createTextNode(group));
+        return label;
+    }));
     window.GTScoutBadges?.init({ onChange() { populateFilters(); renderActivities(); } });
     fetch("data/marken.json").then(response => {
         if (!response.ok) throw new Error("Märkeslistan kunde inte hämtas.");

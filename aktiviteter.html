@@ -75,8 +75,9 @@
         </section>
         <span id="activitySyncStatus" class="planning-sync-status page-sync-status hidden" role="status" aria-live="polite"></span>
         <div id="activityFilters" class="cookbook-toolbar filters--hidden" data-page-filters>
-            <label class="filter-field search-field"><span>Sök aktiviteter</span><input id="activitySearch" type="search" placeholder="Sök namn, material eller genomförande..."></label>
+            <label class="filter-field search-field"><span>Sök aktiviteter</span><input id="activitySearch" type="search" placeholder="Sök namn, målgrupp, material eller genomförande..."></label>
             <label class="filter-field"><span>Kategori</span><select id="activityCategoryFilter"><option value="Alla">Alla kategorier</option></select></label>
+            <label class="filter-field"><span>Målgrupp</span><select id="activityTargetFilter"><option value="Alla">Alla målgrupper</option></select></label>
             <label class="filter-field"><span>Kår</span><select id="activityKarFilter"><option value="Alla">Alla kårer</option></select></label>
         </div>
         <div class="section-collapse-controls"><button class="section-collapse-toggle" type="button" data-collapse-all="activities" aria-expanded="true">Fäll ihop alla kategorier</button></div>
@@ -101,6 +102,7 @@
                 <label class="modal-field"><span>Kategori</span><input id="activityCategory" type="text" list="activityCategories"><datalist id="activityCategories"></datalist></label>
                 <label class="modal-field"><span>Tid</span><input id="activityTime" type="text" placeholder="t.ex. 20 minuter eller en kväll"></label>
             </div>
+            <fieldset class="activity-target-fieldset"><legend>Målgrupp</legend><div id="activityTargetOptions" class="activity-target-options"></div></fieldset>
             <label class="modal-field"><span>Beskrivning</span><textarea id="activityDescription" rows="3"></textarea></label>
             <label class="modal-field"><span>Material, ett per rad</span><textarea id="activityMaterial" rows="3"></textarea></label>
             <label class="modal-field"><span>Genomförande</span><textarea id="activityInstructions" rows="6"></textarea></label>
@@ -113,7 +115,7 @@
     <script src="js/activities-sync.js"></script>
     <script src="js/badges-sync.js"></script>
     <script src="js/version.js"></script>
-    <script src="js/aktiviteter.js?v=activity-detail-edit-4"></script>
+    <script src="js/aktiviteter.js?v=activity-target-groups-5"></script>
     <script src="js/header-controls.js"></script>
 </body>
 </html>
