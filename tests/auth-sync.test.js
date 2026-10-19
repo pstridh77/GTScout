@@ -727,6 +727,112 @@ function createBackend(session = leaderSession, profile = leaderProfile) {
     return { session, profile, callbacks: [], locked: false, requests: [], pending: null };
 }
 
+test("planning keeps deleted arrangements visible in the section and print output", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "planering.js"), "utf8");
+    const normalizeStart = source.indexOf("function normalizePlanningArrangementLinks(");
+    const normalizeEnd = source.indexOf("function clearDuplicateShareTokens(", normalizeStart);
+    const renderStart = source.indexOf("function getPlanningArrangementSnapshot(");
+    const renderEnd = source.indexOf("function renderGroupBadges(", renderStart);
+    const context = vm.createContext({
+        ARRANGEMENT_DEPARTMENTS: ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover", "Ledare"],
+        allArrangemang: [],
+        allAktiviteter: [],
+        formatShortDateSv: date => `${Number(date.slice(8, 10))}/${Number(date.slice(5, 7))}`,
+        getShortWeekdaySv: () => "Fre",
+        calculateSunsetTime: () => "",
+        renderLinkedText: value => String(value),
+        escapeHtml: value => String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[character]))
+    });
+    vm.runInContext(source.slice(normalizeStart, normalizeEnd), context);
+    vm.runInContext(source.slice(renderStart, renderEnd), context);
+    const link = {
+        id: "deleted-camp",
+        title: "Vårhajk",
+        responsible: "Anna Andersson",
+        start_date: "2027-04-16",
+        end_date: "2027-04-18",
+        departments: ["Spårare"]
+    };
+    const normalized = context.normalizePlanningArrangementLinks([link, link]);
+    assert.equal(normalized.length, 1);
+    assert.equal(normalized[0].responsible, "Anna Andersson");
+    const section = context.renderPlanningArrangementSection({ id: "planning-1", arrangements: normalized }, true);
+    const schedule = context.renderPlanningScheduleForPrint(
+        { arrangements: normalized },
+        [{ week: "15", date: "2027-04-15" }, { week: "17", date: "2027-04-20" }],
+        (_group, meeting) => `<article class="pdf-meeting">Träff ${meeting.week}</article>`
+    );
+    assert.match(section, /Arrangemang saknas, kanske blivit borttaget/);
+    assert.match(section, /Vårhajk/);
+    assert.match(section, /value="Anna Andersson"/);
+    assert.match(section, /16\/4 2027–18\/4 2027/);
+    assert.match(schedule, /Tidsöversikt/);
+    assert.match(schedule, /Arrangemang saknas i registret/);
+    assert.match(schedule, /Ansvarig: Anna Andersson/);
+    assert.ok(schedule.indexOf("Träff 15") < schedule.indexOf("Vårhajk"));
+    assert.ok(schedule.indexOf("Vårhajk") < schedule.indexOf("Träff 17"));
+    assert.doesNotMatch(schedule, /pdf-arrangements/);
+    const tableStart = source.indexOf("const renderLeaderTable = (group, meetings,");
+    const tableEnd = source.indexOf("const renderMeetingBadgeOverview", tableStart);
+    const renderLeaderTable = vm.runInContext(`${source.slice(tableStart, tableEnd)}\nrenderLeaderTable;`, context);
+    const table = renderLeaderTable({ arrangements: normalized }, [
+        { week: "15", date: "2027-04-15" },
+        { week: "17", date: "2027-04-20" }
+    ]);
+    assert.ok(table.indexOf("15/4") < table.indexOf("Vårhajk"));
+    assert.ok(table.indexOf("Vårhajk") < table.indexOf("20/4"));
+    assert.match(table, /<td>Anna Andersson<\/td>/);
+    assert.match(table, /class="pdf-leader-row-last pdf-leader-arrangement-row"/);
+    assert.doesNotMatch(source, /renderPlanningTimeline|planning-timeline|renderPlanningArrangementsForPrint|pdf-arrangements/);
+    const printBranch = source.slice(source.indexOf("function generatePlanningPdf("), source.indexOf("const printTitle", source.indexOf("function generatePlanningPdf(")));
+    assert.equal((printBranch.match(/renderLeaderTable\(group, meetings(?:, selectedArrangementIds)?\)/g) || []).length, 2);
+});
+
+test("print selection lists meetings and arrangements together by date", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "planering.js"), "utf8");
+    const start = source.indexOf("function renderMeetingSelectionList(");
+    const end = source.indexOf("function populateMeetingPlanningSelect(", start);
+    const list = { children: [], replaceChildren(...children) { this.children = children; } };
+    list.appendChild = child => list.children.push(child);
+    const createElement = tagName => ({
+        tagName,
+        dataset: {},
+        children: [],
+        append(...children) { this.children.push(...children); },
+        addEventListener() {}
+    });
+    const context = vm.createContext({
+        groups: [{ id: "plan-1", meetings: [
+            { id: "meeting-1", week: "2", date: "2027-04-20" },
+            { id: "meeting-2", week: "1", date: "2027-04-10" }
+        ], arrangements: [
+            { id: "arr-live", title: "Vårhajk", responsible: "Anna Andersson", start_date: "2027-04-15", end_date: "2027-04-17", departments: [] },
+            { id: "arr-missing", title: "Läger", start_date: "2027-04-25", end_date: "2027-04-26", departments: [] }
+        ] }],
+        meetingSelectionGroupId: "plan-1",
+        meetingSelectionState: new Set(["meeting-2"]),
+        arrangementSelectionState: new Set(["arr-live"]),
+        allArrangemang: [{ id: "arr-live", title: "Vårhajk", start_date: "2027-04-15", end_date: "2027-04-17", departments: [] }],
+        document: {
+            getElementById: () => list,
+            querySelector: () => ({ value: "overview" }),
+            createElement
+        },
+        normalizeMeetingList: meetings => meetings,
+        normalizePlanningArrangementLinks: links => links,
+        getPlanningArrangementSnapshot: arrangement => arrangement,
+        getPlanningArrangementDateLabel: arrangement => arrangement.start_date,
+        updatePrintAvailability() {}
+    });
+    vm.runInContext(source.slice(start, end), context);
+    context.renderMeetingSelectionList();
+    const rows = list.children;
+    assert.deepEqual(rows.map(row => row.children[1].children[0].textContent), ["Träff 1", "Vårhajk", "Träff 2", "Läger"]);
+    assert.deepEqual(rows.map(row => row.children[0].checked), [true, true, false, false]);
+    assert.match(rows[1].children[1].children[1].textContent, /Ansvarig: Anna Andersson/);
+    assert.match(rows[3].className, /pdf-selection-option--missing/);
+});
+
 test("meeting activities are included in the planning activity list", () => {
     const source = fs.readFileSync(path.join(__dirname, "..", "js", "planering.js"), "utf8");
     const start = source.indexOf("function addMeetingActivitiesToPlanning(");

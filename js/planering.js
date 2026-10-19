@@ -5,6 +5,7 @@ const CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY = "gtscout_custom_badge_activities";
 const SHOW_ACTIVITIES_STORAGE_KEY = "gtscout_show_activities";
 const SHOW_MEETINGS_STORAGE_KEY = "gtscout_show_meetings";
 const MEETING_SECTION_STATUS_STORAGE_KEY = "gtscout_meeting_section_status";
+const ARRANGEMENT_DEPARTMENTS = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover", "Ledare"];
 
 function getMeetingSectionStatusKey(groupId, meetingId) {
     return `${groupId}:${meetingId}`;
@@ -102,6 +103,9 @@ let defaultPlanningTemplates = [{
 let baseMarken = [];
 let allMarken = [];
 let allAktiviteter = [];
+let allArrangemang = [];
+let arrangementsLoading = false;
+let arrangementsLoadError = false;
 let groups = loadGroups();
 let activeGroupId = null; // which group is getting badges added
 let groupFilters = { search: "", level: "Alla", year: "Alla", term: "Alla" };
@@ -110,6 +114,7 @@ let showArchivedPlannings = localStorage.getItem(SHOW_ARCHIVED_PLANNINGS_STORAGE
 const collapsedPlanningYears = new Set();
 let meetingSelectionGroupId = null;
 let meetingSelectionState = new Set();
+let arrangementSelectionState = new Set();
 let showPlanningActivities = localStorage.getItem(SHOW_ACTIVITIES_STORAGE_KEY) !== "false";
 let showPlanningMeetings = localStorage.getItem(SHOW_MEETINGS_STORAGE_KEY) !== "false";
 const BADGE_DND_MIME = "text/plain";
@@ -119,6 +124,8 @@ let editingStandaloneActivityId = null;
 let activeActivityGroupId = null;
 let activeMeetingActivityPicker = null;
 let activeMeetingActivityCreation = null;
+let activeArrangementGroupId = null;
+let activeArrangementSelectedIds = new Set();
 let activeStandaloneActivityBadge = null;
 let activeStandaloneActivityPlanning = null;
 let activeBadgeActivityLibraryMarke = null;
@@ -1071,6 +1078,7 @@ function normalizeGroupList(list) {
             group.term = normalizePlanningTerm(term);
             group.note = typeof group.note === "string" ? group.note : "";
             group.activities = Array.isArray(group.activities) ? group.activities : [];
+            group.arrangements = normalizePlanningArrangementLinks(group.arrangements);
             group.badges = Array.isArray(group.badges) ? group.badges : [];
             group.meetings = normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : []);
             group.visibility = ["private", "kar_view", "kar_edit"].includes(group.visibility) ? group.visibility : "kar_edit";
@@ -1080,6 +1088,28 @@ function normalizeGroupList(list) {
         : [];
     clearDuplicateShareTokens(normalized);
     return normalized;
+}
+
+function normalizePlanningArrangementLinks(links) {
+    if (!Array.isArray(links)) return [];
+    const seen = new Set();
+    return links.map(link => typeof link === "string" ? { id: link } : link)
+        .filter(link => link && typeof link === "object")
+        .map(link => ({
+            id: String(link.id || "").trim(),
+            title: String(link.title || "").trim(),
+            start_date: String(link.start_date || ""),
+            end_date: String(link.end_date || link.start_date || ""),
+            location: String(link.location || "").trim(),
+            responsible: String(link.responsible || "").trim(),
+            status: ["planned", "completed", "cancelled"].includes(link.status) ? link.status : "planned",
+            departments: Array.isArray(link.departments) ? [...new Set(link.departments.filter(department => ARRANGEMENT_DEPARTMENTS.includes(department)))] : []
+        }))
+        .filter(link => {
+            if (!link.id || seen.has(link.id)) return false;
+            seen.add(link.id);
+            return true;
+        });
 }
 
 function clearDuplicateShareTokens(list) {
@@ -1116,6 +1146,7 @@ function saveGroups() {
         ...group,
         badges: Array.isArray(group.badges) ? group.badges : [],
         activities: Array.isArray(group.activities) ? group.activities : [],
+        arrangements: normalizePlanningArrangementLinks(group.arrangements),
         meetings: normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : []),
         note: typeof group.note === "string" ? group.note : "",
         year: Number.isFinite(getGroupYearValue(group)) ? getGroupYearValue(group) : "",
@@ -1268,27 +1299,46 @@ function renderMeetingSelectionList() {
     const list = document.getElementById("meetingSelectionList");
     const group = groups.find(item => item.id === meetingSelectionGroupId);
     const meetings = group ? normalizeMeetingList(group.meetings || []) : [];
+    const arrangements = group ? normalizePlanningArrangementLinks(group.arrangements) : [];
+    const selectedMode = document.querySelector("input[name='meetingPrintMode']:checked")?.value || "overview";
+    const entries = [
+        ...meetings.map(meeting => ({ type: "meeting", id: meeting.id, date: meeting.date || "9999-99-99", meeting })),
+        ...arrangements.map(link => {
+            const arrangement = allArrangemang.find(item => item.id === link.id);
+            const details = arrangement ? getPlanningArrangementSnapshot(arrangement) : link;
+            return { type: "arrangement", id: link.id, date: details.start_date || "9999-99-99", details, responsible: link.responsible, missing: !arrangement };
+        })
+    ].sort((left, right) => left.date.localeCompare(right.date) || left.type.localeCompare(right.type, "sv"));
     list.replaceChildren();
-    if (meetings.length === 0) {
-        return;
-    }
-    meetings.forEach(meeting => {
+    entries.forEach(entry => {
         const label = document.createElement("label");
-        label.className = "pdf-selection-option";
+        label.className = `pdf-selection-option${entry.type === "arrangement" ? " pdf-selection-option--arrangement" : ""}${entry.missing ? " pdf-selection-option--missing" : ""}`;
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
-        checkbox.value = meeting.id;
-        checkbox.checked = meetingSelectionState.has(meeting.id);
+        checkbox.value = entry.id;
+        checkbox.dataset.selectionType = entry.type;
+        checkbox.disabled = entry.type === "arrangement" && selectedMode === "detailed";
+        checkbox.checked = entry.type === "meeting"
+            ? meetingSelectionState.has(entry.id)
+            : arrangementSelectionState.has(entry.id);
         checkbox.addEventListener("change", () => {
-            if (checkbox.checked) meetingSelectionState.add(meeting.id);
-            else meetingSelectionState.delete(meeting.id);
+            const selection = entry.type === "meeting" ? meetingSelectionState : arrangementSelectionState;
+            if (checkbox.checked) selection.add(entry.id);
+            else selection.delete(entry.id);
             updatePrintAvailability();
         });
         const text = document.createElement("span");
         const name = document.createElement("strong");
-        name.textContent = `Träff ${meeting.week || "-"}`;
         const details = document.createElement("small");
-        details.textContent = meeting.date || "";
+        if (entry.type === "meeting") {
+            name.textContent = `Träff ${entry.meeting.week || "-"}`;
+            details.textContent = entry.meeting.date || "Datum saknas";
+        } else {
+            name.textContent = entry.details.title || `Arrangemang (${entry.id})`;
+            const departments = entry.details.departments.join(", ");
+            details.textContent = `${getPlanningArrangementDateLabel(entry.details)}${departments ? ` · ${departments}` : ""}${entry.responsible ? ` · Ansvarig: ${entry.responsible}` : ""}${entry.missing ? " · Saknas i arrangemangsregistret" : ""}`;
+            label.title = selectedMode === "detailed" ? "Arrangemang skrivs inte ut i mötesdetaljläget" : "Arrangemang";
+        }
         text.append(name, details);
         label.append(checkbox, text);
         list.appendChild(label);
@@ -1310,8 +1360,13 @@ function populateMeetingPlanningSelect() {
     sortedGroups.forEach(group => {
         const option = document.createElement("option");
         const meetingCount = normalizeMeetingList(group.meetings || []).length;
+        const arrangementCount = normalizePlanningArrangementLinks(group.arrangements).length;
         option.value = group.id;
-        option.textContent = `${group.name} - ${group.level} (${meetingCount} ${meetingCount === 1 ? "möte" : "möten"})`;
+        const counts = [
+            `${meetingCount} ${meetingCount === 1 ? "möte" : "möten"}`,
+            ...(arrangementCount ? [`${arrangementCount} arrangemang`] : [])
+        ].join(", ");
+        option.textContent = `${group.name} - ${group.level} (${counts})`;
         select.appendChild(option);
     });
     if (!sortedGroups.some(group => group.id === meetingSelectionGroupId)) {
@@ -1320,12 +1375,14 @@ function populateMeetingPlanningSelect() {
     select.value = meetingSelectionGroupId || "";
     const group = groups.find(item => item.id === meetingSelectionGroupId);
     meetingSelectionState = new Set(normalizeMeetingList(group?.meetings || []).map(meeting => meeting.id));
+    arrangementSelectionState = new Set(normalizePlanningArrangementLinks(group?.arrangements).map(arrangement => arrangement.id));
     renderMeetingSelectionList();
 }
 
 function updatePrintSelectionMode() {
     document.getElementById("meetingPrintSelection").classList.remove("hidden");
     document.getElementById("generatePdfBtn").textContent = "Skriv ut planering";
+    renderMeetingSelectionList();
     updatePrintAvailability();
 }
 
@@ -1333,14 +1390,20 @@ function updatePrintAvailability() {
     const selectedMode = document.querySelector("input[name='meetingPrintMode']:checked")?.value || "overview";
     const group = groups.find(item => item.id === meetingSelectionGroupId);
     const hasMeetings = normalizeMeetingList(group?.meetings || []).length > 0;
-    const requiresMeetings = selectedMode === "detailed" || selectedMode === "leader";
+    const hasArrangements = normalizePlanningArrangementLinks(group?.arrangements).length > 0;
     const hasSelectedMeetings = meetingSelectionState.size > 0;
-    const unavailable = requiresMeetings && (!hasMeetings || !hasSelectedMeetings);
+    const hasSelectedItems = hasSelectedMeetings || arrangementSelectionState.size > 0;
+    const noLeaderContent = selectedMode === "leader" && ((!hasMeetings && !hasArrangements) || !hasSelectedItems);
+    const noDetailedMeeting = selectedMode === "detailed" && (!hasMeetings || !hasSelectedMeetings);
+    const unavailable = noLeaderContent || noDetailedMeeting;
     const availability = document.getElementById("meetingPrintAvailability");
     availability.classList.toggle("hidden", !unavailable);
-    availability.textContent = !hasMeetings
+    availability.textContent = noDetailedMeeting && !hasMeetings
         ? "Den valda planeringen saknar möten. Välj Översikt eller en planering med möten."
-        : unavailable ? "Markera minst ett möte för att skriva ut." : "";
+        : noDetailedMeeting ? "Markera minst ett möte för att skriva ut."
+            : noLeaderContent && !hasMeetings && !hasArrangements ? "Den valda planeringen saknar möten och arrangemang. Välj Översikt eller en planering med innehåll."
+                : noLeaderContent ? "Markera minst ett möte eller arrangemang för att skriva ut."
+                    : "";
     document.getElementById("generatePdfBtn").disabled = unavailable;
 }
 
@@ -1413,7 +1476,7 @@ function getShortWeekdaySv(dateStr) {
     return weekday.charAt(0).toUpperCase() + weekday.charAt(1);
 }
 
-function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetingIds = null) {
+function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetingIds = null, selectedArrangementIds = null) {
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
         alert("Kunde inte öppna PDF-vyn. Tillåt popupfönster för den här sidan.");
@@ -1508,8 +1571,19 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             ${meeting.responsible ? `<p><strong>Ansvarig:</strong> ${escapeHtml(meeting.responsible)}</p>` : ""}
         </article>`;
     };
-    const renderLeaderTable = (group, meetings) => {
-        const rows = meetings.map(meeting => {
+    const renderLeaderTable = (group, meetings, selectedArrangementIds = null) => {
+        const entries = getPlanningPrintTimelineEntries(group, meetings, selectedArrangementIds);
+        const rows = entries.map(entry => {
+            if (entry.type === "arrangement") {
+                const { arrangement, details, responsible, statusLabel } = entry;
+                const endDate = details.end_date && details.end_date !== details.start_date ? details.end_date : "";
+                const dateLabel = `${formatShortDateSv(details.start_date)}${endDate ? `–${formatShortDateSv(endDate)}` : ""}`;
+                const weekdayLabel = `${getShortWeekdaySv(details.start_date)}${endDate ? `–${getShortWeekdaySv(endDate)}` : ""}`;
+                const extraDetails = [details.location, details.departments.join(", "), statusLabel].filter(Boolean).map(escapeHtml).join(" · ");
+                const missing = !arrangement ? `<p class="missing-activity">Arrangemang saknas i registret</p>` : "";
+                return `<tr class="pdf-leader-row-last pdf-leader-arrangement-row"><td class="pdf-leader-meeting-edge">${escapeHtml(dateLabel || "-")}</td><td class="pdf-leader-meeting-edge">${escapeHtml(weekdayLabel)}</td><td><p class="pdf-leader-activity"><strong>${escapeHtml(details.title || `Arrangemang (${details.id})`)}</strong></p><p>Arrangemang${extraDetails ? ` · ${extraDetails}` : ""}</p>${missing}</td><td>${escapeHtml(responsible || "")}</td><td class="pdf-leader-meeting-edge"></td></tr>`;
+            }
+            const meeting = entry.meeting;
             const sunset = calculateSunsetTime(meeting.date);
             const meetingActivities = (meeting.activities || [])
                 .map(activityId => allAktiviteter.find(item => item.id === activityId))
@@ -1693,13 +1767,15 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
         if (isMeetingLeaderPrint) {
             return `
             <section class="pdf-planning pdf-planning--leader">
-                ${renderLeaderTable(group, meetings)}
+                ${renderLeaderTable(group, meetings, selectedArrangementIds)}
             </section>
             `;
         }
 
         if (isMeetingOverviewPrint) {
             const hasMeetings = meetings.length > 0;
+            const hasArrangements = normalizePlanningArrangementLinks(group.arrangements)
+                .some(link => !selectedArrangementIds || selectedArrangementIds.has(link.id));
             const badgeOverview = hasMeetings
                 ? renderMeetingBadgeOverview(group, meetings)
                 : (group.badges || []).map(badgeId => renderBadge(badgeId, group)).join("");
@@ -1717,16 +1793,18 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 <h2 class="pdf-planning-heading">Aktiviteter</h2>
                 ${activityOverview}
             </section>` : ""}
-            ${hasMeetings ? `<section class="pdf-planning pdf-planning--leader">
+            ${hasMeetings || hasArrangements ? `<section class="pdf-planning pdf-planning--leader">
                 ${renderCompactDocumentHeader(group, "Översikt")}
-                <h2 class="pdf-planning-heading">Ledaröversikt</h2>
-                ${renderLeaderTable(group, meetings)}
+                <h2 class="pdf-planning-heading">${hasMeetings ? "Ledaröversikt" : "Tidsöversikt"}</h2>
+                ${renderLeaderTable(group, meetings, selectedArrangementIds)}
             </section>` : ""}
-            ${!badgeOverview && !activityOverview ? `<section class="pdf-planning pdf-planning--meeting-overview">
+            ${!badgeOverview && !activityOverview && !hasArrangements ? `<section class="pdf-planning pdf-planning--meeting-overview">
                 ${renderCompactDocumentHeader(group, "Översikt")}
             </section>` : ""}
             `;
         }
+
+        const scheduleMarkup = renderPlanningScheduleForPrint(group, showPlanningMeetings ? meetings : [], renderMeeting, selectedArrangementIds);
 
         return `
         <section class="pdf-planning">
@@ -1739,9 +1817,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
             ${showPlanningActivities && unassignedActivities.length > 0
                 ? `<div class="pdf-activities"><h3>Övriga aktiviteter</h3>${unassignedActivities.map(activityId => renderActivity(activityId)).join("")}</div>`
                 : ""}
-            ${showPlanningMeetings && meetings.length > 0
-                ? `<div class="pdf-meetings"><h3>Möten</h3>${meetings.map(meeting => renderMeeting(group, meeting)).join("")}</div>`
-                : ""}
+            ${scheduleMarkup}
         </section>
         `;
     }).join("");
@@ -1846,6 +1922,7 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
                 .pdf-leader-table td.pdf-leader-meeting-edge { border-bottom: 1px solid #b9c4cf; }
                 .pdf-leader-table tbody tr:first-child td { border-top: 1px solid #b9c4cf; }
                 .pdf-leader-table tr { break-inside: avoid; }
+                .pdf-leader-arrangement-row td { background: #fff8ef; }
                 .pdf-leader-table td p { margin: 0 0 6px; }
                 .pdf-leader-table td p:last-child { margin-bottom: 0; }
                 .pdf-leader-activity { color: #254b66; }
@@ -2346,6 +2423,10 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                         openActivityPicker(group.id);
                     });
                 }
+                card.querySelector(".add-planning-arrangement-btn")?.addEventListener("click", event => {
+                    event.stopPropagation();
+                    openPlanningArrangementPicker(group.id);
+                });
                 const addMeetingButton = card.querySelector(".add-meeting-btn");
                 if (addMeetingButton) {
                     addMeetingButton.addEventListener("click", event => {
@@ -2381,6 +2462,26 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
         btn.addEventListener("click", e => {
             e.stopPropagation();
             removeActivityFromGroup(btn.dataset.groupId, btn.dataset.activityId);
+        });
+    });
+
+    document.querySelectorAll(".remove-planning-arrangement-btn").forEach(btn => {
+        btn.addEventListener("click", event => {
+            event.stopPropagation();
+            removePlanningArrangementLink(btn.dataset.groupId, btn.dataset.arrangementId);
+        });
+    });
+
+    document.querySelectorAll(".planned-arrangement-responsible-input").forEach(input => {
+        input.addEventListener("change", () => {
+            const group = groups.find(item => item.id === input.dataset.groupId);
+            if (!group || !canEditGroup(group)) return;
+            const links = normalizePlanningArrangementLinks(group.arrangements);
+            const link = links.find(item => item.id === input.dataset.arrangementId);
+            if (!link) return;
+            link.responsible = input.value.trim();
+            group.arrangements = links;
+            saveGroups();
         });
     });
 
@@ -2427,9 +2528,164 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
     bindActivityDragAndDrop();
 }
 
+function getPlanningArrangementSnapshot(arrangement) {
+    return {
+        id: String(arrangement?.id || ""),
+        title: String(arrangement?.title || "").trim(),
+        start_date: String(arrangement?.start_date || ""),
+        end_date: String(arrangement?.end_date || arrangement?.start_date || ""),
+        location: String(arrangement?.location || "").trim(),
+        status: ["planned", "completed", "cancelled"].includes(arrangement?.status) ? arrangement.status : "planned",
+        departments: Array.isArray(arrangement?.departments) ? [...new Set(arrangement.departments.filter(department => ARRANGEMENT_DEPARTMENTS.includes(department)))] : []
+    };
+}
+
+function getPlanningArrangementDateLabel(arrangement) {
+    const format = date => {
+        if (!date) return "Datum saknas";
+        const formatted = formatShortDateSv(date);
+        return formatted ? `${formatted} ${String(date).slice(0, 4)}` : "Datum saknas";
+    };
+    const start = format(arrangement.start_date);
+    if (!arrangement.end_date || arrangement.end_date === arrangement.start_date) return start;
+    return `${start}–${format(arrangement.end_date)}`;
+}
+
+function renderPlanningArrangementSection(group, editable) {
+    const linkedArrangements = normalizePlanningArrangementLinks(group.arrangements);
+    return `<details class="planned-arrangements"><summary><span>Arrangemang${linkedArrangements.length ? ` (${linkedArrangements.length})` : ""}</span><button class="btn-secondary add-planning-arrangement-btn" type="button" data-group-id="${escapeHtml(group.id)}"${editable ? "" : " disabled aria-disabled=\"true\" title=\"Endast ledare och administratörer kan ändra denna planering\""}>+ Arrangemang</button></summary><div class="planned-arrangements-list">${linkedArrangements.length ? linkedArrangements.map(link => {
+        const arrangement = allArrangemang.find(item => item.id === link.id);
+        const details = arrangement ? getPlanningArrangementSnapshot(arrangement) : link;
+        const status = arrangement?.status || link.status;
+        const responsible = link.responsible || "";
+        const responsibleMarkup = editable
+            ? `<label class="planned-arrangement-responsible"><span>Ansvarig</span><input class="planned-arrangement-responsible-input" type="text" data-group-id="${escapeHtml(group.id)}" data-arrangement-id="${escapeHtml(link.id)}" value="${escapeHtml(responsible)}" placeholder="Namn" aria-label="Ansvarig för ${escapeHtml(details.title || "arrangemanget")}"></label>`
+            : responsible ? `<small class="planned-arrangement-responsible-readonly"><strong>Ansvarig:</strong> ${escapeHtml(responsible)}</small>` : "";
+        return `<article class="planned-arrangement${arrangement ? "" : " planned-arrangement--missing"}" data-arrangement-id="${escapeHtml(link.id)}"><div class="planned-arrangement-main"><span class="planned-arrangement-label">${arrangement ? "Arrangemang" : "Arrangemang saknas, kanske blivit borttaget"}</span><strong>${escapeHtml(details.title || `Arrangemang (${details.id})`)}</strong><small>${escapeHtml(getPlanningArrangementDateLabel(details))}${details.location ? ` · ${escapeHtml(details.location)}` : ""}</small>${details.departments.length ? `<div class="planned-arrangement-departments">${details.departments.map(department => `<span class="arrangement-department-tag department-tone-${ARRANGEMENT_DEPARTMENTS.indexOf(department)}">${escapeHtml(department)}</span>`).join("")}</div>` : ""}${responsibleMarkup}</div><span class="planned-arrangement-status planned-arrangement-status--${escapeHtml(status)}">${status === "completed" ? "Genomfört" : status === "cancelled" ? "Inställt" : "Planerat"}</span><button class="remove-planning-arrangement-btn" type="button" data-group-id="${escapeHtml(group.id)}" data-arrangement-id="${escapeHtml(link.id)}" aria-label="Ta bort kopplingen till ${escapeHtml(details.title || "arrangemanget")}" title="Ta bort från planeringen"${editable ? "" : " disabled"}>&times;</button></article>`;
+    }).join("") : `<p class="group-empty">Inga arrangemang kopplade till terminen.</p>`}</div></details>`;
+}
+
+function getPlanningPrintTimelineEntries(group, meetings, selectedArrangementIds = null) {
+    return [
+        ...meetings.map(meeting => ({ type: "meeting", date: meeting.date || "9999-99-99", order: 0, meeting })),
+        ...normalizePlanningArrangementLinks(group.arrangements)
+            .filter(link => !selectedArrangementIds || selectedArrangementIds.has(link.id))
+            .map(link => {
+            const arrangement = allArrangemang.find(item => item.id === link.id);
+            const details = arrangement ? getPlanningArrangementSnapshot(arrangement) : link;
+            const status = arrangement?.status || link.status;
+            return {
+                type: "arrangement",
+                date: details.start_date || "9999-99-99",
+                order: 1,
+                arrangement,
+                details,
+                responsible: link.responsible,
+                statusLabel: status === "completed" ? "Genomfört" : status === "cancelled" ? "Inställt" : "Planerat"
+            };
+        })
+    ].sort((left, right) => left.date.localeCompare(right.date) || left.order - right.order);
+}
+
+function renderPlanningScheduleForPrint(group, meetings, renderMeeting, selectedArrangementIds = null) {
+    const entries = getPlanningPrintTimelineEntries(group, meetings, selectedArrangementIds);
+    if (!entries.length) return "";
+    return `<div class="pdf-meetings"><h3>Tidsöversikt</h3>${entries.map(entry => {
+        if (entry.type === "meeting") return renderMeeting(group, entry.meeting);
+        const { arrangement, details, responsible, statusLabel } = entry;
+        const extraDetails = [details.location, details.departments.join(", "), responsible ? `Ansvarig: ${responsible}` : "", statusLabel].filter(Boolean).map(escapeHtml).join(" · ");
+        const missing = !arrangement ? `<p class="missing-activity">Arrangemang saknas i registret</p>` : "";
+        return `<article class="pdf-meeting pdf-meeting--arrangement"><div class="pdf-meeting-header"><h3>${escapeHtml(details.title || `Arrangemang (${details.id})`)} <span>(${escapeHtml(getPlanningArrangementDateLabel(details))})</span></h3></div><p><strong>Arrangemang</strong>${extraDetails ? ` · ${extraDetails}` : ""}</p>${missing}</article>`;
+    }).join("")}</div>`;
+}
+
+function getVisiblePlanningArrangements() {
+    const query = document.getElementById("planningArrangementSearch").value.trim().toLocaleLowerCase("sv");
+    return allArrangemang.filter(arrangement => !query || [
+        arrangement.title,
+        arrangement.location,
+        ...(arrangement.departments || [])
+    ].join(" ").toLocaleLowerCase("sv").includes(query));
+}
+
+function renderPlanningArrangementPicker() {
+    const group = groups.find(item => item.id === activeArrangementGroupId);
+    if (!group) return;
+    const arrangements = getVisiblePlanningArrangements();
+    document.getElementById("planningArrangementPickerList").innerHTML = arrangements.length
+        ? arrangements.map(arrangement => `<label class="planning-arrangement-picker-item"><input type="checkbox" value="${escapeHtml(arrangement.id)}"${activeArrangementSelectedIds.has(arrangement.id) ? " checked" : ""}><span><strong>${escapeHtml(arrangement.title)}</strong><small>${escapeHtml(getPlanningArrangementDateLabel(arrangement))}${arrangement.location ? ` · ${escapeHtml(arrangement.location)}` : ""}</small>${arrangement.departments?.length ? `<span class="planned-arrangement-departments">${arrangement.departments.map(department => `<span class="arrangement-department-tag department-tone-${ARRANGEMENT_DEPARTMENTS.indexOf(department)}">${escapeHtml(department)}</span>`).join("")}</span>` : ""}</span></label>`).join("")
+        : `<p class="group-empty">${arrangementsLoading ? "Hämtar arrangemang..." : arrangementsLoadError ? "Arrangemangen kunde inte hämtas. Försök igen senare." : allArrangemang.length ? "Inga arrangemang matchar sökningen." : "Det finns inga arrangemang att välja."}</p>`;
+}
+
+function openPlanningArrangementPicker(groupId) {
+    const group = groups.find(item => item.id === groupId);
+    if (!group || !canEditGroup(group)) return;
+    activeArrangementGroupId = groupId;
+    activeArrangementSelectedIds = new Set(normalizePlanningArrangementLinks(group.arrangements).map(link => link.id));
+    document.getElementById("planningArrangementSearch").value = "";
+    renderPlanningArrangementPicker();
+    document.getElementById("planningArrangementPickerModal").classList.remove("hidden");
+    document.getElementById("planningArrangementSearch").focus();
+}
+
+function savePlanningArrangementSelection() {
+    const group = groups.find(item => item.id === activeArrangementGroupId);
+    if (!group || !canEditGroup(group)) return;
+    const selectedIds = [...activeArrangementSelectedIds];
+    const existing = normalizePlanningArrangementLinks(group.arrangements);
+    const availableIds = new Set(allArrangemang.map(item => item.id));
+    const missing = existing.filter(link => !availableIds.has(link.id));
+    const existingById = new Map(existing.map(link => [link.id, link]));
+    const selected = selectedIds.map(id => allArrangemang.find(item => item.id === id)).filter(Boolean).map(arrangement => ({
+        ...getPlanningArrangementSnapshot(arrangement),
+        responsible: existingById.get(arrangement.id)?.responsible || ""
+    }));
+    group.arrangements = normalizePlanningArrangementLinks([...missing, ...selected]);
+    saveGroups();
+    document.getElementById("planningArrangementPickerModal").classList.add("hidden");
+    activeArrangementGroupId = null;
+    activeArrangementSelectedIds.clear();
+    renderPlanning();
+}
+
+function bindPlanningArrangementPicker() {
+    const modal = document.getElementById("planningArrangementPickerModal");
+    const list = document.getElementById("planningArrangementPickerList");
+    const close = () => {
+        modal.classList.add("hidden");
+        activeArrangementGroupId = null;
+        activeArrangementSelectedIds.clear();
+    };
+    list.addEventListener("change", event => {
+        const input = event.target.closest('input[type="checkbox"]');
+        if (!input) return;
+        if (input.checked) activeArrangementSelectedIds.add(input.value);
+        else activeArrangementSelectedIds.delete(input.value);
+    });
+    document.getElementById("planningArrangementSearch").addEventListener("input", renderPlanningArrangementPicker);
+    document.getElementById("savePlanningArrangementSelection").addEventListener("click", savePlanningArrangementSelection);
+    document.getElementById("closePlanningArrangementPicker").addEventListener("click", close);
+    document.getElementById("cancelPlanningArrangementPicker").addEventListener("click", close);
+    modal.addEventListener("click", event => {
+        if (event.target === modal) close();
+    });
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && !modal.classList.contains("hidden")) close();
+    });
+}
+
+function removePlanningArrangementLink(groupId, arrangementId) {
+    const group = groups.find(item => item.id === groupId);
+    if (!group || !canEditGroup(group)) return;
+    group.arrangements = normalizePlanningArrangementLinks(group.arrangements).filter(link => link.id !== arrangementId);
+    saveGroups();
+    renderPlanning();
+}
+
 function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingGroupIds = new Set()) {
     const activities = Array.isArray(group.activities) ? group.activities : [];
     const meetings = normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : []);
+    const linkedArrangements = normalizePlanningArrangementLinks(group.arrangements);
     const editable = canEditGroup(group);
 
     const badges = group.badges.map(badgeId => {
@@ -2502,7 +2758,8 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
                     }).join(", ")}</div>` : ""}
                 </div>`;
         }).join("")}</div></details>` : "";
-    return `${badges}<div class="group-badges-actions"><button class="btn-secondary add-badge-btn" type="button" data-group-id="${group.id}"${editable ? "" : " disabled aria-disabled=\"true\" title=\"Endast ledare och administratörer kan ändra denna planering\""}>+ Märke</button></div>${activityMarkup}${meetingsMarkup}`;
+    const arrangementMarkup = renderPlanningArrangementSection(group, editable);
+    return `${badges}<div class="group-badges-actions"><button class="btn-secondary add-badge-btn" type="button" data-group-id="${group.id}"${editable ? "" : " disabled aria-disabled=\"true\" title=\"Endast ledare och administratörer kan ändra denna planering\""}>+ Märke</button></div>${activityMarkup}${arrangementMarkup}${meetingsMarkup}`;
 }
 
 // ── Groups CRUD ────────────────────────────────────────────────────────────
@@ -2531,6 +2788,7 @@ function addGroup(name, level, year = "", term = "", note = "") {
         note: typeof note === "string" ? note.trim() : "",
         badges: [],
         activities: [],
+        arrangements: [],
         meetings: []
     });
     saveGroups();
@@ -3924,25 +4182,29 @@ pdfSelectionModal.addEventListener("click", event => {
 });
 document.getElementById("generatePdfBtn").addEventListener("click", () => {
     const selectedMode = document.querySelector("input[name='meetingPrintMode']:checked")?.value || "overview";
-    if (!meetingSelectionGroupId || (selectedMode !== "overview" && meetingSelectionState.size === 0)) {
-        alert("Välj minst ett möte.");
+    const hasSelectedItems = meetingSelectionState.size > 0 || arrangementSelectionState.size > 0;
+    if (!meetingSelectionGroupId || (selectedMode === "leader" && !hasSelectedItems) || (selectedMode === "detailed" && meetingSelectionState.size === 0)) {
+        alert(selectedMode === "detailed" ? "Välj minst ett möte." : "Välj minst ett möte eller arrangemang.");
         return;
     }
     pdfSelectionModal.classList.add("hidden");
     generatePlanningPdf(
         new Set([meetingSelectionGroupId]),
         selectedMode === "detailed" ? "meeting-detail" : selectedMode === "leader" ? "meeting-leader" : "meeting-overview",
-        meetingSelectionState
+        meetingSelectionState,
+        arrangementSelectionState
     );
 });
 document.getElementById("selectAllMeetingsBtn").addEventListener("click", () => {
     const group = groups.find(item => item.id === meetingSelectionGroupId);
     meetingSelectionState = new Set(normalizeMeetingList(group?.meetings || []).map(meeting => meeting.id));
+    arrangementSelectionState = new Set(normalizePlanningArrangementLinks(group?.arrangements).map(arrangement => arrangement.id));
     renderMeetingSelectionList();
     updatePrintAvailability();
 });
 document.getElementById("clearMeetingsBtn").addEventListener("click", () => {
     meetingSelectionState.clear();
+    arrangementSelectionState.clear();
     renderMeetingSelectionList();
     updatePrintAvailability();
 });
@@ -3950,6 +4212,7 @@ document.getElementById("meetingPlanningSelect").addEventListener("change", even
     meetingSelectionGroupId = event.target.value;
     const group = groups.find(item => item.id === meetingSelectionGroupId);
     meetingSelectionState = new Set(normalizeMeetingList(group?.meetings || []).map(meeting => meeting.id));
+    arrangementSelectionState = new Set(normalizePlanningArrangementLinks(group?.arrangements).map(arrangement => arrangement.id));
     renderMeetingSelectionList();
     updatePrintAvailability();
 });
@@ -4573,9 +4836,20 @@ function showBadgeDetail(marke, planningId = null) {
 createStandaloneActivityPopup();
 createActivityPicker();
 createEditActivitiesMenuAction();
+bindPlanningArrangementPicker();
 loadDefaultPlannings();
 loadMarken();
 window.GTScoutAuth?.onChange(() => renderPlanning());
+
+window.GTScoutArrangements?.init({
+    onChange: () => {
+        allArrangemang = window.GTScoutArrangements.getAll();
+        const syncState = window.GTScoutArrangements.getSyncState();
+        arrangementsLoading = syncState.loading;
+        arrangementsLoadError = syncState.error;
+        renderPlanning();
+    }
+});
 
 window.GTScoutActivities?.init({
     onChange: () => {

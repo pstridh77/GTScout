@@ -4806,6 +4806,49 @@ select:focus {
     color: #003660;
 }
 
+.planned-arrangements {
+    flex: 1 1 100%;
+    min-width: 0;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.planned-arrangements { display: grid; gap: 8px; color: #003660; }
+.planned-arrangements summary { display: flex; align-items: center; width: 100%; color: #536477; font-size: .85rem; font-weight: 600; list-style: none; cursor: pointer; }
+.planned-arrangements summary::-webkit-details-marker { display: none; }
+.planned-arrangements summary::before { content: "▶"; margin-right: 8px; color: #003660; font-size: .85rem; transition: transform .15s; }
+.planned-arrangements[open] summary::before { transform: rotate(90deg); }
+.planned-arrangements summary button { margin-left: auto; }
+.planned-arrangements-list { display: grid; gap: 7px; margin-top: 8px; }
+.planned-arrangement { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid #d7e1eb; border-radius: 6px; background: #fff; }
+.planned-arrangement--missing { border-style: dashed; border-color: #c58b55; background: #fffaf3; }
+.planned-arrangement-main { display: grid; min-width: 0; gap: 4px; }
+.planned-arrangement-main > strong { overflow-wrap: anywhere; }
+.planned-arrangement-main > small, .planned-arrangement-label { color: #536477; font-size: .78rem; }
+.planned-arrangement-label { font-weight: 700; }
+.planned-arrangement-responsible { display: grid; width: min(100%, 280px); gap: 4px; margin-top: 5px; color: #536477; font-size: .76rem; font-weight: 600; }
+.planned-arrangement-responsible-input { width: 100%; min-width: 0; box-sizing: border-box; padding: 6px 8px; border: 1px solid #d0d7de; border-radius: 4px; color: #003660; font: inherit; font-weight: 400; }
+.planned-arrangement-responsible-readonly { color: #536477; }
+.planned-arrangement-departments { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 3px; }
+.planned-arrangement-status { padding: 4px 7px; border-radius: 3px; background: #e4f3ed; color: #176b72; font-size: .72rem; font-weight: 700; white-space: nowrap; }
+.planned-arrangement-status--completed { background: #e8eef5; color: #536477; }
+.planned-arrangement-status--cancelled { background: #fff0e8; color: #9b3b17; }
+.remove-planning-arrangement-btn { width: 30px; height: 30px; border: 0; border-radius: 4px; background: #f1f5f9; color: #536477; font-size: 1.2rem; cursor: pointer; }
+.planning-arrangement-search { margin: 12px 0; }
+.planning-arrangement-search input { width: 100%; box-sizing: border-box; }
+.planning-arrangement-picker-list { display: grid; max-height: min(55vh, 520px); overflow-y: auto; gap: 7px; }
+.planning-arrangement-picker-item { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 10px; padding: 10px; border: 1px solid #d7e1eb; border-radius: 5px; background: #fff; cursor: pointer; }
+.planning-arrangement-picker-item > input { margin: 3px 0 0; accent-color: #176b72; }
+.planning-arrangement-picker-item > span { display: grid; min-width: 0; gap: 5px; }
+.planning-arrangement-picker-item strong { overflow-wrap: anywhere; }
+.planning-arrangement-picker-item small { color: #536477; }
+@media (max-width: 620px) {
+    .planned-arrangement { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+    .planned-arrangement-status { grid-column: 1; justify-self: start; }
+    .remove-planning-arrangement-btn { grid-column: 2; grid-row: 1 / span 2; }
+}
+
 .planned-activities summary,
 .planned-meetings summary {
     display: flex;
@@ -5852,6 +5895,10 @@ select:focus {
     border-color: #94a3b8;
     background: #f1f5f9;
 }
+
+.pdf-selection-option--arrangement { border-left: 3px solid #e0a83a; }
+.pdf-selection-option--missing { border-style: dashed; }
+.pdf-selection-option--arrangement input { accent-color: #9a6a12; }
 
 .pdf-selection-option input {
     width: 18px;
