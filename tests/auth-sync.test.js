@@ -748,12 +748,14 @@ test("planning keeps deleted arrangements visible in the section and print outpu
     const link = {
         id: "deleted-camp",
         title: "Vårhajk",
+        responsible: "Anna Andersson",
         start_date: "2027-04-16",
         end_date: "2027-04-18",
         departments: ["Spårare"]
     };
     const normalized = context.normalizePlanningArrangementLinks([link, link]);
     assert.equal(normalized.length, 1);
+    assert.equal(normalized[0].responsible, "Anna Andersson");
     const section = context.renderPlanningArrangementSection({ id: "planning-1", arrangements: normalized }, true);
     const schedule = context.renderPlanningScheduleForPrint(
         { arrangements: normalized },
@@ -762,9 +764,11 @@ test("planning keeps deleted arrangements visible in the section and print outpu
     );
     assert.match(section, /Arrangemang saknas, kanske blivit borttaget/);
     assert.match(section, /Vårhajk/);
+    assert.match(section, /value="Anna Andersson"/);
     assert.match(section, /16\/4 2027–18\/4 2027/);
     assert.match(schedule, /Tidsöversikt/);
     assert.match(schedule, /Arrangemang saknas i registret/);
+    assert.match(schedule, /Ansvarig: Anna Andersson/);
     assert.ok(schedule.indexOf("Träff 15") < schedule.indexOf("Vårhajk"));
     assert.ok(schedule.indexOf("Vårhajk") < schedule.indexOf("Träff 17"));
     assert.doesNotMatch(schedule, /pdf-arrangements/);
@@ -777,6 +781,7 @@ test("planning keeps deleted arrangements visible in the section and print outpu
     ]);
     assert.ok(table.indexOf("15/4") < table.indexOf("Vårhajk"));
     assert.ok(table.indexOf("Vårhajk") < table.indexOf("20/4"));
+    assert.match(table, /<td>Anna Andersson<\/td>/);
     assert.match(table, /class="pdf-leader-row-last pdf-leader-arrangement-row"/);
     assert.doesNotMatch(source, /renderPlanningTimeline|planning-timeline|renderPlanningArrangementsForPrint|pdf-arrangements/);
     const printBranch = source.slice(source.indexOf("function generatePlanningPdf("), source.indexOf("const printTitle", source.indexOf("function generatePlanningPdf(")));
@@ -801,7 +806,7 @@ test("print selection lists meetings and arrangements together by date", () => {
             { id: "meeting-1", week: "2", date: "2027-04-20" },
             { id: "meeting-2", week: "1", date: "2027-04-10" }
         ], arrangements: [
-            { id: "arr-live", title: "Vårhajk", start_date: "2027-04-15", end_date: "2027-04-17", departments: [] },
+            { id: "arr-live", title: "Vårhajk", responsible: "Anna Andersson", start_date: "2027-04-15", end_date: "2027-04-17", departments: [] },
             { id: "arr-missing", title: "Läger", start_date: "2027-04-25", end_date: "2027-04-26", departments: [] }
         ] }],
         meetingSelectionGroupId: "plan-1",
@@ -824,6 +829,7 @@ test("print selection lists meetings and arrangements together by date", () => {
     const rows = list.children;
     assert.deepEqual(rows.map(row => row.children[1].children[0].textContent), ["Träff 1", "Vårhajk", "Träff 2", "Läger"]);
     assert.deepEqual(rows.map(row => row.children[0].checked), [true, true, false, false]);
+    assert.match(rows[1].children[1].children[1].textContent, /Ansvarig: Anna Andersson/);
     assert.match(rows[3].className, /pdf-selection-option--missing/);
 });
 

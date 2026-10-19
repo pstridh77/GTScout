@@ -1101,6 +1101,7 @@ function normalizePlanningArrangementLinks(links) {
             start_date: String(link.start_date || ""),
             end_date: String(link.end_date || link.start_date || ""),
             location: String(link.location || "").trim(),
+            responsible: String(link.responsible || "").trim(),
             status: ["planned", "completed", "cancelled"].includes(link.status) ? link.status : "planned",
             departments: Array.isArray(link.departments) ? [...new Set(link.departments.filter(department => ARRANGEMENT_DEPARTMENTS.includes(department)))] : []
         }))
@@ -1305,7 +1306,7 @@ function renderMeetingSelectionList() {
         ...arrangements.map(link => {
             const arrangement = allArrangemang.find(item => item.id === link.id);
             const details = arrangement ? getPlanningArrangementSnapshot(arrangement) : link;
-            return { type: "arrangement", id: link.id, date: details.start_date || "9999-99-99", details, missing: !arrangement };
+            return { type: "arrangement", id: link.id, date: details.start_date || "9999-99-99", details, responsible: link.responsible, missing: !arrangement };
         })
     ].sort((left, right) => left.date.localeCompare(right.date) || left.type.localeCompare(right.type, "sv"));
     list.replaceChildren();
@@ -1335,7 +1336,7 @@ function renderMeetingSelectionList() {
         } else {
             name.textContent = entry.details.title || `Arrangemang (${entry.id})`;
             const departments = entry.details.departments.join(", ");
-            details.textContent = `${getPlanningArrangementDateLabel(entry.details)}${departments ? ` · ${departments}` : ""}${entry.missing ? " · Saknas i arrangemangsregistret" : ""}`;
+            details.textContent = `${getPlanningArrangementDateLabel(entry.details)}${departments ? ` · ${departments}` : ""}${entry.responsible ? ` · Ansvarig: ${entry.responsible}` : ""}${entry.missing ? " · Saknas i arrangemangsregistret" : ""}`;
             label.title = selectedMode === "detailed" ? "Arrangemang skrivs inte ut i mötesdetaljläget" : "Arrangemang";
         }
         text.append(name, details);
@@ -1574,13 +1575,13 @@ function generatePlanningPdf(selectedIds, printMode = "planning", selectedMeetin
         const entries = getPlanningPrintTimelineEntries(group, meetings, selectedArrangementIds);
         const rows = entries.map(entry => {
             if (entry.type === "arrangement") {
-                const { arrangement, details, statusLabel } = entry;
+                const { arrangement, details, responsible, statusLabel } = entry;
                 const endDate = details.end_date && details.end_date !== details.start_date ? details.end_date : "";
                 const dateLabel = `${formatShortDateSv(details.start_date)}${endDate ? `–${formatShortDateSv(endDate)}` : ""}`;
                 const weekdayLabel = `${getShortWeekdaySv(details.start_date)}${endDate ? `–${getShortWeekdaySv(endDate)}` : ""}`;
                 const extraDetails = [details.location, details.departments.join(", "), statusLabel].filter(Boolean).map(escapeHtml).join(" · ");
                 const missing = !arrangement ? `<p class="missing-activity">Arrangemang saknas i registret</p>` : "";
-                return `<tr class="pdf-leader-row-last pdf-leader-arrangement-row"><td class="pdf-leader-meeting-edge">${escapeHtml(dateLabel || "-")}</td><td class="pdf-leader-meeting-edge">${escapeHtml(weekdayLabel)}</td><td><p class="pdf-leader-activity"><strong>${escapeHtml(details.title || `Arrangemang (${details.id})`)}</strong></p><p>Arrangemang${extraDetails ? ` · ${extraDetails}` : ""}</p>${missing}</td><td></td><td class="pdf-leader-meeting-edge"></td></tr>`;
+                return `<tr class="pdf-leader-row-last pdf-leader-arrangement-row"><td class="pdf-leader-meeting-edge">${escapeHtml(dateLabel || "-")}</td><td class="pdf-leader-meeting-edge">${escapeHtml(weekdayLabel)}</td><td><p class="pdf-leader-activity"><strong>${escapeHtml(details.title || `Arrangemang (${details.id})`)}</strong></p><p>Arrangemang${extraDetails ? ` · ${extraDetails}` : ""}</p>${missing}</td><td>${escapeHtml(responsible || "")}</td><td class="pdf-leader-meeting-edge"></td></tr>`;
             }
             const meeting = entry.meeting;
             const sunset = calculateSunsetTime(meeting.date);
@@ -2471,6 +2472,19 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
         });
     });
 
+    document.querySelectorAll(".planned-arrangement-responsible-input").forEach(input => {
+        input.addEventListener("change", () => {
+            const group = groups.find(item => item.id === input.dataset.groupId);
+            if (!group || !canEditGroup(group)) return;
+            const links = normalizePlanningArrangementLinks(group.arrangements);
+            const link = links.find(item => item.id === input.dataset.arrangementId);
+            if (!link) return;
+            link.responsible = input.value.trim();
+            group.arrangements = links;
+            saveGroups();
+        });
+    });
+
     document.querySelectorAll(".edit-meeting-btn, .view-meeting-btn").forEach(btn => {
         btn.addEventListener("click", e => {
             e.stopPropagation();
@@ -2543,7 +2557,11 @@ function renderPlanningArrangementSection(group, editable) {
         const arrangement = allArrangemang.find(item => item.id === link.id);
         const details = arrangement ? getPlanningArrangementSnapshot(arrangement) : link;
         const status = arrangement?.status || link.status;
-        return `<article class="planned-arrangement${arrangement ? "" : " planned-arrangement--missing"}" data-arrangement-id="${escapeHtml(link.id)}"><div class="planned-arrangement-main"><span class="planned-arrangement-label">${arrangement ? "Arrangemang" : "Arrangemang saknas, kanske blivit borttaget"}</span><strong>${escapeHtml(details.title || `Arrangemang (${details.id})`)}</strong><small>${escapeHtml(getPlanningArrangementDateLabel(details))}${details.location ? ` · ${escapeHtml(details.location)}` : ""}</small>${details.departments.length ? `<div class="planned-arrangement-departments">${details.departments.map(department => `<span class="arrangement-department-tag department-tone-${ARRANGEMENT_DEPARTMENTS.indexOf(department)}">${escapeHtml(department)}</span>`).join("")}</div>` : ""}</div><span class="planned-arrangement-status planned-arrangement-status--${escapeHtml(status)}">${status === "completed" ? "Genomfört" : status === "cancelled" ? "Inställt" : "Planerat"}</span><button class="remove-planning-arrangement-btn" type="button" data-group-id="${escapeHtml(group.id)}" data-arrangement-id="${escapeHtml(link.id)}" aria-label="Ta bort kopplingen till ${escapeHtml(details.title || "arrangemanget")}" title="Ta bort från planeringen"${editable ? "" : " disabled"}>&times;</button></article>`;
+        const responsible = link.responsible || "";
+        const responsibleMarkup = editable
+            ? `<label class="planned-arrangement-responsible"><span>Ansvarig</span><input class="planned-arrangement-responsible-input" type="text" data-group-id="${escapeHtml(group.id)}" data-arrangement-id="${escapeHtml(link.id)}" value="${escapeHtml(responsible)}" placeholder="Namn" aria-label="Ansvarig för ${escapeHtml(details.title || "arrangemanget")}"></label>`
+            : responsible ? `<small class="planned-arrangement-responsible-readonly"><strong>Ansvarig:</strong> ${escapeHtml(responsible)}</small>` : "";
+        return `<article class="planned-arrangement${arrangement ? "" : " planned-arrangement--missing"}" data-arrangement-id="${escapeHtml(link.id)}"><div class="planned-arrangement-main"><span class="planned-arrangement-label">${arrangement ? "Arrangemang" : "Arrangemang saknas, kanske blivit borttaget"}</span><strong>${escapeHtml(details.title || `Arrangemang (${details.id})`)}</strong><small>${escapeHtml(getPlanningArrangementDateLabel(details))}${details.location ? ` · ${escapeHtml(details.location)}` : ""}</small>${details.departments.length ? `<div class="planned-arrangement-departments">${details.departments.map(department => `<span class="arrangement-department-tag department-tone-${ARRANGEMENT_DEPARTMENTS.indexOf(department)}">${escapeHtml(department)}</span>`).join("")}</div>` : ""}${responsibleMarkup}</div><span class="planned-arrangement-status planned-arrangement-status--${escapeHtml(status)}">${status === "completed" ? "Genomfört" : status === "cancelled" ? "Inställt" : "Planerat"}</span><button class="remove-planning-arrangement-btn" type="button" data-group-id="${escapeHtml(group.id)}" data-arrangement-id="${escapeHtml(link.id)}" aria-label="Ta bort kopplingen till ${escapeHtml(details.title || "arrangemanget")}" title="Ta bort från planeringen"${editable ? "" : " disabled"}>&times;</button></article>`;
     }).join("") : `<p class="group-empty">Inga arrangemang kopplade till terminen.</p>`}</div></details>`;
 }
 
@@ -2562,6 +2580,7 @@ function getPlanningPrintTimelineEntries(group, meetings, selectedArrangementIds
                 order: 1,
                 arrangement,
                 details,
+                responsible: link.responsible,
                 statusLabel: status === "completed" ? "Genomfört" : status === "cancelled" ? "Inställt" : "Planerat"
             };
         })
@@ -2573,8 +2592,8 @@ function renderPlanningScheduleForPrint(group, meetings, renderMeeting, selected
     if (!entries.length) return "";
     return `<div class="pdf-meetings"><h3>Tidsöversikt</h3>${entries.map(entry => {
         if (entry.type === "meeting") return renderMeeting(group, entry.meeting);
-        const { arrangement, details, statusLabel } = entry;
-        const extraDetails = [details.location, details.departments.join(", "), statusLabel].filter(Boolean).map(escapeHtml).join(" · ");
+        const { arrangement, details, responsible, statusLabel } = entry;
+        const extraDetails = [details.location, details.departments.join(", "), responsible ? `Ansvarig: ${responsible}` : "", statusLabel].filter(Boolean).map(escapeHtml).join(" · ");
         const missing = !arrangement ? `<p class="missing-activity">Arrangemang saknas i registret</p>` : "";
         return `<article class="pdf-meeting pdf-meeting--arrangement"><div class="pdf-meeting-header"><h3>${escapeHtml(details.title || `Arrangemang (${details.id})`)} <span>(${escapeHtml(getPlanningArrangementDateLabel(details))})</span></h3></div><p><strong>Arrangemang</strong>${extraDetails ? ` · ${extraDetails}` : ""}</p>${missing}</article>`;
     }).join("")}</div>`;
@@ -2616,7 +2635,11 @@ function savePlanningArrangementSelection() {
     const existing = normalizePlanningArrangementLinks(group.arrangements);
     const availableIds = new Set(allArrangemang.map(item => item.id));
     const missing = existing.filter(link => !availableIds.has(link.id));
-    const selected = selectedIds.map(id => allArrangemang.find(item => item.id === id)).filter(Boolean).map(getPlanningArrangementSnapshot);
+    const existingById = new Map(existing.map(link => [link.id, link]));
+    const selected = selectedIds.map(id => allArrangemang.find(item => item.id === id)).filter(Boolean).map(arrangement => ({
+        ...getPlanningArrangementSnapshot(arrangement),
+        responsible: existingById.get(arrangement.id)?.responsible || ""
+    }));
     group.arrangements = normalizePlanningArrangementLinks([...missing, ...selected]);
     saveGroups();
     document.getElementById("planningArrangementPickerModal").classList.add("hidden");

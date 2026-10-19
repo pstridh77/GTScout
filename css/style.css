@@ -4827,6 +4827,9 @@ select:focus {
 .planned-arrangement-main > strong { overflow-wrap: anywhere; }
 .planned-arrangement-main > small, .planned-arrangement-label { color: #536477; font-size: .78rem; }
 .planned-arrangement-label { font-weight: 700; }
+.planned-arrangement-responsible { display: grid; width: min(100%, 280px); gap: 4px; margin-top: 5px; color: #536477; font-size: .76rem; font-weight: 600; }
+.planned-arrangement-responsible-input { width: 100%; min-width: 0; box-sizing: border-box; padding: 6px 8px; border: 1px solid #d0d7de; border-radius: 4px; color: #003660; font: inherit; font-weight: 400; }
+.planned-arrangement-responsible-readonly { color: #536477; }
 .planned-arrangement-departments { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 3px; }
 .planned-arrangement-status { padding: 4px 7px; border-radius: 3px; background: #e4f3ed; color: #176b72; font-size: .72rem; font-weight: 700; white-space: nowrap; }
 .planned-arrangement-status--completed { background: #e8eef5; color: #536477; }
