@@ -5,6 +5,7 @@ const CUSTOM_BADGE_ACTIVITIES_STORAGE_KEY = "gtscout_custom_badge_activities";
 const SHOW_ACTIVITIES_STORAGE_KEY = "gtscout_show_activities";
 const SHOW_MEETINGS_STORAGE_KEY = "gtscout_show_meetings";
 const MEETING_SECTION_STATUS_STORAGE_KEY = "gtscout_meeting_section_status";
+const ARRANGEMENT_DEPARTMENTS = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover", "Ledare"];
 
 function getMeetingSectionStatusKey(groupId, meetingId) {
     return `${groupId}:${meetingId}`;
@@ -102,6 +103,9 @@ let defaultPlanningTemplates = [{
 let baseMarken = [];
 let allMarken = [];
 let allAktiviteter = [];
+let allArrangemang = [];
+let arrangementsLoading = false;
+let arrangementsLoadError = false;
 let groups = loadGroups();
 let activeGroupId = null; // which group is getting badges added
 let groupFilters = { search: "", level: "Alla", year: "Alla", term: "Alla" };
@@ -119,6 +123,8 @@ let editingStandaloneActivityId = null;
 let activeActivityGroupId = null;
 let activeMeetingActivityPicker = null;
 let activeMeetingActivityCreation = null;
+let activeArrangementGroupId = null;
+let activeArrangementSelectedIds = new Set();
 let activeStandaloneActivityBadge = null;
 let activeStandaloneActivityPlanning = null;
 let activeBadgeActivityLibraryMarke = null;
@@ -1071,6 +1077,7 @@ function normalizeGroupList(list) {
             group.term = normalizePlanningTerm(term);
             group.note = typeof group.note === "string" ? group.note : "";
             group.activities = Array.isArray(group.activities) ? group.activities : [];
+            group.arrangements = normalizePlanningArrangementLinks(group.arrangements);
             group.badges = Array.isArray(group.badges) ? group.badges : [];
             group.meetings = normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : []);
             group.visibility = ["private", "kar_view", "kar_edit"].includes(group.visibility) ? group.visibility : "kar_edit";
@@ -1080,6 +1087,27 @@ function normalizeGroupList(list) {
         : [];
     clearDuplicateShareTokens(normalized);
     return normalized;
+}
+
+function normalizePlanningArrangementLinks(links) {
+    if (!Array.isArray(links)) return [];
+    const seen = new Set();
+    return links.map(link => typeof link === "string" ? { id: link } : link)
+        .filter(link => link && typeof link === "object")
+        .map(link => ({
+            id: String(link.id || "").trim(),
+            title: String(link.title || "").trim(),
+            start_date: String(link.start_date || ""),
+            end_date: String(link.end_date || link.start_date || ""),
+            location: String(link.location || "").trim(),
+            status: ["planned", "completed", "cancelled"].includes(link.status) ? link.status : "planned",
+            departments: Array.isArray(link.departments) ? [...new Set(link.departments.filter(department => ARRANGEMENT_DEPARTMENTS.includes(department)))] : []
+        }))
+        .filter(link => {
+            if (!link.id || seen.has(link.id)) return false;
+            seen.add(link.id);
+            return true;
+        });
 }
 
 function clearDuplicateShareTokens(list) {
@@ -1116,6 +1144,7 @@ function saveGroups() {
         ...group,
         badges: Array.isArray(group.badges) ? group.badges : [],
         activities: Array.isArray(group.activities) ? group.activities : [],
+        arrangements: normalizePlanningArrangementLinks(group.arrangements),
         meetings: normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : []),
         note: typeof group.note === "string" ? group.note : "",
         year: Number.isFinite(getGroupYearValue(group)) ? getGroupYearValue(group) : "",
@@ -2346,6 +2375,10 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                         openActivityPicker(group.id);
                     });
                 }
+                card.querySelector(".add-planning-arrangement-btn")?.addEventListener("click", event => {
+                    event.stopPropagation();
+                    openPlanningArrangementPicker(group.id);
+                });
                 const addMeetingButton = card.querySelector(".add-meeting-btn");
                 if (addMeetingButton) {
                     addMeetingButton.addEventListener("click", event => {
@@ -2381,6 +2414,13 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
         btn.addEventListener("click", e => {
             e.stopPropagation();
             removeActivityFromGroup(btn.dataset.groupId, btn.dataset.activityId);
+        });
+    });
+
+    document.querySelectorAll(".remove-planning-arrangement-btn").forEach(btn => {
+        btn.addEventListener("click", event => {
+            event.stopPropagation();
+            removePlanningArrangementLink(btn.dataset.groupId, btn.dataset.arrangementId);
         });
     });
 
@@ -2427,9 +2467,148 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
     bindActivityDragAndDrop();
 }
 
+function getPlanningArrangementSnapshot(arrangement) {
+    return {
+        id: String(arrangement?.id || ""),
+        title: String(arrangement?.title || "").trim(),
+        start_date: String(arrangement?.start_date || ""),
+        end_date: String(arrangement?.end_date || arrangement?.start_date || ""),
+        location: String(arrangement?.location || "").trim(),
+        status: ["planned", "completed", "cancelled"].includes(arrangement?.status) ? arrangement.status : "planned",
+        departments: Array.isArray(arrangement?.departments) ? [...new Set(arrangement.departments.filter(department => ARRANGEMENT_DEPARTMENTS.includes(department)))] : []
+    };
+}
+
+function getPlanningArrangementDateLabel(arrangement) {
+    const format = date => {
+        if (!date) return "Datum saknas";
+        const formatted = formatShortDateSv(date);
+        return formatted ? `${formatted} ${String(date).slice(0, 4)}` : "Datum saknas";
+    };
+    const start = format(arrangement.start_date);
+    if (!arrangement.end_date || arrangement.end_date === arrangement.start_date) return start;
+    return `${start}–${format(arrangement.end_date)}`;
+}
+
+function renderPlanningTimeline(group, meetings, linkedArrangements) {
+    const entries = [
+        ...meetings.map(meeting => ({
+            date: meeting.date || "9999-99-99",
+            type: "meeting",
+            title: `Träff ${meeting.week || "-"}`,
+            detail: meeting.date ? formatShortDateSv(meeting.date) : "Datum saknas"
+        })),
+        ...linkedArrangements.map(link => {
+            const arrangement = allArrangemang.find(item => item.id === link.id);
+            const reference = arrangement ? getPlanningArrangementSnapshot(arrangement) : link;
+            return {
+                date: reference.start_date || "9999-99-99",
+                type: "arrangement",
+                id: reference.id,
+                title: reference.title || `Arrangemang (${reference.id})`,
+                detail: getPlanningArrangementDateLabel(reference),
+                missing: !arrangement && !arrangementsLoading,
+                label: arrangement ? "Arrangemang" : arrangementsLoading ? "Hämtar arrangemang" : "Arrangemang saknas"
+            };
+        })
+    ].sort((left, right) => left.date.localeCompare(right.date) || left.type.localeCompare(right.type, "sv") || left.title.localeCompare(right.title, "sv"));
+    if (!entries.length) return "";
+    return `<details class="planning-timeline"><summary><span>Tidsöversikt (${entries.length})</span></summary><ol>${entries.map(entry => `<li class="planning-timeline-item planning-timeline-item--${entry.type}${entry.missing ? " planning-timeline-item--missing" : ""}"><time>${escapeHtml(entry.detail)}</time><span class="planning-timeline-type">${entry.type === "meeting" ? "Möte" : entry.label}</span><strong>${escapeHtml(entry.title)}</strong></li>`).join("")}</ol></details>`;
+}
+
+function renderPlanningArrangementSection(group, editable) {
+    const linkedArrangements = normalizePlanningArrangementLinks(group.arrangements);
+    return `<details class="planned-arrangements"><summary><span>Arrangemang${linkedArrangements.length ? ` (${linkedArrangements.length})` : ""}</span><button class="btn-secondary add-planning-arrangement-btn" type="button" data-group-id="${escapeHtml(group.id)}"${editable ? "" : " disabled aria-disabled=\"true\" title=\"Endast ledare och administratörer kan ändra denna planering\""}>+ Arrangemang</button></summary><div class="planned-arrangements-list">${linkedArrangements.length ? linkedArrangements.map(link => {
+        const arrangement = allArrangemang.find(item => item.id === link.id);
+        const details = arrangement ? getPlanningArrangementSnapshot(arrangement) : link;
+        const status = arrangement?.status || link.status;
+        return `<article class="planned-arrangement${arrangement ? "" : " planned-arrangement--missing"}" data-arrangement-id="${escapeHtml(link.id)}"><div class="planned-arrangement-main"><span class="planned-arrangement-label">${arrangement ? "Arrangemang" : "Arrangemang saknas, kanske blivit borttaget"}</span><strong>${escapeHtml(details.title || `Arrangemang (${details.id})`)}</strong><small>${escapeHtml(getPlanningArrangementDateLabel(details))}${details.location ? ` · ${escapeHtml(details.location)}` : ""}</small>${details.departments.length ? `<div class="planned-arrangement-departments">${details.departments.map(department => `<span class="arrangement-department-tag department-tone-${ARRANGEMENT_DEPARTMENTS.indexOf(department)}">${escapeHtml(department)}</span>`).join("")}</div>` : ""}</div><span class="planned-arrangement-status planned-arrangement-status--${escapeHtml(status)}">${status === "completed" ? "Genomfört" : status === "cancelled" ? "Inställt" : "Planerat"}</span><button class="remove-planning-arrangement-btn" type="button" data-group-id="${escapeHtml(group.id)}" data-arrangement-id="${escapeHtml(link.id)}" aria-label="Ta bort kopplingen till ${escapeHtml(details.title || "arrangemanget")}" title="Ta bort från planeringen"${editable ? "" : " disabled"}>&times;</button></article>`;
+    }).join("") : `<p class="group-empty">Inga arrangemang kopplade till terminen.</p>`}</div></details>`;
+}
+
+function getVisiblePlanningArrangements() {
+    const query = document.getElementById("planningArrangementSearch").value.trim().toLocaleLowerCase("sv");
+    return allArrangemang.filter(arrangement => !query || [
+        arrangement.title,
+        arrangement.location,
+        ...(arrangement.departments || [])
+    ].join(" ").toLocaleLowerCase("sv").includes(query));
+}
+
+function renderPlanningArrangementPicker() {
+    const group = groups.find(item => item.id === activeArrangementGroupId);
+    if (!group) return;
+    const arrangements = getVisiblePlanningArrangements();
+    document.getElementById("planningArrangementPickerList").innerHTML = arrangements.length
+        ? arrangements.map(arrangement => `<label class="planning-arrangement-picker-item"><input type="checkbox" value="${escapeHtml(arrangement.id)}"${activeArrangementSelectedIds.has(arrangement.id) ? " checked" : ""}><span><strong>${escapeHtml(arrangement.title)}</strong><small>${escapeHtml(getPlanningArrangementDateLabel(arrangement))}${arrangement.location ? ` · ${escapeHtml(arrangement.location)}` : ""}</small>${arrangement.departments?.length ? `<span class="planned-arrangement-departments">${arrangement.departments.map(department => `<span class="arrangement-department-tag department-tone-${ARRANGEMENT_DEPARTMENTS.indexOf(department)}">${escapeHtml(department)}</span>`).join("")}</span>` : ""}</span></label>`).join("")
+        : `<p class="group-empty">${arrangementsLoading ? "Hämtar arrangemang..." : arrangementsLoadError ? "Arrangemangen kunde inte hämtas. Försök igen senare." : allArrangemang.length ? "Inga arrangemang matchar sökningen." : "Det finns inga arrangemang att välja."}</p>`;
+}
+
+function openPlanningArrangementPicker(groupId) {
+    const group = groups.find(item => item.id === groupId);
+    if (!group || !canEditGroup(group)) return;
+    activeArrangementGroupId = groupId;
+    activeArrangementSelectedIds = new Set(normalizePlanningArrangementLinks(group.arrangements).map(link => link.id));
+    document.getElementById("planningArrangementSearch").value = "";
+    renderPlanningArrangementPicker();
+    document.getElementById("planningArrangementPickerModal").classList.remove("hidden");
+    document.getElementById("planningArrangementSearch").focus();
+}
+
+function savePlanningArrangementSelection() {
+    const group = groups.find(item => item.id === activeArrangementGroupId);
+    if (!group || !canEditGroup(group)) return;
+    const selectedIds = [...activeArrangementSelectedIds];
+    const existing = normalizePlanningArrangementLinks(group.arrangements);
+    const availableIds = new Set(allArrangemang.map(item => item.id));
+    const missing = existing.filter(link => !availableIds.has(link.id));
+    const selected = selectedIds.map(id => allArrangemang.find(item => item.id === id)).filter(Boolean).map(getPlanningArrangementSnapshot);
+    group.arrangements = normalizePlanningArrangementLinks([...missing, ...selected]);
+    saveGroups();
+    document.getElementById("planningArrangementPickerModal").classList.add("hidden");
+    activeArrangementGroupId = null;
+    activeArrangementSelectedIds.clear();
+    renderPlanning();
+}
+
+function bindPlanningArrangementPicker() {
+    const modal = document.getElementById("planningArrangementPickerModal");
+    const list = document.getElementById("planningArrangementPickerList");
+    const close = () => {
+        modal.classList.add("hidden");
+        activeArrangementGroupId = null;
+        activeArrangementSelectedIds.clear();
+    };
+    list.addEventListener("change", event => {
+        const input = event.target.closest('input[type="checkbox"]');
+        if (!input) return;
+        if (input.checked) activeArrangementSelectedIds.add(input.value);
+        else activeArrangementSelectedIds.delete(input.value);
+    });
+    document.getElementById("planningArrangementSearch").addEventListener("input", renderPlanningArrangementPicker);
+    document.getElementById("savePlanningArrangementSelection").addEventListener("click", savePlanningArrangementSelection);
+    document.getElementById("closePlanningArrangementPicker").addEventListener("click", close);
+    document.getElementById("cancelPlanningArrangementPicker").addEventListener("click", close);
+    modal.addEventListener("click", event => {
+        if (event.target === modal) close();
+    });
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && !modal.classList.contains("hidden")) close();
+    });
+}
+
+function removePlanningArrangementLink(groupId, arrangementId) {
+    const group = groups.find(item => item.id === groupId);
+    if (!group || !canEditGroup(group)) return;
+    group.arrangements = normalizePlanningArrangementLinks(group.arrangements).filter(link => link.id !== arrangementId);
+    saveGroups();
+    renderPlanning();
+}
+
 function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingGroupIds = new Set()) {
     const activities = Array.isArray(group.activities) ? group.activities : [];
     const meetings = normalizeMeetingList(Array.isArray(group.meetings) ? group.meetings : []);
+    const linkedArrangements = normalizePlanningArrangementLinks(group.arrangements);
     const editable = canEditGroup(group);
 
     const badges = group.badges.map(badgeId => {
@@ -2502,7 +2681,9 @@ function renderGroupBadges(group, openActivityGroupIds = new Set(), openMeetingG
                     }).join(", ")}</div>` : ""}
                 </div>`;
         }).join("")}</div></details>` : "";
-    return `${badges}<div class="group-badges-actions"><button class="btn-secondary add-badge-btn" type="button" data-group-id="${group.id}"${editable ? "" : " disabled aria-disabled=\"true\" title=\"Endast ledare och administratörer kan ändra denna planering\""}>+ Märke</button></div>${activityMarkup}${meetingsMarkup}`;
+    const timelineMarkup = renderPlanningTimeline(group, showPlanningMeetings ? meetings : [], linkedArrangements);
+    const arrangementMarkup = renderPlanningArrangementSection(group, editable);
+    return `${badges}<div class="group-badges-actions"><button class="btn-secondary add-badge-btn" type="button" data-group-id="${group.id}"${editable ? "" : " disabled aria-disabled=\"true\" title=\"Endast ledare och administratörer kan ändra denna planering\""}>+ Märke</button></div>${activityMarkup}${arrangementMarkup}${meetingsMarkup}${timelineMarkup}`;
 }
 
 // ── Groups CRUD ────────────────────────────────────────────────────────────
@@ -2531,6 +2712,7 @@ function addGroup(name, level, year = "", term = "", note = "") {
         note: typeof note === "string" ? note.trim() : "",
         badges: [],
         activities: [],
+        arrangements: [],
         meetings: []
     });
     saveGroups();
@@ -4573,9 +4755,20 @@ function showBadgeDetail(marke, planningId = null) {
 createStandaloneActivityPopup();
 createActivityPicker();
 createEditActivitiesMenuAction();
+bindPlanningArrangementPicker();
 loadDefaultPlannings();
 loadMarken();
 window.GTScoutAuth?.onChange(() => renderPlanning());
+
+window.GTScoutArrangements?.init({
+    onChange: () => {
+        allArrangemang = window.GTScoutArrangements.getAll();
+        const syncState = window.GTScoutArrangements.getSyncState();
+        arrangementsLoading = syncState.loading;
+        arrangementsLoadError = syncState.error;
+        renderPlanning();
+    }
+});
 
 window.GTScoutActivities?.init({
     onChange: () => {

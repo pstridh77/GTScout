@@ -727,6 +727,39 @@ function createBackend(session = leaderSession, profile = leaderProfile) {
     return { session, profile, callbacks: [], locked: false, requests: [], pending: null };
 }
 
+test("planning keeps deleted arrangements visible in the section and timeline", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "planering.js"), "utf8");
+    const normalizeStart = source.indexOf("function normalizePlanningArrangementLinks(");
+    const normalizeEnd = source.indexOf("function clearDuplicateShareTokens(", normalizeStart);
+    const renderStart = source.indexOf("function getPlanningArrangementSnapshot(");
+    const renderEnd = source.indexOf("function renderGroupBadges(", renderStart);
+    const context = vm.createContext({
+        ARRANGEMENT_DEPARTMENTS: ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover", "Ledare"],
+        allArrangemang: [],
+        arrangementsLoading: false,
+        formatShortDateSv: date => `${Number(date.slice(8, 10))}/${Number(date.slice(5, 7))}`,
+        escapeHtml: value => String(value ?? "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[character]))
+    });
+    vm.runInContext(source.slice(normalizeStart, normalizeEnd), context);
+    vm.runInContext(source.slice(renderStart, renderEnd), context);
+    const link = {
+        id: "deleted-camp",
+        title: "Vårhajk",
+        start_date: "2027-04-16",
+        end_date: "2027-04-18",
+        departments: ["Spårare"]
+    };
+    const normalized = context.normalizePlanningArrangementLinks([link, link]);
+    assert.equal(normalized.length, 1);
+    const section = context.renderPlanningArrangementSection({ id: "planning-1", arrangements: normalized }, true);
+    const timeline = context.renderPlanningTimeline({}, [{ week: "16", date: "2027-04-20" }], normalized);
+    assert.match(section, /Arrangemang saknas i registret/);
+    assert.match(section, /Vårhajk/);
+    assert.match(section, /16\/4 2027–18\/4 2027/);
+    assert.match(timeline, /planning-timeline-item--missing/);
+    assert.ok(timeline.indexOf("Vårhajk") < timeline.indexOf("Träff 16"));
+});
+
 test("meeting activities are included in the planning activity list", () => {
     const source = fs.readFileSync(path.join(__dirname, "..", "js", "planering.js"), "utf8");
     const start = source.indexOf("function addMeetingActivitiesToPlanning(");
