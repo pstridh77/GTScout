@@ -4806,7 +4806,6 @@ select:focus {
     color: #003660;
 }
 
-.planning-timeline,
 .planned-arrangements {
     flex: 1 1 100%;
     min-width: 0;
@@ -4815,18 +4814,6 @@ select:focus {
     border-top: 1px solid #e5e7eb;
 }
 
-.planning-timeline summary { display: flex; align-items: center; color: #536477; font-size: .85rem; font-weight: 600; list-style: none; cursor: pointer; }
-.planning-timeline summary::-webkit-details-marker { display: none; }
-.planning-timeline summary::before { content: "▶"; margin-right: 8px; color: #003660; font-size: .85rem; transition: transform .15s; }
-.planning-timeline[open] summary::before { transform: rotate(90deg); }
-.planning-timeline ol { margin-top: 10px; }
-.planning-timeline ol { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
-.planning-timeline-item { display: grid; grid-template-columns: minmax(90px, .65fr) minmax(100px, .7fr) minmax(0, 2fr); align-items: center; gap: 8px; padding: 7px 9px; border-left: 3px solid #176b72; border-radius: 3px; background: #f8fafc; }
-.planning-timeline-item--arrangement { border-left-color: #e0a83a; }
-.planning-timeline-item--missing { border-left-color: #a83f32; background: #fff6f3; }
-.planning-timeline-item time, .planning-timeline-type { color: #536477; font-size: .76rem; }
-.planning-timeline-type { font-weight: 700; }
-.planning-timeline-item strong { min-width: 0; overflow-wrap: anywhere; }
 .planned-arrangements { display: grid; gap: 8px; color: #003660; }
 .planned-arrangements summary { display: flex; align-items: center; width: 100%; color: #536477; font-size: .85rem; font-weight: 600; list-style: none; cursor: pointer; }
 .planned-arrangements summary::-webkit-details-marker { display: none; }
@@ -4854,8 +4841,6 @@ select:focus {
 .planning-arrangement-picker-item strong { overflow-wrap: anywhere; }
 .planning-arrangement-picker-item small { color: #536477; }
 @media (max-width: 620px) {
-    .planning-timeline-item { grid-template-columns: minmax(0, 1fr) auto; }
-    .planning-timeline-item strong { grid-column: 1 / -1; }
     .planned-arrangement { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
     .planned-arrangement-status { grid-column: 1; justify-self: start; }
     .remove-planning-arrangement-btn { grid-column: 2; grid-row: 1 / span 2; }
@@ -5907,6 +5892,10 @@ select:focus {
     border-color: #94a3b8;
     background: #f1f5f9;
 }
+
+.pdf-selection-option--arrangement { border-left: 3px solid #e0a83a; }
+.pdf-selection-option--missing { border-style: dashed; }
+.pdf-selection-option--arrangement input { accent-color: #9a6a12; }
 
 .pdf-selection-option input {
     width: 18px;
