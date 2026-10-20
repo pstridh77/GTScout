@@ -220,6 +220,10 @@
         return `#${adjusted.join("")}`;
     }
 
+    function getRingBackgroundColor(ring) {
+        return adjustHexColor(ring.color, 0.84);
+    }
+
     function getEventColor(event, ring) {
         if (event.color_variant === "custom" && /^#[0-9a-f]{6}$/i.test(event.color || "")) return event.color;
         if (event.color_variant === "light") return adjustHexColor(ring.color, 0.32);
@@ -268,6 +272,7 @@
         const ringWidth = shownRings.length ? (outerRadius - innerRadius) / shownRings.length : 0;
         const svg = [`<svg class="year-wheel-svg" viewBox="0 0 640 640" role="img" aria-label="Årshjul med månader och händelser"><defs><filter id="year-wheel-seam-shadow" x="60" y="60" width="520" height="520" filterUnits="userSpaceOnUse"><feDropShadow dx="3" dy="0" stdDeviation="2" flood-color="#142637" flood-opacity=".52"/></filter></defs>`];
         const monthIntervals = [];
+        const ringGap = shownRings.length ? Math.min(14, Math.max(8, ringWidth * 0.45)) : 0;
         for (let monthOffset = 0; monthOffset < 12; monthOffset++) {
             const monthIndex = view.mode === "calendar"
                 ? monthOffset
@@ -281,15 +286,35 @@
             const startFraction = from / days;
             const endFraction = to / days;
             monthIntervals.push({ monthIndex, startFraction, endFraction });
-            const separator = point(outerRadius + 2, startFraction);
-            svg.push(`<line x1="320" y1="320" x2="${separator.x.toFixed(2)}" y2="${separator.y.toFixed(2)}" class="year-wheel-month-divider"/>`);
             const label = point(outerRadius + 32, (startFraction + endFraction) / 2);
             svg.push(`<text x="${label.x.toFixed(2)}" y="${label.y.toFixed(2)}" class="year-wheel-month-label" text-anchor="middle" dominant-baseline="middle">${MONTHS[monthIndex].slice(0, 3)}</text>`);
         }
 
         shownRings.forEach((ring, ringIndex) => {
             const outer = outerRadius - ringIndex * ringWidth;
-            const inner = outer - ringWidth + Math.min(1.5, ringWidth / 4);
+            const inner = outer - ringWidth;
+            const backgroundPath = `${arcPath(outer, inner, 0, 0.5)} ${arcPath(outer, inner, 0.5, 1)}`;
+            const labelRadius = outer - ringGap / 2;
+            const labelPathId = `year-wheel-ring-label-path-${ringIndex}`;
+            const labelStart = 0.94;
+            const labelEnd = 1.06;
+            const labelStartPoint = point(labelRadius, labelStart);
+            const labelEndPoint = point(labelRadius, labelEnd);
+            svg.push(`<path d="${backgroundPath}" fill="${getRingBackgroundColor(ring)}" class="year-wheel-ring-background"/>`);
+            svg.push(`<circle cx="320" cy="320" r="${outer.toFixed(2)}" stroke-width="${ringGap.toFixed(2)}" class="year-wheel-ring-gap"/>`);
+            svg.push(`<path id="${labelPathId}" d="M ${labelStartPoint.x.toFixed(2)} ${labelStartPoint.y.toFixed(2)} A ${labelRadius.toFixed(2)} ${labelRadius.toFixed(2)} 0 0 1 ${labelEndPoint.x.toFixed(2)} ${labelEndPoint.y.toFixed(2)}" class="year-wheel-ring-label-path"/>`);
+        });
+
+        monthIntervals.forEach(({ startFraction }) => {
+            const separator = point(outerRadius + 2, startFraction);
+            svg.push(`<line x1="320" y1="320" x2="${separator.x.toFixed(2)}" y2="${separator.y.toFixed(2)}" class="year-wheel-month-divider"/>`);
+        });
+
+        shownRings.forEach((ring, ringIndex) => {
+            const slotOuter = outerRadius - ringIndex * ringWidth;
+            const slotInner = slotOuter - ringWidth;
+            const outer = slotOuter - ringGap / 2;
+            const inner = slotInner + ringGap / 2;
             const events = visibleEvents.filter(event => event.ring_id === ring.id);
             svg.push(`<circle cx="320" cy="320" r="${((outer + inner) / 2).toFixed(2)}" class="year-wheel-ring-track"/>`);
             events.forEach(event => {
@@ -316,6 +341,12 @@
                     : arcPath(outer - 1, inner + 1, from, finish);
                 svg.push(`<g class="year-wheel-event-mark" data-event-edit="${escapeHtml(event.id)}" tabindex="${canEdit() ? "0" : "-1"}" role="${canEdit() ? "button" : "img"}" aria-label="${escapeHtml(title)}"><title>${escapeHtml(title)}</title><path d="${path}" fill="${eventColor}" class="year-wheel-event-arc"/>${eventLabel}</g>`);
             });
+        });
+        shownRings.forEach((ring, ringIndex) => {
+            const labelRadius = outerRadius - ringIndex * ringWidth - ringGap / 2;
+            const label = escapeHtml(ring.name.length > 24 ? `${ring.name.slice(0, 23)}…` : ring.name);
+            const fontSize = Math.max(6, Math.min(10, ringGap * 0.9));
+            svg.push(`<text class="year-wheel-ring-label" style="font-size:${fontSize.toFixed(1)}px"><title>${escapeHtml(ring.name)}</title><textPath href="#year-wheel-ring-label-path-${ringIndex}" startOffset="50%" text-anchor="middle">${label}</textPath></text>`);
         });
         if (shownRings.length) {
             const januaryStart = new Date(Date.UTC(

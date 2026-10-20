@@ -6383,6 +6383,10 @@ select:focus {
 .year-wheel-month-divider { stroke: #fff; stroke-width: 1.5; }
 .year-wheel-year-seam { stroke: #fff; stroke-width: 2; filter: url(#year-wheel-seam-shadow); pointer-events: none; }
 .year-wheel-month-label { fill: #64748b; font-size: 12px; font-weight: 600; }
+.year-wheel-ring-background { stroke: none; }
+.year-wheel-ring-gap { fill: none; stroke: #fff; pointer-events: none; }
+.year-wheel-ring-label-path { fill: none; stroke: none; }
+.year-wheel-ring-label { fill: #46545f; font-size: 9px; font-weight: 700; letter-spacing: .1px; pointer-events: none; }
 .year-wheel-ring-track { fill: none; stroke: #edf2f7; stroke-width: 1; }
 .year-wheel-event-arc { stroke: #fff; stroke-width: 1.5; transition: filter .12s ease; }
 .year-wheel-event-mark { cursor: pointer; }

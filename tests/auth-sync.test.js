@@ -251,6 +251,7 @@ test("year-wheel events use ring, light, dark, or custom colors", () => {
     assert.equal(context.getEventColor({ color_variant: "light" }, ring), "#7ec26e");
     assert.equal(context.getEventColor({ color_variant: "dark" }, ring), "#317e20");
     assert.equal(context.getEventColor({ color_variant: "custom", color: "#123456" }, ring), "#123456");
+    assert.equal(context.getRingBackgroundColor(ring), "#e1f1dd");
 });
 
 test("year-wheel event arcs are at least one week wide", () => {
