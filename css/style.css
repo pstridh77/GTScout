@@ -6401,18 +6401,21 @@ select:focus {
 .year-wheel-event-card-main .year-wheel-event-notes { white-space: pre-line; }
 .year-wheel-empty { margin: 8px 0; color: #64748b; font-size: .88rem; line-height: 1.5; }
 .year-wheel-form { display: grid; gap: 12px; }
+#yearWheelFormFields { display: grid; gap: 14px; }
 .year-wheel-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.year-wheel-form .modal-field { display: grid; gap: 5px; color: #536477; font-size: .84rem; font-weight: 600; }
+.year-wheel-ring-color-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 12px; }
+.year-wheel-form .modal-field { display: grid; gap: 7px; color: #536477; font-size: .84rem; font-weight: 600; }
 .year-wheel-form .modal-field[hidden] { display: none; }
 .year-wheel-form .modal-field input, .year-wheel-form .modal-field select, .year-wheel-form .modal-field textarea { width: 100%; min-width: 0; box-sizing: border-box; padding: 9px; border: 1px solid #c8d5e1; border-radius: 5px; background: #fff; color: #003660; font: inherit; }
 .year-wheel-form .modal-field input[type="color"] { height: 42px; padding: 4px; }
 .year-wheel-color-choice-row { display: flex; align-items: center; gap: 10px; }
-.year-wheel-form .year-wheel-color-choice-row select { flex: 0 1 auto; width: fit-content; max-width: 100%; }
-.year-wheel-color-picker { position: relative; display: block; width: 32px; height: 32px; flex: 0 0 32px; cursor: pointer; }
+.year-wheel-form .year-wheel-color-choice-row select { flex: 1 1 auto; width: 100%; }
+.year-wheel-color-picker { position: relative; display: block; width: 26px; height: 26px; flex: 0 0 26px; cursor: pointer; }
 .year-wheel-color-picker input { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; padding: 0; opacity: 0; cursor: pointer; }
 .year-wheel-color-picker input:disabled { cursor: default; }
-.year-wheel-color-preview { width: 32px; height: 32px; flex: 0 0 32px; box-sizing: border-box; border: 2px solid #fff; border-radius: 5px; box-shadow: 0 0 0 1px #c8d5e1; }
+.year-wheel-color-preview { display: block; width: 26px; height: 26px; flex: 0 0 26px; box-sizing: border-box; border: 2px solid #fff; border-radius: 5px; box-shadow: 0 0 0 1px #c8d5e1; pointer-events: none; }
 .year-wheel-color-picker input:focus-visible + .year-wheel-color-preview { outline: 2px solid #2477d4; outline-offset: 2px; }
+.year-wheel-form .modal-actions { gap: 10px; margin-top: 4px; }
 .year-wheel-modal-content { max-height: 90vh; max-height: 90dvh; overflow-y: auto; }
 .year-wheel-modal-content > h2 { padding-right: 30px; }
 @media (max-width: 900px) {

@@ -253,6 +253,31 @@ test("year-wheel events use ring, light, dark, or custom colors", () => {
     assert.equal(context.getEventColor({ color_variant: "custom", color: "#123456" }, ring), "#123456");
 });
 
+test("year-wheel event arcs are at least one week wide", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8");
+    const start = source.indexOf("function getEventArcFractions(");
+    const end = source.indexOf("function renderWheelChart(", start);
+    const context = vm.createContext({});
+    vm.runInContext(source.slice(start, end), context);
+    const days = 365;
+    const width = arc => (arc.to - arc.from) * days;
+
+    const singleDay = context.getEventArcFractions(100, 101, days);
+    assert.ok(width(singleDay) >= 7 - 1e-9);
+    assert.ok(Math.abs((singleDay.from + singleDay.to) / 2 - 100.5 / days) < 1e-12);
+
+    const atYearStart = context.getEventArcFractions(0, 1, days);
+    assert.ok(width(atYearStart) >= 7 - 1e-9);
+    assert.equal(atYearStart.from, 0);
+
+    const atYearEnd = context.getEventArcFractions(364, 365, days);
+    assert.ok(width(atYearEnd) >= 7 - 1e-9);
+    assert.equal(atYearEnd.to, 1);
+
+    const longerEvent = context.getEventArcFractions(100, 107, days);
+    assert.ok(Math.abs(width(longerEvent) - 7) < 1e-9);
+});
+
 test("arrangement participant totals include officials as leaders and only selected departments", () => {
     const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
     const start = source.indexOf("function getParticipantTotals(");

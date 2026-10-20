@@ -246,6 +246,19 @@
         list.querySelectorAll("[data-edit-ring]").forEach(button => button.addEventListener("click", () => openRingForm(button.dataset.editRing)));
     }
 
+    function getEventArcFractions(startDay, endDay, days) {
+        let from = Math.max(0, startDay / days);
+        let to = Math.min(1, endDay / days);
+        if (to <= from) return null;
+
+        const minimumWidth = Math.min(1, 7 / days);
+        if (to - from < minimumWidth) {
+            from = Math.max(0, Math.min((from + to - minimumWidth) / 2, 1 - minimumWidth));
+            to = from + minimumWidth;
+        }
+        return { from, to };
+    }
+
     function renderWheelChart(wheel, shownRings, visibleEvents, periodRange) {
         const container = byId("yearWheelChart");
         const { start, endExclusive } = periodRange;
@@ -285,11 +298,9 @@
                 const clippedEnd = event.end_date > lastDay ? lastDay : event.end_date;
                 const startDay = dayIndex(clippedStart, start);
                 const endDay = dayIndex(clippedEnd, start) + 1;
-                const from = Math.max(0, startDay / days);
-                const to = Math.min(1, endDay / days);
-                if (to <= from) return;
-                const minWidth = 1 / 180;
-                const finish = Math.min(1, Math.max(to, from + minWidth));
+                const arc = getEventArcFractions(startDay, endDay, days);
+                if (!arc) return;
+                const { from, to: finish } = arc;
                 const mid = (from + finish) / 2;
                 const radius = (outer + inner) / 2;
                 const label = point(radius, mid);
@@ -474,23 +485,25 @@
         const date = dateKey(period().start);
         openModal(event ? "Redigera händelse" : "Lägg till händelse", `
             <label class="modal-field"><span>Rubrik</span><input name="title" required maxlength="120" value="${escapeHtml(event?.title || "")}" placeholder="Till exempel Kårstämma"></label>
-            <label class="modal-field"><span>Ring</span><select name="ring_id" required>${wheel.rings.map(ring => `<option value="${escapeHtml(ring.id)}" ${ring.id === chosenRing ? "selected" : ""}>${escapeHtml(ring.name)}</option>`).join("")}</select></label>
+            <div class="year-wheel-ring-color-grid">
+                <label class="modal-field"><span>Ring</span><select name="ring_id" required>${wheel.rings.map(ring => `<option value="${escapeHtml(ring.id)}" ${ring.id === chosenRing ? "selected" : ""}>${escapeHtml(ring.name)}</option>`).join("")}</select></label>
+                <label class="modal-field"><span>Händelsefärg</span><div class="year-wheel-color-choice-row">
+                    <select name="color_variant">
+                        <option value="ring" ${!event || !event.color_variant || event.color_variant === "ring" ? "selected" : ""}>Ringens färg</option>
+                        <option value="light" ${event?.color_variant === "light" ? "selected" : ""}>Ljusare nyans</option>
+                        <option value="dark" ${event?.color_variant === "dark" ? "selected" : ""}>Mörkare nyans</option>
+                        <option value="custom" ${event?.color_variant === "custom" ? "selected" : ""}>Valfri färg</option>
+                    </select>
+                    <span class="year-wheel-color-picker" data-event-color-preview>
+                        <input name="color" type="color" aria-label="Välj händelsefärg" value="${escapeHtml(event?.color || wheel.rings.find(ring => ring.id === chosenRing)?.color || COLORS[0])}">
+                        <span class="year-wheel-color-preview" aria-hidden="true"></span>
+                    </span>
+                </div></label>
+            </div>
             <div class="year-wheel-form-grid">
                 <label class="modal-field"><span>Från och med</span><input name="start_date" type="date" required value="${escapeHtml(event?.start_date || date)}"></label>
                 <label class="modal-field"><span>Till och med</span><input name="end_date" type="date" required value="${escapeHtml(event?.end_date || event?.start_date || date)}"></label>
             </div>
-            <label class="modal-field"><span>Händelsefärg</span><div class="year-wheel-color-choice-row">
-                <select name="color_variant">
-                    <option value="ring" ${!event || !event.color_variant || event.color_variant === "ring" ? "selected" : ""}>Ringens färg</option>
-                    <option value="light" ${event?.color_variant === "light" ? "selected" : ""}>Ljusare nyans</option>
-                    <option value="dark" ${event?.color_variant === "dark" ? "selected" : ""}>Mörkare nyans</option>
-                    <option value="custom" ${event?.color_variant === "custom" ? "selected" : ""}>Valfri färg</option>
-                </select>
-                <label class="year-wheel-color-picker" data-event-color-preview>
-                    <input name="color" type="color" aria-label="Välj händelsefärg" value="${escapeHtml(event?.color || wheel.rings.find(ring => ring.id === chosenRing)?.color || COLORS[0])}">
-                    <span class="year-wheel-color-preview" aria-hidden="true"></span>
-                </label>
-            </div></label>
             <div class="year-wheel-form-grid">
                 <label class="modal-field"><span>Ansvarig (valfritt)</span><input name="responsible" maxlength="100" value="${escapeHtml(event?.responsible || "")}"></label>
                 <label class="modal-field"><span>Plats (valfritt)</span><input name="location" maxlength="120" value="${escapeHtml(event?.location || "")}"></label>
