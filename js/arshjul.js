@@ -88,7 +88,13 @@
                 location: String(event.location || "").trim().slice(0, 120),
                 notes: String(event.notes || "").trim().slice(0, 2000),
                 copied_from_id: String(event.copied_from_id || ""),
-                needs_review: Boolean(event.needs_review)
+                needs_review: Boolean(event.needs_review),
+                source_arrangement_id: String(event.source_arrangement_id || ""),
+                source_arrangement_fields: {
+                    responsible: Boolean(event.source_arrangement_fields?.responsible),
+                    location: Boolean(event.source_arrangement_fields?.location),
+                    notes: Boolean(event.source_arrangement_fields?.notes)
+                }
             };
         }).filter(event => event?.title) : [];
         return {
@@ -266,6 +272,81 @@
         if (event.color_variant === "light") return adjustHexColor(ring.color, 0.32);
         if (event.color_variant === "dark") return adjustHexColor(ring.color, -0.24);
         return ring.color;
+    }
+
+    function syncArrangementEvents(wheel, arrangements) {
+        const ring = wheel.rings.find(item => item.name.trim().toLocaleLowerCase("sv") === "arrangemang");
+        if (!ring) return null;
+        const events = [...wheel.events];
+        let changed = false;
+        arrangements.forEach(arrangement => {
+            const title = String(arrangement?.title || "").trim();
+            const startDate = String(arrangement?.start_date || "");
+            const endDate = String(arrangement?.end_date || startDate);
+            const arrangementId = String(arrangement?.id || "");
+            if (!arrangementId || !title || !isDate(startDate) || !isDate(endDate) || endDate < startDate) return;
+            const responsible = (Array.isArray(arrangement.responsibilities) ? arrangement.responsibilities : [])
+                .map(entry => {
+                    const person = String(entry?.person || "").trim();
+                    const role = String(entry?.role || "").trim();
+                    return person && role ? `${person} (${role})` : person || role;
+                })
+                .filter(Boolean)
+                .join(", ")
+                .slice(0, 100);
+            const location = String(arrangement.location || "").trim().slice(0, 120);
+            const notes = String(arrangement.notes || "").trim().slice(0, 2000);
+            const sourceFields = {
+                responsible: Boolean(responsible),
+                location: Boolean(location),
+                notes: Boolean(notes)
+            };
+            const index = events.findIndex(event => event.source_arrangement_id === arrangementId);
+            if (index < 0) {
+                events.push({
+                    id: id(),
+                    ring_id: ring.id,
+                    title,
+                    start_date: startDate,
+                    end_date: endDate,
+                    color_variant: "ring",
+                    color: "",
+                    responsible,
+                    location,
+                    notes,
+                    source_arrangement_fields: sourceFields,
+                    source_arrangement_id: arrangementId
+                });
+                changed = true;
+                return;
+            }
+            const existing = events[index];
+            const previousSources = existing.source_arrangement_fields || {};
+            const syncedValue = (field, value) => value
+                ? value
+                : previousSources[field] ? "" : existing[field];
+            const updated = {
+                ...existing,
+                ring_id: ring.id,
+                title,
+                start_date: startDate,
+                end_date: endDate,
+                responsible: syncedValue("responsible", responsible),
+                location: syncedValue("location", location),
+                notes: syncedValue("notes", notes),
+                source_arrangement_fields: sourceFields
+            };
+            if (existing.ring_id === updated.ring_id && existing.title === updated.title
+                && existing.start_date === updated.start_date && existing.end_date === updated.end_date
+                && existing.responsible === updated.responsible && existing.location === updated.location
+                && existing.notes === updated.notes
+                && Boolean(previousSources.responsible) === sourceFields.responsible
+                && Boolean(previousSources.location) === sourceFields.location
+                && Boolean(previousSources.notes) === sourceFields.notes) return;
+            events[index] = updated;
+            changed = true;
+        });
+        return changed ? normalizeWheel({ ...wheel, events }) : null;
     }
 
     function isDepartmentRing(ring) {
@@ -620,7 +701,9 @@
             start_date: startDate,
             end_date: endDate,
             copied_from_id: event.id,
-            needs_review: true
+            needs_review: true,
+            source_arrangement_id: "",
+            source_arrangement_fields: {}
         };
         const updated = normalizeWheel({ ...wheel, events: [...wheel.events, copiedEvent] });
         wheels = wheels.map(item => item.id === wheel.id ? updated : item);
@@ -980,12 +1063,24 @@
         const wheel = currentWheel();
         if (!wheel || !canEdit() || !wheel.rings.length) return;
         const event = wheel.events.find(item => item.id === eventId);
+        const linkedArrangement = Boolean(event?.source_arrangement_id);
+        const linkedArrangementNote = "Fält som hämtas från arrangemanget ändras där och synkas automatiskt hit.";
+        const linkedArrangementAttributes = linkedArrangement
+            ? `readonly aria-describedby="yearWheelLinkedArrangementNote" title="${escapeHtml(linkedArrangementNote)}"`
+            : "";
+        const sourceFieldAttributes = field => linkedArrangement && event.source_arrangement_fields?.[field]
+            ? `readonly aria-describedby="yearWheelLinkedArrangementNote" title="${escapeHtml(linkedArrangementNote)}"`
+            : "";
+        const linkedArrangementRingAttributes = linkedArrangement
+            ? `disabled aria-describedby="yearWheelLinkedArrangementNote" title="Ringen hämtas från arrangemanget."`
+            : "";
         const chosenRing = event?.ring_id || wheel.rings.find(ring => selectedRingIds.has(ring.id))?.id || wheel.rings[0].id;
         const date = dateKey(period().start);
         openModal(event ? "Redigera händelse" : "Lägg till händelse", `
-            <label class="modal-field"><span>Rubrik</span><input name="title" required maxlength="120" value="${escapeHtml(event?.title || "")}" placeholder="Till exempel Kårstämma"></label>
+            ${linkedArrangement ? `<p id="yearWheelLinkedArrangementNote" class="year-wheel-linked-arrangement-note">${escapeHtml(linkedArrangementNote)}</p>` : ""}
+            <label class="modal-field"><span>Rubrik</span><input name="title" required maxlength="120" value="${escapeHtml(event?.title || "")}" placeholder="Till exempel Kårstämma" ${linkedArrangementAttributes}></label>
             <div class="year-wheel-ring-color-grid">
-                <label class="modal-field"><span>Ring</span><select name="ring_id" required>${wheel.rings.map(ring => `<option value="${escapeHtml(ring.id)}" ${ring.id === chosenRing ? "selected" : ""}>${escapeHtml(ring.name)}</option>`).join("")}</select></label>
+                <label class="modal-field"><span>Ring</span><select ${linkedArrangement ? "" : 'name="ring_id"'} required ${linkedArrangementRingAttributes}>${wheel.rings.map(ring => `<option value="${escapeHtml(ring.id)}" ${ring.id === chosenRing ? "selected" : ""}>${escapeHtml(ring.name)}</option>`).join("")}</select>${linkedArrangement ? `<input type="hidden" name="ring_id" value="${escapeHtml(chosenRing)}">` : ""}</label>
                 <label class="modal-field"><span>Händelsefärg</span><div class="year-wheel-color-choice-row">
                     <select name="color_variant">
                         <option value="ring" ${!event || !event.color_variant || event.color_variant === "ring" ? "selected" : ""}>Ringens färg</option>
@@ -1000,14 +1095,14 @@
                 </div></label>
             </div>
             <div class="year-wheel-form-grid">
-                <label class="modal-field"><span>Från och med</span><input name="start_date" type="date" required value="${escapeHtml(event?.start_date || date)}"></label>
-                <label class="modal-field"><span>Till och med</span><input name="end_date" type="date" required value="${escapeHtml(event?.end_date || event?.start_date || date)}"></label>
+                <label class="modal-field"><span>Från och med</span><input name="start_date" type="date" required value="${escapeHtml(event?.start_date || date)}" ${linkedArrangementAttributes}></label>
+                <label class="modal-field"><span>Till och med</span><input name="end_date" type="date" required value="${escapeHtml(event?.end_date || event?.start_date || date)}" ${linkedArrangementAttributes}></label>
             </div>
             <div class="year-wheel-form-grid">
-                <label class="modal-field"><span>Ansvarig (valfritt)</span><input name="responsible" maxlength="100" value="${escapeHtml(event?.responsible || "")}"></label>
-                <label class="modal-field"><span>Plats (valfritt)</span><input name="location" maxlength="120" value="${escapeHtml(event?.location || "")}"></label>
+                <label class="modal-field"><span>Ansvarig (valfritt)</span><input name="responsible" maxlength="100" value="${escapeHtml(event?.responsible || "")}" ${sourceFieldAttributes("responsible")}></label>
+                <label class="modal-field"><span>Plats (valfritt)</span><input name="location" maxlength="120" value="${escapeHtml(event?.location || "")}" ${sourceFieldAttributes("location")}></label>
             </div>
-            <label class="modal-field"><span>Anteckningar</span><textarea name="notes" rows="3" maxlength="2000">${escapeHtml(event?.notes || "")}</textarea></label>
+            <label class="modal-field"><span>Anteckningar</span><textarea name="notes" rows="3" maxlength="2000" ${sourceFieldAttributes("notes")}>${escapeHtml(event?.notes || "")}</textarea></label>
         `, "event", eventId);
         const startInput = byId("yearWheelFormFields").querySelector('[name="start_date"]');
         const endInput = byId("yearWheelFormFields").querySelector('[name="end_date"]');
@@ -1044,6 +1139,21 @@
         window.GTScoutYearWheelSync?.saveWheel(wheel);
     }
 
+    function syncArrangementsIntoWheels(arrangements) {
+        if (!Array.isArray(arrangements) || !wheels.length) return;
+        const updates = [];
+        wheels = wheels.map(wheel => {
+            const updated = syncArrangementEvents(wheel, arrangements);
+            if (updated) {
+                updates.push(updated);
+                return updated;
+            }
+            return wheel;
+        });
+        render();
+        updates.forEach(saveWheel);
+    }
+
     function submitForm(event) {
         event.preventDefault();
         const formData = new FormData(event.currentTarget);
@@ -1069,7 +1179,9 @@
                     start_date: startDate,
                     end_date: endDate,
                     copied_from_id: item.id,
-                    needs_review: true
+                    needs_review: true,
+                    source_arrangement_id: "",
+                    source_arrangement_fields: {}
                 } : null;
             });
             if (copies.some(item => !item)) {
@@ -1205,7 +1317,9 @@
                 location: String(value.location || "").trim(),
                 notes: String(value.notes || "").trim(),
                 copied_from_id: wheel.events.find(item => item.id === editingId)?.copied_from_id || "",
-                needs_review: false
+                needs_review: false,
+                source_arrangement_id: wheel.events.find(item => item.id === editingId)?.source_arrangement_id || "",
+                source_arrangement_fields: wheel.events.find(item => item.id === editingId)?.source_arrangement_fields || {}
             };
             if (!eventData.title || !wheel.rings.some(ring => ring.id === eventData.ring_id)) return;
             selectedRingIds.add(eventData.ring_id);
@@ -1322,6 +1436,7 @@
         });
         byId("yearWheelForm").addEventListener("submit", submitForm);
         byId("deleteYearWheelItemBtn").addEventListener("click", deleteCurrentItem);
+        window.GTScoutArrangements?.init({ onChange: syncArrangementsIntoWheels });
         auth()?.onChange?.(() => {
             updateYearWheelMenuActions();
             render();
@@ -1348,6 +1463,7 @@
                 return { wheel, changed: true };
             }).filter(entry => entry.wheel.name);
             wheels = migrated.map(entry => entry.wheel);
+            syncArrangementsIntoWheels(window.GTScoutArrangements?.getAll?.() || []);
             const activeMigration = migrated.find(entry => entry.changed && entry.wheel.id === selectedWheelId);
             if (activeMigration && selectedRingsForWheelId === selectedWheelId) {
                 const termRing = activeMigration.wheel.rings.find(ring => ring.name === "Terminer");

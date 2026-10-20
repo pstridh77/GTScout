@@ -6468,6 +6468,8 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
 .year-wheel-form .modal-field { display: grid; gap: 7px; color: #536477; font-size: .84rem; font-weight: 600; }
 .year-wheel-form .modal-field[hidden] { display: none; }
 .year-wheel-form .modal-field input, .year-wheel-form .modal-field select, .year-wheel-form .modal-field textarea { width: 100%; min-width: 0; box-sizing: border-box; padding: 9px; border: 1px solid #c8d5e1; border-radius: 5px; background: #fff; color: #003660; font: inherit; }
+.year-wheel-form .modal-field input[readonly], .year-wheel-form .modal-field textarea[readonly] { background: #f1f5f9; color: #536477; cursor: not-allowed; }
+.year-wheel-linked-arrangement-note { margin: 0; padding: 9px 11px; border-left: 3px solid #398a86; background: #eef7f7; color: #34495e; font-size: .82rem; }
 .year-wheel-form .modal-field input[type="color"] { height: 42px; padding: 4px; }
 .year-wheel-color-choice-row { display: flex; align-items: center; gap: 10px; }
 .year-wheel-form .year-wheel-color-choice-row select { flex: 1 1 auto; width: 100%; }

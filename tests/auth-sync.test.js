@@ -362,6 +362,66 @@ test("year-wheel department rings display as one filterable ring", () => {
             "Ledare": {}
         }
     });
+
+    test("year-wheel mirrors arrangements into the Arrangemang ring without duplicates", () => {
+        const source = fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8");
+        const start = source.indexOf("function syncArrangementEvents(");
+        const end = source.indexOf("function isDepartmentRing(", start);
+        const context = vm.createContext({
+            isDate: value => /^\d{4}-\d{2}-\d{2}$/.test(value),
+            id: () => "generated-event",
+            normalizeWheel: wheel => wheel
+        });
+        vm.runInContext(source.slice(start, end), context);
+        const wheel = {
+            id: "wheel",
+            rings: [{ id: "arrangements", name: "Arrangemang" }],
+            events: []
+        };
+        const arrangement = {
+            id: "event-1",
+            title: "Hajk",
+            start_date: "2026-05-01",
+            end_date: "2026-05-03",
+            location: "Skogen",
+            notes: "Ta med tält",
+            responsibilities: [{ person: "Ada", role: "Hajkledare" }]
+        };
+        const inserted = context.syncArrangementEvents(wheel, [arrangement]);
+        assert.equal(inserted.events.length, 1);
+        assert.equal(inserted.events[0].ring_id, "arrangements");
+        assert.equal(inserted.events[0].source_arrangement_id, "event-1");
+        assert.equal(inserted.events[0].responsible, "Ada (Hajkledare)");
+        assert.equal(inserted.events[0].location, "Skogen");
+        assert.equal(inserted.events[0].notes, "Ta med tält");
+        assert.deepEqual(JSON.parse(JSON.stringify(inserted.events[0].source_arrangement_fields)), {
+            responsible: true,
+            location: true,
+            notes: true
+        });
+        assert.equal(context.syncArrangementEvents(inserted, [arrangement]), null);
+
+        const updated = context.syncArrangementEvents(inserted, [{
+            ...arrangement,
+            title: "Vårhajk",
+            start_date: "2026-05-02",
+            end_date: "2026-05-04",
+            location: "",
+            notes: "",
+            responsibilities: []
+        }]);
+        assert.equal(updated.events.length, 1);
+        assert.equal(updated.events[0].title, "Vårhajk");
+        assert.equal(updated.events[0].start_date, "2026-05-02");
+        assert.equal(updated.events[0].responsible, "");
+        assert.equal(updated.events[0].location, "");
+        assert.equal(updated.events[0].notes, "");
+        assert.deepEqual(JSON.parse(JSON.stringify(updated.events[0].source_arrangement_fields)), {
+            responsible: false,
+            location: false,
+            notes: false
+        });
+    });
     vm.runInContext(source.slice(start, end), context);
     const wheel = { rings: [
         { id: "scout-1", name: "Spårare", color: "#41a62a" },
