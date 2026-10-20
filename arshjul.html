@@ -104,8 +104,8 @@
             <label id="yearWheelDepartmentDisplayField" class="filter-field hidden">
                 <span>Visa avdelningar</span>
                 <select id="yearWheelDepartmentDisplay">
-                    <option value="grouped">Samlad ring: Avdelning</option>
-                    <option value="individual">Egna ringar</option>
+                    <option value="grouped">Samlade</option>
+                    <option value="individual">Avdelningsvis</option>
                 </select>
             </label>
             <label id="yearWheelStartMonthField" class="filter-field hidden">
@@ -119,16 +119,17 @@
                     <option value="11">November</option><option value="12">December</option>
                 </select>
             </label>
+            <details id="yearWheelRingFilters" class="year-wheel-ring-filters">
+                <summary>Visa ringar</summary>
+                <div class="year-wheel-ring-filter-content">
+                    <p class="detail-note">Välj vilka delar du vill se.</p>
+                    <div id="yearWheelRingList" class="year-wheel-ring-list"></div>
+                    <p id="yearWheelReadOnlyNote" class="detail-note hidden">Du kan visa och filtrera hjulet. Ledare kan redigera.</p>
+                </div>
+            </details>
         </section>
 
         <section class="year-wheel-layout" aria-label="Årshjulets innehåll">
-            <aside class="year-wheel-rings-panel">
-                <div class="year-wheel-panel-heading">
-                    <div><h2>Ringar</h2><p>Välj vilka delar du vill se.</p></div>
-                </div>
-                <div id="yearWheelRingList" class="year-wheel-ring-list"></div>
-                <p id="yearWheelReadOnlyNote" class="detail-note hidden">Du kan visa och filtrera hjulet. Ledare kan redigera.</p>
-            </aside>
             <div class="year-wheel-main">
                 <div class="year-wheel-chart-card">
                     <div class="year-wheel-chart-heading">

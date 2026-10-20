@@ -370,6 +370,16 @@ test("the main year-wheel view has no add-ring button", () => {
     assert.doesNotMatch(html, /addYearWheelRingBtn|\+ Ring/);
 });
 
+test("ring filters are collapsed inside the toolbar instead of a sidebar", () => {
+    const html = fs.readFileSync(path.join(__dirname, "..", "arshjul.html"), "utf8");
+    const toolbar = html.slice(html.indexOf('<section id="yearWheelToolbar"'), html.indexOf('<section class="year-wheel-layout"'));
+    assert.match(toolbar, /<details id="yearWheelRingFilters" class="year-wheel-ring-filters">/);
+    assert.match(toolbar, /<summary>Visa ringar<\/summary>/);
+    assert.match(toolbar, /id="yearWheelRingList"/);
+    assert.match(toolbar, /id="yearWheelReadOnlyNote"/);
+    assert.doesNotMatch(html, /year-wheel-rings-panel/);
+});
+
 test("changed arrangements automatically update wheels without repeated writes", async () => {
     const page = createPage({ wheels: [wheel()], arrangements: [arrangement()] });
     await settle();
