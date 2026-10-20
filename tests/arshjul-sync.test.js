@@ -51,7 +51,7 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
         if (!elements.has(id)) {
             const classes = new Set();
             elements.set(id, {
-                value: "", textContent: "", dataset: {}, handlers: {},
+                value: "", textContent: "", dataset: {}, handlers: {}, style: {},
                 set innerHTML(value) {
                     if (id === "yearWheelChart") {
                         renderCount++;
@@ -71,7 +71,16 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
                     if (selector === "[data-department-toggle-all]") return null;
                     return element(`${id} ${selector}`);
                 },
-                querySelectorAll: () => [],
+                querySelectorAll(selector) {
+                    if (selector === "[data-month-create]") {
+                        return [...this.innerHTML.matchAll(/data-month-create="([^"]+)"/g)].map(([, date]) => {
+                            const mark = element(`${id} month ${date}`);
+                            mark.dataset.monthCreate = date;
+                            return mark;
+                        });
+                    }
+                    return [];
+                },
                 attributes: {},
                 setAttribute(name, value) { this.attributes[name] = value; },
                 removeAttribute() {}, focus() {}
@@ -395,6 +404,51 @@ test("add event menu action forwards to the existing button and respects its ava
         const page = createPage(options);
         await settle();
         assert.equal(page.elements.get("yearWheelMenuAddEventBtn").disabled, page.elements.get("addYearWheelEventBtn").disabled);
+        assert.deepEqual(page.errors, []);
+    }
+});
+
+test("month sectors open new events on the first day in calendar and operational years", async () => {
+    const page = createPage({ wheels: [wheel()] });
+    await settle();
+    const chart = page.elements.get("yearWheelChart");
+    assert.equal(chart.querySelectorAll("[data-month-create]").length, 12);
+    for (const date of ["2026-01-01", "2026-12-01"]) {
+        page.elements.get(`yearWheelChart month ${date}`).handlers.click();
+        assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Lägg till händelse");
+        const fields = page.elements.get("yearWheelFormFields").innerHTML;
+        assert.match(fields, new RegExp(`name="start_date"[^>]*value="${date}"`));
+        assert.match(fields, new RegExp(`name="end_date"[^>]*value="${date}"`));
+        page.elements.get("closeYearWheelModal").handlers.click();
+    }
+    page.elements.get("yearWheelMode").value = "operational";
+    page.elements.get("yearWheelMode").handlers.change();
+    const dates = chart.querySelectorAll("[data-month-create]").map(mark => mark.dataset.monthCreate);
+    assert.equal(dates[0], "2026-08-01");
+    assert.equal(dates[11], "2027-07-01");
+    for (const key of ["Enter", " "]) {
+        let prevented = false;
+        page.elements.get("yearWheelChart month 2027-01-01").handlers.keydown({
+            key, preventDefault() { prevented = true; }
+        });
+        assert.equal(prevented, true);
+        assert.match(page.elements.get("yearWheelFormFields").innerHTML, /name="start_date"[^>]*value="2027-01-01"/);
+        page.elements.get("closeYearWheelModal").handlers.click();
+    }
+    page.elements.get("addYearWheelEventBtn").handlers.click();
+    assert.match(page.elements.get("yearWheelFormFields").innerHTML, /name="start_date"[^>]*value="2026-08-01"/);
+    assert.equal(page.requests.filter(request => request.operation !== "select").length, 0);
+    assert.deepEqual(page.errors, []);
+});
+
+test("month creation is unavailable without edit permission or rings", async () => {
+    for (const options of [
+        { wheels: [wheel()], leader: false },
+        { wheels: [{ ...wheel(), rings: [] }] }
+    ]) {
+        const page = createPage(options);
+        await settle();
+        assert.doesNotMatch(page.elements.get("yearWheelChart").innerHTML, /data-month-create/);
         assert.deepEqual(page.errors, []);
     }
 });

@@ -524,7 +524,7 @@
             if (to <= from) continue;
             const startFraction = from / days;
             const endFraction = to / days;
-            monthIntervals.push({ monthIndex, startFraction, endFraction });
+            monthIntervals.push({ monthIndex, startFraction, endFraction, date: dateKey(monthStart) });
             const label = point(outerRadius + 16, (startFraction + endFraction) / 2);
             monthLabels.push(`<text x="${label.x.toFixed(2)}" y="${label.y.toFixed(2)}" class="year-wheel-month-label" text-anchor="middle" dominant-baseline="middle">${MONTHS[monthIndex].slice(0, 3)}</text>`);
         }
@@ -543,6 +543,12 @@
             svg.push(`<circle cx="320" cy="320" r="${outer.toFixed(2)}" stroke-width="${ringGap.toFixed(2)}" class="year-wheel-ring-gap"/>`);
             svg.push(`<path id="${labelPathId}" d="M ${labelStartPoint.x.toFixed(2)} ${labelStartPoint.y.toFixed(2)} A ${labelRadius.toFixed(2)} ${labelRadius.toFixed(2)} 0 0 1 ${labelEndPoint.x.toFixed(2)} ${labelEndPoint.y.toFixed(2)}" class="year-wheel-ring-label-path"/>`);
         });
+
+        if (canEdit() && wheel.rings.length) {
+            monthIntervals.forEach(({ monthIndex, startFraction, endFraction, date }) => {
+                svg.push(`<path d="${arcPath(outerRadius, innerRadius, startFraction, endFraction)}" class="year-wheel-month-action" data-month-create="${date}" role="button" tabindex="0" aria-label="Lägg till händelse i ${MONTHS[monthIndex].toLowerCase()} ${date.slice(0, 4)}"><title>Lägg till händelse ${date}</title></path>`);
+            });
+        }
 
         monthIntervals.forEach(({ startFraction }) => {
             const separator = point(outerRadius + 2, startFraction);
@@ -626,6 +632,15 @@
         svg.push(`<text x="320" y="310" class="year-wheel-center-title year-wheel-year-edit" text-anchor="middle" role="button" tabindex="0" data-year-edit aria-label="Ändra ${view.mode === "calendar" ? "kalenderår" : "verksamhetsårets startår"}, ${view.year}">${centerYear}</text>`);
         svg.push(`<text x="320" y="334" class="year-wheel-center-subtitle" text-anchor="middle">${view.mode === "calendar" ? "Kalenderår" : "Verksamhetsår"}</text></svg>`);
         container.innerHTML = svg.join("");
+        container.querySelectorAll("[data-month-create]").forEach(mark => {
+            mark.addEventListener("click", () => openEventForm("", mark.dataset.monthCreate));
+            mark.addEventListener("keydown", event => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openEventForm("", mark.dataset.monthCreate);
+                }
+            });
+        });
         const yearButton = container.querySelector("[data-year-edit]");
         yearButton.addEventListener("click", openYearForm);
         yearButton.addEventListener("keydown", event => {
@@ -1125,7 +1140,7 @@
         colorVariant?.addEventListener("change", updateDepartmentColor);
     }
 
-    function openEventForm(eventId = "") {
+    function openEventForm(eventId = "", initialDate = "") {
         const wheel = currentWheel();
         if (!wheel || !canEdit() || !wheel.rings.length) return;
         const event = wheel.events.find(item => item.id === eventId);
@@ -1141,7 +1156,7 @@
             ? `disabled aria-describedby="yearWheelLinkedArrangementNote" title="Ringen hämtas från arrangemanget."`
             : "";
         const chosenRing = event?.ring_id || wheel.rings.find(ring => selectedRingIds.has(ring.id))?.id || wheel.rings[0].id;
-        const date = dateKey(period().start);
+        const date = initialDate || dateKey(period().start);
         openModal(event ? "Redigera händelse" : "Lägg till händelse", `
             ${linkedArrangement ? `<p id="yearWheelLinkedArrangementNote" class="year-wheel-linked-arrangement-note">${escapeHtml(linkedArrangementNote)}</p>` : ""}
             <label class="modal-field"><span>Rubrik</span><input name="title" required maxlength="120" value="${escapeHtml(event?.title || "")}" placeholder="Till exempel Kårstämma" ${linkedArrangementAttributes}></label>
