@@ -221,6 +221,318 @@ test("changing an arrangement start date preserves its day span", () => {
     assert.equal(context.addDaysToArrangementDate("2026-10-09", 0), "2026-10-09");
 });
 
+test("new year-wheel event end date follows its start and preserves edited date spans", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8");
+    const start = source.indexOf("function dateKey(");
+    const end = source.indexOf("function showEventInCurrentPeriod(", start);
+    const context = vm.createContext({});
+    vm.runInContext(source.slice(start, end), context);
+
+    const newStart = { value: "2027-02-01", dataset: { previousValue: "2026-01-01" } };
+    const newEnd = { value: "2026-01-01" };
+    context.updateEventEndDateFromStart(newStart, newEnd, newStart.dataset.previousValue);
+    assert.equal(newEnd.value, "2027-02-01");
+
+    const intervalStart = { value: "2027-03-01", dataset: { previousValue: "2027-02-01" } };
+    const intervalEnd = { value: "2027-05-31" };
+    context.updateEventEndDateFromStart(intervalStart, intervalEnd, intervalStart.dataset.previousValue);
+    assert.equal(intervalEnd.value, "2027-06-28");
+});
+
+test("copying year-wheel event dates advances one year and clamps leap days", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8");
+    const start = source.indexOf("function isDate(");
+    const end = source.indexOf("function getEventDateSpan(", start);
+    const context = vm.createContext({});
+    vm.runInContext(source.slice(start, end), context);
+
+    assert.equal(context.shiftDateToNextYear("2026-03-15"), "2027-03-15");
+    assert.equal(context.shiftDateToNextYear("2024-02-29"), "2025-02-28");
+    assert.equal(context.shiftDateToNextYear("2023-02-28"), "2024-02-28");
+    assert.equal(context.shiftDateToNextYear("9999-12-31"), "");
+    assert.equal(context.shiftDateToNextYear("invalid"), "");
+    assert.equal(context.shiftDateToNextYear("2023-02-30"), "");
+
+    const event = {
+        id: "source",
+        ring_id: "ring",
+        title: "Läger",
+        start_date: "2026-06-01",
+        end_date: "2026-06-03",
+        responsible: "Ledare",
+        location: "Skogen",
+        notes: "Ta med tält"
+    };
+    assert.equal(context.hasNextYearCopy(event, [event]), false);
+    assert.equal(context.hasNextYearCopy(event, [
+        event,
+        { ...event, id: "copy", start_date: "2027-06-01", end_date: "2027-06-03" }
+    ]), true);
+    assert.equal(context.hasNextYearCopy(event, [
+        event,
+        { ...event, id: "copy", copied_from_id: event.id, title: "Ändrad kopia", start_date: "2027-06-02", end_date: "2027-06-04" }
+    ]), true);
+    assert.equal(context.hasNextYearCopy({ ...event, copied_from_id: "source" }, [event]), true);
+});
+
+test("year-wheel events use ring, light, dark, or custom colors", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8");
+    const start = source.indexOf("function adjustHexColor(");
+    const end = source.indexOf("function renderRingList(", start);
+    const context = vm.createContext({});
+    vm.runInContext(source.slice(start, end), context);
+    const ring = { color: "#41a62a" };
+
+    assert.equal(context.getEventColor({ color_variant: "ring" }, ring), "#41a62a");
+    assert.equal(context.getEventColor({ color_variant: "light" }, ring), "#7ec26e");
+    assert.equal(context.getEventColor({ color_variant: "dark" }, ring), "#317e20");
+    assert.equal(context.getEventColor({ color_variant: "custom", color: "#123456" }, ring), "#123456");
+    assert.equal(context.getRingBackgroundColor(ring), "#e1f1dd");
+    assert.equal(context.getRingBackgroundColor({ id: "__department_group__", color: "#00a8e1" }), "#cceefa");
+});
+
+test("year-wheel event arcs are at least one week wide", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8");
+    const start = source.indexOf("function getEventArcFractions(");
+    const end = source.indexOf("function renderWheelChart(", start);
+    const context = vm.createContext({});
+    vm.runInContext(source.slice(start, end), context);
+    const days = 365;
+    const width = arc => (arc.to - arc.from) * days;
+
+    const singleDay = context.getEventArcFractions(100, 101, days);
+    assert.ok(width(singleDay) >= 7 - 1e-9);
+    assert.ok(Math.abs((singleDay.from + singleDay.to) / 2 - 100.5 / days) < 1e-12);
+
+    const atYearStart = context.getEventArcFractions(0, 1, days);
+    assert.ok(width(atYearStart) >= 7 - 1e-9);
+    assert.equal(atYearStart.from, 0);
+
+    const atYearEnd = context.getEventArcFractions(364, 365, days);
+    assert.ok(width(atYearEnd) >= 7 - 1e-9);
+    assert.equal(atYearEnd.to, 1);
+
+    const longerEvent = context.getEventArcFractions(100, 107, days);
+    assert.ok(Math.abs(width(longerEvent) - 7) < 1e-9);
+});
+
+test("overlapping year-wheel events use separate lanes and group overflow", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8");
+    const start = source.indexOf("function getEventLaneLayout(");
+    const end = source.indexOf("function openEventOverflow(", start);
+    const context = vm.createContext({});
+    vm.runInContext(source.slice(start, end), context);
+    const events = [
+        { event: { id: "a", title: "A" }, from: 0, to: 7 },
+        { event: { id: "b", title: "B" }, from: 0, to: 7 },
+        { event: { id: "c", title: "C" }, from: 0, to: 7 },
+        { event: { id: "d", title: "D" }, from: 1, to: 8 },
+        { event: { id: "e", title: "E" }, from: 2, to: 9 },
+        { event: { id: "f", title: "F" }, from: 12, to: 19 },
+        { event: { id: "g", title: "G" }, from: 20, to: 27 },
+        { event: { id: "h", title: "H" }, from: 20, to: 27 },
+        { event: { id: "i", title: "I" }, from: 20, to: 27 },
+        { event: { id: "j", title: "J" }, from: 20, to: 27 }
+    ];
+
+    const layout = context.getEventLaneLayout(events, 3);
+    assert.equal(JSON.stringify(layout.lanes.map(lane => lane.map(item => item.event.id))), JSON.stringify([
+        ["a", "f", "g"],
+        ["b", "h"],
+        ["c", "i"]
+    ]));
+    assert.equal(JSON.stringify(layout.overflowGroups.map(group => ({
+        from: group.from,
+        to: group.to,
+        ids: group.events.map(event => event.id)
+    }))), JSON.stringify([
+        { from: 1, to: 9, ids: ["a", "b", "c", "d", "e"] },
+        { from: 20, to: 27, ids: ["g", "h", "i", "j"] }
+    ]));
+});
+
+test("year-wheel department rings display as one filterable ring", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8");
+    const start = source.indexOf("function isDepartmentRing(");
+    const end = source.indexOf("function renderRingList(", start);
+    const context = vm.createContext({
+        DEPARTMENT_RING_COLORS: {
+            "Spårare": {},
+            "Upptäckare": {},
+            "Ledare": {}
+        }
+    });
+
+    test("year-wheel mirrors arrangements into the Arrangemang ring without duplicates", () => {
+        const source = fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8");
+        const start = source.indexOf("function syncArrangementEvents(");
+        const end = source.indexOf("function isDepartmentRing(", start);
+        const context = vm.createContext({
+            isDate: value => /^\d{4}-\d{2}-\d{2}$/.test(value),
+            id: () => "generated-event",
+            normalizeWheel: wheel => wheel
+        });
+        vm.runInContext(source.slice(start, end), context);
+        const wheel = {
+            id: "wheel",
+            rings: [{ id: "arrangements", name: "Arrangemang" }],
+            events: []
+        };
+        const arrangement = {
+            id: "event-1",
+            title: "Hajk",
+            start_date: "2026-05-01",
+            end_date: "2026-05-03",
+            location: "Skogen",
+            notes: "Ta med tält",
+            responsibilities: [{ person: "Ada", role: "Hajkledare" }]
+        };
+        const inserted = context.syncArrangementEvents(wheel, [arrangement]);
+        assert.equal(inserted.events.length, 1);
+        assert.equal(inserted.events[0].ring_id, "arrangements");
+        assert.equal(inserted.events[0].source_arrangement_id, "event-1");
+        assert.equal(inserted.events[0].responsible, "Ada (Hajkledare)");
+        assert.equal(inserted.events[0].location, "Skogen");
+        assert.equal(inserted.events[0].notes, "Ta med tält");
+        assert.deepEqual(JSON.parse(JSON.stringify(inserted.events[0].source_arrangement_fields)), {
+            responsible: true,
+            location: true,
+            notes: true
+        });
+        assert.equal(context.syncArrangementEvents(inserted, [arrangement]), null);
+
+        const updated = context.syncArrangementEvents(inserted, [{
+            ...arrangement,
+            title: "Vårhajk",
+            start_date: "2026-05-02",
+            end_date: "2026-05-04",
+            location: "",
+            notes: "",
+            responsibilities: []
+        }]);
+        assert.equal(updated.events.length, 1);
+        assert.equal(updated.events[0].title, "Vårhajk");
+        assert.equal(updated.events[0].start_date, "2026-05-02");
+        assert.equal(updated.events[0].responsible, "");
+        assert.equal(updated.events[0].location, "");
+        assert.equal(updated.events[0].notes, "");
+        assert.deepEqual(JSON.parse(JSON.stringify(updated.events[0].source_arrangement_fields)), {
+            responsible: false,
+            location: false,
+            notes: false
+        });
+    });
+    vm.runInContext(source.slice(start, end), context);
+    const wheel = { rings: [
+        { id: "scout-1", name: "Spårare", color: "#41a62a" },
+        { id: "board", name: "Styrelse", color: "#398a86" },
+        { id: "scout-2", name: "Upptäckare", color: "#00a8e1" },
+        { id: "scout-leaders", name: "Ledare", color: "#455a64" }
+    ] };
+
+    const allShown = context.getDisplayedRings(wheel, new Set(wheel.rings.map(ring => ring.id)));
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(allShown.displayed.map(ring => ({
+            id: ring.id,
+            name: ring.name,
+            sourceIds: ring.sourceRings?.map(sourceRing => sourceRing.id) || null
+        })))),
+        [
+            { id: "__department_group__", name: "Avdelning", sourceIds: ["scout-1", "scout-2", "scout-leaders"] },
+            { id: "board", name: "Styrelse", sourceIds: null }
+        ]
+    );
+    assert.deepEqual(allShown.departmentRings.map(ring => ring.id), ["scout-1", "scout-2", "scout-leaders"]);
+
+    const oneDepartment = context.getDisplayedRings(wheel, new Set(["scout-2"]));
+    assert.equal(oneDepartment.displayed.length, 1);
+    assert.equal(oneDepartment.displayed[0].name, "Avdelning");
+    assert.deepEqual(oneDepartment.displayed[0].sourceRings.map(ring => ring.id), ["scout-2"]);
+
+    const individualDepartments = context.getDisplayedRings(wheel, new Set(wheel.rings.map(ring => ring.id)), false);
+    assert.equal(
+        JSON.stringify(individualDepartments.displayed.map(ring => ring.id)),
+        JSON.stringify(["scout-1", "board", "scout-2", "scout-leaders"])
+    );
+});
+
+test("year-wheel ring configuration preserves selected rings and locks rings with events", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8");
+    const start = source.indexOf("function ringOptionsMarkup(");
+    const end = source.indexOf("function openRingForm(", start);
+    const context = vm.createContext({
+        DEFAULT_RINGS: [
+            ["Spårare", "#41a62a"],
+            ["Styrelse", "#398a86"],
+            ["Terminer", "#5d7cc5"]
+        ],
+        DEPARTMENT_RING_COLORS: { Spårare: { standard: "#41a62a", light: "#d9efd2" } },
+        escapeHtml: value => String(value),
+        id: (() => { let next = 0; return () => `added-${++next}`; })()
+    });
+    vm.runInContext(source.slice(start, end), context);
+
+    const scoutRing = { id: "scout", name: "Spårare", color: "#41a62a", color_variant: "standard" };
+    const customRing = { id: "custom", name: "Styrelse extra", color: "#123456", color_variant: "custom" };
+    const events = [{ id: "event-1", ring_id: "scout" }];
+    const markup = context.ringOptionsMarkup([scoutRing, customRing], events, false);
+    assert.match(markup, /name="ring_ids" value="scout" checked disabled/);
+    assert.match(markup, /<input type="hidden" name="ring_ids" value="scout">/);
+    assert.match(markup, /name="ring_names" value="Styrelse"/);
+    assert.match(markup, /name="ring_ids" value="custom" checked/);
+
+    const configured = context.buildConfiguredRings(
+        [scoutRing, customRing],
+        ["scout", "custom"],
+        ["Terminer"]
+    );
+    assert.deepEqual(JSON.parse(JSON.stringify(configured.map(ring => [ring.id, ring.name]))), [
+        ["scout", "Spårare"],
+        ["custom", "Styrelse extra"],
+        ["added-1", "Terminer"]
+    ]);
+    assert.equal(context.getRingEventCount(events, "scout"), 1);
+    assert.equal(context.getRingEventCount(events, "custom"), 0);
+});
+
+test("year-wheel events are grouped chronologically by their start month", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8");
+    const start = source.indexOf("function groupEventsByMonth(");
+    const end = source.indexOf("function renderEventList(", start);
+    const context = vm.createContext({});
+    vm.runInContext(source.slice(start, end), context);
+    const groups = context.groupEventsByMonth([
+        { id: "march-b", title: "B", start_date: "2027-03-12" },
+        { id: "february", title: "C", start_date: "2027-02-20" },
+        { id: "march-a", title: "A", start_date: "2027-03-01" }
+    ]);
+
+    assert.equal(JSON.stringify([...groups].map(([month, events]) => [month, events.map(event => event.id)])),
+        JSON.stringify([["2027-02", ["february"]], ["2027-03", ["march-a", "march-b"]]]));
+});
+
+test("year-wheel month toggle collapses any open months and expands all collapsed months", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8");
+    const start = source.indexOf("function toggleEventMonths(");
+    const end = source.indexOf("function updateEventMonthToggle(", start);
+    const context = vm.createContext({});
+    vm.runInContext(source.slice(start, end), context);
+    const collapsedMonths = new Set(["2027-03"]);
+    const groups = [
+        { open: true, dataset: { eventMonth: "2027-02" } },
+        { open: false, dataset: { eventMonth: "2027-03" } },
+        { open: true, dataset: { eventMonth: "2027-04" } }
+    ];
+
+    assert.equal(context.toggleEventMonths(groups, collapsedMonths), true);
+    assert.deepEqual(groups.map(group => group.open), [false, false, false]);
+    assert.deepEqual([...collapsedMonths], ["2027-03", "2027-02", "2027-04"]);
+
+    assert.equal(context.toggleEventMonths(groups, collapsedMonths), false);
+    assert.deepEqual(groups.map(group => group.open), [true, true, true]);
+    assert.equal(collapsedMonths.size, 0);
+});
+
 test("arrangement participant totals include officials as leaders and only selected departments", () => {
     const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
     const start = source.indexOf("function getParticipantTotals(");

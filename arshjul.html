@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Årshjul – GTScout</title>
+    <link rel="icon" type="image/png" href="images/marken/navigera.png">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/supabase-config.js"></script>
+    <script src="js/supabase-config.local.js"></script>
+    <script src="js/auth.js"></script>
+</head>
+<body class="year-wheel-page">
+    <header class="site-header site-header--planning">
+        <div class="utility-bar">
+            <span class="utility-spacer" aria-hidden="true"></span>
+            <nav class="utility-nav" aria-label="Externa länkar">
+                <a href="https://www.scouterna.se/" target="_blank" rel="noreferrer">Scouterna</a>
+                <a href="https://www.scoutnet.se/" target="_blank" rel="noreferrer">Scoutnet</a>
+                <a href="https://www.scoutshop.se/" target="_blank" rel="noreferrer">Scoutshop</a>
+            </nav>
+            <div id="authArea" class="auth-area"></div>
+            <script>window.GTScoutAuth?.renderPreview();</script>
+        </div>
+        <div class="header-main">
+            <a class="site-brand" href="index.html" aria-label="Gullbrandstorps scoutkår">
+                <img src="images/icons/GTorp_banner.png" alt="Gullbrandstorps Scoutkår" class="site-brand-banner">
+            </a>
+            <nav class="main-nav" aria-label="Huvudnavigation">
+                <a href="index.html" class="nav-link">Märken</a>
+                <a href="aktiviteter.html" class="nav-link">Aktiviteter</a>
+                <a href="planering.html" class="nav-link">Planering</a>
+                <a href="arshjul.html" class="nav-link active" aria-current="page">Årshjul</a>
+                <a href="arrangemang.html" class="nav-link">Arrangemang</a>
+                <a href="kokbok.html" class="nav-link">Scoutrecept</a>
+                <a href="scouter.html" class="nav-link hidden" data-scout-navigation>Scouter</a>
+            </nav>
+            <div class="library-header-actions">
+                <button id="filtersVisibilityToggle" class="filters-visibility-toggle" type="button" aria-label="Dölj filterraden" aria-pressed="true" aria-expanded="true" aria-controls="yearWheelToolbar" title="Dölj filterraden" data-filter-label="filterraden">
+                    <span class="filters-visibility-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M3 5h18l-7 8v5l-4 2v-7L3 5z"/></svg></span>
+                </button>
+                <div class="planning-actions-menu">
+                    <button id="planningActionsBtn" class="header-menu-button" type="button" aria-label="Meny" aria-expanded="false" aria-controls="planningActionsDropdown" title="Meny">
+                        <span></span><span></span><span></span>
+                    </button>
+                    <div id="planningActionsDropdown" class="planning-actions-dropdown hidden" role="menu">
+                    <details class="site-menu-section" open>
+                        <summary class="planning-menu-section-label">Navigering</summary>
+                        <a href="index.html" class="site-menu-item" role="menuitem">Märken</a>
+                        <a href="aktiviteter.html" class="site-menu-item" role="menuitem">Aktiviteter</a>
+                        <a href="planering.html" class="site-menu-item" role="menuitem">Planering</a>
+                        <a href="arshjul.html" class="site-menu-item" role="menuitem" aria-current="page">Årshjul</a>
+                        <a href="arrangemang.html" class="site-menu-item" role="menuitem">Arrangemang</a>
+                        <a href="kokbok.html" class="site-menu-item" role="menuitem">Scoutrecept</a>
+                        <a href="scouter.html" class="site-menu-item hidden" role="menuitem" data-scout-navigation>Scouter</a>
+                    </details>
+                    <div class="planning-menu-divider" role="separator"></div>
+                    <details class="site-menu-section" open>
+                        <summary class="planning-menu-section-label">Funktioner</summary>
+                        <button id="yearWheelMenuAddBtn" class="planning-menu-item" type="button" role="menuitem">Nytt årshjul</button>
+                        <button id="yearWheelMenuSettingsBtn" class="planning-menu-item hidden" type="button" role="menuitem">Inställningar</button>
+                        <button id="yearWheelMenuCopyEventsBtn" class="planning-menu-item hidden" type="button" role="menuitem">Kopiera händelser till nästa år</button>
+                    </details>
+                    <div class="planning-menu-divider" role="separator"></div>
+                    <details class="site-menu-section">
+                        <summary class="planning-menu-section-label">Visa</summary>
+                        <button class="planning-menu-item section-collapse-menu-item" type="button" role="menuitem" data-collapse-all="year-wheel-months" aria-expanded="true">Fäll ihop alla månader</button>
+                    </details>
+                    <div class="planning-menu-divider" role="separator"></div>
+                    <div class="site-menu-environment-note database-environment"></div>
+                    <div class="site-menu-version-note"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="year-wheel-page-content">
+        <section class="page-hero year-wheel-hero" aria-labelledby="yearWheelTitle">
+            <div>
+                <p class="page-kicker">Kårens gemensamma planering</p>
+                <h1 id="yearWheelTitle">Årshjul</h1>
+                <p>Samla avdelningarnas, styrelsens och kårens viktiga datum i ett gemensamt hjul.</p>
+            </div>
+        </section>
+        <p id="yearWheelSyncStatus" class="planning-sync-status page-sync-status" role="status" aria-live="polite"></p>
+
+        <section id="yearWheelToolbar" class="year-wheel-toolbar filters" data-page-filters aria-label="Välj årshjul och tidsperiod">
+            <label class="filter-field">
+                <span>Årshjul</span>
+                <select id="yearWheelSelect"></select>
+            </label>
+            <label class="filter-field">
+                <span>Visa period</span>
+                <select id="yearWheelMode">
+                    <option value="calendar">Kalenderår</option>
+                    <option value="operational">Verksamhetsår</option>
+                </select>
+            </label>
+            <label class="filter-field">
+                <span id="yearWheelYearLabel">År</span>
+                <input id="yearWheelYear" type="number" min="1900" max="2200" step="1">
+            </label>
+            <label id="yearWheelDepartmentDisplayField" class="filter-field hidden">
+                <span>Visa avdelningar</span>
+                <select id="yearWheelDepartmentDisplay">
+                    <option value="grouped">Samlad ring: Avdelning</option>
+                    <option value="individual">Egna ringar</option>
+                </select>
+            </label>
+            <label id="yearWheelStartMonthField" class="filter-field hidden">
+                <span>Verksamhetsåret börjar</span>
+                <select id="yearWheelStartMonth">
+                    <option value="1">Januari</option><option value="2">Februari</option>
+                    <option value="3">Mars</option><option value="4">April</option>
+                    <option value="5">Maj</option><option value="6">Juni</option>
+                    <option value="7">Juli</option><option value="8" selected>Augusti</option>
+                    <option value="9">September</option><option value="10">Oktober</option>
+                    <option value="11">November</option><option value="12">December</option>
+                </select>
+            </label>
+        </section>
+
+        <section class="year-wheel-layout" aria-label="Årshjulets innehåll">
+            <aside class="year-wheel-rings-panel">
+                <div class="year-wheel-panel-heading">
+                    <div><h2>Ringar</h2><p>Välj vilka delar du vill se.</p></div>
+                    <button id="addYearWheelRingBtn" class="btn-secondary" type="button">+ Ring</button>
+                </div>
+                <div id="yearWheelRingList" class="year-wheel-ring-list"></div>
+                <p id="yearWheelReadOnlyNote" class="detail-note hidden">Du kan visa och filtrera hjulet. Ledare kan redigera.</p>
+            </aside>
+            <div class="year-wheel-main">
+                <div class="year-wheel-chart-card">
+                    <div class="year-wheel-chart-heading">
+                        <div><h2 id="yearWheelDisplayName"></h2><p id="yearWheelDateRange"></p></div>
+                        <button id="addYearWheelEventBtn" class="btn-primary" type="button">+ Händelse</button>
+                    </div>
+                    <div id="yearWheelChart" class="year-wheel-chart"></div>
+                </div>
+                <section class="year-wheel-events-section" aria-labelledby="yearWheelEventsTitle">
+                    <h2 id="yearWheelEventsTitle">Händelser i perioden</h2>
+                    <div id="yearWheelEvents" class="year-wheel-events"></div>
+                </section>
+            </div>
+        </section>
+    </main>
+
+    <div id="yearWheelModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="yearWheelModalTitle">
+        <div class="modal-content modal-content--wide year-wheel-modal-content">
+            <button id="closeYearWheelModal" class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2 id="yearWheelModalTitle"></h2>
+            <form id="yearWheelForm" class="year-wheel-form">
+                <div id="yearWheelFormFields"></div>
+                <div id="yearWheelFormMessage" class="auth-message hidden" role="alert"></div>
+                <div class="modal-actions">
+                    <button id="deleteYearWheelItemBtn" class="btn-danger year-wheel-delete-button hidden" type="button" aria-label="Ta bort" title="Ta bort"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z"/></svg></button>
+                    <button class="btn-primary" type="submit">Spara</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="site-footer" aria-label="Sidfot och version">
+        <div class="site-footer-content">
+            <span class="site-footer-title">GTScout</span>
+            <span class="site-footer-dot" aria-hidden="true">•</span>
+            <span class="site-footer-version"></span>
+            <span class="site-footer-dot" aria-hidden="true">•</span>
+            <span class="site-footer-build"></span>
+            <span class="site-footer-dot" aria-hidden="true">•</span>
+            <span class="database-environment"></span>
+        </div>
+    </footer>
+    <script src="js/participants.js"></script>
+    <script src="js/arrangemang-sync.js"></script>
+    <script src="js/arshjul-sync.js"></script>
+    <script src="js/version.js"></script>
+    <script src="js/arshjul.js"></script>
+    <script src="js/header-controls.js"></script>
+</body>
+</html>
