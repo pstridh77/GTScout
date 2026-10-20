@@ -1750,7 +1750,7 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
 .header-main {
     position: relative;
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
     min-height: 108px;
     padding: 0 28px;
@@ -1764,6 +1764,7 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
     grid-column: 2;
     color: #003660;
     text-decoration: none;
+    min-width: 0;
 }
 
 .site-brand-logo {
@@ -1779,6 +1780,7 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
     height: auto;
     max-height: 66px;
     object-fit: contain;
+    max-width: 100%;
 }
 
 .site-brand h1 {
@@ -3614,6 +3616,8 @@ select:focus {
 
 .main-nav {
     display: flex;
+    flex-wrap: wrap;
+    min-width: 0;
     justify-content: center;
     gap: 8px;
     grid-column: 1;
@@ -3821,7 +3825,9 @@ select:focus {
         flex: 0 0 auto;
         padding: 4px 10px;
     }
+}
 
+@media (min-width: 601px) and (max-width: 1800px) {
     .header-main {
         grid-template-columns: minmax(0, 1fr) auto;
         gap: 10px;
@@ -3891,6 +3897,7 @@ select:focus {
 
     .main-nav {
         min-width: 0;
+        flex-wrap: nowrap;
         max-width: calc(100vw - 20px);
         justify-content: flex-start;
         overflow-x: auto;
@@ -6358,9 +6365,9 @@ select:focus {
 }
 
 .year-wheel-page-content { margin: 34px 20px 54px; }
-.year-wheel-toolbar { display: grid; grid-template-columns: minmax(170px, 1.2fr) repeat(4, minmax(130px, .8fr)); align-items: end; gap: 14px; margin-bottom: 22px; padding: 16px; border: 1px solid #d7e1eb; border-radius: 10px; background: #f8fafc; }
+.year-wheel-toolbar { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); align-items: end; gap: 14px; margin-bottom: 22px; padding: 16px; border: 1px solid #d7e1eb; border-radius: 10px; background: #f8fafc; }
 .year-wheel-toolbar .filter-field { min-width: 0; }
-.year-wheel-toolbar input, .year-wheel-toolbar select { width: 100%; box-sizing: border-box; padding: 9px; border: 1px solid #c8d5e1; border-radius: 5px; background: #fff; color: #003660; font: inherit; }
+.year-wheel-toolbar input, .year-wheel-toolbar select { width: 100%; min-width: 0; box-sizing: border-box; padding: 9px; border: 1px solid #c8d5e1; border-radius: 5px; background: #fff; color: #003660; font: inherit; }
 .year-wheel-layout { display: grid; grid-template-columns: minmax(220px, 290px) minmax(0, 1fr); align-items: start; gap: 20px; }
 .year-wheel-rings-panel, .year-wheel-chart-card, .year-wheel-events-section { min-width: 0; padding: 18px; border: 1px solid #d7e1eb; border-radius: 10px; background: #fff; box-shadow: 0 7px 22px rgba(0, 54, 96, .05); }
 .year-wheel-rings-panel { position: sticky; top: 14px; }
