@@ -383,6 +383,38 @@ test("the main year-wheel view has no add-ring button", () => {
     assert.doesNotMatch(html, /addYearWheelRingBtn|\+ Ring/);
 });
 
+test("event list collapse control uses the shared mobile style and stays in sync with the menu", () => {
+    const html = fs.readFileSync(path.join(__dirname, "..", "arshjul.html"), "utf8");
+    assert.match(html, /class="section-collapse-controls">\s*<button class="section-collapse-toggle"[^>]*data-collapse-all="year-wheel-months"[^>]*aria-controls="yearWheelEvents"/);
+    const buttons = [false, true].map(isMenu => ({
+        classList: { contains: () => isMenu },
+        setAttribute(name, value) { this[name] = value; }
+    }));
+    const source = readScript("arshjul.js");
+    const context = vm.createContext({
+        document: { querySelectorAll: () => buttons }
+    });
+    vm.runInContext(source.slice(source.indexOf("    function toggleEventMonths("), source.indexOf("    function updateYearWheelMenuActions(")), context);
+    const groups = ["2026-01", "2026-02"].map(month => ({ open: true, dataset: { eventMonth: month } }));
+    const collapsed = new Set();
+    context.updateEventMonthToggle(groups);
+    assert.equal(buttons[0].textContent, "Fäll ihop");
+    context.toggleEventMonths(groups, collapsed);
+    context.updateEventMonthToggle(groups);
+    assert.equal(buttons[0].textContent, "Visa");
+    assert.equal(buttons[1].textContent, "Visa alla månader");
+    assert.equal(buttons[0]["aria-expanded"], "false");
+    assert.equal(collapsed.size, 2);
+    context.toggleEventMonths(groups, collapsed);
+    context.updateEventMonthToggle(groups);
+    assert.equal(buttons[0].textContent, "Fäll ihop");
+    assert.equal(buttons[1].textContent, "Fäll ihop alla månader");
+    assert.equal(buttons[0]["aria-expanded"], "true");
+    assert.equal(collapsed.size, 0);
+    context.updateEventMonthToggle([]);
+    assert.equal(buttons[0].disabled, true);
+});
+
 test("ring filters are collapsed inside the toolbar instead of a sidebar", () => {
     const html = fs.readFileSync(path.join(__dirname, "..", "arshjul.html"), "utf8");
     const toolbar = html.slice(html.indexOf('<section id="yearWheelToolbar"'), html.indexOf('<section class="year-wheel-layout"'));

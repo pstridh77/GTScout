@@ -55,6 +55,8 @@ Växla mellan Översikt och Detaljer med knapparna till vänster under årshjule
 
 Ringfiltren finns i dropdownen Visa ringar i verktygsfältet. Den är stängd från början och innehåller samma val för enskilda ringar och avdelningar. Listan öppnas under sitt filterfält utan att ändra verktygsfältets layout och kan rullas vid många ringar. Årshjulet och händelselistan använder hela innehållsbredden utan sidopanel.
 
+På skärmar upp till 600 px finns Fäll ihop/Visa ovanför händelselistan, i samma stil som för märkeskategorierna. Knappen fäller ihop eller öppnar alla månader och är synkroniserad med motsvarande val i hamburgermenyn.
+
 I detaljläget döljs bannern, huvudnavigeringen, sidans introduktion och filterraden för att ge hjulet mer plats. Den blå översta raden med inloggning finns kvar. Växla till Översikt för att visa de dolda delarna igen; filtervalen bevaras.
 
 Knappen + Händelse finns i sidans gröna banner, med samma placering som knappen för att skapa en aktivitet på aktivitetssidan. Under Funktioner i hamburgermenyn finns också + Händelse, som öppnar samma formulär och har samma behörighetskrav.
