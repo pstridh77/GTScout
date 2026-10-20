@@ -598,6 +598,7 @@
         saveViewPreferences();
         render();
         saveWheel(updated);
+        openEventForm(copiedEvent.id);
     }
 
     function renderEventList(wheel, events) {
