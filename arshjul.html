@@ -90,6 +90,8 @@
                 <span>Årshjul</span>
                 <select id="yearWheelSelect"></select>
             </label>
+            
+            
             <label class="filter-field">
                 <span>Visa period</span>
                 <select id="yearWheelMode">
@@ -100,13 +102,6 @@
             <label class="filter-field">
                 <span id="yearWheelYearLabel">År</span>
                 <input id="yearWheelYear" type="number" min="1900" max="2200" step="1">
-            </label>
-            <label id="yearWheelDepartmentDisplayField" class="filter-field hidden">
-                <span>Visa avdelningar</span>
-                <select id="yearWheelDepartmentDisplay">
-                    <option value="grouped">Samlade</option>
-                    <option value="individual">Avdelningsvis</option>
-                </select>
             </label>
             <label id="yearWheelStartMonthField" class="filter-field hidden">
                 <span>Verksamhetsåret börjar</span>
@@ -119,6 +114,14 @@
                     <option value="11">November</option><option value="12">December</option>
                 </select>
             </label>
+            <label id="yearWheelDepartmentDisplayField" class="filter-field hidden">
+                <span>Avdelningar</span>
+                <select id="yearWheelDepartmentDisplay">
+                    <option value="grouped">Samlade</option>
+                    <option value="individual">Avdelningsvis</option>
+                </select>
+            </label>
+            
             <details id="yearWheelRingFilters" class="year-wheel-ring-filters">
                 <summary>Visa ringar</summary>
                 <div class="year-wheel-ring-filter-content">
