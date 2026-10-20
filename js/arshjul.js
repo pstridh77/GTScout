@@ -623,9 +623,17 @@
         const centerYear = view.mode === "calendar" || endYear === view.year
             ? String(view.year)
             : `${view.year}–${String(endYear).slice(-2)}`;
-        svg.push(`<text x="320" y="310" class="year-wheel-center-title" text-anchor="middle">${centerYear}</text>`);
+        svg.push(`<text x="320" y="310" class="year-wheel-center-title year-wheel-year-edit" text-anchor="middle" role="button" tabindex="0" data-year-edit aria-label="Ändra ${view.mode === "calendar" ? "kalenderår" : "verksamhetsårets startår"}, ${view.year}">${centerYear}</text>`);
         svg.push(`<text x="320" y="334" class="year-wheel-center-subtitle" text-anchor="middle">${view.mode === "calendar" ? "Kalenderår" : "Verksamhetsår"}</text></svg>`);
         container.innerHTML = svg.join("");
+        const yearButton = container.querySelector("[data-year-edit]");
+        yearButton.addEventListener("click", openYearForm);
+        yearButton.addEventListener("keydown", event => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                openYearForm();
+            }
+        });
         container.querySelectorAll("[data-event-edit]").forEach(mark => {
             mark.addEventListener("click", () => openEventForm(mark.dataset.eventEdit));
             mark.addEventListener("keydown", event => {
@@ -938,6 +946,13 @@
         wheelDraft = null;
     }
 
+    function openYearForm() {
+        const label = view.mode === "calendar" ? "Kalenderår" : "Verksamhetsår (startår)";
+        openModal("Ändra år", `
+            <label class="modal-field"><span>${label}</span><input name="year" type="number" required min="1900" max="2200" step="1" value="${view.year}"></label>
+        `, "year");
+    }
+
     function openWheelForm() {
         wheelDraft = { id: "", name: "", start_month: view.startMonth, group_departments: true,
             rings: DEFAULT_RINGS.map(([name]) => createDefaultRing(name)), events: [] };
@@ -1210,6 +1225,19 @@
         event.preventDefault();
         const formData = new FormData(event.currentTarget);
         const value = Object.fromEntries(formData.entries());
+        if (modalMode === "year") {
+            const year = Number(value.year);
+            if (!Number.isInteger(year) || year < 1900 || year > 2200) {
+                byId("yearWheelFormMessage").textContent = "Ange ett helt årtal mellan 1900 och 2200.";
+                byId("yearWheelFormMessage").classList.remove("hidden");
+                return;
+            }
+            view.year = year;
+            saveViewPreferences();
+            closeModal();
+            render();
+            return;
+        }
         const selectedRingIdsFromForm = formData.getAll("ring_ids").map(String);
         const selectedRingNamesFromForm = formData.getAll("ring_names").map(String);
         const wheel = currentWheel();

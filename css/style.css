@@ -6404,6 +6404,9 @@ select:focus {
 .year-wheel-main { display: grid; gap: 20px; min-width: 0; }
 .year-wheel-chart-heading { align-items: flex-start; flex-wrap: wrap; }
 .year-wheel-view-toggle { margin-top: 12px; }
+.year-wheel-year-edit { cursor: pointer; }
+.year-wheel-year-edit:hover { text-decoration: underline; }
+.year-wheel-year-edit:focus-visible { outline: 2px solid #176b72; outline-offset: 4px; }
 .year-wheel-chart-heading h2 { font-size: 1.3rem; }
 .year-wheel-chart { display: grid; place-items: center; width: 100%; min-height: 300px; margin: 8px auto 0; }
 .year-wheel-svg { display: block; width: min(100%, 1100px); height: auto; overflow: visible; }

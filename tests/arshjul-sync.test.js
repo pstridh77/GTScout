@@ -399,6 +399,37 @@ test("add event menu action forwards to the existing button and respects its ava
     }
 });
 
+test("center year opens a dialog and changes the personal year without write permission", async () => {
+    const page = createPage({ wheels: [wheel()], leader: false });
+    await settle();
+    const yearButton = page.elements.get("yearWheelChart [data-year-edit]");
+    assert.match(page.elements.get("yearWheelChart").innerHTML, /role="button" tabindex="0" data-year-edit/);
+    yearButton.handlers.click();
+    assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Ändra år");
+    assert.match(page.elements.get("yearWheelFormFields").innerHTML, /name="year".*value="2026"/);
+    const form = page.elements.get("yearWheelForm");
+    for (const invalid of ["", "1899", "2201", "2027.5", "abc"]) {
+        form.values = { year: invalid };
+        form.handlers.submit({ preventDefault() {}, currentTarget: form });
+        assert.match(page.elements.get("yearWheelFormMessage").textContent, /1900 och 2200/);
+        assert.equal(page.preferences().year, 2026);
+    }
+    form.values = { year: "2027" };
+    form.handlers.submit({ preventDefault() {}, currentTarget: form });
+    assert.equal(page.preferences().year, 2027);
+    assert.equal(page.elements.get("yearWheelYear").value, 2027);
+    assert.equal(page.elements.get("yearWheelModal").classList.contains("hidden"), true);
+    for (const key of ["Enter", " "]) {
+        let prevented = false;
+        yearButton.handlers.keydown({ key, preventDefault() { prevented = true; } });
+        assert.equal(prevented, true);
+        assert.equal(page.elements.get("yearWheelModal").classList.contains("hidden"), false);
+        page.elements.get("closeYearWheelModal").handlers.click();
+    }
+    assert.equal(page.requests.filter(request => request.operation !== "select").length, 0);
+    assert.deepEqual(page.errors, []);
+});
+
 test("chart display mode defaults to details and persists overview without database writes", async () => {
     const page = createPage({ wheels: [wheel()] });
     await settle();
