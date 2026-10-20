@@ -842,6 +842,7 @@
     }
 
     function render() {
+        document.body.classList.toggle("year-wheel-page--details", view.chartMode === "details");
         byId("yearWheelOverviewBtn").setAttribute("aria-pressed", String(view.chartMode === "overview"));
         byId("yearWheelDetailsBtn").setAttribute("aria-pressed", String(view.chartMode === "details"));
         byId("yearWheelChart").classList.toggle("year-wheel-chart--overview", view.chartMode === "overview");

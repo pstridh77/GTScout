@@ -119,7 +119,7 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
         window: { GTScoutAuth: auth, location: { search: "" }, addEventListener() {}, confirm: () => true },
         document: {
             readyState: "complete", getElementById: element, querySelectorAll: () => [],
-            body: { classList: { add() {} } }
+            body: element("body")
         },
         localStorage: {
             getItem: key => storage.get(key) ?? null,
@@ -392,6 +392,7 @@ test("chart display mode defaults to details and persists overview without datab
     assert.equal(details.attributes["aria-pressed"], "true");
     assert.equal(overview.attributes["aria-pressed"], "false");
     assert.equal(chart.classList.contains("year-wheel-chart--overview"), false);
+    assert.equal(page.elements.get("body").classList.contains("year-wheel-page--details"), true);
     assert.match(chart.innerHTML, /viewBox="24 24 592 592"/);
     assert.match(chart.innerHTML, /class="year-wheel-ring-label" dominant-baseline="central"/);
     assert.match(chart.innerHTML, /A 244\.00 244\.00 0 0 1/);
@@ -401,10 +402,12 @@ test("chart display mode defaults to details and persists overview without datab
     assert.equal(overview.attributes["aria-pressed"], "true");
     assert.equal(details.attributes["aria-pressed"], "false");
     assert.equal(chart.classList.contains("year-wheel-chart--overview"), true);
+    assert.equal(page.elements.get("body").classList.contains("year-wheel-page--details"), false);
     assert.equal(page.preferences().chartMode, "overview");
     details.handlers.click();
     assert.equal(chart.classList.contains("year-wheel-chart--overview"), false);
     assert.equal(page.preferences().chartMode, "details");
+    assert.equal(page.elements.get("body").classList.contains("year-wheel-page--details"), true);
     assert.equal(page.requests.filter(request => request.operation !== "select").length, 0);
     assert.deepEqual(page.errors, []);
 });
@@ -416,6 +419,7 @@ for (const mode of ["overview", "details", "invalid"]) {
         assert.equal(page.elements.get("yearWheelOverviewBtn").attributes["aria-pressed"], String(mode === "overview"));
         assert.equal(page.elements.get("yearWheelDetailsBtn").attributes["aria-pressed"], String(mode !== "overview"));
         assert.equal(page.elements.get("yearWheelChart").classList.contains("year-wheel-chart--overview"), mode === "overview");
+        assert.equal(page.elements.get("body").classList.contains("year-wheel-page--details"), mode !== "overview");
         assert.deepEqual(page.errors, []);
     });
 }

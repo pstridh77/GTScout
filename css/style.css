@@ -6365,6 +6365,9 @@ select:focus {
 }
 
 .year-wheel-page-content { margin: 34px 20px 54px; }
+.year-wheel-page--details .header-main,
+.year-wheel-page--details .year-wheel-hero,
+.year-wheel-page--details .year-wheel-toolbar { display: none; }
 .year-wheel-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 14px; margin-bottom: 22px; padding: 16px; border: 1px solid #d7e1eb; border-radius: 10px; background: #f8fafc; }
 .year-wheel-toolbar .filter-field { flex: 0 1 auto; min-width: 0; max-width: 100%; }
 .year-wheel-toolbar input, .year-wheel-toolbar select { width: auto; max-width: 100%; min-width: 0; box-sizing: border-box; padding: 9px; border: 1px solid #c8d5e1; border-radius: 5px; background: #fff; color: #003660; font: inherit; }
