@@ -3,7 +3,7 @@
     const filters = document.querySelector("[data-page-filters]");
     const menuButton = document.getElementById("planningActionsBtn");
     const menu = document.getElementById("planningActionsDropdown");
-    if (!filtersToggle || !filters || !menuButton || !menu) return;
+    if (!filtersToggle && !menuButton) return;
 
     const header = document.querySelector(".site-header");
     if (header) {
@@ -23,14 +23,18 @@
         filtersToggle.setAttribute("aria-expanded", String(visible));
     }
 
-    filtersToggle.addEventListener("click", () => {
-        filters.classList.toggle("filters--hidden");
+    if (filtersToggle && filters) {
+        filtersToggle.addEventListener("click", () => {
+            filters.classList.toggle("filters--hidden");
+            updateFilters();
+            if (!filters.classList.contains("filters--hidden")) {
+                filters.querySelector("input")?.focus();
+            }
+        });
         updateFilters();
-        if (!filters.classList.contains("filters--hidden")) {
-            filters.querySelector("input")?.focus();
-        }
-    });
-    updateFilters();
+    }
+
+    if (!menuButton || !menu) return;
 
     function closeMenu() {
         menu.classList.add("hidden");
