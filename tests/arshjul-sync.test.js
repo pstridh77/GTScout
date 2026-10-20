@@ -28,7 +28,7 @@ function arrangement(fields = {}) {
     };
 }
 
-function createPage({ wheels = [], arrangements = [], localWheels = [], localArrangements = [], signedIn = true, leader = true, handleRequest } = {}) {
+function createPage({ wheels = [], arrangements = [], localWheels = [], localArrangements = [], signedIn = true, leader = true, handleRequest, chartMode } = {}) {
     const elements = new Map();
     const listeners = [];
     const requests = [];
@@ -36,7 +36,7 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
     const storage = new Map([
         ["gtscout_arshjul", JSON.stringify(localWheels)],
         ["gtscout_arrangemang", JSON.stringify(localArrangements)],
-        ["gtscout_arshjul_view", JSON.stringify({ mode: "calendar", year: 2026 })]
+        ["gtscout_arshjul_view", JSON.stringify({ mode: "calendar", year: 2026, chartMode })]
     ]);
     const tables = {
         arshjul: wheels.map(item => ({ id: item.id, name: item.name, data: structuredClone(item) })),
@@ -72,7 +72,9 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
                     return element(`${id} ${selector}`);
                 },
                 querySelectorAll: () => [],
-                setAttribute() {}, removeAttribute() {}, focus() {}
+                attributes: {},
+                setAttribute(name, value) { this.attributes[name] = value; },
+                removeAttribute() {}, focus() {}
             });
         }
         return elements.get(id);
@@ -140,6 +142,7 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
         sync: context.window.GTScoutYearWheelSync,
         arrangements: context.window.GTScoutArrangements,
         stored: () => JSON.parse(storage.get("gtscout_arshjul")),
+        preferences: () => JSON.parse(storage.get("gtscout_arshjul_view")),
         changeAuth(nextUserId, nextKarId, nextLeader = isLeader) {
             userId = nextUserId;
             karId = nextKarId;
@@ -379,6 +382,43 @@ test("ring filters are collapsed inside the toolbar instead of a sidebar", () =>
     assert.match(toolbar, /id="yearWheelReadOnlyNote"/);
     assert.doesNotMatch(html, /year-wheel-rings-panel/);
 });
+
+test("chart display mode defaults to details and persists overview without database writes", async () => {
+    const page = createPage({ wheels: [wheel()] });
+    await settle();
+    const overview = page.elements.get("yearWheelOverviewBtn");
+    const details = page.elements.get("yearWheelDetailsBtn");
+    const chart = page.elements.get("yearWheelChart");
+    assert.equal(details.attributes["aria-pressed"], "true");
+    assert.equal(overview.attributes["aria-pressed"], "false");
+    assert.equal(chart.classList.contains("year-wheel-chart--overview"), false);
+    assert.match(chart.innerHTML, /viewBox="24 24 592 592"/);
+    assert.match(chart.innerHTML, /class="year-wheel-ring-label" dominant-baseline="central"/);
+    assert.match(chart.innerHTML, /A 244\.00 244\.00 0 0 1/);
+    assert.equal((chart.innerHTML.match(/class="year-wheel-month-label"/g) || []).length, 12);
+    assert.ok(chart.innerHTML.indexOf('class="year-wheel-month-label"') > chart.innerHTML.lastIndexOf('class="year-wheel-ring-gap"'));
+    overview.handlers.click();
+    assert.equal(overview.attributes["aria-pressed"], "true");
+    assert.equal(details.attributes["aria-pressed"], "false");
+    assert.equal(chart.classList.contains("year-wheel-chart--overview"), true);
+    assert.equal(page.preferences().chartMode, "overview");
+    details.handlers.click();
+    assert.equal(chart.classList.contains("year-wheel-chart--overview"), false);
+    assert.equal(page.preferences().chartMode, "details");
+    assert.equal(page.requests.filter(request => request.operation !== "select").length, 0);
+    assert.deepEqual(page.errors, []);
+});
+
+for (const mode of ["overview", "details", "invalid"]) {
+    test(`chart display mode restores ${mode} preference safely`, async () => {
+        const page = createPage({ wheels: [wheel()], chartMode: mode });
+        await settle();
+        assert.equal(page.elements.get("yearWheelOverviewBtn").attributes["aria-pressed"], String(mode === "overview"));
+        assert.equal(page.elements.get("yearWheelDetailsBtn").attributes["aria-pressed"], String(mode !== "overview"));
+        assert.equal(page.elements.get("yearWheelChart").classList.contains("year-wheel-chart--overview"), mode === "overview");
+        assert.deepEqual(page.errors, []);
+    });
+}
 
 test("changed arrangements automatically update wheels without repeated writes", async () => {
     const page = createPage({ wheels: [wheel()], arrangements: [arrangement()] });

@@ -6399,10 +6399,12 @@ select:focus {
 .year-wheel-ring-edit { padding: 5px 7px; border: 0; border-radius: 4px; background: transparent; color: #176b72; font: inherit; font-size: .75rem; cursor: pointer; }
 .year-wheel-ring-edit:hover { background: #eef5fb; }
 .year-wheel-main { display: grid; gap: 20px; min-width: 0; }
-.year-wheel-chart-heading { align-items: flex-start; }
+.year-wheel-chart-heading { align-items: flex-start; flex-wrap: wrap; }
+.year-wheel-view-toggle { margin-top: 12px; }
 .year-wheel-chart-heading h2 { font-size: 1.3rem; }
 .year-wheel-chart { display: grid; place-items: center; width: 100%; min-height: 300px; margin: 8px auto 0; }
-.year-wheel-svg { display: block; width: min(100%, 700px); height: auto; overflow: visible; }
+.year-wheel-svg { display: block; width: min(100%, 1100px); height: auto; overflow: visible; }
+.year-wheel-chart--overview .year-wheel-svg { width: min(100%, 750px); }
 .year-wheel-month-divider { stroke: #fff; stroke-width: 1.5; }
 .year-wheel-year-seam { stroke: #fff; stroke-width: 2; filter: url(#year-wheel-seam-shadow); pointer-events: none; }
 .year-wheel-month-label { fill: #64748b; font-size: 12px; font-weight: 600; }

@@ -37,7 +37,7 @@
     let selectedRingsForWheelId = "";
     let departmentDisplayMode = "grouped";
     let departmentDisplayForWheelId = "";
-    let view = { mode: "calendar", year: new Date().getFullYear(), startMonth: 8 };
+    let view = { mode: "calendar", year: new Date().getFullYear(), startMonth: 8, chartMode: "details" };
     let startMonthOverridden = false;
     let modalMode = "";
     let editingId = "";
@@ -128,6 +128,7 @@
         try {
             const saved = JSON.parse(localStorage.getItem(VIEW_STORAGE_KEY) || "{}");
             if (["calendar", "operational"].includes(saved.mode)) view.mode = saved.mode;
+            if (["overview", "details"].includes(saved.chartMode)) view.chartMode = saved.chartMode;
             if (Number.isInteger(saved.year) && saved.year >= 1900 && saved.year <= 2200) view.year = saved.year;
             if (Number.isInteger(saved.startMonth) && saved.startMonth >= 1 && saved.startMonth <= 12) {
                 view.startMonth = saved.startMonth;
@@ -506,10 +507,11 @@
         const outerRadius = 244;
         const innerRadius = 64;
         const ringWidth = shownRings.length ? (outerRadius - innerRadius) / shownRings.length : 0;
-        const svg = [`<svg class="year-wheel-svg" viewBox="0 0 640 640" role="img" aria-label="Årshjul med månader och händelser"><defs><filter id="year-wheel-seam-shadow" x="60" y="60" width="520" height="520" filterUnits="userSpaceOnUse"><feDropShadow dx="3" dy="0" stdDeviation="2" flood-color="#142637" flood-opacity=".52"/></filter></defs>`];
+        const svg = [`<svg class="year-wheel-svg" viewBox="24 24 592 592" role="img" aria-label="Årshjul med månader och händelser"><defs><filter id="year-wheel-seam-shadow" x="60" y="60" width="520" height="520" filterUnits="userSpaceOnUse"><feDropShadow dx="3" dy="0" stdDeviation="2" flood-color="#142637" flood-opacity=".52"/></filter></defs>`];
         const monthIntervals = [];
+        const monthLabels = [];
         const overflowActions = [];
-        const ringGap = shownRings.length ? Math.min(14, Math.max(8, ringWidth * 0.45)) : 0;
+        const ringGap = shownRings.length ? Math.min(18, Math.max(10, ringWidth * 0.5)) : 0;
         for (let monthOffset = 0; monthOffset < 12; monthOffset++) {
             const monthIndex = view.mode === "calendar"
                 ? monthOffset
@@ -523,15 +525,15 @@
             const startFraction = from / days;
             const endFraction = to / days;
             monthIntervals.push({ monthIndex, startFraction, endFraction });
-            const label = point(outerRadius + 32, (startFraction + endFraction) / 2);
-            svg.push(`<text x="${label.x.toFixed(2)}" y="${label.y.toFixed(2)}" class="year-wheel-month-label" text-anchor="middle" dominant-baseline="middle">${MONTHS[monthIndex].slice(0, 3)}</text>`);
+            const label = point(outerRadius + 16, (startFraction + endFraction) / 2);
+            monthLabels.push(`<text x="${label.x.toFixed(2)}" y="${label.y.toFixed(2)}" class="year-wheel-month-label" text-anchor="middle" dominant-baseline="middle">${MONTHS[monthIndex].slice(0, 3)}</text>`);
         }
 
         shownRings.forEach((ring, ringIndex) => {
             const outer = outerRadius - ringIndex * ringWidth;
             const inner = outer - ringWidth;
             const backgroundPath = `${arcPath(outer, inner, 0, 0.5)} ${arcPath(outer, inner, 0.5, 1)}`;
-            const labelRadius = outer - ringGap / 2;
+            const labelRadius = outer;
             const labelPathId = `year-wheel-ring-label-path-${ringIndex}`;
             const labelStart = 0.94;
             const labelEnd = 1.06;
@@ -600,10 +602,9 @@
             });
         });
         shownRings.forEach((ring, ringIndex) => {
-            const labelRadius = outerRadius - ringIndex * ringWidth - ringGap / 2;
             const label = escapeHtml(ring.name.length > 24 ? `${ring.name.slice(0, 23)}…` : ring.name);
             const fontSize = Math.max(6, Math.min(10, ringGap * 0.9));
-            svg.push(`<text class="year-wheel-ring-label" style="font-size:${fontSize.toFixed(1)}px"><title>${escapeHtml(ring.name)}</title><textPath href="#year-wheel-ring-label-path-${ringIndex}" startOffset="50%" text-anchor="middle">${label}</textPath></text>`);
+            svg.push(`<text class="year-wheel-ring-label" dominant-baseline="central" style="font-size:${fontSize.toFixed(1)}px"><title>${escapeHtml(ring.name)}</title><textPath href="#year-wheel-ring-label-path-${ringIndex}" startOffset="50%" text-anchor="middle">${label}</textPath></text>`);
         });
         if (shownRings.length) {
             const januaryStart = new Date(Date.UTC(
@@ -617,6 +618,7 @@
             svg.push(`<line x1="${seamOuter.x.toFixed(2)}" y1="${seamOuter.y.toFixed(2)}" x2="${seamInner.x.toFixed(2)}" y2="${seamInner.y.toFixed(2)}" class="year-wheel-year-seam"/>`);
         }
         if (!shownRings.length) svg.push(`<circle cx="320" cy="320" r="64" class="year-wheel-empty-center"/>`);
+        svg.push(...monthLabels);
         const endYear = periodRange.end.getUTCFullYear();
         const centerYear = view.mode === "calendar" || endYear === view.year
             ? String(view.year)
@@ -840,6 +842,9 @@
     }
 
     function render() {
+        byId("yearWheelOverviewBtn").setAttribute("aria-pressed", String(view.chartMode === "overview"));
+        byId("yearWheelDetailsBtn").setAttribute("aria-pressed", String(view.chartMode === "details"));
+        byId("yearWheelChart").classList.toggle("year-wheel-chart--overview", view.chartMode === "overview");
         const selector = byId("yearWheelSelect");
         const previousId = selectedWheelId;
         selector.innerHTML = wheels.map(wheel => `<option value="${escapeHtml(wheel.id)}">${escapeHtml(wheel.name)}</option>`).join("");
@@ -1438,6 +1443,13 @@
 
     function initialize() {
         readViewPreferences();
+        [["yearWheelOverviewBtn", "overview"], ["yearWheelDetailsBtn", "details"]].forEach(([buttonId, mode]) => {
+            byId(buttonId).addEventListener("click", () => {
+                view.chartMode = mode;
+                saveViewPreferences();
+                render();
+            });
+        });
         byId("yearWheelMode").value = view.mode;
         byId("yearWheelYear").value = view.year;
         byId("yearWheelStartMonth").value = String(view.startMonth);
