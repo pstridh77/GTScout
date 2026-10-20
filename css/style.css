@@ -6358,7 +6358,7 @@ select:focus {
 }
 
 .year-wheel-page-content { margin: 34px 20px 54px; }
-.year-wheel-toolbar { display: grid; grid-template-columns: minmax(190px, 1.2fr) repeat(3, minmax(150px, .8fr)); align-items: end; gap: 14px; margin-bottom: 22px; padding: 16px; border: 1px solid #d7e1eb; border-radius: 10px; background: #f8fafc; }
+.year-wheel-toolbar { display: grid; grid-template-columns: minmax(170px, 1.2fr) repeat(4, minmax(130px, .8fr)); align-items: end; gap: 14px; margin-bottom: 22px; padding: 16px; border: 1px solid #d7e1eb; border-radius: 10px; background: #f8fafc; }
 .year-wheel-toolbar .filter-field { min-width: 0; }
 .year-wheel-toolbar input, .year-wheel-toolbar select { width: 100%; box-sizing: border-box; padding: 9px; border: 1px solid #c8d5e1; border-radius: 5px; background: #fff; color: #003660; font: inherit; }
 .year-wheel-layout { display: grid; grid-template-columns: minmax(220px, 290px) minmax(0, 1fr); align-items: start; gap: 20px; }
@@ -6422,6 +6422,8 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
 .year-wheel-events { display: grid; gap: 8px; }
 .year-wheel-month-group { min-width: 0; }
 .year-wheel-event-card { display: flex; align-items: center; gap: 11px; min-width: 0; padding: 11px; border: 1px solid #e1e8ef; border-radius: 7px; background: #fbfcfe; }
+.year-wheel-event-card--needs-review { border-color: #e7b94b; background: #fff8df; }
+.year-wheel-review-badge { display: inline-block; margin-left: 5px; padding: 2px 6px; border-radius: 10px; background: #f5dfa0; color: #704d00; font-size: .68rem; font-weight: 700; vertical-align: middle; }
 .year-wheel-event-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
 .year-wheel-event-actions button { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 6px 9px; }
 .year-wheel-event-actions [data-copy-event] { width: 34px; padding: 6px; border-color: #c9d9e5; color: #176b72; }
@@ -6432,6 +6434,22 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
 .year-wheel-event-card-main > span, .year-wheel-event-card-main small { color: #64748b; overflow-wrap: anywhere; }
 .year-wheel-event-card-main .year-wheel-event-notes { white-space: pre-line; }
 .year-wheel-empty { margin: 8px 0; color: #64748b; font-size: .88rem; line-height: 1.5; }
+.year-wheel-copy-month { min-width: 0; padding: 8px 10px 8px; border: 1px solid #e1e8ef; border-radius: 7px; }
+.year-wheel-copy-month-summary { position: static; display: grid; grid-template-columns: 18px 18px minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 38px; padding: 6px 8px; border-radius: 6px; background: #003660; color: #fff; font-size: .88rem; font-weight: 700; text-align: left; cursor: pointer; list-style: none; }
+.year-wheel-copy-month-summary::-webkit-details-marker { display: none; }
+.year-wheel-copy-chevron { width: 7px; height: 7px; justify-self: center; border-right: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(-45deg); transition: transform .15s ease; }
+.year-wheel-copy-month[open] > .year-wheel-copy-month-summary .year-wheel-copy-chevron { transform: rotate(45deg); }
+.year-wheel-copy-month-summary input { width: 16px; height: 16px; margin: 0; accent-color: #fff; cursor: pointer; }
+.year-wheel-copy-month-summary > strong { overflow-wrap: anywhere; }
+.year-wheel-copy-month-count { justify-self: end; color: #fff; font-size: .78rem; font-weight: 500; white-space: nowrap; }
+.year-wheel-copy-month-summary:focus-visible { outline: 2px solid #b8d5ec; outline-offset: 2px; }
+.year-wheel-copy-select-year { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid #c8d5e1; border-radius: 7px; background: #f4f8fb; color: #003660; font-size: .88rem; font-weight: 700; }
+.year-wheel-copy-select-year input { width: 17px; height: 17px; margin: 0; accent-color: #176b72; }
+.year-wheel-copy-list { display: grid; flex: 1 1 auto; align-content: start; gap: 10px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 1px 6px 1px 1px; }
+.year-wheel-copy-option { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 7px 0; border-top: 1px solid #edf1f5; color: #34495e; font-size: .82rem; }
+.year-wheel-copy-option input { width: 16px; height: 16px; margin: 0; accent-color: #176b72; }
+.year-wheel-copy-option small { color: #64748b; }
+.year-wheel-copy-month-events { display: grid; }
 .year-wheel-form { display: grid; gap: 12px; }
 #yearWheelFormFields { display: grid; gap: 14px; }
 .year-wheel-ring-selection { min-width: 0; margin: 0; padding: 12px; border: 1px solid #d7e1eb; border-radius: 7px; }
@@ -6463,6 +6481,11 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
 .year-wheel-delete-button svg { width: 20px; height: 20px; }
 .year-wheel-modal-content { max-height: 90vh; max-height: 90dvh; overflow-y: auto; }
 .year-wheel-modal-content > h2 { padding-right: 30px; }
+.year-wheel-modal-content--bulk-copy { box-sizing: border-box; height: 90vh; height: 90dvh; overflow: hidden; }
+.year-wheel-form--bulk-copy { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+.year-wheel-form--bulk-copy #yearWheelFormFields { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; overflow: hidden; }
+.year-wheel-form--bulk-copy .year-wheel-copy-list { margin-top: 10px; }
+.year-wheel-form--bulk-copy .modal-actions { flex: 0 0 auto; }
 @media (max-width: 900px) {
     .year-wheel-layout { grid-template-columns: minmax(0, 1fr); }
     .year-wheel-rings-panel { position: static; }

@@ -252,6 +252,27 @@ test("copying year-wheel event dates advances one year and clamps leap days", ()
     assert.equal(context.shiftDateToNextYear("9999-12-31"), "");
     assert.equal(context.shiftDateToNextYear("invalid"), "");
     assert.equal(context.shiftDateToNextYear("2023-02-30"), "");
+
+    const event = {
+        id: "source",
+        ring_id: "ring",
+        title: "Läger",
+        start_date: "2026-06-01",
+        end_date: "2026-06-03",
+        responsible: "Ledare",
+        location: "Skogen",
+        notes: "Ta med tält"
+    };
+    assert.equal(context.hasNextYearCopy(event, [event]), false);
+    assert.equal(context.hasNextYearCopy(event, [
+        event,
+        { ...event, id: "copy", start_date: "2027-06-01", end_date: "2027-06-03" }
+    ]), true);
+    assert.equal(context.hasNextYearCopy(event, [
+        event,
+        { ...event, id: "copy", copied_from_id: event.id, title: "Ändrad kopia", start_date: "2027-06-02", end_date: "2027-06-04" }
+    ]), true);
+    assert.equal(context.hasNextYearCopy({ ...event, copied_from_id: "source" }, [event]), true);
 });
 
 test("year-wheel events use ring, light, dark, or custom colors", () => {
@@ -367,6 +388,12 @@ test("year-wheel department rings display as one filterable ring", () => {
     assert.equal(oneDepartment.displayed.length, 1);
     assert.equal(oneDepartment.displayed[0].name, "Avdelning");
     assert.deepEqual(oneDepartment.displayed[0].sourceRings.map(ring => ring.id), ["scout-2"]);
+
+    const individualDepartments = context.getDisplayedRings(wheel, new Set(wheel.rings.map(ring => ring.id)), false);
+    assert.equal(
+        JSON.stringify(individualDepartments.displayed.map(ring => ring.id)),
+        JSON.stringify(["scout-1", "board", "scout-2", "scout-leaders"])
+    );
 });
 
 test("year-wheel ring configuration preserves selected rings and locks rings with events", () => {

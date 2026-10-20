@@ -35,6 +35,8 @@
     let selectedWheelId = "";
     let selectedRingIds = new Set();
     let selectedRingsForWheelId = "";
+    let departmentDisplayMode = "grouped";
+    let departmentDisplayForWheelId = "";
     let view = { mode: "calendar", year: new Date().getFullYear(), startMonth: 8 };
     let startMonthOverridden = false;
     let modalMode = "";
@@ -84,13 +86,16 @@
                 color: /^#[0-9a-f]{6}$/i.test(event.color) ? event.color : "",
                 responsible: String(event.responsible || "").trim().slice(0, 100),
                 location: String(event.location || "").trim().slice(0, 120),
-                notes: String(event.notes || "").trim().slice(0, 2000)
+                notes: String(event.notes || "").trim().slice(0, 2000),
+                copied_from_id: String(event.copied_from_id || ""),
+                needs_review: Boolean(event.needs_review)
             };
         }).filter(event => event?.title) : [];
         return {
             id: String(wheel.id || id()),
             name: String(wheel.name || "").trim().slice(0, 100),
             start_month: Math.min(12, Math.max(1, Number.parseInt(wheel.start_month, 10) || 8)),
+            group_departments: wheel.group_departments !== false,
             rings,
             events,
             schema_version: Math.max(2, Number(wheel.schema_version) || 0),
@@ -113,6 +118,10 @@
             if (Number.isInteger(saved.startMonth) && saved.startMonth >= 1 && saved.startMonth <= 12) {
                 view.startMonth = saved.startMonth;
                 startMonthOverridden = true;
+            }
+            if (saved.departmentDisplayByWheel && typeof saved.departmentDisplayByWheel === "object") {
+                view.departmentDisplayByWheel = Object.fromEntries(Object.entries(saved.departmentDisplayByWheel)
+                    .filter(([, mode]) => mode === "grouped" || mode === "individual"));
             }
         } catch (error) {
             console.error("Kunde inte läsa årshjulets vyinställningar", error);
@@ -144,6 +153,23 @@
         const nextYear = year + 1;
         const lastDay = new Date(Date.UTC(nextYear, month, 0)).getUTCDate();
         return `${nextYear}-${String(month).padStart(2, "0")}-${String(Math.min(day, lastDay)).padStart(2, "0")}`;
+    }
+
+    function hasNextYearCopy(event, events) {
+        if (event.copied_from_id) return true;
+        const startDate = shiftDateToNextYear(event.start_date);
+        const endDate = shiftDateToNextYear(event.end_date);
+        if (!startDate || !endDate) return false;
+        return events.some(candidate => {
+            if (candidate.id === event.id || candidate.ring_id !== event.ring_id) return false;
+            if (candidate.copied_from_id === event.id) return true;
+            return candidate.title === event.title
+                && candidate.start_date === startDate
+                && candidate.end_date === endDate
+                && candidate.responsible === event.responsible
+                && candidate.location === event.location
+                && candidate.notes === event.notes;
+        });
     }
 
     function getEventDateSpan(startDate, endDate) {
@@ -246,14 +272,14 @@
         return Boolean(DEPARTMENT_RING_COLORS[ring.name]);
     }
 
-    function getDisplayedRings(wheel, selectedIds) {
+    function getDisplayedRings(wheel, selectedIds, groupDepartments = true) {
         const departmentRings = wheel.rings.filter(ring => isDepartmentRing(ring));
         const shownDepartmentRings = departmentRings.filter(ring => selectedIds.has(ring.id));
         let departmentGroupAdded = false;
         const displayed = [];
         wheel.rings.forEach(ring => {
             if (isDepartmentRing(ring)) {
-                if (!departmentGroupAdded && shownDepartmentRings.length) {
+                if (groupDepartments && !departmentGroupAdded && shownDepartmentRings.length) {
                     displayed.push({
                         id: "__department_group__",
                         name: "Avdelning",
@@ -261,6 +287,8 @@
                         sourceRings: shownDepartmentRings
                     });
                     departmentGroupAdded = true;
+                } else if (!groupDepartments && selectedIds.has(ring.id)) {
+                    displayed.push(ring);
                 }
                 return;
             }
@@ -271,7 +299,7 @@
 
     function renderRingList(wheel) {
         const list = byId("yearWheelRingList");
-        const { departmentRings } = getDisplayedRings(wheel, selectedRingIds);
+        const { departmentRings } = getDisplayedRings(wheel, selectedRingIds, departmentDisplayMode === "grouped");
         const otherRings = wheel.rings.filter(ring => !isDepartmentRing(ring));
         const selectedDepartments = departmentRings.filter(ring => selectedRingIds.has(ring.id)).length;
         const renderRingRow = ring => `
@@ -284,7 +312,7 @@
                 ${canEdit() ? `<button class="year-wheel-ring-edit" type="button" data-edit-ring="${escapeHtml(ring.id)}" aria-label="Redigera ${escapeHtml(ring.name)}">Redigera</button>` : ""}
             </div>`;
         list.innerHTML = wheel.rings.length ? `
-            ${departmentRings.length ? `<details class="year-wheel-department-group" open>
+            ${departmentRings.length && departmentDisplayMode === "grouped" ? `<details class="year-wheel-department-group" open>
                 <summary>
                     <span class="year-wheel-department-heading">
                         <input type="checkbox" data-department-toggle-all aria-label="Visa alla avdelningar" ${selectedDepartments === departmentRings.length ? "checked" : ""}>
@@ -294,6 +322,7 @@
                 </summary>
                 <div class="year-wheel-department-list">${departmentRings.map(renderRingRow).join("")}</div>
             </details>` : ""}
+            ${departmentRings.length && departmentDisplayMode === "individual" ? departmentRings.map(renderRingRow).join("") : ""}
             ${otherRings.map(renderRingRow).join("")}` : `<p class="year-wheel-empty">Lägg till en ring för att börja planera.</p>`;
         const departmentToggle = list.querySelector("[data-department-toggle-all]");
         if (departmentToggle) {
@@ -570,6 +599,7 @@
         const restrictedUser = Boolean(auth()?.isOnline?.() && auth()?.isSignedIn?.()) && !auth()?.isLeader?.();
         byId("yearWheelMenuAddBtn").classList.toggle("hidden", restrictedUser);
         byId("yearWheelMenuSettingsBtn").classList.toggle("hidden", !currentWheel() || !canEdit());
+        byId("yearWheelMenuCopyEventsBtn").classList.toggle("hidden", !currentWheel() || !canEdit());
     }
 
     function copyEventToNextYear(eventId) {
@@ -588,7 +618,9 @@
             ...event,
             id: id(),
             start_date: startDate,
-            end_date: endDate
+            end_date: endDate,
+            copied_from_id: event.id,
+            needs_review: true
         };
         const updated = normalizeWheel({ ...wheel, events: [...wheel.events, copiedEvent] });
         wheels = wheels.map(item => item.id === wheel.id ? updated : item);
@@ -601,6 +633,90 @@
         openEventForm(copiedEvent.id);
     }
 
+    function getCopyableEvents(wheel) {
+        const range = period();
+        const startKey = dateKey(range.start);
+        const endKey = dateKey(range.end);
+        return wheel.events.filter(event => event.start_date <= endKey
+            && event.end_date >= startKey
+            && !hasNextYearCopy(event, wheel.events));
+    }
+
+    function openBulkCopyForm() {
+        const wheel = currentWheel();
+        if (!wheel || !canEdit()) return;
+        const events = getCopyableEvents(wheel);
+        const groups = groupEventsByMonth(events);
+        const fields = groups.size ? [...groups].map(([month, monthEvents]) => {
+            const monthLabel = formatDate(`${month}-01`, { month: "long", year: "numeric" });
+            const title = monthLabel.charAt(0).toLocaleUpperCase("sv") + monthLabel.slice(1);
+            return `<details class="year-wheel-copy-month" open>
+                <summary class="year-wheel-copy-month-summary"><span class="year-wheel-copy-chevron" aria-hidden="true"></span><input type="checkbox" data-copy-month="${escapeHtml(month)}" aria-label="Markera alla händelser i ${escapeHtml(title)}"><strong>${escapeHtml(title)}</strong><span class="year-wheel-copy-month-count">${monthEvents.length} ${monthEvents.length === 1 ? "händelse" : "händelser"}</span></summary>
+                <div class="year-wheel-copy-month-events">${monthEvents.map(event => `<label class="year-wheel-copy-option"><input type="checkbox" name="copy_event_ids" value="${escapeHtml(event.id)}" data-copy-month-event="${escapeHtml(month)}"><span>${escapeHtml(event.title)}</span><small>${escapeHtml(formatDate(event.start_date, { day: "numeric", month: "long" }))}${event.end_date !== event.start_date ? ` – ${escapeHtml(formatDate(event.end_date, { day: "numeric", month: "long" }))}` : ""}</small></label>`).join("")}</div>
+            </details>`;
+        }).join("") : `<p class="year-wheel-empty">Inga händelser att kopiera för den valda perioden. Händelser som redan har en kopia hoppas över.</p>`;
+        const range = period();
+        const startYear = range.start.getUTCFullYear();
+        const endYear = range.end.getUTCFullYear();
+        const yearLabel = startYear === endYear ? String(startYear) : `${startYear}–${endYear}`;
+        const content = `<label class="year-wheel-copy-select-year"><input type="checkbox" data-copy-year ${events.length ? "" : "disabled"}> Markera alla händelser ${startYear === endYear ? `år ${yearLabel}` : `för perioden ${yearLabel}`}</label><div class="year-wheel-copy-list">${fields}</div>`;
+        openModal("Kopiera händelser till nästa år", content, "bulk-copy");
+        const submitButton = byId("yearWheelForm").querySelector('[type="submit"]');
+        submitButton.textContent = "Kopiera valda";
+        submitButton.disabled = events.length === 0;
+        const fieldsContainer = byId("yearWheelFormFields");
+        const updateYearSelectionState = () => {
+            const yearCheckbox = fieldsContainer.querySelector("[data-copy-year]");
+            const eventCheckboxes = [...fieldsContainer.querySelectorAll("[data-copy-month-event]")];
+            const selectedCount = eventCheckboxes.filter(checkbox => checkbox.checked).length;
+            yearCheckbox.checked = eventCheckboxes.length > 0 && selectedCount === eventCheckboxes.length;
+            yearCheckbox.indeterminate = selectedCount > 0 && selectedCount < eventCheckboxes.length;
+        };
+        fieldsContainer.querySelector("[data-copy-year]").addEventListener("change", event => {
+            fieldsContainer.querySelectorAll("[data-copy-month-event]").forEach(checkbox => {
+                checkbox.checked = event.currentTarget.checked;
+            });
+            fieldsContainer.querySelectorAll("[data-copy-month]").forEach(checkbox => {
+                checkbox.checked = event.currentTarget.checked;
+                checkbox.indeterminate = false;
+            });
+        });
+        byId("yearWheelFormFields").querySelectorAll(".year-wheel-copy-month-summary").forEach(summary => {
+            const monthCheckbox = summary.querySelector("[data-copy-month]");
+            monthCheckbox.addEventListener("click", event => event.stopPropagation());
+            monthCheckbox.addEventListener("change", event => {
+                event.stopPropagation();
+                byId("yearWheelFormFields").querySelectorAll(`[data-copy-month-event="${monthCheckbox.dataset.copyMonth}"]`).forEach(eventCheckbox => {
+                    eventCheckbox.checked = monthCheckbox.checked;
+                });
+                monthCheckbox.indeterminate = false;
+                updateYearSelectionState();
+            });
+        });
+        byId("yearWheelFormFields").querySelectorAll("[data-copy-month-event]").forEach(eventCheckbox => {
+            eventCheckbox.addEventListener("change", () => {
+                const monthCheckbox = byId("yearWheelFormFields").querySelector(`[data-copy-month="${eventCheckbox.dataset.copyMonthEvent}"]`);
+                const monthEvents = [...byId("yearWheelFormFields").querySelectorAll(`[data-copy-month-event="${eventCheckbox.dataset.copyMonthEvent}"]`)];
+                monthCheckbox.checked = monthEvents.every(item => item.checked);
+                monthCheckbox.indeterminate = monthEvents.some(item => item.checked) && !monthCheckbox.checked;
+                updateYearSelectionState();
+            });
+        });
+    }
+
+    function markEventReviewed(eventId) {
+        const wheel = currentWheel();
+        const event = wheel?.events.find(item => item.id === eventId);
+        if (!wheel || !event || !event.needs_review || !canEdit()) return;
+        const updated = normalizeWheel({
+            ...wheel,
+            events: wheel.events.map(item => item.id === eventId ? { ...item, needs_review: false } : item)
+        });
+        wheels = wheels.map(item => item.id === wheel.id ? updated : item);
+        render();
+        saveWheel(updated);
+    }
+
     function renderEventList(wheel, events) {
         const list = byId("yearWheelEvents");
         const ringById = new Map(wheel.rings.map(ring => [ring.id, ring]));
@@ -610,10 +726,10 @@
             const title = monthLabel.charAt(0).toLocaleUpperCase("sv") + monthLabel.slice(1);
             const cards = monthEvents.map(event => {
                 const ring = ringById.get(event.ring_id);
-                return `<article class="year-wheel-event-card">
+                return `<article class="year-wheel-event-card${event.needs_review ? " year-wheel-event-card--needs-review" : ""}">
                     <span class="year-wheel-event-card-swatch" style="--ring-color:${getEventColor(event, ring)}"></span>
-                    <div class="year-wheel-event-card-main"><strong>${escapeHtml(event.title)}</strong><span>${escapeHtml(ring.name)} · ${escapeHtml(formatDate(event.start_date, { day: "numeric", month: "long", year: "numeric" }))}${event.end_date !== event.start_date ? ` – ${escapeHtml(formatDate(event.end_date, { day: "numeric", month: "long", year: "numeric" }))}` : ""}</span>${event.responsible ? `<small>Ansvarig: ${escapeHtml(event.responsible)}</small>` : ""}${event.location ? `<small>Plats: ${escapeHtml(event.location)}</small>` : ""}${event.notes ? `<small class="year-wheel-event-notes">${escapeHtml(event.notes)}</small>` : ""}</div>
-                    ${canEdit() ? `<div class="year-wheel-event-actions"><button class="btn-secondary" type="button" data-copy-event="${escapeHtml(event.id)}" aria-label="Kopiera ${escapeHtml(event.title)} till nästa år" title="Kopiera till nästa år"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"></rect><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path></svg></button><button class="btn-secondary" type="button" data-edit-event="${escapeHtml(event.id)}" aria-label="Redigera ${escapeHtml(event.title)}" title="Redigera"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 3 5 5L9 20l-6 1 1-6L16 3Z"></path><path d="m14 5 5 5"></path></svg></button></div>` : ""}
+                    <div class="year-wheel-event-card-main"><strong>${escapeHtml(event.title)}${event.needs_review ? ` <span class="year-wheel-review-badge">Kontrollera kopia</span>` : ""}</strong><span>${escapeHtml(ring.name)} · ${escapeHtml(formatDate(event.start_date, { day: "numeric", month: "long", year: "numeric" }))}${event.end_date !== event.start_date ? ` – ${escapeHtml(formatDate(event.end_date, { day: "numeric", month: "long", year: "numeric" }))}` : ""}</span>${event.responsible ? `<small>Ansvarig: ${escapeHtml(event.responsible)}</small>` : ""}${event.location ? `<small>Plats: ${escapeHtml(event.location)}</small>` : ""}${event.notes ? `<small class="year-wheel-event-notes">${escapeHtml(event.notes)}</small>` : ""}</div>
+                    ${canEdit() ? `<div class="year-wheel-event-actions">${event.needs_review ? `<button class="btn-secondary" type="button" data-mark-event-reviewed="${escapeHtml(event.id)}" title="Markera kopian som kontrollerad">Kontrollerad</button>` : ""}<button class="btn-secondary" type="button" data-copy-event="${escapeHtml(event.id)}" aria-label="Kopiera ${escapeHtml(event.title)} till nästa år" title="Kopiera till nästa år"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"></rect><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path></svg></button><button class="btn-secondary" type="button" data-edit-event="${escapeHtml(event.id)}" aria-label="Redigera ${escapeHtml(event.title)}" title="Redigera"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 3 5 5L9 20l-6 1 1-6L16 3Z"></path><path d="m14 5 5 5"></path></svg></button></div>` : ""}
                 </article>`;
             }).join("");
             return `<details class="year-wheel-month-group" data-event-month="${month}" ${collapsedEventMonths.has(month) ? "" : "open"}>
@@ -629,6 +745,7 @@
             updateEventMonthToggle([...list.querySelectorAll("[data-event-month]")]);
         }));
         list.querySelectorAll("[data-copy-event]").forEach(button => button.addEventListener("click", () => copyEventToNextYear(button.dataset.copyEvent)));
+        list.querySelectorAll("[data-mark-event-reviewed]").forEach(button => button.addEventListener("click", () => markEventReviewed(button.dataset.markEventReviewed)));
         list.querySelectorAll("[data-edit-event]").forEach(button => button.addEventListener("click", () => openEventForm(button.dataset.editEvent)));
     }
 
@@ -649,11 +766,16 @@
             byId("addYearWheelRingBtn").disabled = true;
             byId("addYearWheelEventBtn").disabled = true;
             byId("yearWheelReadOnlyNote").classList.add("hidden");
+            byId("yearWheelDepartmentDisplayField").classList.add("hidden");
             return;
         }
         selectedWheelId = wheels.some(wheel => wheel.id === previousId) ? previousId : wheels[0].id;
         selector.value = selectedWheelId;
         const wheel = currentWheel();
+        if (departmentDisplayForWheelId !== wheel.id) {
+            departmentDisplayMode = view.departmentDisplayByWheel?.[wheel.id] || (wheel.group_departments ? "grouped" : "individual");
+            departmentDisplayForWheelId = wheel.id;
+        }
         if (!startMonthOverridden) view.startMonth = wheel.start_month;
         const validRingIds = new Set(wheel.rings.map(ring => ring.id));
         if (selectedRingsForWheelId !== wheel.id || [...selectedRingIds].some(ringId => !validRingIds.has(ringId))) {
@@ -673,6 +795,8 @@
         byId("yearWheelMode").value = view.mode;
         byId("yearWheelYear").value = view.year;
         byId("yearWheelYearLabel").textContent = view.mode === "calendar" ? "Kalenderår" : "Verksamhetsår (startår)";
+        byId("yearWheelDepartmentDisplayField").classList.toggle("hidden", !wheel.rings.some(isDepartmentRing));
+        byId("yearWheelDepartmentDisplay").value = departmentDisplayMode;
         byId("yearWheelStartMonthField").classList.toggle("hidden", view.mode !== "operational");
         byId("yearWheelStartMonth").value = String(view.startMonth);
         const range = period();
@@ -680,7 +804,7 @@
         const endKey = dateKey(range.end);
         byId("yearWheelDateRange").textContent = `${formatDate(startKey, { day: "numeric", month: "long", year: "numeric" })} – ${formatDate(endKey, { day: "numeric", month: "long", year: "numeric" })}`;
         renderRingList(wheel);
-        const { displayed: shownRings } = getDisplayedRings(wheel, selectedRingIds);
+        const { displayed: shownRings } = getDisplayedRings(wheel, selectedRingIds, departmentDisplayMode === "grouped");
         const visibleEvents = wheel.events.filter(event => selectedRingIds.has(event.ring_id)
             && event.start_date <= endKey && event.end_date >= startKey);
         renderWheelChart(wheel, shownRings, visibleEvents, range);
@@ -690,9 +814,14 @@
     function openModal(title, formFields, mode, itemId = "") {
         modalMode = mode;
         editingId = itemId;
+        byId("yearWheelModal").querySelector(".year-wheel-modal-content").classList.toggle("year-wheel-modal-content--bulk-copy", mode === "bulk-copy");
+        byId("yearWheelForm").classList.toggle("year-wheel-form--bulk-copy", mode === "bulk-copy");
         byId("yearWheelModalTitle").textContent = title;
         byId("yearWheelFormFields").innerHTML = formFields;
         byId("yearWheelFormMessage").classList.add("hidden");
+        const submitButton = byId("yearWheelForm").querySelector('[type="submit"]');
+        submitButton.textContent = "Spara";
+        submitButton.disabled = false;
         const deleteButton = byId("deleteYearWheelItemBtn");
         deleteButton.classList.toggle("hidden", !itemId || !["ring", "event", "wheel"].includes(mode));
         deleteButton.disabled = false;
@@ -703,6 +832,8 @@
 
     function closeModal() {
         byId("yearWheelModal").classList.add("hidden");
+        byId("yearWheelModal").querySelector(".year-wheel-modal-content").classList.remove("year-wheel-modal-content--bulk-copy");
+        byId("yearWheelForm").classList.remove("year-wheel-form--bulk-copy");
         modalMode = "";
         editingId = "";
     }
@@ -711,6 +842,7 @@
         openModal("Nytt årshjul", `
             <label class="modal-field"><span>Namn</span><input name="name" required maxlength="100" placeholder="Till exempel Kårens verksamhetsår"></label>
             <label class="modal-field"><span>Verksamhetsåret börjar</span><select name="start_month">${MONTHS.map((month, index) => `<option value="${index + 1}" ${index + 1 === view.startMonth ? "selected" : ""}>${month}</option>`).join("")}</select></label>
+            ${renderDepartmentDisplayOption(true)}
             ${renderRingSelection([], [], true)}
         `, "wheel");
     }
@@ -721,8 +853,13 @@
         openModal("Inställningar för årshjul", `
             <label class="modal-field"><span>Namn</span><input name="name" required maxlength="100" value="${escapeHtml(wheel.name)}"></label>
             <label class="modal-field"><span>Verksamhetsåret börjar</span><select name="start_month">${MONTHS.map((month, index) => `<option value="${index + 1}" ${index + 1 === wheel.start_month ? "selected" : ""}>${month}</option>`).join("")}</select></label>
+            ${renderDepartmentDisplayOption(wheel.group_departments)}
             ${renderRingSelection(wheel.rings, wheel.events, false)}
         `, "wheel", wheel.id);
+    }
+
+    function renderDepartmentDisplayOption(grouped) {
+        return `<label class="modal-field"><span>Avdelningsringar</span><select name="group_departments"><option value="grouped" ${grouped ? "selected" : ""}>Samla under ringen Avdelning</option><option value="individual" ${grouped ? "" : "selected"}>Visa som egna ringar</option></select></label>`;
     }
 
     function ringOptionsMarkup(rings, events, isNewWheel) {
@@ -914,6 +1051,42 @@
         const selectedRingIdsFromForm = formData.getAll("ring_ids").map(String);
         const selectedRingNamesFromForm = formData.getAll("ring_names").map(String);
         const wheel = currentWheel();
+        if (modalMode === "bulk-copy") {
+            if (!wheel || !canEdit()) return;
+            const selectedIds = new Set(formData.getAll("copy_event_ids").map(String));
+            const selectedEvents = getCopyableEvents(wheel).filter(item => selectedIds.has(item.id));
+            if (!selectedEvents.length) {
+                byId("yearWheelFormMessage").textContent = "Välj minst en händelse att kopiera.";
+                byId("yearWheelFormMessage").classList.remove("hidden");
+                return;
+            }
+            const copies = selectedEvents.map(item => {
+                const startDate = shiftDateToNextYear(item.start_date);
+                const endDate = shiftDateToNextYear(item.end_date);
+                return startDate && endDate ? {
+                    ...item,
+                    id: id(),
+                    start_date: startDate,
+                    end_date: endDate,
+                    copied_from_id: item.id,
+                    needs_review: true
+                } : null;
+            });
+            if (copies.some(item => !item)) {
+                byId("yearWheelFormMessage").textContent = "Minst en vald händelse ligger utanför det tillåtna kalenderintervallet och kunde inte kopieras.";
+                byId("yearWheelFormMessage").classList.remove("hidden");
+                return;
+            }
+            const updated = normalizeWheel({ ...wheel, events: [...wheel.events, ...copies] });
+            copies.forEach(item => selectedRingIds.add(item.ring_id));
+            const [year, month] = copies[0].start_date.split("-").map(Number);
+            view.year = view.mode === "calendar" || month >= view.startMonth ? year : year - 1;
+            saveViewPreferences();
+            closeModal();
+            render();
+            saveWheel(updated);
+            return;
+        }
         if (modalMode === "wheel" && editingId) {
             if (!wheel) return;
             const rings = buildConfiguredRings(wheel.rings, selectedRingIdsFromForm, selectedRingNamesFromForm);
@@ -930,8 +1103,17 @@
                 byId("yearWheelFormMessage").classList.remove("hidden");
                 return;
             }
-            const updated = normalizeWheel({ ...wheel, name, start_month: Number.parseInt(value.start_month, 10), rings });
+            const updated = normalizeWheel({
+                ...wheel,
+                name,
+                start_month: Number.parseInt(value.start_month, 10),
+                group_departments: value.group_departments !== "individual",
+                rings
+            });
             wheels = wheels.map(item => item.id === wheel.id ? updated : item);
+            if (!Object.prototype.hasOwnProperty.call(view.departmentDisplayByWheel || {}, wheel.id)) {
+                departmentDisplayMode = updated.group_departments ? "grouped" : "individual";
+            }
             selectedRingIds = new Set([...selectedRingIds].filter(ringId => selectedIds.has(ringId)));
             rings.filter(ring => !previousRingIds.has(ring.id)).forEach(ring => selectedRingIds.add(ring.id));
             view.startMonth = updated.start_month;
@@ -959,6 +1141,7 @@
                 id: id(),
                 name,
                 start_month: startMonth,
+                group_departments: value.group_departments !== "individual",
                 rings,
                 events: [],
                 schema_version: 3,
@@ -966,6 +1149,8 @@
             });
             wheels = [...wheels, created];
             selectedWheelId = created.id;
+            departmentDisplayMode = created.group_departments ? "grouped" : "individual";
+            departmentDisplayForWheelId = created.id;
             selectedRingIds = new Set(created.rings.map(ring => ring.id));
             view.startMonth = created.start_month;
             startMonthOverridden = true;
@@ -1018,7 +1203,9 @@
                 color: value.color,
                 responsible: String(value.responsible || "").trim(),
                 location: String(value.location || "").trim(),
-                notes: String(value.notes || "").trim()
+                notes: String(value.notes || "").trim(),
+                copied_from_id: wheel.events.find(item => item.id === editingId)?.copied_from_id || "",
+                needs_review: false
             };
             if (!eventData.title || !wheel.rings.some(ring => ring.id === eventData.ring_id)) return;
             selectedRingIds.add(eventData.ring_id);
@@ -1090,6 +1277,17 @@
             saveViewPreferences();
             render();
         });
+        byId("yearWheelDepartmentDisplay").addEventListener("change", () => {
+            const wheel = currentWheel();
+            if (!wheel) return;
+            departmentDisplayMode = byId("yearWheelDepartmentDisplay").value === "individual" ? "individual" : "grouped";
+            view.departmentDisplayByWheel = {
+                ...(view.departmentDisplayByWheel || {}),
+                [wheel.id]: departmentDisplayMode
+            };
+            saveViewPreferences();
+            render();
+        });
         byId("yearWheelYear").addEventListener("change", () => {
             const year = Number.parseInt(byId("yearWheelYear").value, 10);
             if (Number.isInteger(year) && year >= 1900 && year <= 2200) {
@@ -1115,6 +1313,7 @@
         });
         byId("yearWheelMenuAddBtn").addEventListener("click", openWheelForm);
         byId("yearWheelMenuSettingsBtn").addEventListener("click", openWheelSettings);
+        byId("yearWheelMenuCopyEventsBtn").addEventListener("click", openBulkCopyForm);
         byId("addYearWheelRingBtn").addEventListener("click", () => openRingForm());
         byId("addYearWheelEventBtn").addEventListener("click", () => openEventForm());
         byId("closeYearWheelModal").addEventListener("click", closeModal);
