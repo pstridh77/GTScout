@@ -6369,7 +6369,16 @@ select:focus {
 .year-wheel-panel-heading h2, .year-wheel-chart-heading h2, .year-wheel-events-section h2 { margin: 0; color: #003660; font-size: 1.15rem; }
 .year-wheel-panel-heading p, .year-wheel-chart-heading p { margin: 5px 0 0; color: #64748b; font-size: .84rem; }
 .year-wheel-ring-list { display: grid; gap: 4px; margin-top: 14px; }
+.year-wheel-department-group { border-bottom: 1px solid #edf1f5; }
+.year-wheel-department-group > summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 38px; padding: 2px 4px; color: #34495e; font-size: .88rem; cursor: pointer; list-style: none; }
+.year-wheel-department-group > summary::-webkit-details-marker { display: none; }
+.year-wheel-department-heading { display: inline-flex; align-items: center; gap: 9px; font-weight: 600; }
+.year-wheel-department-heading input { width: 16px; height: 16px; margin: 0; accent-color: #176b72; }
+.year-wheel-department-chevron { width: 7px; height: 7px; border-right: 1.5px solid #64748b; border-bottom: 1.5px solid #64748b; transform: rotate(45deg) translateY(-2px); transition: transform .15s ease; }
+.year-wheel-department-group[open] .year-wheel-department-chevron { transform: rotate(225deg) translate(-1px, -1px); }
+.year-wheel-department-list { padding-left: 12px; }
 .year-wheel-ring-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 38px; padding: 2px 4px; border-bottom: 1px solid #edf1f5; }
+.year-wheel-department-list .year-wheel-ring-row:last-child { border-bottom: 0; }
 .year-wheel-ring-toggle { display: flex; align-items: center; gap: 9px; min-width: 0; color: #34495e; font-size: .88rem; cursor: pointer; }
 .year-wheel-ring-toggle input { width: 16px; height: 16px; margin: 0; accent-color: #176b72; }
 .year-wheel-ring-swatch, .year-wheel-event-card-swatch { display: inline-block; width: 13px; height: 13px; flex: 0 0 13px; border-radius: 50%; background: var(--ring-color); }

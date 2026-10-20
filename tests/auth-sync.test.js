@@ -279,6 +279,45 @@ test("year-wheel event arcs are at least one week wide", () => {
     assert.ok(Math.abs(width(longerEvent) - 7) < 1e-9);
 });
 
+test("year-wheel department rings display as one filterable ring", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8");
+    const start = source.indexOf("function isDepartmentRing(");
+    const end = source.indexOf("function renderRingList(", start);
+    const context = vm.createContext({
+        DEPARTMENT_RING_COLORS: {
+            "Spårare": {},
+            "Upptäckare": {},
+            "Ledare": {}
+        }
+    });
+    vm.runInContext(source.slice(start, end), context);
+    const wheel = { rings: [
+        { id: "scout-1", name: "Spårare", color: "#41a62a" },
+        { id: "board", name: "Styrelse", color: "#398a86" },
+        { id: "scout-2", name: "Upptäckare", color: "#00a8e1" },
+        { id: "scout-leaders", name: "Ledare", color: "#455a64" }
+    ] };
+
+    const allShown = context.getDisplayedRings(wheel, new Set(wheel.rings.map(ring => ring.id)));
+    assert.deepEqual(
+        JSON.parse(JSON.stringify(allShown.displayed.map(ring => ({
+            id: ring.id,
+            name: ring.name,
+            sourceIds: ring.sourceRings?.map(sourceRing => sourceRing.id) || null
+        })))),
+        [
+            { id: "__department_group__", name: "Avdelning", sourceIds: ["scout-1", "scout-2", "scout-leaders"] },
+            { id: "board", name: "Styrelse", sourceIds: null }
+        ]
+    );
+    assert.deepEqual(allShown.departmentRings.map(ring => ring.id), ["scout-1", "scout-2", "scout-leaders"]);
+
+    const oneDepartment = context.getDisplayedRings(wheel, new Set(["scout-2"]));
+    assert.equal(oneDepartment.displayed.length, 1);
+    assert.equal(oneDepartment.displayed[0].name, "Avdelning");
+    assert.deepEqual(oneDepartment.displayed[0].sourceRings.map(ring => ring.id), ["scout-2"]);
+});
+
 test("arrangement participant totals include officials as leaders and only selected departments", () => {
     const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
     const start = source.indexOf("function getParticipantTotals(");

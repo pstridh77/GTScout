@@ -1,6 +1,6 @@
 (function () {
     const VIEW_STORAGE_KEY = "gtscout_arshjul_view";
-    const COLORS = ["#398a86", "#667085", "#c56b36", "#5d7cc5", "#8b83ef", "#56a86b", "#36a7d5", "#e49b38", "#d65b65", "#a45db2"];
+    const COLORS = ["#398a86", "#991d1b", "#c56b36", "#5d7cc5", "#8b83ef", "#56a86b", "#36a7d5", "#e49b38", "#d65b65", "#a45db2"];
     const DEPARTMENT_RING_COLORS = {
         Familjescouter: { standard: "#652d91", light: "#dfcce9" },
         Spårare: { standard: "#41a62a", light: "#d9efd2" },
@@ -231,9 +231,39 @@
         return ring.color;
     }
 
+    function isDepartmentRing(ring) {
+        return Boolean(DEPARTMENT_RING_COLORS[ring.name]);
+    }
+
+    function getDisplayedRings(wheel, selectedIds) {
+        const departmentRings = wheel.rings.filter(ring => isDepartmentRing(ring));
+        const shownDepartmentRings = departmentRings.filter(ring => selectedIds.has(ring.id));
+        let departmentGroupAdded = false;
+        const displayed = [];
+        wheel.rings.forEach(ring => {
+            if (isDepartmentRing(ring)) {
+                if (!departmentGroupAdded && shownDepartmentRings.length) {
+                    displayed.push({
+                        id: "__department_group__",
+                        name: "Avdelning",
+                        color: "#398a86",
+                        sourceRings: shownDepartmentRings
+                    });
+                    departmentGroupAdded = true;
+                }
+                return;
+            }
+            if (selectedIds.has(ring.id)) displayed.push(ring);
+        });
+        return { displayed, departmentRings };
+    }
+
     function renderRingList(wheel) {
         const list = byId("yearWheelRingList");
-        list.innerHTML = wheel.rings.length ? wheel.rings.map(ring => `
+        const { departmentRings } = getDisplayedRings(wheel, selectedRingIds);
+        const otherRings = wheel.rings.filter(ring => !isDepartmentRing(ring));
+        const selectedDepartments = departmentRings.filter(ring => selectedRingIds.has(ring.id)).length;
+        const renderRingRow = ring => `
             <div class="year-wheel-ring-row">
                 <label class="year-wheel-ring-toggle">
                     <input type="checkbox" data-ring-toggle="${escapeHtml(ring.id)}" ${selectedRingIds.has(ring.id) ? "checked" : ""}>
@@ -241,7 +271,31 @@
                     <span>${escapeHtml(ring.name)}</span>
                 </label>
                 ${canEdit() ? `<button class="year-wheel-ring-edit" type="button" data-edit-ring="${escapeHtml(ring.id)}" aria-label="Redigera ${escapeHtml(ring.name)}">Redigera</button>` : ""}
-            </div>`).join("") : `<p class="year-wheel-empty">Lägg till en ring för att börja planera.</p>`;
+            </div>`;
+        list.innerHTML = wheel.rings.length ? `
+            ${departmentRings.length ? `<details class="year-wheel-department-group" open>
+                <summary>
+                    <span class="year-wheel-department-heading">
+                        <input type="checkbox" data-department-toggle-all aria-label="Visa alla avdelningar" ${selectedDepartments === departmentRings.length ? "checked" : ""}>
+                        <span>Avdelning</span>
+                    </span>
+                    <span class="year-wheel-department-chevron" aria-hidden="true"></span>
+                </summary>
+                <div class="year-wheel-department-list">${departmentRings.map(renderRingRow).join("")}</div>
+            </details>` : ""}
+            ${otherRings.map(renderRingRow).join("")}` : `<p class="year-wheel-empty">Lägg till en ring för att börja planera.</p>`;
+        const departmentToggle = list.querySelector("[data-department-toggle-all]");
+        if (departmentToggle) {
+            departmentToggle.indeterminate = selectedDepartments > 0 && selectedDepartments < departmentRings.length;
+            departmentToggle.addEventListener("click", event => event.stopPropagation());
+            departmentToggle.addEventListener("change", () => {
+                departmentRings.forEach(ring => {
+                    if (departmentToggle.checked) selectedRingIds.add(ring.id);
+                    else selectedRingIds.delete(ring.id);
+                });
+                render();
+            });
+        }
         list.querySelectorAll("[data-ring-toggle]").forEach(input => input.addEventListener("change", () => {
             if (input.checked) selectedRingIds.add(input.dataset.ringToggle);
             else selectedRingIds.delete(input.dataset.ringToggle);
@@ -315,7 +369,9 @@
             const slotInner = slotOuter - ringWidth;
             const outer = slotOuter - ringGap / 2;
             const inner = slotInner + ringGap / 2;
-            const events = visibleEvents.filter(event => event.ring_id === ring.id);
+            const sourceRings = ring.sourceRings || [ring];
+            const sourceRingById = new Map(sourceRings.map(sourceRing => [sourceRing.id, sourceRing]));
+            const events = visibleEvents.filter(event => sourceRingById.has(event.ring_id));
             svg.push(`<circle cx="320" cy="320" r="${((outer + inner) / 2).toFixed(2)}" class="year-wheel-ring-track"/>`);
             events.forEach(event => {
                 const clippedStart = event.start_date < dateKey(start) ? dateKey(start) : event.start_date;
@@ -329,7 +385,7 @@
                 const mid = (from + finish) / 2;
                 const radius = (outer + inner) / 2;
                 const label = point(radius, mid);
-                const eventColor = getEventColor(event, ring);
+                const eventColor = getEventColor(event, sourceRingById.get(event.ring_id));
                 const tangentRotation = (mid * 360) % 360;
                 const rotation = tangentRotation > 90 && tangentRotation < 270 ? tangentRotation + 180 : tangentRotation;
                 const title = `${event.title} · ${formatDate(event.start_date)}${event.end_date !== event.start_date ? `–${formatDate(event.end_date)}` : ""}`;
@@ -440,7 +496,7 @@
         const endKey = dateKey(range.end);
         byId("yearWheelDateRange").textContent = `${formatDate(startKey, { day: "numeric", month: "long", year: "numeric" })} – ${formatDate(endKey, { day: "numeric", month: "long", year: "numeric" })}`;
         renderRingList(wheel);
-        const shownRings = wheel.rings.filter(ring => selectedRingIds.has(ring.id));
+        const { displayed: shownRings } = getDisplayedRings(wheel, selectedRingIds);
         const visibleEvents = wheel.events.filter(event => selectedRingIds.has(event.ring_id)
             && event.start_date <= endKey && event.end_date >= startKey);
         renderWheelChart(wheel, shownRings, visibleEvents, range);
