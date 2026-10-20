@@ -1436,7 +1436,7 @@
         });
         byId("yearWheelForm").addEventListener("submit", submitForm);
         byId("deleteYearWheelItemBtn").addEventListener("click", deleteCurrentItem);
-        window.GTScoutArrangements?.init({ onChange: syncArrangementsIntoWheels });
+        // Automatisk arrangemangssynk är pausad för att isolera låsningen i produktion.
         auth()?.onChange?.(() => {
             updateYearWheelMenuActions();
             render();
@@ -1463,7 +1463,6 @@
                 return { wheel, changed: true };
             }).filter(entry => entry.wheel.name);
             wheels = migrated.map(entry => entry.wheel);
-            syncArrangementsIntoWheels(window.GTScoutArrangements?.getAll?.() || []);
             const activeMigration = migrated.find(entry => entry.changed && entry.wheel.id === selectedWheelId);
             if (activeMigration && selectedRingsForWheelId === selectedWheelId) {
                 const termRing = activeMigration.wheel.rings.find(ring => ring.name === "Terminer");

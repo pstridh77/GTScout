@@ -221,6 +221,62 @@ test("changing an arrangement start date preserves its day span", () => {
     assert.equal(context.addDaysToArrangementDate("2026-10-09", 0), "2026-10-09");
 });
 
+test("year-wheel initialization and reload do not automatically sync arrangements", () => {
+    const elements = new Map();
+    let onChange;
+    const saves = [];
+    const wheel = {
+        id: "wheel", name: "Saved wheel", schema_version: 3,
+        rings: [{ id: "arrangements", name: "Arrangemang", color: "#398a86" }],
+        events: [{
+            id: "existing", ring_id: "arrangements", title: "Existing event",
+            start_date: "2026-10-20", end_date: "2026-10-20",
+            notes: "x".repeat(2100), source_arrangement_id: "source"
+        }]
+    };
+    const context = vm.createContext({
+        window: {
+            GTScoutAuth: {
+                isOnline: () => true, isSignedIn: () => true, isLeader: () => true,
+                onChange: listener => listener()
+            },
+            GTScoutArrangements: {
+                init() { assert.fail("Arrangements must not be initialized"); },
+                getAll() { assert.fail("Arrangements must not be read during wheel updates"); }
+            },
+            GTScoutYearWheelSync: {
+                canWrite: () => true,
+                init(config) { onChange = config.onChange; onChange([wheel]); },
+                saveWheel: value => saves.push(value)
+            }
+        },
+        document: {
+            readyState: "complete",
+            querySelectorAll: () => [],
+            getElementById(id) {
+                if (!elements.has(id)) elements.set(id, {
+                    ...createElement(), addEventListener() {},
+                    querySelector: () => null, querySelectorAll: () => []
+                });
+                return elements.get(id);
+            }
+        },
+        localStorage: { getItem: () => null },
+        crypto: globalThis.crypto,
+        console
+    });
+    vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8"), context);
+    onChange([wheel]);
+    assert.equal(elements.get("yearWheelDisplayName").textContent, wheel.name);
+    assert.match(elements.get("yearWheelEvents").innerHTML, /Existing event/);
+    assert.match(elements.get("yearWheelEvents").innerHTML, /x{2000}/);
+    assert.equal(saves.length, 0, "Loading existing wheels must not cause arrangement writes");
+
+    const html = fs.readFileSync(path.join(__dirname, "..", "arshjul.html"), "utf8");
+    assert.doesNotMatch(html, /src="js\/arrangemang-sync\.js"/);
+    assert.match(html, /src="js\/arshjul-sync\.js"/);
+});
+
 test("new year-wheel event end date follows its start and preserves edited date spans", () => {
     const source = fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8");
     const start = source.indexOf("function dateKey(");
