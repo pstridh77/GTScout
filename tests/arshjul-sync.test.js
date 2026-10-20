@@ -1,0 +1,435 @@
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const test = require("node:test");
+const vm = require("node:vm");
+
+const readScript = name => fs.readFileSync(path.join(__dirname, "..", "js", name), "utf8");
+const settle = () => new Promise(resolve => setImmediate(resolve));
+
+function deferred() {
+    let resolve;
+    const promise = new Promise(done => { resolve = done; });
+    return { promise, resolve };
+}
+
+function wheel(id = "wheel", schemaVersion = 3) {
+    return {
+        id, name: id, schema_version: schemaVersion, local_kar_id: "kar-1",
+        rings: [{ id: "arrangements", name: "Arrangemang", color: "#398a86" }],
+        events: []
+    };
+}
+
+function arrangement(fields = {}) {
+    return {
+        id: "source", title: "Hajk", start_date: "2026-10-20", end_date: "2026-10-21",
+        ...fields
+    };
+}
+
+function createPage({ wheels = [], arrangements = [], localWheels = [], localArrangements = [], signedIn = true, leader = true, handleRequest } = {}) {
+    const elements = new Map();
+    const listeners = [];
+    const requests = [];
+    const errors = [];
+    const storage = new Map([
+        ["gtscout_arshjul", JSON.stringify(localWheels)],
+        ["gtscout_arrangemang", JSON.stringify(localArrangements)],
+        ["gtscout_arshjul_view", JSON.stringify({ mode: "calendar", year: 2026 })]
+    ]);
+    const tables = {
+        arshjul: wheels.map(item => ({ id: item.id, name: item.name, data: structuredClone(item) })),
+        arrangemang: arrangements.map(item => ({ id: item.id, data: structuredClone(item) }))
+    };
+    let userId = signedIn ? "user-1" : null;
+    let karId = signedIn ? "kar-1" : null;
+    let isLeader = leader;
+    let renderCount = 0;
+    function element(id) {
+        if (!elements.has(id)) {
+            const classes = new Set();
+            elements.set(id, {
+                value: "", textContent: "", dataset: {}, handlers: {},
+                set innerHTML(value) {
+                    if (id === "yearWheelChart") {
+                        renderCount++;
+                        assert.ok(renderCount < 100, "Rendering must not enter a feedback loop");
+                    }
+                    this.markup = value;
+                },
+                get innerHTML() { return this.markup || ""; },
+                classList: {
+                    add: name => classes.add(name),
+                    remove: name => classes.delete(name),
+                    contains: name => classes.has(name),
+                    toggle(name, enabled) { if (enabled) classes.add(name); else classes.delete(name); }
+                },
+                addEventListener(name, callback) { this.handlers[name] = callback; },
+                querySelector(selector) {
+                    if (selector === "[data-department-toggle-all]") return null;
+                    return element(`${id} ${selector}`);
+                },
+                querySelectorAll: () => [],
+                setAttribute() {}, removeAttribute() {}, focus() {}
+            });
+        }
+        return elements.get(id);
+    }
+    async function execute(request) {
+        requests.push(request);
+        assert.ok(requests.length < 100, "Database writes must terminate");
+        const result = await handleRequest?.(request);
+        if (result !== undefined) return result;
+        if (request.operation === "select") return { data: structuredClone(tables[request.table]) };
+        const rows = tables[request.table];
+        const index = rows.findIndex(row => row.id === (request.row?.id || request.id));
+        if (request.operation === "delete") {
+            if (index >= 0) rows.splice(index, 1);
+        } else if (index >= 0) rows[index] = structuredClone(request.row);
+        else rows.push(structuredClone(request.row));
+        return { error: null };
+    }
+    const client = {
+        from(table) {
+            const request = { table, operation: "select" };
+            return {
+                select() { return this; },
+                eq(key, value) { request[key] = value; return this; },
+                order() { return this; },
+                upsert(row) { request.operation = "upsert"; request.row = structuredClone(row); return this; },
+                delete() { request.operation = "delete"; return this; },
+                then(resolve, reject) { return execute(request).then(resolve, reject); }
+            };
+        }
+    };
+    const auth = {
+        getClient: () => client,
+        getState: () => ({ karId, loading: false }),
+        getUser: () => userId ? { id: userId } : null,
+        isSignedIn: () => Boolean(userId),
+        isOnline: () => true,
+        isLeader: () => isLeader,
+        onChange(callback) { listeners.push(callback); callback(); }
+    };
+    const context = vm.createContext({
+        window: { GTScoutAuth: auth, location: { search: "" }, addEventListener() {} },
+        document: {
+            readyState: "complete", getElementById: element, querySelectorAll: () => [],
+            body: { classList: { add() {} } }
+        },
+        localStorage: {
+            getItem: key => storage.get(key) ?? null,
+            setItem: (key, value) => storage.set(key, value)
+        },
+        crypto: globalThis.crypto,
+        URLSearchParams,
+        FormData: class {
+            constructor(form) { this.values = form.values; }
+            entries() { return Object.entries(this.values); }
+            getAll(key) { return this.values[key] === undefined ? [] : [this.values[key]].flat(); }
+        },
+        console: { error: (...args) => errors.push(args) }
+    });
+    for (const name of ["participants.js", "arrangemang-sync.js", "arshjul-sync.js", "arshjul.js"]) {
+        vm.runInContext(readScript(name), context);
+    }
+    return {
+        requests, errors, elements, tables,
+        sync: context.window.GTScoutYearWheelSync,
+        arrangements: context.window.GTScoutArrangements,
+        stored: () => JSON.parse(storage.get("gtscout_arshjul")),
+        changeAuth(nextUserId, nextKarId, nextLeader = isLeader) {
+            userId = nextUserId;
+            karId = nextKarId;
+            isLeader = nextLeader;
+            listeners.forEach(callback => callback());
+        }
+    };
+}
+
+function createHelpers() {
+    const source = readScript("arshjul.js");
+    const context = vm.createContext({ crypto: globalThis.crypto });
+    vm.runInContext(source.slice(source.indexOf("    const VIEW_STORAGE_KEY"), source.indexOf("    function readViewPreferences")), context);
+    vm.runInContext(source.slice(source.indexOf("    function syncArrangementEvents("), source.indexOf("    function isDepartmentRing(")), context);
+    return context;
+}
+
+for (const [field, limit] of [["title", 120], ["responsible", 100], ["location", 120], ["notes", 2000]]) {
+    for (const offset of [-1, 0, 1]) {
+        test(`arrangement ${field} at ${limit + offset} characters converges after normalization`, () => {
+            const helpers = createHelpers();
+            const value = "x".repeat(limit + offset);
+            const input = arrangement(field === "responsible"
+                ? { responsibilities: [{ person: value }] }
+                : { [field]: value });
+            const original = structuredClone(input);
+            const updated = helpers.syncArrangementEvents(wheel(), [input]);
+            assert.equal(updated.events[0][field], "x".repeat(Math.min(limit, limit + offset)));
+            assert.equal(helpers.syncArrangementEvents(helpers.normalizeWheel(updated), [input]), null);
+            assert.deepEqual(input, original, "Source arrangement text must not be truncated");
+        });
+    }
+    test(`arrangement ${field} trims whitespace at the truncation boundary`, () => {
+        const helpers = createHelpers();
+        const value = "x".repeat(limit - 1) + " \nÅterstående text";
+        const input = arrangement(field === "responsible"
+            ? { responsibilities: [{ person: value }] }
+            : { [field]: value });
+        const updated = helpers.syncArrangementEvents(wheel(), [input]);
+        assert.equal(updated.events[0][field], "x".repeat(limit - 1));
+        assert.equal(helpers.syncArrangementEvents(helpers.normalizeWheel(updated), [input]), null);
+    });
+}
+
+test("automatic sync batches migration and long arrangement texts once per wheel", async () => {
+    const input = arrangement({
+        title: "T".repeat(121), notes: "N".repeat(1999) + " rest",
+        location: "P".repeat(119) + " rest",
+        responsibilities: [{ person: "A".repeat(99) + " rest" }]
+    });
+    const page = createPage({ wheels: [wheel("old", 2), wheel("current")], arrangements: [input] });
+    await settle();
+    const writes = page.requests.filter(request => request.operation === "upsert");
+    assert.equal(writes.length, 2);
+    for (const { row } of writes) {
+        assert.equal(row.data.schema_version, 3);
+        assert.equal(row.data.events[0].title.length, 120);
+        assert.equal(row.data.events[0].notes.length, 1999);
+        assert.equal(row.data.events[0].location.length, 119);
+        assert.equal(row.data.events[0].responsible.length, 99);
+    }
+    assert.equal(page.tables.arshjul.find(row => row.id === "old").data.rings.filter(ring => ring.name === "Terminer").length, 1);
+    page.changeAuth("user-1", "kar-1");
+    await settle();
+    assert.equal(page.requests.filter(request => request.operation === "upsert").length, 2);
+    assert.deepEqual(page.errors, []);
+});
+
+for (const delayedTable of ["arshjul", "arrangemang"]) {
+    test(`automatic sync works when ${delayedTable} loads last`, async () => {
+        const gate = deferred();
+        const page = createPage({
+            wheels: [wheel()], arrangements: [arrangement({ title: "T".repeat(121) })],
+            handleRequest: request => request.table === delayedTable && request.operation === "select"
+                ? gate.promise : undefined
+        });
+        await settle();
+        gate.resolve(undefined);
+        await settle();
+        assert.equal(page.requests.filter(request => request.operation === "upsert").length, 1);
+        assert.equal(page.tables.arshjul[0].data.events[0].title.length, 120);
+        assert.deepEqual(page.errors, []);
+    });
+}
+
+test("saving a wheel notifies the view without re-reading arrangement sources", async () => {
+    const page = createPage({ wheels: [wheel()] });
+    await settle();
+    page.arrangements.getAll = () => assert.fail("Save notifications must not restart automatic sync");
+    await page.sync.saveWheel({ ...wheel(), name: "Manually edited" });
+    assert.equal(page.elements.get("yearWheelDisplayName").textContent, "Manually edited");
+    assert.equal(page.stored()[0].local_only, false);
+    assert.deepEqual(page.errors, []);
+});
+
+test("creating a wheel still imports arrangements in the initial save", async () => {
+    const page = createPage({ arrangements: [arrangement({ title: "T".repeat(121) })] });
+    await settle();
+    page.elements.get("yearWheelMenuAddBtn").handlers.click();
+    const form = page.elements.get("yearWheelForm");
+    form.values = { name: "New wheel", start_month: "8", ring_names: "Arrangemang" };
+    form.handlers.submit({ preventDefault() {}, currentTarget: form });
+    await settle();
+    assert.equal(page.tables.arshjul.length, 1);
+    assert.equal(page.tables.arshjul[0].data.events[0].title.length, 120);
+    assert.equal(page.requests.filter(request => request.table === "arshjul" && request.operation === "upsert").length, 1);
+    assert.deepEqual(page.errors, []);
+});
+
+test("changed arrangements automatically update wheels without repeated writes", async () => {
+    const page = createPage({ wheels: [wheel()], arrangements: [arrangement()] });
+    await settle();
+    const before = page.requests.filter(request => request.table === "arshjul" && request.operation === "upsert").length;
+    const input = arrangement({ title: "T".repeat(121), notes: "N".repeat(2001) });
+    await page.arrangements.save(input);
+    await settle();
+    assert.equal(page.tables.arshjul[0].data.events[0].title, "T".repeat(120));
+    assert.equal(page.tables.arshjul[0].data.events[0].notes, "N".repeat(2000));
+    assert.equal(page.tables.arrangemang[0].data.title, input.title);
+    assert.equal(page.tables.arrangemang[0].data.notes, input.notes);
+    assert.equal(page.requests.filter(request => request.table === "arshjul" && request.operation === "upsert").length, before + 1);
+    assert.deepEqual(page.errors, []);
+});
+
+test("local wheels migrate and sync long texts without a database login", async () => {
+    const page = createPage({
+        signedIn: false,
+        localWheels: [{ ...wheel("offline", 2), local_only: true, local_kar_id: null }],
+        localArrangements: [arrangement({ title: "T".repeat(121), notes: "N".repeat(2001) })]
+    });
+    await settle();
+    assert.equal(page.requests.length, 0);
+    assert.equal(page.stored()[0].schema_version, 3);
+    assert.equal(page.stored()[0].events[0].title.length, 120);
+    assert.equal(page.stored()[0].events[0].notes.length, 2000);
+    assert.deepEqual(page.errors, []);
+});
+
+test("read-only users see linked events without uploading derived changes", async () => {
+    const page = createPage({ wheels: [wheel()], arrangements: [arrangement({ title: "T".repeat(121) })], leader: false });
+    await settle();
+    assert.match(page.elements.get("yearWheelEvents").innerHTML, /T{120}/);
+    assert.equal(page.requests.filter(request => request.operation !== "select").length, 0);
+    assert.deepEqual(page.errors, []);
+});
+
+test("local migration is uploaded with current arrangement data, not the old pending snapshot", async () => {
+    const pending = { ...wheel("local", 2), local_only: true };
+    const page = createPage({ localWheels: [pending], arrangements: [arrangement()] });
+    await settle();
+    const writes = page.requests.filter(request => request.table === "arshjul" && request.operation === "upsert");
+    assert.equal(page.tables.arshjul[0].data.schema_version, 3);
+    assert.equal(page.tables.arshjul[0].data.events[0].title, "Hajk");
+    assert.equal(writes.length, 1);
+    assert.deepEqual(page.errors, []);
+});
+
+test("overlapping saves preserve the latest local data and serialize database writes", async () => {
+    const gate = deferred();
+    let blockFirst = true;
+    const page = createPage({
+        wheels: [wheel()],
+        handleRequest(request) {
+            if (request.operation === "upsert" && blockFirst) {
+                blockFirst = false;
+                return gate.promise;
+            }
+        }
+    });
+    await settle();
+    const first = page.sync.saveWheel({ ...wheel(), name: "First" });
+    await settle();
+    const latest = page.sync.saveWheel({ ...wheel(), name: "Latest" });
+    await settle();
+    assert.equal(page.requests.filter(request => request.operation === "upsert").length, 1);
+    assert.equal(page.stored()[0].name, "Latest");
+    assert.equal(page.stored()[0].local_only, true);
+    gate.resolve(undefined);
+    await Promise.all([first, latest]);
+    assert.equal(page.stored()[0].name, "Latest");
+    assert.equal(page.stored()[0].local_only, false);
+    assert.equal(page.tables.arshjul[0].data.name, "Latest");
+    assert.deepEqual(page.errors, []);
+});
+
+test("deleting during a save cannot recreate the deleted wheel", async () => {
+    const gate = deferred();
+    const page = createPage({
+        wheels: [wheel()],
+        handleRequest: request => request.operation === "upsert" ? gate.promise : undefined
+    });
+    await settle();
+    const save = page.sync.saveWheel({ ...wheel(), name: "Saving" });
+    await settle();
+    const remove = page.sync.removeWheel("wheel");
+    gate.resolve(undefined);
+    await Promise.all([save, remove]);
+    assert.equal(page.stored().length, 0);
+    assert.equal(page.tables.arshjul.length, 0);
+    assert.deepEqual(page.errors, []);
+});
+
+test("failed writes retain local changes and do not block subsequent saves", async () => {
+    let fail = true;
+    const page = createPage({
+        wheels: [wheel()],
+        handleRequest(request) {
+            if (request.operation === "upsert" && fail) {
+                fail = false;
+                return { error: { message: "Database unavailable" } };
+            }
+        }
+    });
+    await settle();
+    await page.sync.saveWheel({ ...wheel(), name: "Offline edit" });
+    assert.equal(page.stored()[0].local_only, true);
+    assert.match(page.elements.get("yearWheelSyncStatus").textContent, /Database unavailable/);
+    assert.equal(page.errors.length, 1);
+    await page.sync.saveWheel({ ...wheel(), name: "Retry" });
+    assert.equal(page.stored()[0].local_only, false);
+    assert.equal(page.tables.arshjul[0].data.name, "Retry");
+});
+
+test("failed deletion restores the wheel locally and reports the error", async () => {
+    const page = createPage({
+        wheels: [wheel()],
+        handleRequest: request => request.operation === "delete"
+            ? { error: { message: "Delete denied" } } : undefined
+    });
+    await settle();
+    await page.sync.removeWheel("wheel");
+    assert.equal(page.stored()[0].id, "wheel");
+    assert.equal(page.elements.get("yearWheelDisplayName").textContent, "wheel");
+    assert.match(page.elements.get("yearWheelSyncStatus").textContent, /Delete denied/);
+    assert.equal(page.errors.length, 1);
+});
+
+test("logout invalidates running and queued writes without restoring shared data", async () => {
+    const gate = deferred();
+    const page = createPage({
+        wheels: [wheel()],
+        handleRequest: request => request.operation === "upsert" ? gate.promise : undefined
+    });
+    await settle();
+    const first = page.sync.saveWheel({ ...wheel(), name: "Running" });
+    await settle();
+    const queued = page.sync.saveWheel({ ...wheel(), name: "Queued" });
+    page.changeAuth(null, null);
+    gate.resolve(undefined);
+    await Promise.all([first, queued]);
+    assert.equal(page.requests.filter(request => request.operation === "upsert").length, 1);
+    assert.equal(page.elements.get("yearWheelDisplayName").textContent, "Inget årshjul valt");
+    assert.equal(page.stored().every(item => item.local_only && item.local_kar_id === "kar-1"), true);
+    assert.deepEqual(page.errors, []);
+});
+
+test("switching user and troop invalidates queued writes from the previous context", async () => {
+    const gate = deferred();
+    const page = createPage({
+        wheels: [wheel()],
+        handleRequest: request => request.operation === "upsert" ? gate.promise : undefined
+    });
+    await settle();
+    const first = page.sync.saveWheel({ ...wheel(), name: "Old context" });
+    await settle();
+    const queued = page.sync.saveWheel({ ...wheel(), name: "Old queued edit" });
+    page.tables.arshjul = [];
+    page.tables.arrangemang = [];
+    page.changeAuth("user-2", "kar-2");
+    await settle();
+    gate.resolve(undefined);
+    await Promise.all([first, queued]);
+    assert.equal(page.requests.filter(request => request.operation === "upsert").length, 1);
+    assert.equal(page.elements.get("yearWheelDisplayName").textContent, "Inget årshjul valt");
+    assert.equal(page.stored().some(item => item.local_kar_id === "kar-2"), false);
+    assert.deepEqual(page.errors, []);
+});
+
+test("a late year-wheel load cannot restore data after logout", async () => {
+    const gate = deferred();
+    const page = createPage({
+        wheels: [wheel()],
+        handleRequest: request => request.table === "arshjul" && request.operation === "select"
+            ? gate.promise : undefined
+    });
+    await settle();
+    page.changeAuth(null, null);
+    gate.resolve(undefined);
+    await settle();
+    assert.equal(page.stored().length, 0);
+    assert.equal(page.elements.get("yearWheelDisplayName").textContent, "Inget årshjul valt");
+    assert.equal(page.requests.filter(request => request.operation === "upsert").length, 0);
+    assert.deepEqual(page.errors, []);
+});

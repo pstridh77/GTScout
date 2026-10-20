@@ -367,11 +367,8 @@ test("year-wheel department rings display as one filterable ring", () => {
         const source = fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8");
         const start = source.indexOf("function syncArrangementEvents(");
         const end = source.indexOf("function isDepartmentRing(", start);
-        const context = vm.createContext({
-            isDate: value => /^\d{4}-\d{2}-\d{2}$/.test(value),
-            id: () => "generated-event",
-            normalizeWheel: wheel => wheel
-        });
+        const context = vm.createContext({ crypto: globalThis.crypto });
+        vm.runInContext(source.slice(source.indexOf("    const VIEW_STORAGE_KEY"), source.indexOf("    function readViewPreferences(")), context);
         vm.runInContext(source.slice(start, end), context);
         const wheel = {
             id: "wheel",

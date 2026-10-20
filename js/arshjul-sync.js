@@ -5,7 +5,7 @@
     let loadedForKarId = null;
     let loadedForUserId = null;
     let revision = 0;
-    let saveTimer = null;
+    const pendingWrites = new Map();
     let status = null;
     let detachedWheels = [];
 
@@ -37,11 +37,30 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify([...detachedWheels, ...wheels]));
     }
 
-    function notify() {
-        onChange?.(wheels);
+    function notify(source = "change") {
+        onChange?.(wheels, source);
+    }
+
+    async function enqueueWrite(id, operation) {
+        const previous = pendingWrites.get(id) || Promise.resolve();
+        const next = previous.then(operation, operation);
+        pendingWrites.set(id, next);
+        try {
+            await next;
+        } finally {
+            if (pendingWrites.get(id) === next) pendingWrites.delete(id);
+        }
+    }
+
+    function isCurrentContext(currentRevision, currentKarId, currentUserId) {
+        return currentRevision === revision && canWrite()
+            && currentKarId === karId() && currentUserId === auth().getUser()?.id;
     }
 
     async function saveWheel(wheel) {
+        const currentRevision = revision;
+        const currentKarId = karId();
+        const currentUserId = auth()?.getUser?.()?.id || null;
         const existing = wheels.find(item => item.id === wheel.id);
         const payload = {
             ...wheel,
@@ -57,38 +76,59 @@
             setStatus("Sparat lokalt. Inloggning som ledare krävs för att dela med kåren.");
             return;
         }
-        try {
-            const { error } = await client().from("arshjul").upsert({
-                id: payload.id,
-                kar_id: karId(),
-                created_by: payload.created_by || auth().getUser()?.id || null,
-                name: payload.name,
-                data: payload
-            }, { onConflict: "id" });
-            if (error) throw error;
-            wheels = wheels.map(item => item.id === payload.id ? { ...payload, local_only: false } : item);
-            writeLocal();
-            notify();
-            setStatus("Årshjulet är sparat och delas med kåren.");
-        } catch (error) {
-            console.error("Kunde inte spara årshjul", error);
-            setStatus(`Kunde inte spara årshjulet i databasen: ${error.message || "okänt fel"}. Ändringen finns kvar lokalt.`, true);
-        }
+        await enqueueWrite(payload.id, async () => {
+            if (!isCurrentContext(currentRevision, currentKarId, currentUserId)
+                || wheels.find(item => item.id === payload.id) !== payload) return;
+            try {
+                const { error } = await client().from("arshjul").upsert({
+                    id: payload.id,
+                    kar_id: currentKarId,
+                    created_by: payload.created_by || currentUserId,
+                    name: payload.name,
+                    data: payload
+                }, { onConflict: "id" });
+                if (!isCurrentContext(currentRevision, currentKarId, currentUserId)) return;
+                if (error) throw error;
+                if (wheels.find(item => item.id === payload.id) !== payload) return;
+                wheels = wheels.map(item => item.id === payload.id ? { ...payload, local_only: false } : item);
+                writeLocal();
+                notify();
+                setStatus("Årshjulet är sparat och delas med kåren.");
+            } catch (error) {
+                if (!isCurrentContext(currentRevision, currentKarId, currentUserId)) return;
+                console.error("Kunde inte spara årshjul", error);
+                setStatus(`Kunde inte spara årshjulet i databasen: ${error.message || "okänt fel"}. Ändringen finns kvar lokalt.`, true);
+            }
+        });
     }
 
     async function removeWheel(id) {
+        const currentRevision = revision;
+        const currentKarId = karId();
+        const currentUserId = auth()?.getUser?.()?.id || null;
+        const existing = wheels.find(item => item.id === id);
         wheels = wheels.filter(item => item.id !== id);
         writeLocal();
         notify();
         if (!canWrite()) return;
-        try {
-            const { error } = await client().from("arshjul").delete().eq("id", id).eq("kar_id", karId());
-            if (error) throw error;
-            setStatus("Årshjulet har tagits bort.");
-        } catch (error) {
-            console.error("Kunde inte ta bort årshjul", error);
-            setStatus(`Kunde inte ta bort årshjulet från databasen: ${error.message || "okänt fel"}.`, true);
-        }
+        await enqueueWrite(id, async () => {
+            if (!isCurrentContext(currentRevision, currentKarId, currentUserId)) return;
+            try {
+                const { error } = await client().from("arshjul").delete().eq("id", id).eq("kar_id", currentKarId);
+                if (!isCurrentContext(currentRevision, currentKarId, currentUserId)) return;
+                if (error) throw error;
+                setStatus("Årshjulet har tagits bort.");
+            } catch (error) {
+                if (!isCurrentContext(currentRevision, currentKarId, currentUserId)) return;
+                console.error("Kunde inte ta bort årshjul", error);
+                if (existing && !wheels.some(item => item.id === id)) {
+                    wheels = [...wheels, existing];
+                    writeLocal();
+                    notify();
+                }
+                setStatus(`Kunde inte ta bort årshjulet från databasen: ${error.message || "okänt fel"}.`, true);
+            }
+        });
     }
 
     async function load() {
@@ -110,6 +150,7 @@
                 id: row.id,
                 name: row.name || row.data?.name || "",
                 created_by: row.created_by || null,
+                local_kar_id: karId(),
                 local_only: false
             }));
             const remoteIds = new Set(remote.map(item => item.id));
@@ -118,11 +159,16 @@
             wheels = remote.map(item => localById.get(item.id) || item);
             wheels.push(...localOnly.filter(item => !remoteIds.has(item.id)));
             writeLocal();
-            notify();
             setStatus(wheels.length ? `Synkad med databasen (${wheels.length} årshjul).` : "Kåren har inga årshjul ännu.");
+            notify("load");
             if (canWrite()) {
-                for (const pending of localOnly) {
+                for (const pending of wheels.filter(item => item.local_only)) {
                     if (currentRevision !== revision || !canRead()) return;
+                    if (pendingWrites.has(pending.id)) {
+                        await pendingWrites.get(pending.id);
+                        continue;
+                    }
+                    if (wheels.find(item => item.id === pending.id) !== pending) continue;
                     await saveWheel(pending);
                 }
             }
@@ -141,15 +187,13 @@
         if (auth()?.getState?.().loading) return;
         if (!canRead()) {
             revision++;
-            if (saveTimer) clearTimeout(saveTimer);
-            saveTimer = null;
             loadedForKarId = null;
             loadedForUserId = null;
             const local = readLocal();
             detachedWheels = local.filter(wheel => wheel.local_only && wheel.local_kar_id);
             wheels = local.filter(wheel => wheel.local_only && !wheel.local_kar_id);
             writeLocal();
-            notify();
+            notify("load");
             setStatus(auth()?.isOnline?.() ? "Logga in med kårtillhörighet för att visa kårens årshjul. Lokala årshjul finns kvar." : "Årshjul sparas lokalt i den här webbläsaren.");
             return;
         }

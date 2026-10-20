@@ -61,6 +61,10 @@
         return Boolean(!auth()?.isOnline?.() || !auth()?.isSignedIn?.() || window.GTScoutYearWheelSync?.canWrite?.());
     }
 
+    function normalizeText(value, maxLength) {
+        return String(value || "").trim().slice(0, maxLength).trimEnd();
+    }
+
     function normalizeWheel(input) {
         const wheel = input && typeof input === "object" ? input : {};
         const rings = Array.isArray(wheel.rings) ? wheel.rings.map(ring => ({
@@ -79,14 +83,14 @@
             return {
                 id: String(event.id || id()),
                 ring_id: ringId,
-                title: String(event.title || "").trim().slice(0, 120),
+                title: normalizeText(event.title, 120),
                 start_date: startDate,
                 end_date: endDate,
                 color_variant: ["ring", "light", "dark", "custom"].includes(event.color_variant) ? event.color_variant : "ring",
                 color: /^#[0-9a-f]{6}$/i.test(event.color) ? event.color : "",
-                responsible: String(event.responsible || "").trim().slice(0, 100),
-                location: String(event.location || "").trim().slice(0, 120),
-                notes: String(event.notes || "").trim().slice(0, 2000),
+                responsible: normalizeText(event.responsible, 100),
+                location: normalizeText(event.location, 120),
+                notes: normalizeText(event.notes, 2000),
                 copied_from_id: String(event.copied_from_id || ""),
                 needs_review: Boolean(event.needs_review),
                 source_arrangement_id: String(event.source_arrangement_id || ""),
@@ -106,6 +110,8 @@
             events,
             schema_version: Math.max(2, Number(wheel.schema_version) || 0),
             created_by: wheel.created_by || null,
+            local_kar_id: wheel.local_kar_id || null,
+            updated_at: wheel.updated_at || null,
             local_only: Boolean(wheel.local_only)
         };
     }
@@ -280,22 +286,21 @@
         const events = [...wheel.events];
         let changed = false;
         arrangements.forEach(arrangement => {
-            const title = String(arrangement?.title || "").trim();
+            const title = normalizeText(arrangement?.title, 120);
             const startDate = String(arrangement?.start_date || "");
             const endDate = String(arrangement?.end_date || startDate);
             const arrangementId = String(arrangement?.id || "");
             if (!arrangementId || !title || !isDate(startDate) || !isDate(endDate) || endDate < startDate) return;
-            const responsible = (Array.isArray(arrangement.responsibilities) ? arrangement.responsibilities : [])
+            const responsible = normalizeText((Array.isArray(arrangement.responsibilities) ? arrangement.responsibilities : [])
                 .map(entry => {
                     const person = String(entry?.person || "").trim();
                     const role = String(entry?.role || "").trim();
                     return person && role ? `${person} (${role})` : person || role;
                 })
                 .filter(Boolean)
-                .join(", ")
-                .slice(0, 100);
-            const location = String(arrangement.location || "").trim().slice(0, 120);
-            const notes = String(arrangement.notes || "").trim().slice(0, 2000);
+                .join(", "), 100);
+            const location = normalizeText(arrangement.location, 120);
+            const notes = normalizeText(arrangement.notes, 2000);
             const sourceFields = {
                 responsible: Boolean(responsible),
                 location: Boolean(location),
@@ -1136,7 +1141,8 @@
     }
 
     function saveWheel(wheel) {
-        window.GTScoutYearWheelSync?.saveWheel(wheel);
+        const updated = syncArrangementEvents(wheel, window.GTScoutArrangements?.getAll?.() || []) || wheel;
+        window.GTScoutYearWheelSync?.saveWheel(updated);
     }
 
     function syncArrangementsIntoWheels(arrangements) {
@@ -1151,7 +1157,7 @@
             return wheel;
         });
         render();
-        updates.forEach(saveWheel);
+        if (canEdit()) updates.forEach(wheel => window.GTScoutYearWheelSync?.saveWheel(wheel));
     }
 
     function submitForm(event) {
@@ -1441,7 +1447,7 @@
             updateYearWheelMenuActions();
             render();
         });
-        window.GTScoutYearWheelSync?.init({ onChange: incoming => {
+        window.GTScoutYearWheelSync?.init({ onChange: (incoming, source) => {
             const migrated = (incoming || []).map(input => {
                 if (Number(input?.schema_version) >= 3) return { wheel: normalizeWheel(input), changed: false };
                 const existingRings = Array.isArray(input?.rings) ? input.rings : [];
@@ -1462,15 +1468,25 @@
                 });
                 return { wheel, changed: true };
             }).filter(entry => entry.wheel.name);
+            // Endast inläsning och ändrade källdata får starta automatisk synk, inte sparnotifieringar.
+            if (source === "load") {
+                const arrangements = window.GTScoutArrangements?.getAll?.() || [];
+                migrated.forEach(entry => {
+                    const updated = syncArrangementEvents(entry.wheel, arrangements);
+                    if (updated) {
+                        entry.wheel = updated;
+                        entry.changed = true;
+                    }
+                });
+            }
             wheels = migrated.map(entry => entry.wheel);
-            syncArrangementsIntoWheels(window.GTScoutArrangements?.getAll?.() || []);
             const activeMigration = migrated.find(entry => entry.changed && entry.wheel.id === selectedWheelId);
             if (activeMigration && selectedRingsForWheelId === selectedWheelId) {
                 const termRing = activeMigration.wheel.rings.find(ring => ring.name === "Terminer");
                 if (termRing) selectedRingIds.add(termRing.id);
             }
             render();
-            if (canEdit()) {
+            if (source === "load" && canEdit()) {
                 migrated.filter(entry => entry.changed).forEach(entry => window.GTScoutYearWheelSync?.saveWheel(entry.wheel));
             }
         } });
