@@ -545,8 +545,13 @@
         });
 
         if (canEdit() && wheel.rings.length) {
-            monthIntervals.forEach(({ monthIndex, startFraction, endFraction, date }) => {
-                svg.push(`<path d="${arcPath(outerRadius, innerRadius, startFraction, endFraction)}" class="year-wheel-month-action" data-month-create="${date}" role="button" tabindex="0" aria-label="Lägg till händelse i ${MONTHS[monthIndex].toLowerCase()} ${date.slice(0, 4)}"><title>Lägg till händelse ${date}</title></path>`);
+            shownRings.forEach((ring, ringIndex) => {
+                const outer = outerRadius - ringIndex * ringWidth + ringGap / 2;
+                const inner = ringIndex === shownRings.length - 1 ? innerRadius : outer - ringWidth;
+                const sourceRing = ring.sourceRings?.[0] || ring;
+                monthIntervals.forEach(({ monthIndex, startFraction, endFraction, date }) => {
+                    svg.push(`<path d="${arcPath(outer, inner, startFraction, endFraction)}" class="year-wheel-month-action" data-month-create="${date}" data-ring-create="${escapeHtml(sourceRing.id)}" role="button" tabindex="0" aria-label="Lägg till händelse i ${escapeHtml(ring.name)}, ${MONTHS[monthIndex].toLowerCase()} ${date.slice(0, 4)}"><title>${escapeHtml(ring.name)} · Lägg till händelse ${date}</title></path>`);
+                });
             });
         }
 
@@ -633,11 +638,11 @@
         svg.push(`<text x="320" y="334" class="year-wheel-center-subtitle" text-anchor="middle">${view.mode === "calendar" ? "Kalenderår" : "Verksamhetsår"}</text></svg>`);
         container.innerHTML = svg.join("");
         container.querySelectorAll("[data-month-create]").forEach(mark => {
-            mark.addEventListener("click", () => openEventForm("", mark.dataset.monthCreate));
+            mark.addEventListener("click", () => openEventForm("", mark.dataset.monthCreate, mark.dataset.ringCreate));
             mark.addEventListener("keydown", event => {
                 if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
-                    openEventForm("", mark.dataset.monthCreate);
+                    openEventForm("", mark.dataset.monthCreate, mark.dataset.ringCreate);
                 }
             });
         });
@@ -1140,7 +1145,7 @@
         colorVariant?.addEventListener("change", updateDepartmentColor);
     }
 
-    function openEventForm(eventId = "", initialDate = "") {
+    function openEventForm(eventId = "", initialDate = "", initialRingId = "") {
         const wheel = currentWheel();
         if (!wheel || !canEdit() || !wheel.rings.length) return;
         const event = wheel.events.find(item => item.id === eventId);
@@ -1155,7 +1160,7 @@
         const linkedArrangementRingAttributes = linkedArrangement
             ? `disabled aria-describedby="yearWheelLinkedArrangementNote" title="Ringen hämtas från arrangemanget."`
             : "";
-        const chosenRing = event?.ring_id || wheel.rings.find(ring => selectedRingIds.has(ring.id))?.id || wheel.rings[0].id;
+        const chosenRing = event?.ring_id || wheel.rings.find(ring => ring.id === initialRingId)?.id || wheel.rings.find(ring => selectedRingIds.has(ring.id))?.id || wheel.rings[0].id;
         const date = initialDate || dateKey(period().start);
         openModal(event ? "Redigera händelse" : "Lägg till händelse", `
             ${linkedArrangement ? `<p id="yearWheelLinkedArrangementNote" class="year-wheel-linked-arrangement-note">${escapeHtml(linkedArrangementNote)}</p>` : ""}

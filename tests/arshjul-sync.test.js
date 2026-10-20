@@ -73,9 +73,10 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
                 },
                 querySelectorAll(selector) {
                     if (selector === "[data-month-create]") {
-                        return [...this.innerHTML.matchAll(/data-month-create="([^"]+)"/g)].map(([, date]) => {
-                            const mark = element(`${id} month ${date}`);
+                        return [...this.innerHTML.matchAll(/data-month-create="([^"]+)" data-ring-create="([^"]+)"/g)].map(([, date, ringId]) => {
+                            const mark = element(`${id} month ${date}${ringId === "arrangements" ? "" : ` ring ${ringId}`}`);
                             mark.dataset.monthCreate = date;
+                            mark.dataset.ringCreate = ringId;
                             return mark;
                         });
                     }
@@ -451,6 +452,29 @@ test("month creation is unavailable without edit permission or rings", async () 
         assert.doesNotMatch(page.elements.get("yearWheelChart").innerHTML, /data-month-create/);
         assert.deepEqual(page.errors, []);
     }
+});
+
+test("month sectors preselect the clicked ring including its white label band", async () => {
+    const page = createPage({ wheels: [{
+        ...wheel(),
+        rings: [
+            { id: "outer", name: "Yttre", color: "#398a86" },
+            { id: "inner", name: "Inre", color: "#398a86" }
+        ]
+    }] });
+    await settle();
+    const chart = page.elements.get("yearWheelChart");
+    assert.equal(chart.querySelectorAll("[data-month-create]").length, 24);
+    assert.match(chart.innerHTML, /A 253 253[^>]*A 163 163[^>]*data-ring-create="outer"/);
+    assert.match(chart.innerHTML, /A 163 163[^>]*A 64 64[^>]*data-ring-create="inner"/);
+    for (const ringId of ["outer", "inner"]) {
+        page.elements.get(`yearWheelChart month 2026-05-01 ring ${ringId}`).handlers.click();
+        const fields = page.elements.get("yearWheelFormFields").innerHTML;
+        assert.match(fields, new RegExp(`<option value="${ringId}" selected>`));
+        assert.match(fields, /name="start_date"[^>]*value="2026-05-01"/);
+        page.elements.get("closeYearWheelModal").handlers.click();
+    }
+    assert.deepEqual(page.errors, []);
 });
 
 test("center year opens a dialog and changes the personal year without write permission", async () => {
