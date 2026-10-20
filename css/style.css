@@ -6459,6 +6459,8 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
 .year-wheel-color-preview { display: block; width: 26px; height: 26px; flex: 0 0 26px; box-sizing: border-box; border: 2px solid #fff; border-radius: 5px; box-shadow: 0 0 0 1px #c8d5e1; pointer-events: none; }
 .year-wheel-color-picker input:focus-visible + .year-wheel-color-preview { outline: 2px solid #2477d4; outline-offset: 2px; }
 .year-wheel-form .modal-actions { gap: 10px; margin-top: 4px; }
+.year-wheel-delete-button { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; margin-right: auto; padding: 0; }
+.year-wheel-delete-button svg { width: 20px; height: 20px; }
 .year-wheel-modal-content { max-height: 90vh; max-height: 90dvh; overflow-y: auto; }
 .year-wheel-modal-content > h2 { padding-right: 30px; }
 @media (max-width: 900px) {
