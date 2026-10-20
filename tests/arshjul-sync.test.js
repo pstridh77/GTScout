@@ -383,6 +383,22 @@ test("ring filters are collapsed inside the toolbar instead of a sidebar", () =>
     assert.doesNotMatch(html, /year-wheel-rings-panel/);
 });
 
+test("add event menu action forwards to the existing button and respects its availability", async () => {
+    const html = fs.readFileSync(path.join(__dirname, "..", "arshjul.html"), "utf8");
+    assert.match(html, /id="yearWheelMenuAddEventBtn"[^>]*data-header-action="addYearWheelEventBtn"/);
+    for (const options of [
+        { wheels: [wheel()] },
+        { wheels: [] },
+        { wheels: [wheel()], leader: false },
+        { wheels: [{ ...wheel(), rings: [] }] }
+    ]) {
+        const page = createPage(options);
+        await settle();
+        assert.equal(page.elements.get("yearWheelMenuAddEventBtn").disabled, page.elements.get("addYearWheelEventBtn").disabled);
+        assert.deepEqual(page.errors, []);
+    }
+});
+
 test("chart display mode defaults to details and persists overview without database writes", async () => {
     const page = createPage({ wheels: [wheel()] });
     await settle();
