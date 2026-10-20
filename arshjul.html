@@ -35,11 +35,15 @@
                 <a href="kokbok.html" class="nav-link">Scoutrecept</a>
                 <a href="scouter.html" class="nav-link hidden" data-scout-navigation>Scouter</a>
             </nav>
-            <div class="planning-actions-menu">
-                <button id="planningActionsBtn" class="header-menu-button" type="button" aria-label="Meny" aria-expanded="false" aria-controls="planningActionsDropdown" title="Meny">
-                    <span></span><span></span><span></span>
+            <div class="library-header-actions">
+                <button id="filtersVisibilityToggle" class="filters-visibility-toggle" type="button" aria-label="Dölj filterraden" aria-pressed="true" aria-expanded="true" aria-controls="yearWheelToolbar" title="Dölj filterraden" data-filter-label="filterraden">
+                    <span class="filters-visibility-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M3 5h18l-7 8v5l-4 2v-7L3 5z"/></svg></span>
                 </button>
-                <div id="planningActionsDropdown" class="planning-actions-dropdown hidden" role="menu">
+                <div class="planning-actions-menu">
+                    <button id="planningActionsBtn" class="header-menu-button" type="button" aria-label="Meny" aria-expanded="false" aria-controls="planningActionsDropdown" title="Meny">
+                        <span></span><span></span><span></span>
+                    </button>
+                    <div id="planningActionsDropdown" class="planning-actions-dropdown hidden" role="menu">
                     <details class="site-menu-section" open>
                         <summary class="planning-menu-section-label">Navigering</summary>
                         <a href="index.html" class="site-menu-item" role="menuitem">Märken</a>
@@ -65,6 +69,7 @@
                     <div class="planning-menu-divider" role="separator"></div>
                     <div class="site-menu-environment-note database-environment"></div>
                     <div class="site-menu-version-note"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -80,7 +85,7 @@
         </section>
         <p id="yearWheelSyncStatus" class="planning-sync-status page-sync-status" role="status" aria-live="polite"></p>
 
-        <section class="year-wheel-toolbar" aria-label="Välj årshjul och tidsperiod">
+        <section id="yearWheelToolbar" class="year-wheel-toolbar filters" data-page-filters aria-label="Välj årshjul och tidsperiod">
             <label class="filter-field">
                 <span>Årshjul</span>
                 <select id="yearWheelSelect"></select>

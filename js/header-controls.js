@@ -16,7 +16,8 @@
 
     function updateFilters() {
         const visible = !filters.classList.contains("filters--hidden");
-        const label = visible ? "Dölj sökfält och filter" : "Visa sökfält och filter";
+        const filterLabel = filtersToggle.dataset.filterLabel || "sökfält och filter";
+        const label = visible ? `Dölj ${filterLabel}` : `Visa ${filterLabel}`;
         filtersToggle.setAttribute("aria-label", label);
         filtersToggle.setAttribute("title", label);
         filtersToggle.setAttribute("aria-pressed", String(visible));
