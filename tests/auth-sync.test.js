@@ -221,6 +221,38 @@ test("changing an arrangement start date preserves its day span", () => {
     assert.equal(context.addDaysToArrangementDate("2026-10-09", 0), "2026-10-09");
 });
 
+test("new year-wheel event end date follows its start and preserves edited date spans", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8");
+    const start = source.indexOf("function dateKey(");
+    const end = source.indexOf("function showEventInCurrentPeriod(", start);
+    const context = vm.createContext({});
+    vm.runInContext(source.slice(start, end), context);
+
+    const newStart = { value: "2027-02-01", dataset: { previousValue: "2026-01-01" } };
+    const newEnd = { value: "2026-01-01" };
+    context.updateEventEndDateFromStart(newStart, newEnd, newStart.dataset.previousValue);
+    assert.equal(newEnd.value, "2027-02-01");
+
+    const intervalStart = { value: "2027-03-01", dataset: { previousValue: "2027-02-01" } };
+    const intervalEnd = { value: "2027-05-31" };
+    context.updateEventEndDateFromStart(intervalStart, intervalEnd, intervalStart.dataset.previousValue);
+    assert.equal(intervalEnd.value, "2027-06-28");
+});
+
+test("year-wheel events use ring, light, dark, or custom colors", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8");
+    const start = source.indexOf("function adjustHexColor(");
+    const end = source.indexOf("function renderRingList(", start);
+    const context = vm.createContext({});
+    vm.runInContext(source.slice(start, end), context);
+    const ring = { color: "#41a62a" };
+
+    assert.equal(context.getEventColor({ color_variant: "ring" }, ring), "#41a62a");
+    assert.equal(context.getEventColor({ color_variant: "light" }, ring), "#7ec26e");
+    assert.equal(context.getEventColor({ color_variant: "dark" }, ring), "#317e20");
+    assert.equal(context.getEventColor({ color_variant: "custom", color: "#123456" }, ring), "#123456");
+});
+
 test("arrangement participant totals include officials as leaders and only selected departments", () => {
     const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
     const start = source.indexOf("function getParticipantTotals(");

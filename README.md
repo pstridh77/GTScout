@@ -11,6 +11,7 @@ Projektet innehåller:
 - Ledarstöd
 - Aktivitetsbibliotek
 - Terminsplanering
+- Kårens årshjul
 
 Utvecklas med HTML, CSS och JavaScript.
 
@@ -18,7 +19,7 @@ Utvecklas med HTML, CSS och JavaScript.
 
 Inloggningen gäller hela applikationen på samma webbplats och återställs när du byter sida. Varje vy hämtar sin data från Supabase med användarens kår och behörigheter. Utan inloggning finns det lokala läget kvar.
 
-Vid utloggning rensas lokal kårdata för planeringar, arrangemang, scouter, märkesanteckningar och aktivitetskopplingar. Vyinställningar och den publika receptcachen behålls. Pågående hämtningar får inte återställa kårdata efter utloggning.
+Vid utloggning rensas lokal kårdata för planeringar, arrangemang, årshjul, scouter, märkesanteckningar och aktivitetskopplingar. Vyinställningar och den publika receptcachen behålls. Pågående hämtningar får inte återställa kårdata efter utloggning.
 
 Kör regressionstesterna med Node.js: `node --test tests/auth-sync.test.js`. Testerna använder en simulerad Supabase-klient och kräver inget konto eller databaskonfiguration.
 
@@ -47,3 +48,9 @@ Under Måltider öppnar Inköpslista en egen flik för arrangemangets alla målt
 Visa måltidsfördelning expanderar inköpslistan åt höger med en kolumn per måltid i datum- och tidsordning. Kolumnrubrikerna visar veckodag, måltid och recept, utan datum, år eller tid. Varje ingrediensrad visar totalen och delmängderna från respektive måltid; flera recept inom samma måltid summeras i den kolumnen. Tabellen kan rullas horisontellt utan att hela sidan blir bredare. Avbockningar behålls när fördelningen öppnas och stängs. Utskrift använder den kompakta totalsammanställningen.
 
 Arrangemang sparas alltid lokalt i webbläsaren. För synkning mellan kårens användare kör du `db/arrangemang.sql` i samma Supabase-projekt efter `db/schema.sql`. Läsning av kårens arrangemang kräver inloggning och kårtillhörighet; redigering och delning kräver ledar- eller administratörsroll. Delade arrangemang kan visas av alla med länken utan inloggning. Lokala ändringar synkas när användaren kan skriva och nätverket är tillgängligt.
+
+## Årshjul
+
+Årshjulet finns på [arshjul.html](arshjul.html). Ett hjul kan ha valfritt antal färgkodade ringar, till exempel avdelningar, styrelse, kårgemensamt, arrangemang och den förvalda ringen Terminer för vårtermin, hösttermin, jullov och sommaruppehåll. Avdelningsringarna använder scoutavdelningarnas standardfärger; varje sådan ring kan också välja en ljusare alternativfärg eller en egen färg. Händelser kan använda ringens färg, en ljusare eller mörkare nyans eller en egen färg. Äldre hjul får Terminer-ringen automatiskt och deras tidigare standardfärger för avdelningarna uppdateras varsamt. Ringar kan visas och döljas oberoende av varandra. Händelser har datum eller datumintervall, ring, ansvarig, plats och anteckningar.
+
+Välj kalenderår eller verksamhetsår. Verksamhetsåret har en valbar startmånad, och år, startmånad samt valda ringar styr den egna vyn. Årshjul sparas lokalt och kan synkas till Supabase; användare i kåren kan läsa, medan ledare och administratörer kan skapa och redigera delade hjul. För databaslagring kör du `db/arshjul.sql` efter `db/schema.sql` i samma Supabase-projekt. Utan inloggning kan årshjul skapas och redigeras lokalt i webbläsaren.
