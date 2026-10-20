@@ -57,7 +57,7 @@ Ringfiltren finns i dropdownen Visa ringar i verktygsfältet. Den är stängd fr
 
 I detaljläget döljs bannern, huvudnavigeringen, sidans introduktion och filterraden för att ge hjulet mer plats. Den blå översta raden med inloggning finns kvar. Växla till Översikt för att visa de dolda delarna igen; filtervalen bevaras.
 
-Under Funktioner i hamburgermenyn finns + Händelse, som öppnar samma formulär som knappen vid årshjulet och har samma behörighetskrav.
+Knappen + Händelse finns i sidans gröna banner, med samma placering som knappen för att skapa en aktivitet på aktivitetssidan. Under Funktioner i hamburgermenyn finns också + Händelse, som öppnar samma formulär och har samma behörighetskrav.
 
 Klicka på årtalet i hjulets mitt för att ändra visningsår i en dialog, även i detaljläget. Årtalet kan också aktiveras med Enter eller mellanslag. För verksamhetsår ändras startåret. Valet sparas bara i den egna webbläsaren och kräver inte redigeringsbehörighet.
 

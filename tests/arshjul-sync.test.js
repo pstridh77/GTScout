@@ -395,6 +395,10 @@ test("ring filters are collapsed inside the toolbar instead of a sidebar", () =>
 
 test("add event menu action forwards to the existing button and respects its availability", async () => {
     const html = fs.readFileSync(path.join(__dirname, "..", "arshjul.html"), "utf8");
+    const hero = html.match(/<section class="page-hero year-wheel-hero"[\s\S]*?<\/section>/)?.[0];
+    assert.ok(hero);
+    assert.match(hero, /id="addYearWheelEventBtn" class="btn-primary"/);
+    assert.equal((html.match(/id="addYearWheelEventBtn"/g) || []).length, 1);
     assert.match(html, /id="yearWheelMenuAddEventBtn"[^>]*data-header-action="addYearWheelEventBtn"/);
     for (const options of [
         { wheels: [wheel()] },
