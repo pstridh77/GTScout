@@ -458,6 +458,7 @@ test("year-wheel ring configuration preserves selected rings and locks rings wit
     const start = source.indexOf("function ringOptionsMarkup(");
     const end = source.indexOf("function openRingForm(", start);
     const context = vm.createContext({
+        COLORS: ["#398a86"],
         DEFAULT_RINGS: [
             ["Spårare", "#41a62a"],
             ["Styrelse", "#398a86"],
@@ -467,6 +468,7 @@ test("year-wheel ring configuration preserves selected rings and locks rings wit
         escapeHtml: value => String(value),
         id: (() => { let next = 0; return () => `added-${++next}`; })()
     });
+    vm.runInContext(source.slice(source.indexOf("function normalizeText("), source.indexOf("function normalizeWheel(")), context);
     vm.runInContext(source.slice(start, end), context);
 
     const scoutRing = { id: "scout", name: "Spårare", color: "#41a62a", color_variant: "standard" };

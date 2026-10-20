@@ -6452,10 +6452,14 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
 .year-wheel-copy-month-events { display: grid; }
 .year-wheel-form { display: grid; gap: 12px; }
 #yearWheelFormFields { display: grid; gap: 14px; }
+#yearWheelFormFields > [data-config-ring-action="add"] { justify-self: start; width: auto; }
 .year-wheel-ring-selection { min-width: 0; margin: 0; padding: 12px; border: 1px solid #d7e1eb; border-radius: 7px; }
 .year-wheel-ring-selection legend { padding: 0 5px; color: #003660; font-size: .9rem; font-weight: 700; }
 .year-wheel-ring-selection > p { margin: 0 0 10px; color: #64748b; font-size: .8rem; }
 .year-wheel-ring-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; }
+.year-wheel-ring-config { display: flex; align-items: flex-start; min-width: 0; gap: 4px; }
+.year-wheel-ring-config > .year-wheel-ring-option { flex: 1; }
+.year-wheel-ring-config > .year-wheel-ring-edit { flex-shrink: 0; margin-top: 2px; }
 .year-wheel-ring-option { display: grid; grid-template-columns: 16px 13px minmax(0, 1fr); align-items: center; gap: 7px; min-width: 0; padding: 6px; border-radius: 5px; color: #34495e; font-size: .82rem; cursor: pointer; }
 .year-wheel-ring-option:hover { background: #f4f8fb; }
 .year-wheel-ring-option input { width: 16px; height: 16px; margin: 0; accent-color: #176b72; }

@@ -47,6 +47,7 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
     let isLeader = leader;
     let renderCount = 0;
     function element(id) {
+        assert.notEqual(id, "addYearWheelRingBtn", "The removed ring button must not be referenced");
         if (!elements.has(id)) {
             const classes = new Set();
             elements.set(id, {
@@ -113,7 +114,7 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
         onChange(callback) { listeners.push(callback); callback(); }
     };
     const context = vm.createContext({
-        window: { GTScoutAuth: auth, location: { search: "" }, addEventListener() {} },
+        window: { GTScoutAuth: auth, location: { search: "" }, addEventListener() {}, confirm: () => true },
         document: {
             readyState: "complete", getElementById: element, querySelectorAll: () => [],
             body: { classList: { add() {} } }
@@ -239,13 +240,134 @@ test("creating a wheel still imports arrangements in the initial save", async ()
     await settle();
     page.elements.get("yearWheelMenuAddBtn").handlers.click();
     const form = page.elements.get("yearWheelForm");
-    form.values = { name: "New wheel", start_month: "8", ring_names: "Arrangemang" };
+    const fields = page.elements.get("yearWheelFormFields").innerHTML;
+    const ringIds = [...fields.matchAll(/name="ring_ids" value="([^"]+)" checked/g)].map(match => match[1]);
+    form.values = { name: "New wheel", start_month: "8", ring_ids: ringIds };
     form.handlers.submit({ preventDefault() {}, currentTarget: form });
     await settle();
     assert.equal(page.tables.arshjul.length, 1);
     assert.equal(page.tables.arshjul[0].data.events[0].title.length, 120);
     assert.equal(page.requests.filter(request => request.table === "arshjul" && request.operation === "upsert").length, 1);
     assert.deepEqual(page.errors, []);
+});
+
+for (const isNew of [true, false]) {
+    test(`custom rings can be created through ${isNew ? "new wheel" : "wheel settings"}`, async () => {
+        const page = createPage({ wheels: isNew ? [] : [wheel()] });
+        await settle();
+        page.elements.get(isNew ? "yearWheelMenuAddBtn" : "yearWheelMenuSettingsBtn").handlers.click();
+        const markup = page.elements.get("yearWheelFormFields").innerHTML;
+        assert.match(markup, /data-config-ring-action="add"/);
+        assert.doesNotMatch(markup, /new_ring_name|new_ring_color/);
+        const form = page.elements.get("yearWheelForm");
+        form.values = {
+            name: "Configured wheel", start_month: "3", group_departments: "individual",
+            ...(isNew ? {} : { ring_ids: "arrangements" })
+        };
+        clickRingAction(page, "add");
+        assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Lägg till ring");
+        form.values = { name: "Föräldragrupp", color: "#123456", color_variant: "custom" };
+        form.handlers.submit({ preventDefault() {}, currentTarget: form });
+        assert.equal(page.tables.arshjul.length, isNew ? 0 : 1, "Ring draft must not save the wheel");
+        const restored = page.elements.get("yearWheelFormFields").innerHTML;
+        assert.match(restored, /value="Configured wheel"/);
+        assert.match(restored, /value="3" selected/);
+        assert.match(restored, /value="individual" selected/);
+        const selectedIds = [...restored.matchAll(/name="ring_ids" value="([^"]+)" checked/g)].map(match => match[1]);
+        form.values = { name: "Configured wheel", start_month: "3", group_departments: "individual", ring_ids: selectedIds };
+        form.handlers.submit({ preventDefault() {}, currentTarget: form });
+        await settle();
+        const saved = page.tables.arshjul[0].data;
+        const custom = saved.rings.find(ring => ring.name === "Föräldragrupp");
+        assert.ok(custom);
+        assert.equal(custom.color, "#123456");
+        assert.equal(custom.color_variant, "custom");
+        assert.equal(saved.rings.length, isNew ? 1 : 2);
+        assert.equal(saved.start_month, 3);
+        assert.equal(saved.group_departments, false);
+        assert.match(page.elements.get("yearWheelRingList").innerHTML, /Föräldragrupp/);
+        assert.deepEqual(page.errors, []);
+    });
+}
+
+function clickRingAction(page, action, ringId = "") {
+    page.elements.get("yearWheelFormFields").handlers.click({
+        target: { closest: () => ({ dataset: { configRingAction: action, ringId }, disabled: false }) }
+    });
+}
+
+test("settings edit and delete ring drafts without losing wheel inputs or saving early", async () => {
+    const original = wheel();
+    original.rings.push({ id: "custom", name: "Extra", color: "#123456" });
+    const page = createPage({ wheels: [original] });
+    await settle();
+    page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
+    const form = page.elements.get("yearWheelForm");
+    const values = { name: "Changed wheel", start_month: "4", ring_ids: ["arrangements", "custom"] };
+    form.values = values;
+    clickRingAction(page, "edit", "custom");
+    assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Redigera ring");
+    form.values = { name: "Renamed", color: "#abcdef", color_variant: "custom" };
+    form.handlers.submit({ preventDefault() {}, currentTarget: form });
+    assert.equal(page.tables.arshjul[0].data.rings[1].name, "Extra");
+    let markup = page.elements.get("yearWheelFormFields").innerHTML;
+    assert.match(markup, /Renamed/);
+    assert.match(markup, /--ring-color:#abcdef/);
+    assert.match(markup, /value="Changed wheel"/);
+    form.values = values;
+    clickRingAction(page, "edit", "arrangements");
+    page.elements.get("deleteYearWheelItemBtn").handlers.click();
+    markup = page.elements.get("yearWheelFormFields").innerHTML;
+    assert.doesNotMatch(markup, /data-ring-id="arrangements"/);
+    form.values = { ...values, ring_ids: ["custom"] };
+    form.handlers.submit({ preventDefault() {}, currentTarget: form });
+    await settle();
+    assert.equal(page.tables.arshjul[0].data.rings.length, 1);
+    assert.equal(page.tables.arshjul[0].data.rings[0].name, "Renamed");
+    assert.deepEqual(page.errors, []);
+});
+
+test("closing a ring dialog returns to settings, closing settings discards all ring drafts", async () => {
+    const page = createPage({ wheels: [wheel()] });
+    await settle();
+    page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
+    const form = page.elements.get("yearWheelForm");
+    form.values = { name: "Unsaved", start_month: "2", ring_ids: ["arrangements"] };
+    clickRingAction(page, "add");
+    page.elements.get("closeYearWheelModal").handlers.click();
+    assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Inställningar för årshjul");
+    assert.match(page.elements.get("yearWheelFormFields").innerHTML, /value="Unsaved"/);
+    form.values = { name: "Unsaved", start_month: "2", ring_ids: ["arrangements"] };
+    clickRingAction(page, "edit", "arrangements");
+    form.values = { name: "Changed ring", color: "#123456", color_variant: "custom" };
+    form.handlers.submit({ preventDefault() {}, currentTarget: form });
+    page.elements.get("closeYearWheelModal").handlers.click();
+    page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
+    assert.doesNotMatch(page.elements.get("yearWheelFormFields").innerHTML, /Changed ring|Unsaved/);
+    assert.equal(page.requests.filter(request => request.operation === "upsert").length, 0);
+    assert.deepEqual(page.errors, []);
+});
+
+test("settings use compact edit links and prevent deleting rings with events in the ring dialog", async () => {
+    const page = createPage({ wheels: [wheel()], arrangements: [arrangement()] });
+    await settle();
+    page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
+    const markup = page.elements.get("yearWheelFormFields").innerHTML;
+    assert.match(markup, /class="year-wheel-ring-edit"[^>]+data-config-ring-action="edit"/);
+    assert.doesNotMatch(markup, /data-config-ring-action="delete"/);
+    const form = page.elements.get("yearWheelForm");
+    form.values = { name: "wheel", start_month: "8", ring_ids: ["arrangements"] };
+    clickRingAction(page, "edit", "arrangements");
+    assert.equal(page.elements.get("deleteYearWheelItemBtn").disabled, true);
+    page.elements.get("deleteYearWheelItemBtn").handlers.click();
+    assert.match(page.elements.get("yearWheelFormMessage").textContent, /Flytta eller ta bort/);
+    assert.equal(page.tables.arshjul[0].data.rings.length, 1);
+    assert.deepEqual(page.errors, []);
+});
+
+test("the main year-wheel view has no add-ring button", () => {
+    const html = fs.readFileSync(path.join(__dirname, "..", "arshjul.html"), "utf8");
+    assert.doesNotMatch(html, /addYearWheelRingBtn|\+ Ring/);
 });
 
 test("changed arrangements automatically update wheels without repeated writes", async () => {
