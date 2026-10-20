@@ -252,6 +252,7 @@ test("year-wheel events use ring, light, dark, or custom colors", () => {
     assert.equal(context.getEventColor({ color_variant: "dark" }, ring), "#317e20");
     assert.equal(context.getEventColor({ color_variant: "custom", color: "#123456" }, ring), "#123456");
     assert.equal(context.getRingBackgroundColor(ring), "#e1f1dd");
+    assert.equal(context.getRingBackgroundColor({ id: "__department_group__", color: "#00a8e1" }), "#cceefa");
 });
 
 test("year-wheel event arcs are at least one week wide", () => {
@@ -277,6 +278,41 @@ test("year-wheel event arcs are at least one week wide", () => {
 
     const longerEvent = context.getEventArcFractions(100, 107, days);
     assert.ok(Math.abs(width(longerEvent) - 7) < 1e-9);
+});
+
+test("overlapping year-wheel events use separate lanes and group overflow", () => {
+    const source = fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8");
+    const start = source.indexOf("function getEventLaneLayout(");
+    const end = source.indexOf("function openEventOverflow(", start);
+    const context = vm.createContext({});
+    vm.runInContext(source.slice(start, end), context);
+    const events = [
+        { event: { id: "a", title: "A" }, from: 0, to: 7 },
+        { event: { id: "b", title: "B" }, from: 0, to: 7 },
+        { event: { id: "c", title: "C" }, from: 0, to: 7 },
+        { event: { id: "d", title: "D" }, from: 1, to: 8 },
+        { event: { id: "e", title: "E" }, from: 2, to: 9 },
+        { event: { id: "f", title: "F" }, from: 12, to: 19 },
+        { event: { id: "g", title: "G" }, from: 20, to: 27 },
+        { event: { id: "h", title: "H" }, from: 20, to: 27 },
+        { event: { id: "i", title: "I" }, from: 20, to: 27 },
+        { event: { id: "j", title: "J" }, from: 20, to: 27 }
+    ];
+
+    const layout = context.getEventLaneLayout(events, 3);
+    assert.equal(JSON.stringify(layout.lanes.map(lane => lane.map(item => item.event.id))), JSON.stringify([
+        ["a", "f", "g"],
+        ["b", "h"],
+        ["c", "i"]
+    ]));
+    assert.equal(JSON.stringify(layout.overflowGroups.map(group => ({
+        from: group.from,
+        to: group.to,
+        ids: group.events.map(event => event.id)
+    }))), JSON.stringify([
+        { from: 1, to: 9, ids: ["a", "b", "c", "d", "e"] },
+        { from: 20, to: 27, ids: ["g", "h", "i", "j"] }
+    ]));
 });
 
 test("year-wheel department rings display as one filterable ring", () => {

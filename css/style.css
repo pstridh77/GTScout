@@ -6401,7 +6401,21 @@ select:focus {
 .year-wheel-event-mark { cursor: pointer; }
 .year-wheel-event-mark:hover .year-wheel-event-arc, .year-wheel-event-mark:focus .year-wheel-event-arc { filter: brightness(.86); }
 .year-wheel-event-mark:focus { outline: none; }
+.year-wheel-overflow-mark { cursor: pointer; }
+.year-wheel-overflow-mark:focus { outline: none; }
+.year-wheel-overflow-mark:hover .year-wheel-overflow-badge, .year-wheel-overflow-mark:focus .year-wheel-overflow-badge { fill: #e7eff8; stroke: #003660; }
+.year-wheel-overflow-badge { fill: #fff; stroke: #526477; stroke-width: 1.5; }
+.year-wheel-overflow-label { fill: #003660; font-size: 8px; font-weight: 700; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
 .year-wheel-event-label { fill: #fff; font-size: 10px; font-weight: 700; pointer-events: none; text-anchor: middle; dominant-baseline: middle; paint-order: stroke; stroke: rgba(0,0,0,.25); stroke-width: 1px; }
+.year-wheel-overflow-list { display: grid; gap: 8px; }
+.year-wheel-overflow-event { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; padding: 10px; border: 1px solid #e1e8ef; border-radius: 7px; background: #fbfcfe; color: #34495e; font: inherit; text-align: left; }
+button.year-wheel-overflow-event { cursor: pointer; }
+button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f7fb; }
+.year-wheel-overflow-swatch { width: 14px; height: 14px; flex: 0 0 14px; border-radius: 50%; background: var(--event-color); }
+.year-wheel-overflow-event-text { display: grid; flex: 1 1 auto; gap: 3px; min-width: 0; }
+.year-wheel-overflow-event-text strong { color: #003660; overflow-wrap: anywhere; }
+.year-wheel-overflow-event-text small { color: #64748b; }
+.year-wheel-overflow-edit { flex: 0 0 auto; color: #176b72; font-size: .78rem; font-weight: 600; }
 .year-wheel-center-title { fill: #003660; font-size: 23px; font-weight: 700; }
 .year-wheel-center-subtitle { fill: #64748b; font-size: 11px; }
 .year-wheel-empty-center { fill: #f3f6f9; }

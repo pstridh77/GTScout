@@ -221,6 +221,7 @@
     }
 
     function getRingBackgroundColor(ring) {
+        if (ring.id === "__department_group__") return "#cceefa";
         return adjustHexColor(ring.color, 0.84);
     }
 
@@ -246,7 +247,7 @@
                     displayed.push({
                         id: "__department_group__",
                         name: "Avdelning",
-                        color: "#398a86",
+                        color: DEPARTMENT_RING_COLORS.Upptäckare.standard,
                         sourceRings: shownDepartmentRings
                     });
                     departmentGroupAdded = true;
@@ -317,6 +318,60 @@
         return { from, to };
     }
 
+    function getEventLaneLayout(events, maxLanes) {
+        const lanes = [];
+        const laneEnds = [];
+        const overflowGroups = [];
+        const ordered = [...events].sort((left, right) => left.from - right.from
+            || right.to - left.to
+            || left.event.title.localeCompare(right.event.title, "sv"));
+
+        ordered.forEach(item => {
+            const laneIndex = laneEnds.findIndex(end => end <= item.from);
+            if (laneIndex >= 0) {
+                lanes[laneIndex].push(item);
+                laneEnds[laneIndex] = item.to;
+                return;
+            }
+            if (lanes.length < maxLanes) {
+                lanes.push([item]);
+                laneEnds.push(item.to);
+                return;
+            }
+            const group = overflowGroups[overflowGroups.length - 1];
+            if (group && item.from <= group.to) {
+                group.to = Math.max(group.to, item.to);
+                group.events.push(item.event);
+            } else {
+                overflowGroups.push({ from: item.from, to: item.to, events: [item.event] });
+            }
+        });
+
+        overflowGroups.forEach(group => {
+            const overlappingEvents = ordered
+                .filter(item => item.from < group.to && item.to > group.from)
+                .map(item => item.event);
+            group.events = [...new Map(overlappingEvents.map(event => [event.id, event])).values()];
+        });
+
+        return { lanes, overflowGroups };
+    }
+
+    function openEventOverflow(events, ringById) {
+        const rows = events.map(event => {
+            const ring = ringById.get(event.ring_id);
+            const details = `${ring?.name || "Avdelning"} · ${formatDate(event.start_date, { day: "numeric", month: "long", year: "numeric" })}${event.end_date !== event.start_date ? ` – ${formatDate(event.end_date, { day: "numeric", month: "long", year: "numeric" })}` : ""}`;
+            const content = `<span class="year-wheel-overflow-swatch" style="--event-color:${getEventColor(event, ring)}"></span><span class="year-wheel-overflow-event-text"><strong>${escapeHtml(event.title)}</strong><small>${escapeHtml(details)}</small></span>`;
+            return canEdit()
+                ? `<button class="year-wheel-overflow-event" type="button" data-overflow-event="${escapeHtml(event.id)}">${content}<span class="year-wheel-overflow-edit">Redigera</span></button>`
+                : `<div class="year-wheel-overflow-event">${content}</div>`;
+        }).join("");
+        openModal("Flera aktiviteter samtidigt", `<div class="year-wheel-overflow-list">${rows}</div>`, "event-overflow");
+        byId("yearWheelFormFields").querySelectorAll("[data-overflow-event]").forEach(button => {
+            button.addEventListener("click", () => openEventForm(button.dataset.overflowEvent));
+        });
+    }
+
     function renderWheelChart(wheel, shownRings, visibleEvents, periodRange) {
         const container = byId("yearWheelChart");
         const { start, endExclusive } = periodRange;
@@ -326,6 +381,7 @@
         const ringWidth = shownRings.length ? (outerRadius - innerRadius) / shownRings.length : 0;
         const svg = [`<svg class="year-wheel-svg" viewBox="0 0 640 640" role="img" aria-label="Årshjul med månader och händelser"><defs><filter id="year-wheel-seam-shadow" x="60" y="60" width="520" height="520" filterUnits="userSpaceOnUse"><feDropShadow dx="3" dy="0" stdDeviation="2" flood-color="#142637" flood-opacity=".52"/></filter></defs>`];
         const monthIntervals = [];
+        const overflowActions = [];
         const ringGap = shownRings.length ? Math.min(14, Math.max(8, ringWidth * 0.45)) : 0;
         for (let monthOffset = 0; monthOffset < 12; monthOffset++) {
             const monthIndex = view.mode === "calendar"
@@ -373,29 +429,47 @@
             const sourceRingById = new Map(sourceRings.map(sourceRing => [sourceRing.id, sourceRing]));
             const events = visibleEvents.filter(event => sourceRingById.has(event.ring_id));
             svg.push(`<circle cx="320" cy="320" r="${((outer + inner) / 2).toFixed(2)}" class="year-wheel-ring-track"/>`);
-            events.forEach(event => {
+            const positionedEvents = events.map(event => {
                 const clippedStart = event.start_date < dateKey(start) ? dateKey(start) : event.start_date;
                 const lastDay = dateKey(new Date(endExclusive.getTime() - 86400000));
                 const clippedEnd = event.end_date > lastDay ? lastDay : event.end_date;
                 const startDay = dayIndex(clippedStart, start);
                 const endDay = dayIndex(clippedEnd, start) + 1;
                 const arc = getEventArcFractions(startDay, endDay, days);
-                if (!arc) return;
-                const { from, to: finish } = arc;
-                const mid = (from + finish) / 2;
-                const radius = (outer + inner) / 2;
-                const label = point(radius, mid);
-                const eventColor = getEventColor(event, sourceRingById.get(event.ring_id));
-                const tangentRotation = (mid * 360) % 360;
-                const rotation = tangentRotation > 90 && tangentRotation < 270 ? tangentRotation + 180 : tangentRotation;
-                const title = `${event.title} · ${formatDate(event.start_date)}${event.end_date !== event.start_date ? `–${formatDate(event.end_date)}` : ""}`;
-                const eventLabel = finish - from >= 0.04
-                    ? `<text x="${label.x.toFixed(2)}" y="${label.y.toFixed(2)}" transform="rotate(${rotation.toFixed(1)} ${label.x.toFixed(2)} ${label.y.toFixed(2)})" style="fill:${getRingTextColor(eventColor)}" class="year-wheel-event-label">${escapeHtml(event.title)}</text>`
-                    : "";
-                const path = finish - from >= 0.999
-                    ? `${arcPath(outer - 1, inner + 1, from, from + 0.5)} ${arcPath(outer - 1, inner + 1, from + 0.5, finish)}`
-                    : arcPath(outer - 1, inner + 1, from, finish);
-                svg.push(`<g class="year-wheel-event-mark" data-event-edit="${escapeHtml(event.id)}" tabindex="${canEdit() ? "0" : "-1"}" role="${canEdit() ? "button" : "img"}" aria-label="${escapeHtml(title)}"><title>${escapeHtml(title)}</title><path d="${path}" fill="${eventColor}" class="year-wheel-event-arc"/>${eventLabel}</g>`);
+                return arc ? { event, from: arc.from, to: arc.to } : null;
+            }).filter(Boolean);
+            const maxLanes = Math.min(3, Math.max(1, Math.floor((outer - inner) / 6)));
+            const { lanes, overflowGroups } = getEventLaneLayout(positionedEvents, maxLanes);
+            const laneHeight = (outer - inner) / Math.max(1, lanes.length);
+            lanes.forEach((lane, laneIndex) => {
+                const laneOuter = outer - laneIndex * laneHeight;
+                const laneInner = outer - (laneIndex + 1) * laneHeight;
+                lane.forEach(({ event, from, to: finish }) => {
+                    const mid = (from + finish) / 2;
+                    const radius = (laneOuter + laneInner) / 2;
+                    const label = point(radius, mid);
+                    const eventColor = getEventColor(event, sourceRingById.get(event.ring_id));
+                    const tangentRotation = (mid * 360) % 360;
+                    const rotation = tangentRotation > 90 && tangentRotation < 270 ? tangentRotation + 180 : tangentRotation;
+                    const title = `${event.title} · ${formatDate(event.start_date)}${event.end_date !== event.start_date ? `–${formatDate(event.end_date)}` : ""}`;
+                    const eventLabel = finish - from >= 0.04
+                        ? `<text x="${label.x.toFixed(2)}" y="${label.y.toFixed(2)}" transform="rotate(${rotation.toFixed(1)} ${label.x.toFixed(2)} ${label.y.toFixed(2)})" style="fill:${getRingTextColor(eventColor)}" class="year-wheel-event-label">${escapeHtml(event.title)}</text>`
+                        : "";
+                    const laneInset = Math.min(0.8, Math.max(0.25, (laneOuter - laneInner) * 0.06));
+                    const path = finish - from >= 0.999
+                        ? `${arcPath(laneOuter - laneInset, laneInner + laneInset, from, from + 0.5)} ${arcPath(laneOuter - laneInset, laneInner + laneInset, from + 0.5, finish)}`
+                        : arcPath(laneOuter - laneInset, laneInner + laneInset, from, finish);
+                    svg.push(`<g class="year-wheel-event-mark" data-event-edit="${escapeHtml(event.id)}" tabindex="${canEdit() ? "0" : "-1"}" role="${canEdit() ? "button" : "img"}" aria-label="${escapeHtml(title)}"><title>${escapeHtml(title)}</title><path d="${path}" fill="${eventColor}" class="year-wheel-event-arc"/>${eventLabel}</g>`);
+                });
+            });
+            overflowGroups.forEach(group => {
+                const mid = (group.from + group.to) / 2;
+                const badge = point((outer + inner) / 2, mid);
+                const count = group.events.length;
+                const label = `+${count}`;
+                const title = `${count} ${count === 1 ? "aktivitet" : "aktiviteter"} samtidigt. Klicka för att visa hela listan.`;
+                const actionIndex = overflowActions.push(group.events) - 1;
+                svg.push(`<g class="year-wheel-overflow-mark" data-event-overflow="${actionIndex}" tabindex="0" role="button" aria-label="${escapeHtml(title)}"><title>${escapeHtml(title)}</title><circle cx="${badge.x.toFixed(2)}" cy="${badge.y.toFixed(2)}" r="10" class="year-wheel-overflow-badge"/><text x="${badge.x.toFixed(2)}" y="${badge.y.toFixed(2)}" class="year-wheel-overflow-label">${label}</text></g>`);
             });
         });
         shownRings.forEach((ring, ringIndex) => {
@@ -429,6 +503,18 @@
                 if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
                     openEventForm(mark.dataset.eventEdit);
+                }
+            });
+        });
+        const ringById = new Map(wheel.rings.map(item => [item.id, item]));
+        container.querySelectorAll("[data-event-overflow]").forEach(mark => {
+            const overflowEvents = overflowActions[Number(mark.dataset.eventOverflow)];
+            if (!overflowEvents) return;
+            mark.addEventListener("click", () => openEventOverflow(overflowEvents, ringById));
+            mark.addEventListener("keydown", event => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openEventOverflow(overflowEvents, ringById);
                 }
             });
         });
