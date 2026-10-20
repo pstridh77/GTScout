@@ -19,7 +19,8 @@
     let templates = [];
     let badgesById = new Map();
     let badgeDialogTrigger = null;
-    let viewMode = "overview";
+    const narrowScreen = window.matchMedia("(max-width: 600px)");
+    let viewMode = narrowScreen.matches ? "list" : "overview";
 
     function escapeHtml(value) {
         return String(value ?? "").replace(/[&<>"']/g, character => ({
@@ -149,6 +150,7 @@
     }
 
     function render() {
+        viewButtons.forEach(button => button.setAttribute("aria-pressed", String(button.dataset.developmentView === viewMode)));
         const template = templates[Number(templateSelect.value)] || templates[0];
         if (!template) return;
         const templateLevels = new Map((template.plannings || []).map(level => [level.level, level]));
@@ -167,9 +169,14 @@
     viewButtons.forEach(button => {
         button.addEventListener("click", () => {
             viewMode = button.dataset.developmentView;
-            viewButtons.forEach(viewButton => viewButton.setAttribute("aria-pressed", String(viewButton === button)));
             render();
         });
+    });
+
+    render();
+    narrowScreen.addEventListener("change", () => {
+        viewMode = narrowScreen.matches ? "list" : "overview";
+        render();
     });
 
     ladder.addEventListener("click", event => {

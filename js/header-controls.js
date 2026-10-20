@@ -25,9 +25,27 @@
     }
 
     if (filtersToggle && filters) {
+        const preferenceKey = filters.dataset.filterPreference;
+        if (preferenceKey) {
+            try {
+                const saved = localStorage.getItem(preferenceKey);
+                const visible = saved === "true" || (saved !== "false" && !window.matchMedia("(max-width: 600px)").matches);
+                filters.classList.toggle("filters--hidden", !visible);
+            } catch (error) {
+                console.error("Kunde inte läsa filterradens visningsläge", error);
+                filters.classList.toggle("filters--hidden", window.matchMedia("(max-width: 600px)").matches);
+            }
+        }
         filtersToggle.addEventListener("click", () => {
             filters.classList.toggle("filters--hidden");
             updateFilters();
+            if (preferenceKey) {
+                try {
+                    localStorage.setItem(preferenceKey, String(!filters.classList.contains("filters--hidden")));
+                } catch (error) {
+                    console.error("Kunde inte spara filterradens visningsläge", error);
+                }
+            }
             if (!filters.classList.contains("filters--hidden")) {
                 filters.querySelector("input")?.focus();
             }

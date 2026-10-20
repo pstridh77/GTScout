@@ -383,6 +383,59 @@ test("the main year-wheel view has no add-ring button", () => {
     assert.doesNotMatch(html, /addYearWheelRingBtn|\+ Ring/);
 });
 
+test("year wheel filters default to hidden on mobile and remember explicit visibility", () => {
+    const html = fs.readFileSync(path.join(__dirname, "..", "arshjul.html"), "utf8");
+    assert.match(html, /id="yearWheelToolbar"[^>]*data-filter-preference="gtscout_arshjul_filters_visible"/);
+    for (const narrow of [false, true]) {
+        for (const saved of [null, "true", "false"]) {
+            const classes = new Set();
+            const attributes = {};
+            let click;
+            let stored = saved;
+            const filters = {
+                dataset: { filterPreference: "gtscout_arshjul_filters_visible" },
+                classList: {
+                    contains: name => classes.has(name),
+                    toggle(name, force) {
+                        const add = force === undefined ? !classes.has(name) : force;
+                        if (add) classes.add(name); else classes.delete(name);
+                    }
+                },
+                querySelector: () => null
+            };
+            const toggle = {
+                dataset: {},
+                setAttribute: (name, value) => { attributes[name] = value; },
+                addEventListener: (name, handler) => { click = handler; }
+            };
+            const context = vm.createContext({
+                document: {
+                    getElementById: id => id === "filtersVisibilityToggle" ? toggle : null,
+                    querySelector: selector => selector === "[data-page-filters]" ? filters : null
+                },
+                window: { matchMedia: () => ({ matches: narrow }) },
+                localStorage: {
+                    getItem: () => stored,
+                    setItem(key, value) {
+                        assert.equal(key, "gtscout_arshjul_filters_visible");
+                        stored = value;
+                    }
+                },
+                console
+            });
+            vm.runInContext(readScript("header-controls.js"), context);
+            const visible = saved === "true" || (saved !== "false" && !narrow);
+            assert.equal(classes.has("filters--hidden"), !visible);
+            assert.equal(attributes["aria-expanded"], String(visible));
+            click();
+            assert.equal(stored, String(!visible));
+            assert.equal(attributes["aria-expanded"], String(!visible));
+            vm.runInContext(readScript("header-controls.js"), context);
+            assert.equal(classes.has("filters--hidden"), visible);
+        }
+    }
+});
+
 test("event list collapse control uses the shared mobile style and stays in sync with the menu", () => {
     const html = fs.readFileSync(path.join(__dirname, "..", "arshjul.html"), "utf8");
     assert.match(html, /class="section-collapse-controls">\s*<button class="section-collapse-toggle"[^>]*data-collapse-all="year-wheel-months"[^>]*aria-controls="yearWheelEvents"/);

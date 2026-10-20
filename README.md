@@ -49,6 +49,10 @@ Visa måltidsfördelning expanderar inköpslistan åt höger med en kolumn per m
 
 Arrangemang sparas alltid lokalt i webbläsaren. För synkning mellan kårens användare kör du `db/arrangemang.sql` i samma Supabase-projekt efter `db/schema.sql`. Läsning av kårens arrangemang kräver inloggning och kårtillhörighet; redigering och delning kräver ledar- eller administratörsroll. Delade arrangemang kan visas av alla med länken utan inloggning. Lokala ändringar synkas när användaren kan skriva och nätverket är tillgängligt.
 
+## Utvecklingstrappan
+
+På skärmar upp till 600 px visas Detaljer som standard, även när skärmen växlar från bred till smal. Bredare skärmar startar i Översikt. Visningsläget kan ändras med knapparna i verktygsfältet. Verktygsfältet är dolt som standard på smala skärmar; ett manuellt val att visa eller dölja det sparas separat i webbläsaren.
+
 ## Årshjul
 
 Växla mellan Översikt och Detaljer med knapparna till vänster under årshjulets rubrik och datum, i samma stil som utvecklingstrappan. Detaljer (standard) förstorar hjulet upp till 1 100 px för tydligare ringar och texter, med vanlig sidrullning. Översikt anpassar storleken efter tillgänglig bredd upp till 750 px, utan begränsning utifrån skärmhöjden. Mobilvyn begränsas alltid av tillgänglig bredd. Valet sparas som en personlig vyinställning i webbläsaren och ändrar inte kårens data.
@@ -56,6 +60,8 @@ Växla mellan Översikt och Detaljer med knapparna till vänster under årshjule
 Ringfiltren finns i dropdownen Visa ringar i verktygsfältet. Den är stängd från början och innehåller samma val för enskilda ringar och avdelningar. Listan öppnas under sitt filterfält utan att ändra verktygsfältets layout och kan rullas vid många ringar. Årshjulet och händelselistan använder hela innehållsbredden utan sidopanel.
 
 På skärmar upp till 600 px finns Fäll ihop/Visa ovanför händelselistan, i samma stil som för märkeskategorierna. Knappen fäller ihop eller öppnar alla månader och är synkroniserad med motsvarande val i hamburgermenyn.
+
+Årshjulets filterrad är dold som standard på skärmar upp till 600 px och synlig på bredare skärmar. Ett manuellt val att visa eller dölja raden sparas i webbläsaren och bevaras mellan sidbesök och byte av visningsläge. Detaljläget döljer alltid raden tillfälligt utan att ändra det sparade valet.
 
 I detaljläget döljs bannern, huvudnavigeringen, sidans introduktion och filterraden för att ge hjulet mer plats. Den blå översta raden med inloggning finns kvar. Växla till Översikt för att visa de dolda delarna igen; filtervalen bevaras.
 
