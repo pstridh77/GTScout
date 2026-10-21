@@ -43,6 +43,7 @@
     let startMonthOverridden = false;
     let modalMode = "";
     let editingId = "";
+    let unlockedWheelId = "";
     let wheelDraft = null;
     let draftRingIds = new Set();
     let draggedRingId = "";
@@ -63,9 +64,13 @@
         return wheels.find(wheel => wheel.id === selectedWheelId) || null;
     }
 
-    function canEdit() {
+    function canWrite() {
         if (isSharedWheelView()) return false;
         return Boolean(!auth()?.isOnline?.() || !auth()?.isSignedIn?.() || window.GTScoutYearWheelSync?.canWrite?.());
+    }
+
+    function canEdit() {
+        return canWrite() && (unlockedWheelId === currentWheel()?.id || Boolean(wheelDraft && !wheelDraft.id));
     }
 
     function isSharedWheelView() {
@@ -522,10 +527,8 @@
         const rows = events.map(event => {
             const ring = ringById.get(event.ring_id);
             const details = `${ring?.name || "Avdelning"} · ${formatDate(event.start_date, { day: "numeric", month: "long", year: "numeric" })}${event.end_date !== event.start_date ? ` – ${formatDate(event.end_date, { day: "numeric", month: "long", year: "numeric" })}` : ""}`;
-            const content = `<span class="year-wheel-overflow-swatch" style="--event-color:${getEventColor(event, ring)}"></span><span class="year-wheel-overflow-event-text"><strong>${escapeHtml(event.title)}</strong><small>${escapeHtml(details)}</small></span>`;
-            return canEdit()
-                ? `<button class="year-wheel-overflow-event" type="button" data-overflow-event="${escapeHtml(event.id)}">${content}<span class="year-wheel-overflow-edit">Redigera</span></button>`
-                : `<div class="year-wheel-overflow-event">${content}</div>`;
+            const action = canEdit() ? "Redigera" : "Visa";
+            return `<button class="year-wheel-overflow-event" type="button" data-overflow-event="${escapeHtml(event.id)}" aria-label="${action} ${escapeHtml(event.title)}">${content}<span class="year-wheel-overflow-edit">${action}</span></button>`;
         }).join("");
         openModal("Flera aktiviteter samtidigt", `<div class="year-wheel-overflow-list">${rows}</div>`, "event-overflow");
         byId("yearWheelFormFields").querySelectorAll("[data-overflow-event]").forEach(button => {
@@ -632,7 +635,7 @@
                     const path = finish - from >= 0.999
                         ? `${arcPath(laneOuter - laneInset, laneInner + laneInset, from, from + 0.5)} ${arcPath(laneOuter - laneInset, laneInner + laneInset, from + 0.5, finish)}`
                         : arcPath(laneOuter - laneInset, laneInner + laneInset, from, finish);
-                    svg.push(`<g class="year-wheel-event-mark" data-event-edit="${escapeHtml(event.id)}" tabindex="${canEdit() ? "0" : "-1"}" role="${canEdit() ? "button" : "img"}" aria-label="${escapeHtml(title)}"><title>${escapeHtml(title)}</title><path d="${path}" fill="${eventColor}" class="year-wheel-event-arc"/>${eventLabel}</g>`);
+                    svg.push(`<g class="year-wheel-event-mark" data-event-edit="${escapeHtml(event.id)}" tabindex="0" role="button" aria-label="${escapeHtml(title)}"><title>${escapeHtml(title)}</title><path d="${path}" fill="${eventColor}" class="year-wheel-event-arc"/>${eventLabel}</g>`);
                 });
             });
             overflowGroups.forEach(group => {
@@ -757,6 +760,21 @@
         byId("yearWheelMenuSettingsBtn").classList.toggle("hidden", !currentWheel() || !canEdit());
         byId("yearWheelMenuCopyEventsBtn").classList.toggle("hidden", !currentWheel() || !canEdit());
         byId("shareYearWheelBtn").classList.toggle("hidden", sharedView || !wheel || wheel.local_only || !window.GTScoutYearWheelSync?.canWrite?.());
+    }
+
+    function updateYearWheelEditToggle() {
+        const button = byId("yearWheelEditToggle");
+        const unlocked = canEdit();
+        const label = unlocked ? "Lås redigering" : "Lås upp för redigering";
+        const icon = unlocked
+            ? `<path fill="currentColor" d="M18 8h-1V6a5 5 0 0 0-9.9-1h2.05A3 3 0 0 1 15 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2Zm-6 11a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z"/>`
+            : `<path fill="currentColor" d="M18 8h-1V6a5 5 0 0 0-10 0v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2ZM9 6a3 3 0 0 1 6 0v2H9V6Zm3 13a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z"/>`;
+        button.classList.toggle("hidden", !currentWheel() || !canWrite());
+        button.classList.toggle("year-wheel-edit-toggle--active", unlocked);
+        button.setAttribute("aria-label", label);
+        button.setAttribute("title", label);
+        button.setAttribute("aria-pressed", String(unlocked));
+        button.querySelector("svg").innerHTML = icon;
     }
 
     function showYearWheelShareModal(wheel, message = "") {
@@ -953,10 +971,14 @@
             const title = monthLabel.charAt(0).toLocaleUpperCase("sv") + monthLabel.slice(1);
             const cards = monthEvents.map(event => {
                 const ring = ringById.get(event.ring_id);
+                const eventAction = canEdit() ? "Redigera" : "Visa";
+                const eventActionIcon = canEdit()
+                    ? `<path d="m16 3 5 5L9 20l-6 1 1-6L16 3Z"/><path d="m14 5 5 5"/>`
+                    : `<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>`;
                 return `<article class="year-wheel-event-card${event.needs_review ? " year-wheel-event-card--needs-review" : ""}">
                     <span class="year-wheel-event-card-swatch" style="--ring-color:${getEventColor(event, ring)}"></span>
                     <div class="year-wheel-event-card-main"><strong>${escapeHtml(event.title)}${event.needs_review ? ` <span class="year-wheel-review-badge">Kontrollera kopia</span>` : ""}</strong><span>${escapeHtml(ring.name)} · ${escapeHtml(formatDate(event.start_date, { day: "numeric", month: "long", year: "numeric" }))}${event.end_date !== event.start_date ? ` – ${escapeHtml(formatDate(event.end_date, { day: "numeric", month: "long", year: "numeric" }))}` : ""}</span>${event.responsible ? `<small>Ansvarig: ${escapeHtml(event.responsible)}</small>` : ""}${event.location ? `<small>Plats: ${escapeHtml(event.location)}</small>` : ""}${event.notes ? `<small class="year-wheel-event-notes">${escapeHtml(event.notes)}</small>` : ""}</div>
-                    ${canEdit() ? `<div class="year-wheel-event-actions">${event.needs_review ? `<button class="btn-secondary" type="button" data-mark-event-reviewed="${escapeHtml(event.id)}" title="Markera kopian som kontrollerad">Kontrollerad</button>` : ""}<button class="btn-secondary" type="button" data-copy-event="${escapeHtml(event.id)}" aria-label="Kopiera ${escapeHtml(event.title)} till nästa år" title="Kopiera till nästa år"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"></rect><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path></svg></button><button class="btn-secondary" type="button" data-edit-event="${escapeHtml(event.id)}" aria-label="Redigera ${escapeHtml(event.title)}" title="Redigera"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 3 5 5L9 20l-6 1 1-6L16 3Z"></path><path d="m14 5 5 5"></path></svg></button></div>` : ""}
+                    <div class="year-wheel-event-actions">${canEdit() && event.needs_review ? `<button class="btn-secondary" type="button" data-mark-event-reviewed="${escapeHtml(event.id)}" title="Markera kopian som kontrollerad">Kontrollerad</button>` : ""}${canEdit() ? `<button class="btn-secondary" type="button" data-copy-event="${escapeHtml(event.id)}" aria-label="Kopiera ${escapeHtml(event.title)} till nästa år" title="Kopiera till nästa år"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"></rect><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path></svg></button>` : ""}<button class="btn-secondary" type="button" data-edit-event="${escapeHtml(event.id)}" aria-label="${eventAction} ${escapeHtml(event.title)}" title="${eventAction}"><svg viewBox="0 0 24 24" aria-hidden="true">${eventActionIcon}</svg></button></div>
                 </article>`;
             }).join("");
             return `<details class="year-wheel-month-group" data-event-month="${month}" ${collapsedEventMonths.has(month) ? "" : "open"}>
@@ -993,6 +1015,7 @@
             byId("yearWheelEvents").innerHTML = "";
             updateEventMonthToggle([]);
             updateYearWheelMenuActions();
+            updateYearWheelEditToggle();
             selector.disabled = true;
             byId("addYearWheelEventBtn").disabled = true;
             byId("yearWheelReadOnlyNote").classList.add("hidden");
@@ -1017,11 +1040,12 @@
         const remoteWritable = Boolean(window.GTScoutYearWheelSync?.canWrite?.());
         byId("yearWheelReadOnlyNote").textContent = isSharedWheelView()
             ? "Delat årshjul · skrivskyddad visning."
-            : canEdit() && !remoteWritable
+            : canWrite() && !remoteWritable
                 ? "Det här årshjulet sparas lokalt. Logga in som ledare för att dela med kåren."
                 : "Du kan visa och filtrera hjulet. Ledare kan redigera.";
         byId("yearWheelReadOnlyNote").classList.toggle("hidden", remoteWritable && !isSharedWheelView());
         byId("yearWheelDisplayName").textContent = wheel.name;
+        updateYearWheelEditToggle();
         updateYearWheelMenuActions();
         byId("yearWheelMode").value = view.mode;
         byId("yearWheelYear").value = view.year;
@@ -1053,6 +1077,7 @@
         const submitButton = byId("yearWheelForm").querySelector('[type="submit"]');
         submitButton.textContent = "Spara";
         submitButton.disabled = false;
+        submitButton.classList.toggle("hidden", mode === "event-view");
         const deleteButton = byId("deleteYearWheelItemBtn");
         deleteButton.classList.toggle("hidden", !itemId || !["ring", "event", "wheel"].includes(mode));
         deleteButton.disabled = false;
@@ -1082,6 +1107,7 @@
     }
 
     function openWheelForm() {
+        if (!canWrite()) return;
         departmentGroupOpen = true;
         wheelDraft = { id: "", name: "", start_month: view.startMonth, group_departments: true,
             department_ring_color: DEPARTMENT_RING_COLORS.Upptäckare.standard,
@@ -1326,8 +1352,10 @@
 
     function openEventForm(eventId = "", initialDate = "", initialRingId = "") {
         const wheel = currentWheel();
-        if (!wheel || !canEdit() || !wheel.rings.length) return;
+        if (!wheel) return;
         const event = wheel.events.find(item => item.id === eventId);
+        const readOnly = !canEdit();
+        if ((!readOnly && !wheel.rings.length) || (readOnly && !event)) return;
         const linkedArrangement = Boolean(event?.source_arrangement_id);
         const linkedArrangementNote = "Fält som hämtas från arrangemanget ändras där och synkas automatiskt hit.";
         const linkedArrangementAttributes = linkedArrangement
@@ -1341,7 +1369,7 @@
             : "";
         const chosenRing = event?.ring_id || wheel.rings.find(ring => ring.id === initialRingId)?.id || wheel.rings.find(ring => selectedRingIds.has(ring.id))?.id || wheel.rings[0].id;
         const date = initialDate || dateKey(period().start);
-        openModal(event ? "Redigera händelse" : "Lägg till händelse", `
+        openModal(readOnly ? "Visa händelse" : event ? "Redigera händelse" : "Lägg till händelse", `
             ${linkedArrangement ? `<p id="yearWheelLinkedArrangementNote" class="year-wheel-linked-arrangement-note">${escapeHtml(linkedArrangementNote)}</p>` : ""}
             <label class="modal-field"><span>Rubrik</span><input name="title" required maxlength="120" value="${escapeHtml(event?.title || "")}" placeholder="Till exempel Kårstämma" ${linkedArrangementAttributes}></label>
             <div class="year-wheel-ring-color-grid">
@@ -1368,7 +1396,16 @@
                 <label class="modal-field"><span>Plats (valfritt)</span><input name="location" maxlength="120" value="${escapeHtml(event?.location || "")}" ${sourceFieldAttributes("location")}></label>
             </div>
             <label class="modal-field"><span>Anteckningar</span><textarea name="notes" rows="3" maxlength="2000" ${sourceFieldAttributes("notes")}>${escapeHtml(event?.notes || "")}</textarea></label>
-        `, "event", eventId);
+        `, readOnly ? "event-view" : "event", eventId);
+        if (readOnly) {
+            byId("yearWheelFormFields").querySelectorAll("input, select, textarea").forEach(control => {
+                if ((control.tagName === "INPUT" && control.type !== "color") || control.tagName === "TEXTAREA") {
+                    control.readOnly = true;
+                } else {
+                    control.disabled = true;
+                }
+            });
+        }
         const startInput = byId("yearWheelFormFields").querySelector('[name="start_date"]');
         const endInput = byId("yearWheelFormFields").querySelector('[name="end_date"]');
         const ringInput = byId("yearWheelFormFields").querySelector('[name="ring_id"]');
@@ -1417,7 +1454,7 @@
             return wheel;
         });
         render();
-        if (canEdit()) updates.forEach(wheel => window.GTScoutYearWheelSync?.saveWheel(wheel));
+        if (canWrite()) updates.forEach(wheel => window.GTScoutYearWheelSync?.saveWheel(wheel));
     }
 
     function submitForm(event) {
@@ -1735,6 +1772,12 @@
             if (wheel) selectedRingIds = new Set(wheel.rings.map(ring => ring.id));
             render();
         });
+        byId("yearWheelEditToggle").addEventListener("click", () => {
+            const wheel = currentWheel();
+            if (!wheel || !canWrite()) return;
+            unlockedWheelId = canEdit() ? "" : wheel.id;
+            render();
+        });
         byId("yearWheelMenuAddBtn").addEventListener("click", openWheelForm);
         byId("yearWheelMenuSettingsBtn").addEventListener("click", openWheelSettings);
         byId("yearWheelMenuCopyEventsBtn").addEventListener("click", openBulkCopyForm);
@@ -1902,7 +1945,7 @@
                 if (termRing) selectedRingIds.add(termRing.id);
             }
             render();
-            if (source === "load" && canEdit()) {
+            if (source === "load" && canWrite()) {
                 migrated.filter(entry => entry.changed).forEach(entry => window.GTScoutYearWheelSync?.saveWheel(entry.wheel));
             }
         } });

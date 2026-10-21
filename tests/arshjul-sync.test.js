@@ -81,6 +81,13 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
                             return mark;
                         });
                     }
+                    if (selector === "[data-event-edit]") {
+                        return [...this.innerHTML.matchAll(/data-event-edit="([^"]+)"/g)].map(([, eventId]) => {
+                            const mark = element(`${id} event ${eventId}`);
+                            mark.dataset.eventEdit = eventId;
+                            return mark;
+                        });
+                    }
                     if (id === "yearWheelRingList" && selector === "[data-ring-toggle]") {
                         return [...this.innerHTML.matchAll(/data-ring-toggle="([^"]+)"( checked)?/g)].map(([, ringId, checked]) => {
                             const input = element(`${id} ring ${ringId}`);
@@ -179,7 +186,8 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
             karId = nextKarId;
             isLeader = nextLeader;
             listeners.forEach(callback => callback());
-        }
+        },
+        unlockEditing() { elements.get("yearWheelEditToggle").handlers.click(); }
     };
 }
 
@@ -289,6 +297,7 @@ for (const isNew of [true, false]) {
     test(`custom rings can be created through ${isNew ? "new wheel" : "wheel settings"}`, async () => {
         const page = createPage({ wheels: isNew ? [] : [wheel()] });
         await settle();
+        if (!isNew) page.unlockEditing();
         page.elements.get(isNew ? "yearWheelMenuAddBtn" : "yearWheelMenuSettingsBtn").handlers.click();
         const markup = page.elements.get("yearWheelFormFields").innerHTML;
         assert.match(markup, /data-config-ring-action="add"/);
@@ -337,6 +346,7 @@ test("wheel settings group department rings under Avdelning when selected", asyn
     ];
     const page = createPage({ wheels: [configuredWheel] });
     await settle();
+    page.unlockEditing();
     assert.match(page.elements.get("yearWheelRingList").innerHTML, /data-ring-toggle="scouts"/);
     assert.doesNotMatch(page.elements.get("yearWheelRingList").innerHTML, /data-edit-ring/);
     page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
@@ -483,6 +493,7 @@ test("ring order can be changed in wheel settings and is saved for the shared wh
     );
     const page = createPage({ wheels: [original] });
     await settle();
+    page.unlockEditing();
     page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
     const form = page.elements.get("yearWheelForm");
     form.values = {
@@ -531,6 +542,7 @@ test("settings edit and delete ring drafts without losing wheel inputs or saving
     original.rings.push({ id: "custom", name: "Extra", color: "#123456" });
     const page = createPage({ wheels: [original] });
     await settle();
+    page.unlockEditing();
     page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
     const form = page.elements.get("yearWheelForm");
     const values = { name: "Changed wheel", start_month: "4", ring_ids: ["arrangements", "custom"] };
@@ -560,6 +572,7 @@ test("settings edit and delete ring drafts without losing wheel inputs or saving
 test("closing a ring dialog returns to settings, closing settings discards all ring drafts", async () => {
     const page = createPage({ wheels: [wheel()] });
     await settle();
+    page.unlockEditing();
     page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
     const form = page.elements.get("yearWheelForm");
     form.values = { name: "Unsaved", start_month: "2", ring_ids: ["arrangements"] };
@@ -581,6 +594,7 @@ test("closing a ring dialog returns to settings, closing settings discards all r
 test("settings use compact edit links and prevent deleting rings with events in the ring dialog", async () => {
     const page = createPage({ wheels: [wheel()], arrangements: [arrangement()] });
     await settle();
+    page.unlockEditing();
     page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
     const markup = page.elements.get("yearWheelFormFields").innerHTML;
     assert.match(markup, /class="year-wheel-ring-edit"[^>]+data-config-ring-action="edit"/);
@@ -715,9 +729,45 @@ test("add event menu action forwards to the existing button and respects its ava
     }
 });
 
+test("year wheel starts locked and opens events read-only until unlocked", async () => {
+    const page = createPage({ wheels: [{
+        ...wheel(),
+        events: [{
+            id: "event-1", ring_id: "arrangements", title: "Kårstämma",
+            start_date: "2026-05-10", end_date: "2026-05-10"
+        }]
+    }] });
+    await settle();
+
+    const lockButton = page.elements.get("yearWheelEditToggle");
+    const addEventButton = page.elements.get("addYearWheelEventBtn");
+    assert.equal(lockButton.attributes["aria-pressed"], "false");
+    assert.equal(addEventButton.disabled, true);
+    assert.doesNotMatch(page.elements.get("yearWheelChart").innerHTML, /data-month-create/);
+
+    const eventMark = page.elements.get("yearWheelChart").querySelectorAll("[data-event-edit]")[0];
+    assert.ok(eventMark);
+    eventMark.handlers.click();
+    assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Visa händelse");
+    assert.equal(page.elements.get("yearWheelForm").querySelector('[type="submit"]').classList.contains("hidden"), true);
+    assert.equal(page.elements.get("deleteYearWheelItemBtn").classList.contains("hidden"), true);
+    const form = page.elements.get("yearWheelForm");
+    form.values = {};
+    form.handlers.submit({ preventDefault() {}, currentTarget: form });
+    assert.equal(page.requests.filter(request => request.operation !== "select").length, 0);
+
+    lockButton.handlers.click();
+    assert.equal(lockButton.attributes["aria-pressed"], "true");
+    assert.equal(addEventButton.disabled, false);
+    eventMark.handlers.click();
+    assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Redigera händelse");
+    assert.deepEqual(page.errors, []);
+});
+
 test("month sectors open new events on the first day in calendar and operational years", async () => {
     const page = createPage({ wheels: [wheel()] });
     await settle();
+    page.unlockEditing();
     const chart = page.elements.get("yearWheelChart");
     assert.equal(chart.querySelectorAll("[data-month-create]").length, 12);
     for (const date of ["2026-01-01", "2026-12-01"]) {
@@ -769,6 +819,7 @@ test("month sectors preselect the clicked ring including its white label band", 
         ]
     }] });
     await settle();
+    page.unlockEditing();
     const chart = page.elements.get("yearWheelChart");
     assert.equal(chart.querySelectorAll("[data-month-create]").length, 24);
     assert.match(chart.innerHTML, /A 253 253[^>]*A 163 163[^>]*data-ring-create="outer"/);
