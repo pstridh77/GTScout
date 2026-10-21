@@ -800,6 +800,21 @@
         button.setAttribute("title", label);
         button.setAttribute("aria-pressed", String(unlocked));
         button.querySelector("svg").innerHTML = icon;
+        updateStickyYearWheelLock();
+    }
+
+    function updateStickyYearWheelLock() {
+        const button = byId("yearWheelEditToggle");
+        const anchor = byId("yearWheelEditControl").getBoundingClientRect();
+        const header = document.querySelector(".site-header")?.getBoundingClientRect();
+        const toolbar = byId("yearWheelToolbar").getBoundingClientRect();
+        let top = Math.max(0, header?.bottom || 0);
+        if (toolbar.height > 0 && toolbar.top <= top && toolbar.bottom > top) top = toolbar.bottom;
+        top += 8;
+        const sticky = !button.classList.contains("hidden") && anchor.top <= top;
+        button.classList.toggle("year-wheel-edit-toggle--sticky", sticky);
+        button.style.top = sticky ? `${top}px` : "";
+        button.style.left = sticky ? `${anchor.left}px` : "";
     }
 
     function showYearWheelShareModal(wheel, message = "") {
@@ -1744,6 +1759,15 @@
 
     function initialize() {
         readViewPreferences();
+        window.addEventListener("scroll", updateStickyYearWheelLock, { passive: true });
+        window.addEventListener("resize", updateStickyYearWheelLock);
+        const resizeObserver = window.ResizeObserver && new window.ResizeObserver(updateStickyYearWheelLock);
+        [document.querySelector(".site-header"), byId("yearWheelToolbar"), byId("yearWheelEditControl")]
+            .filter(Boolean).forEach(element => resizeObserver?.observe(element));
+        const layoutObserver = window.MutationObserver && new window.MutationObserver(updateStickyYearWheelLock);
+        [document.body, byId("yearWheelToolbar")].forEach(element => {
+            layoutObserver?.observe(element, { attributes: true, attributeFilter: ["class"] });
+        });
         [["yearWheelOverviewBtn", "overview"], ["yearWheelDetailsBtn", "details"]].forEach(([buttonId, mode]) => {
             byId(buttonId).addEventListener("click", () => {
                 view.chartMode = mode;

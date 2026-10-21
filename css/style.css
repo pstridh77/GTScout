@@ -6389,7 +6389,8 @@ select:focus {
 .year-wheel-ring-filter-content .year-wheel-ring-toggle { flex: 1 1 auto; }
 .year-wheel-ring-filter-content input[type="checkbox"] { flex: 0 0 16px; padding: 0; }
 .year-wheel-panel-heading, .year-wheel-chart-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.year-wheel-edit-control { display: flex; align-items: center; }
+.year-wheel-edit-control { display: flex; align-items: center; width: 36px; height: 36px; flex: 0 0 36px; }
+.year-wheel-edit-toggle--sticky { position: fixed; z-index: 9; box-shadow: 0 2px 8px rgba(0, 0, 0, .12); }
 .year-wheel-edit-toggle--active { border-color: #286d60; background: #e8f2ef; color: #286d60; }
 .year-wheel-panel-heading h2, .year-wheel-chart-heading h2, .year-wheel-events-section h2 { margin: 0; color: #003660; font-size: 1.15rem; }
 .year-wheel-panel-heading p, .year-wheel-chart-heading p { margin: 5px 0 0; color: #64748b; font-size: .84rem; }

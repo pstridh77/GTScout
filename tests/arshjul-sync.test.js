@@ -53,6 +53,7 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
             const classes = new Set();
             elements.set(id, {
                 value: "", textContent: "", dataset: {}, handlers: {}, style: {},
+                getBoundingClientRect() { return { top: 200, bottom: 236, left: 500, height: 36 }; },
                 set innerHTML(value) {
                     if (id === "yearWheelChart") {
                         renderCount++;
@@ -162,7 +163,7 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
              addEventListener() {}, confirm: () => true 
         },
         document: {
-            readyState: "complete", getElementById: element, querySelectorAll: () => [],
+            readyState: "complete", getElementById: element, querySelectorAll: () => [], querySelector: () => null,
              body: element("body") 
         },
         localStorage: {
@@ -769,6 +770,53 @@ test("year wheel starts locked and opens events read-only until unlocked", async
     eventMark.handlers.click();
     assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Redigera händelse");
     assert.deepEqual(page.errors, []);
+});
+
+test("only the lock floats throughout the page and adapts to header and toolbar visibility", () => {
+    const classes = new Set();
+    const button = {
+        style: {},
+        classList: {
+            contains: name => classes.has(name),
+            toggle(name, enabled) { if (enabled) classes.add(name); else classes.delete(name); }
+        }
+    };
+    let anchor = { top: 300, left: 700 };
+    let header = { bottom: 140 };
+    let toolbar = { top: 150, bottom: 250, height: 100 };
+    const elements = {
+        yearWheelEditToggle: button,
+        yearWheelEditControl: { getBoundingClientRect: () => anchor },
+        yearWheelToolbar: { getBoundingClientRect: () => toolbar }
+    };
+    const context = vm.createContext({
+        byId: id => elements[id],
+        document: { querySelector: () => ({ getBoundingClientRect: () => header }) }
+    });
+    const source = readScript("arshjul.js");
+    vm.runInContext(source.slice(source.indexOf("    function updateStickyYearWheelLock("), source.indexOf("    function showYearWheelShareModal(")), context);
+    context.updateStickyYearWheelLock();
+    assert.equal(classes.has("year-wheel-edit-toggle--sticky"), false);
+    anchor = { top: 100, left: 700 };
+    toolbar = { top: 80, bottom: 180, height: 100 };
+    context.updateStickyYearWheelLock();
+    assert.equal(button.style.top, "188px");
+    assert.equal(button.style.left, "700px");
+    assert.equal(classes.has("year-wheel-edit-toggle--sticky"), true);
+    toolbar = { top: 0, bottom: 0, height: 0 };
+    context.updateStickyYearWheelLock();
+    assert.equal(button.style.top, "148px");
+    header = { bottom: 38 };
+    anchor = { top: -4000, left: 300 };
+    context.updateStickyYearWheelLock();
+    assert.equal(button.style.top, "46px");
+    assert.equal(button.style.left, "300px");
+    assert.equal(classes.has("year-wheel-edit-toggle--sticky"), true);
+    anchor = { top: 300, left: 300 };
+    context.updateStickyYearWheelLock();
+    assert.equal(button.style.top, "");
+    assert.equal(button.style.left, "");
+    assert.equal(classes.has("year-wheel-edit-toggle--sticky"), false);
 });
 
 test("event dialog copies saved events to next year using the list action", async () => {
