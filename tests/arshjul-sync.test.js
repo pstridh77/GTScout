@@ -309,6 +309,42 @@ function clickRingAction(page, action, ringId = "") {
     });
 }
 
+test("ring order can be changed in wheel settings and is saved for the shared wheel", async () => {
+    const original = wheel();
+    original.rings.push(
+        { id: "custom-1", name: "Extra 1", color: "#123456" },
+        { id: "custom-2", name: "Extra 2", color: "#654321" }
+    );
+    const page = createPage({ wheels: [original] });
+    await settle();
+    page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
+    const form = page.elements.get("yearWheelForm");
+    form.values = {
+        name: "wheel", start_month: "8",
+        ring_ids: ["arrangements", "custom-1", "custom-2"]
+    };
+
+    let markup = page.elements.get("yearWheelFormFields").innerHTML;
+    assert.match(markup, /Första ringen visas ytterst och sista innerst/);
+    assert.deepEqual(
+        [...markup.matchAll(/data-config-ring-action="move-up" data-ring-id="([^"]+)"/g)].map(match => match[1]),
+        ["arrangements", "custom-1", "custom-2"]
+    );
+    clickRingAction(page, "move-down", "arrangements");
+    markup = page.elements.get("yearWheelFormFields").innerHTML;
+    assert.deepEqual(
+        [...markup.matchAll(/data-config-ring-action="move-up" data-ring-id="([^"]+)"/g)].map(match => match[1]),
+        ["custom-1", "arrangements", "custom-2"]
+    );
+
+    form.handlers.submit({ preventDefault() {}, currentTarget: form });
+    await settle();
+    const saved = page.tables.arshjul[0].data;
+    assert.deepEqual(saved.rings.map(ring => ring.id), ["custom-1", "arrangements", "custom-2"]);
+    assert.deepEqual(page.stored()[0].rings.map(ring => ring.id), ["custom-1", "arrangements", "custom-2"]);
+    assert.deepEqual(page.errors, []);
+});
+
 test("settings edit and delete ring drafts without losing wheel inputs or saving early", async () => {
     const original = wheel();
     original.rings.push({ id: "custom", name: "Extra", color: "#123456" });

@@ -1029,13 +1029,18 @@
     }
 
     function ringOptionsMarkup(rings, events, isNewWheel, selectedIds = new Set(rings.map(ring => ring.id))) {
-        const actions = ring => ring ? `<button class="year-wheel-ring-edit" type="button" data-config-ring-action="edit" data-ring-id="${escapeHtml(ring.id)}" aria-label="Redigera ${escapeHtml(ring.name)}">Redigera</button>` : "";
+        const actions = (ring, index) => ring ? `<div class="year-wheel-ring-actions">
+            <div class="year-wheel-ring-order">
+                <button class="year-wheel-ring-order-button" type="button" data-config-ring-action="move-up" data-ring-id="${escapeHtml(ring.id)}" aria-label="Flytta ${escapeHtml(ring.name)} utåt" title="Flytta utåt" ${index === 0 ? "disabled" : ""}>Upp</button>
+                <button class="year-wheel-ring-order-button" type="button" data-config-ring-action="move-down" data-ring-id="${escapeHtml(ring.id)}" aria-label="Flytta ${escapeHtml(ring.name)} inåt" title="Flytta inåt" ${index === rings.length - 1 ? "disabled" : ""}>Ner</button>
+            </div>
+            <button class="year-wheel-ring-edit" type="button" data-config-ring-action="edit" data-ring-id="${escapeHtml(ring.id)}" aria-label="Redigera ${escapeHtml(ring.name)}">Redigera</button>
+        </div>` : "";
         const existingByName = new Map(rings.map(ring => [ring.name, ring]));
         const eventCounts = new Map();
         events.forEach(event => eventCounts.set(event.ring_id, (eventCounts.get(event.ring_id) || 0) + 1));
         const ringIdsWithEvents = getRingIdsWithEvents(events);
-        const defaultOptions = DEFAULT_RINGS.map(([name, color]) => {
-            const ring = existingByName.get(name);
+        const renderRingOption = (ring, name, color, index = -1) => {
             const locked = Boolean(ring && ringIdsWithEvents.has(ring.id));
             const checked = isNewWheel || Boolean(ring && selectedIds.has(ring.id));
             const count = ring ? eventCounts.get(ring.id) || 0 : 0;
@@ -1046,24 +1051,17 @@
                 <span class="year-wheel-ring-swatch" style="--ring-color:${ring?.color || color}"></span>
                 <span class="year-wheel-ring-option-name">${escapeHtml(name)}</span>
                 ${lockNote ? `<small>${escapeHtml(lockNote)}</small>` : ""}
-            </label>${actions(ring)}</div>`;
-        }).join("");
-        const customRings = rings.filter(ring => !DEFAULT_RINGS.some(([name]) => name === ring.name)).map(ring => {
-            const locked = ringIdsWithEvents.has(ring.id);
-            const count = eventCounts.get(ring.id) || 0;
-            const lockNote = locked ? `Har ${count} ${count === 1 ? "händelse" : "händelser"} – flytta eller ta bort dem först.` : "";
-            return `<div class="year-wheel-ring-config"><label class="year-wheel-ring-option${locked ? " year-wheel-ring-option--locked" : ""}">
-                <input type="checkbox" name="ring_ids" value="${escapeHtml(ring.id)}" ${selectedIds.has(ring.id) ? "checked" : ""} ${locked ? "disabled" : ""}>
-                ${locked ? `<input type="hidden" name="ring_ids" value="${escapeHtml(ring.id)}">` : ""}
-                <span class="year-wheel-ring-swatch" style="--ring-color:${ring.color}"></span>
-                <span class="year-wheel-ring-option-name">${escapeHtml(ring.name)}</span>
-                ${lockNote ? `<small>${escapeHtml(lockNote)}</small>` : ""}
-            </label>${actions(ring)}</div>`;
-        }).join("");
+            </label>${actions(ring, index)}</div>`;
+        };
+        const configuredOptions = rings.map((ring, index) => renderRingOption(ring, ring.name, ring.color, index)).join("");
+        const unconfiguredDefaults = DEFAULT_RINGS
+            .filter(([name]) => !existingByName.has(name))
+            .map(([name, color]) => renderRingOption(null, name, color))
+            .join("");
         return `<fieldset class="year-wheel-ring-selection">
             <legend>Ringar i årshjulet</legend>
-            <p>Välj vilka ringar som ska ingå. Ringar med händelser kan inte tas bort.</p>
-            <div class="year-wheel-ring-options">${defaultOptions}${customRings}</div>
+            <p>Första ringen visas ytterst och sista innerst. Flytta ringarna för att ändra ordningen. Ringar med händelser kan inte tas bort.</p>
+            <div class="year-wheel-ring-options">${configuredOptions}${unconfiguredDefaults}</div>
         </fieldset>`;
     }
 
@@ -1560,7 +1558,16 @@
             const button = event.target.closest("[data-config-ring-action]");
             if (!button || button.disabled || modalMode !== "wheel" || !wheelDraft || !canEdit()) return;
             captureWheelDraft();
-            openRingForm(button.dataset.configRingAction === "edit" ? button.dataset.ringId : "");
+            const action = button.dataset.configRingAction;
+            if (action === "move-up" || action === "move-down") {
+                const index = wheelDraft.rings.findIndex(ring => ring.id === button.dataset.ringId);
+                const nextIndex = index + (action === "move-up" ? -1 : 1);
+                if (index < 0 || nextIndex < 0 || nextIndex >= wheelDraft.rings.length) return;
+                [wheelDraft.rings[index], wheelDraft.rings[nextIndex]] = [wheelDraft.rings[nextIndex], wheelDraft.rings[index]];
+                renderWheelDraft();
+                return;
+            }
+            openRingForm(action === "edit" ? button.dataset.ringId : "");
         });
         byId("deleteYearWheelItemBtn").addEventListener("click", deleteCurrentItem);
         window.GTScoutArrangements?.init({ onChange: syncArrangementsIntoWheels });
