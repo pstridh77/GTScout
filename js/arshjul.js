@@ -64,7 +64,12 @@
     }
 
     function canEdit() {
+        if (isSharedWheelView()) return false;
         return Boolean(!auth()?.isOnline?.() || !auth()?.isSignedIn?.() || window.GTScoutYearWheelSync?.canWrite?.());
+    }
+
+    function isSharedWheelView() {
+        return new URLSearchParams(window.location.search).has("share");
     }
 
     function normalizeText(value, maxLength) {
@@ -115,6 +120,7 @@
             department_ring_color: /^#[0-9a-f]{6}$/i.test(wheel.department_ring_color) ? wheel.department_ring_color : DEPARTMENT_RING_COLORS.Upptäckare.standard,
             rings,
             events,
+            share_token: String(wheel.share_token || "") || null,
             schema_version: Math.max(2, Number(wheel.schema_version) || 0),
             created_by: wheel.created_by || null,
             local_kar_id: wheel.local_kar_id || null,
@@ -742,10 +748,83 @@
 
     function updateYearWheelMenuActions() {
         const restrictedUser = Boolean(auth()?.isOnline?.() && auth()?.isSignedIn?.()) && !auth()?.isLeader?.();
+        const sharedView = isSharedWheelView();
+        const wheel = currentWheel();
         byId("yearWheelMenuAddEventBtn").disabled = !currentWheel() || !canEdit() || !currentWheel().rings.length;
-        byId("yearWheelMenuAddBtn").classList.toggle("hidden", restrictedUser);
+        byId("yearWheelMenuAddEventBtn").classList.toggle("hidden", sharedView);
+        byId("addYearWheelEventBtn").classList.toggle("hidden", sharedView);
+        byId("yearWheelMenuAddBtn").classList.toggle("hidden", restrictedUser || sharedView);
         byId("yearWheelMenuSettingsBtn").classList.toggle("hidden", !currentWheel() || !canEdit());
         byId("yearWheelMenuCopyEventsBtn").classList.toggle("hidden", !currentWheel() || !canEdit());
+        byId("shareYearWheelBtn").classList.toggle("hidden", sharedView || !wheel || wheel.local_only || !window.GTScoutYearWheelSync?.canWrite?.());
+    }
+
+    function showYearWheelShareModal(wheel, message = "") {
+        const url = new URL("arshjul.html", window.location.href);
+        if (wheel.share_token) url.searchParams.set("share", wheel.share_token);
+        const urlInput = byId("yearWheelShareUrl");
+        urlInput.value = wheel.share_token ? url.href : "";
+        byId("yearWheelShareStatus").textContent = message;
+        byId("rotateYearWheelShareBtn").classList.toggle("hidden", !wheel.share_token || !auth()?.isAdmin?.());
+        byId("yearWheelShareModal").classList.remove("hidden");
+        if (!wheel.share_token) return;
+        urlInput.select?.();
+        const clipboard = window.navigator?.clipboard;
+        if (clipboard?.writeText) {
+            clipboard.writeText(url.href).then(() => {
+                byId("yearWheelShareStatus").textContent = message
+                    ? `${message} Länken har kopierats.`
+                    : "Länken har kopierats. Du kan också markera den och kopiera manuellt.";
+            }).catch(() => {
+                byId("yearWheelShareStatus").textContent = message
+                    ? `${message} Markera länken och kopiera den manuellt.`
+                    : "Markera länken och kopiera den manuellt.";
+            });
+        } else {
+            byId("yearWheelShareStatus").textContent = message
+                ? `${message} Markera länken och kopiera den manuellt.`
+                : "Markera länken och kopiera den manuellt.";
+        }
+    }
+
+    async function saveYearWheelShareToken(wheel, token, rotated = false) {
+        const updated = normalizeWheel({ ...wheel, share_token: token });
+        const result = await window.GTScoutYearWheelSync?.saveWheel(updated);
+        if (result?.saved) {
+            showYearWheelShareModal(currentWheel() || { ...updated, local_only: false }, rotated
+                ? "Ny delningslänk skapad. Den gamla länken fungerar inte längre."
+                : "Delningslänk skapad.");
+            return;
+        }
+
+        const latest = currentWheel() || wheel;
+        if (latest.share_token !== wheel.share_token) {
+            await window.GTScoutYearWheelSync?.saveWheel({ ...latest, share_token: wheel.share_token });
+        }
+        showYearWheelShareModal(wheel, "Länken kunde inte sparas i databasen. Ingen ny delningslänk skapades.");
+    }
+
+    async function shareCurrentWheel() {
+        const wheel = currentWheel();
+        if (!wheel || wheel.local_only || isSharedWheelView() || !window.GTScoutYearWheelSync?.canWrite?.()) return;
+        if (wheel.share_token) {
+            showYearWheelShareModal(wheel);
+            return;
+        }
+        await saveYearWheelShareToken(wheel, id());
+    }
+
+    async function rotateYearWheelShareToken() {
+        const wheel = currentWheel();
+        if (!wheel?.share_token || !auth()?.isAdmin?.() || !window.GTScoutYearWheelSync?.canWrite?.()) return;
+        const button = byId("rotateYearWheelShareBtn");
+        button.disabled = true;
+        byId("yearWheelShareStatus").textContent = "Sparar ny delningslänk...";
+        try {
+            await saveYearWheelShareToken(wheel, id(), true);
+        } finally {
+            button.disabled = false;
+        }
     }
 
     function copyEventToNextYear(eventId) {
@@ -936,10 +1015,12 @@
         selector.disabled = false;
         byId("addYearWheelEventBtn").disabled = !canEdit() || !wheel.rings.length;
         const remoteWritable = Boolean(window.GTScoutYearWheelSync?.canWrite?.());
-        byId("yearWheelReadOnlyNote").textContent = canEdit() && !remoteWritable
-            ? "Det här årshjulet sparas lokalt. Logga in som ledare för att dela med kåren."
-            : "Du kan visa och filtrera hjulet. Ledare kan redigera.";
-        byId("yearWheelReadOnlyNote").classList.toggle("hidden", remoteWritable);
+        byId("yearWheelReadOnlyNote").textContent = isSharedWheelView()
+            ? "Delat årshjul · skrivskyddad visning."
+            : canEdit() && !remoteWritable
+                ? "Det här årshjulet sparas lokalt. Logga in som ledare för att dela med kåren."
+                : "Du kan visa och filtrera hjulet. Ledare kan redigera.";
+        byId("yearWheelReadOnlyNote").classList.toggle("hidden", remoteWritable && !isSharedWheelView());
         byId("yearWheelDisplayName").textContent = wheel.name;
         updateYearWheelMenuActions();
         byId("yearWheelMode").value = view.mode;
@@ -1657,6 +1738,24 @@
         byId("yearWheelMenuAddBtn").addEventListener("click", openWheelForm);
         byId("yearWheelMenuSettingsBtn").addEventListener("click", openWheelSettings);
         byId("yearWheelMenuCopyEventsBtn").addEventListener("click", openBulkCopyForm);
+        byId("shareYearWheelBtn").addEventListener("click", shareCurrentWheel);
+        byId("rotateYearWheelShareBtn").addEventListener("click", rotateYearWheelShareToken);
+        byId("copyYearWheelShareBtn").addEventListener("click", async () => {
+            const urlInput = byId("yearWheelShareUrl");
+            const status = byId("yearWheelShareStatus");
+            try {
+                await window.navigator.clipboard.writeText(urlInput.value);
+                status.textContent = "Länken har kopierats.";
+            } catch {
+                urlInput.select?.();
+                status.textContent = "Markera länken och kopiera den manuellt.";
+            }
+        });
+        byId("closeYearWheelShareModal").addEventListener("click", () => byId("yearWheelShareModal").classList.add("hidden"));
+        byId("closeYearWheelShareBtn").addEventListener("click", () => byId("yearWheelShareModal").classList.add("hidden"));
+        byId("yearWheelShareModal").addEventListener("click", event => {
+            if (event.target === byId("yearWheelShareModal")) byId("yearWheelShareModal").classList.add("hidden");
+        });
         byId("addYearWheelEventBtn").addEventListener("click", () => openEventForm());
         byId("closeYearWheelModal").addEventListener("click", closeModal);
         byId("yearWheelModal").addEventListener("click", event => {

@@ -28,18 +28,19 @@ function arrangement(fields = {}) {
     };
 }
 
-function createPage({ wheels = [], arrangements = [], localWheels = [], localArrangements = [], signedIn = true, leader = true, handleRequest, chartMode } = {}) {
+function createPage({ wheels = [], arrangements = [], localWheels = [], localArrangements = [], signedIn = true, leader = true, admin = false, search = "", handleRequest, chartMode } = {}) {
     const elements = new Map();
     const listeners = [];
     const requests = [];
     const errors = [];
+    const clipboardWrites = [];
     const storage = new Map([
         ["gtscout_arshjul", JSON.stringify(localWheels)],
         ["gtscout_arrangemang", JSON.stringify(localArrangements)],
         ["gtscout_arshjul_view", JSON.stringify({ mode: "calendar", year: 2026, chartMode })]
     ]);
     const tables = {
-        arshjul: wheels.map(item => ({ id: item.id, name: item.name, data: structuredClone(item) })),
+        arshjul: wheels.map(item => ({ id: item.id, name: item.name, share_token: item.share_token || null, data: structuredClone(item) })),
         arrangemang: arrangements.map(item => ({ id: item.id, data: structuredClone(item) }))
     };
     let userId = signedIn ? "user-1" : null;
@@ -101,62 +102,74 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
         requests.push(request);
         assert.ok(requests.length < 100, "Database writes must terminate");
         const result = await handleRequest?.(request);
-        if (result !== undefined) return result;
+        if (result !== undefined) return result; 
+        if (request.operation === "rpc") {
+            const row = tables.arshjul.find(item => (item.share_token || item.data.share_token) === request.args.requested_token); 
+            return { data: row ? [{ id: row.id, name: row.name, data: structuredClone(row.data) }] : [], error: null };
+        }
         if (request.operation === "select") return { data: structuredClone(tables[request.table]) };
-        const rows = tables[request.table];
+        const rows = tables[request.table]; 
         const index = rows.findIndex(row => row.id === (request.row?.id || request.id));
         if (request.operation === "delete") {
-            if (index >= 0) rows.splice(index, 1);
+            if (index >= 0) rows.splice(index, 1); 
         } else if (index >= 0) rows[index] = structuredClone(request.row);
-        else rows.push(structuredClone(request.row));
+        else rows.push(structuredClone(request.row)); 
         return { error: null };
-    }
+    } 
     const client = {
-        from(table) {
+        from(table) { 
             const request = { table, operation: "select" };
-            return {
+            return { 
                 select() { return this; },
-                eq(key, value) { request[key] = value; return this; },
+                eq(key, value) { request[key] = value; return this; }, 
                 order() { return this; },
-                upsert(row) { request.operation = "upsert"; request.row = structuredClone(row); return this; },
+                upsert(row) { request.operation = "upsert"; request.row = structuredClone(row); return this; }, 
                 delete() { request.operation = "delete"; return this; },
-                then(resolve, reject) { return execute(request).then(resolve, reject); }
+                then(resolve, reject) { return execute(request).then(resolve, reject); } 
             };
-        }
+        },
+        rpc(name, args) { return execute({ operation: "rpc", name, args }); }
     };
     const auth = {
-        getClient: () => client,
+            getClient: () => client, 
         getState: () => ({ karId, loading: false }),
         getUser: () => userId ? { id: userId } : null,
         isSignedIn: () => Boolean(userId),
         isOnline: () => true,
-        isLeader: () => isLeader,
+        isLeader: () => isLeader || admin,
+        isAdmin: () => admin,
         onChange(callback) { listeners.push(callback); callback(); }
     };
     const context = vm.createContext({
-        window: { GTScoutAuth: auth, location: { search: "" }, addEventListener() {}, confirm: () => true },
+             window: { 
+            GTScoutAuth: auth,
+            location: { search, pathname: "/arshjul.html", href: "https://example.test/arshjul.html" },
+            navigator: { clipboard: { async writeText(value) { clipboardWrites.push(value); } } },
+             addEventListener() {}, confirm: () => true 
+        },
         document: {
             readyState: "complete", getElementById: element, querySelectorAll: () => [],
-            body: element("body")
+             body: element("body") 
         },
         localStorage: {
             getItem: key => storage.get(key) ?? null,
-            setItem: (key, value) => storage.set(key, value)
+             setItem: (key, value) => storage.set(key, value) 
         },
         crypto: globalThis.crypto,
-        URLSearchParams,
+        URL,
+             URLSearchParams, 
         FormData: class {
-            constructor(form) { this.values = form.values; }
+                 constructor(form) { this.values = form.values; } 
             entries() { return Object.entries(this.values); }
-            getAll(key) { return this.values[key] === undefined ? [] : [this.values[key]].flat(); }
+                 getAll(key) { return this.values[key] === undefined ? [] : [this.values[key]].flat(); } 
         },
-        console: { error: (...args) => errors.push(args) }
+             console: { error: (...args) => errors.push(args) } 
     });
     for (const name of ["participants.js", "arrangemang-sync.js", "arshjul-sync.js", "arshjul.js"]) {
-        vm.runInContext(readScript(name), context);
+         vm.runInContext(readScript(name), context); 
     }
     return {
-        requests, errors, elements, tables,
+        requests, errors, elements, tables, clipboardWrites,
         sync: context.window.GTScoutYearWheelSync,
         arrangements: context.window.GTScoutArrangements,
         stored: () => JSON.parse(storage.get("gtscout_arshjul")),
@@ -877,6 +890,55 @@ test("read-only users see linked events without uploading derived changes", asyn
     assert.match(page.elements.get("yearWheelEvents").innerHTML, /T{120}/);
     assert.equal(page.requests.filter(request => request.operation !== "select").length, 0);
     assert.deepEqual(page.errors, []);
+});
+
+test("year-wheel sharing saves before showing a link and admin rotation invalidates the prior token", async () => {
+    const page = createPage({ wheels: [wheel()], admin: true });
+    await settle();
+    assert.equal(page.elements.get("shareYearWheelBtn").classList.contains("hidden"), false);
+
+    await page.elements.get("shareYearWheelBtn").handlers.click();
+    const firstToken = page.tables.arshjul[0].share_token;
+    assert.match(firstToken, /^[0-9a-f-]{36}$/i);
+    assert.match(page.elements.get("yearWheelShareUrl").value, new RegExp(`share=${firstToken}`));
+    assert.equal(page.elements.get("rotateYearWheelShareBtn").classList.contains("hidden"), false);
+    assert.equal(page.clipboardWrites.at(-1), page.elements.get("yearWheelShareUrl").value);
+
+    await page.elements.get("rotateYearWheelShareBtn").handlers.click();
+    const rotatedToken = page.tables.arshjul[0].share_token;
+    assert.notEqual(rotatedToken, firstToken);
+    assert.match(page.elements.get("yearWheelShareUrl").value, new RegExp(`share=${rotatedToken}`));
+    assert.equal(page.clipboardWrites.at(-1), page.elements.get("yearWheelShareUrl").value);
+    assert.deepEqual(page.errors, []);
+});
+
+test("year-wheel share token opens a read-only view without login", async () => {
+    const shared = wheel();
+    shared.share_token = globalThis.crypto.randomUUID();
+    const page = createPage({ wheels: [shared], signedIn: false, search: `?share=${shared.share_token}` });
+    await settle();
+    assert.equal(page.elements.get("yearWheelDisplayName").textContent, shared.name);
+    assert.match(page.elements.get("yearWheelSyncStatus").textContent, /Delat årshjul/);
+    assert.equal(page.elements.get("addYearWheelEventBtn").disabled, true);
+    assert.equal(page.elements.get("shareYearWheelBtn").classList.contains("hidden"), true);
+    assert.ok(page.requests.some(request => request.operation === "rpc" && request.name === "get_shared_arshjul"));
+    assert.equal(page.requests.some(request => request.operation === "upsert"), false);
+    assert.deepEqual(page.errors, []);
+});
+
+test("year-wheel share link is not exposed if the token cannot be saved", async () => {
+    const page = createPage({
+        wheels: [wheel()],
+        handleRequest: request => request.table === "arshjul" && request.operation === "upsert"
+            ? { error: new Error("simulated database failure") }
+            : undefined
+    });
+    await settle();
+    await page.elements.get("shareYearWheelBtn").handlers.click();
+
+    assert.equal(page.elements.get("yearWheelShareUrl").value, "");
+    assert.match(page.elements.get("yearWheelShareStatus").textContent, /kunde inte sparas i databasen/i);
+    assert.equal(page.tables.arshjul[0].share_token, null);
 });
 
 test("local migration is uploaded with current arrangement data, not the old pending snapshot", async () => {

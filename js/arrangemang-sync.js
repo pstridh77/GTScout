@@ -344,7 +344,8 @@
         init(config) {
             onChange = config?.onChange || null;
             const params = new URLSearchParams(window.location.search);
-            sharedToken = params.has("share") ? params.get("share") : null;
+            const isArrangementPage = window.location.pathname?.endsWith("/arrangemang.html");
+            sharedToken = isArrangementPage && params.has("share") ? params.get("share") : null;
             if (sharedToken !== null) {
                 document.body.classList.add("shared-arrangement-view");
                 auth()?.onChange?.(onAuthChange);

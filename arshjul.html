@@ -83,7 +83,10 @@
                 <h1 id="yearWheelTitle">Årshjul</h1>
                 <p>Samla avdelningarnas, styrelsens och kårens viktiga datum i ett gemensamt hjul.</p>
             </div>
-            <button id="addYearWheelEventBtn" class="btn-primary" type="button">+ Händelse</button>
+            <div class="page-hero-actions year-wheel-hero-actions">
+                <button id="shareYearWheelBtn" class="btn-secondary year-wheel-share-button hidden" type="button" aria-label="Dela årshjul" title="Dela årshjul"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18 16.08c-.76 0-1.46.3-2 .77l-7.09-4.11A3 3 0 0 0 9 12c0-.25-.04-.5-.09-.74l7.01-4.09c.55.49 1.28.8 2.08.8a3 3 0 1 0-2.91-2.29L8.08 9.8A3 3 0 1 0 9 12c0-.25-.04-.5-.09-.74l7.01 4.09A3 3 0 1 0 18 16.08Z"/></svg></button>
+                <button id="addYearWheelEventBtn" class="btn-primary" type="button">+ Händelse</button>
+            </div>
         </section>
         <p id="yearWheelSyncStatus" class="planning-sync-status page-sync-status" role="status" aria-live="polite"></p>
 
@@ -169,6 +172,21 @@
                     <button class="btn-primary" type="submit">Spara</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <div id="yearWheelShareModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="yearWheelShareTitle">
+        <div class="modal-content year-wheel-share-modal-content">
+            <button id="closeYearWheelShareModal" class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2 id="yearWheelShareTitle">Dela årshjul</h2>
+            <p>Alla som har länken kan visa årshjulet utan att logga in.</p>
+            <label class="modal-field"><span>Länk</span><input id="yearWheelShareUrl" class="share-planning-url" type="text" readonly aria-label="Länk till årshjulet"></label>
+            <p id="yearWheelShareStatus" class="detail-planning-status" role="status" aria-live="polite"></p>
+            <div class="modal-actions">
+                <button id="rotateYearWheelShareBtn" class="btn-secondary hidden" type="button">Skapa ny länk</button>
+                <button id="copyYearWheelShareBtn" class="btn-primary" type="button">Kopiera länk</button>
+                <button id="closeYearWheelShareBtn" class="btn-secondary" type="button">Stäng</button>
+            </div>
         </div>
     </div>
 

@@ -5,6 +5,7 @@
     let loadedForKarId = null;
     let loadedForUserId = null;
     let revision = 0;
+    let sharedToken = null;
     const pendingWrites = new Map();
     let status = null;
     let detachedWheels = [];
@@ -46,7 +47,7 @@
         const next = previous.then(operation, operation);
         pendingWrites.set(id, next);
         try {
-            await next;
+            return await next;
         } finally {
             if (pendingWrites.get(id) === next) pendingWrites.delete(id);
         }
@@ -72,32 +73,35 @@
         else wheels = [...wheels, payload];
         writeLocal();
         notify();
-        if (!canWrite()) {
+        if (sharedToken !== null || !canWrite()) {
             setStatus("Sparat lokalt. Inloggning som ledare krävs för att dela med kåren.");
-            return;
+            return { saved: false, localOnly: true };
         }
-        await enqueueWrite(payload.id, async () => {
+        return enqueueWrite(payload.id, async () => {
             if (!isCurrentContext(currentRevision, currentKarId, currentUserId)
-                || wheels.find(item => item.id === payload.id) !== payload) return;
+                || wheels.find(item => item.id === payload.id) !== payload) return { saved: false, stale: true };
             try {
                 const { error } = await client().from("arshjul").upsert({
                     id: payload.id,
                     kar_id: currentKarId,
                     created_by: payload.created_by || currentUserId,
                     name: payload.name,
+                    share_token: payload.share_token || null,
                     data: payload
                 }, { onConflict: "id" });
-                if (!isCurrentContext(currentRevision, currentKarId, currentUserId)) return;
+                if (!isCurrentContext(currentRevision, currentKarId, currentUserId)) return { saved: false, stale: true };
                 if (error) throw error;
-                if (wheels.find(item => item.id === payload.id) !== payload) return;
+                if (wheels.find(item => item.id === payload.id) !== payload) return { saved: false, stale: true };
                 wheels = wheels.map(item => item.id === payload.id ? { ...payload, local_only: false } : item);
                 writeLocal();
                 notify();
                 setStatus("Årshjulet är sparat och delas med kåren.");
+                return { saved: true, item: { ...payload, local_only: false } };
             } catch (error) {
-                if (!isCurrentContext(currentRevision, currentKarId, currentUserId)) return;
+                if (!isCurrentContext(currentRevision, currentKarId, currentUserId)) return { saved: false, stale: true, error };
                 console.error("Kunde inte spara årshjul", error);
                 setStatus(`Kunde inte spara årshjulet i databasen: ${error.message || "okänt fel"}. Ändringen finns kvar lokalt.`, true);
+                return { saved: false, error };
             }
         });
     }
@@ -137,7 +141,7 @@
         setStatus("Hämtar kårens årshjul...");
         try {
             const { data, error } = await client().from("arshjul")
-                .select("id, created_by, name, data, updated_at")
+                .select("id, created_by, name, data, updated_at, share_token")
                 .eq("kar_id", karId())
                 .order("name");
             if (error) throw error;
@@ -149,6 +153,7 @@
                 ...(row.data || {}),
                 id: row.id,
                 name: row.name || row.data?.name || "",
+                share_token: row.share_token || row.data?.share_token || null,
                 created_by: row.created_by || null,
                 local_kar_id: karId(),
                 local_only: false
@@ -183,8 +188,47 @@
         }
     }
 
+    async function loadShared() {
+        const currentRevision = ++revision;
+        wheels = [];
+        notify("shared");
+        if (!client()) {
+            setStatus("Delningslänken kräver en databaskoppling.", true);
+            return;
+        }
+        setStatus("Hämtar delat årshjul...");
+        try {
+            const { data, error } = await client().rpc("get_shared_arshjul", { requested_token: sharedToken });
+            if (error) throw error;
+            if (currentRevision !== revision) return;
+            const row = Array.isArray(data) ? data[0] : data;
+            if (!row?.data || typeof row.data !== "object") throw new Error("Årshjulet kunde inte hittas.");
+            wheels = [{
+                ...row.data,
+                id: row.id,
+                name: row.name || row.data.name || "",
+                share_token: null,
+                created_by: null,
+                local_kar_id: null,
+                local_only: false,
+                shared_view: true
+            }];
+            writeLocal();
+            notify("shared");
+            setStatus("Delat årshjul – skrivskyddad visning.");
+        } catch (error) {
+            if (currentRevision !== revision) return;
+            console.error("Kunde inte hämta delat årshjul", error);
+            setStatus("Det delade årshjulet kunde inte hittas eller är inte längre delat.", true);
+        }
+    }
+
     function onAuthChange() {
         if (auth()?.getState?.().loading) return;
+        if (sharedToken !== null) {
+            loadShared();
+            return;
+        }
         if (!canRead()) {
             revision++;
             loadedForKarId = null;
@@ -208,6 +252,8 @@
         init(config) {
             onChange = config?.onChange || null;
             status = document.getElementById("yearWheelSyncStatus");
+            const params = new URLSearchParams(window.location.search);
+            sharedToken = params.has("share") ? params.get("share") : null;
             wheels = [];
             notify();
             auth()?.onChange?.(onAuthChange);
