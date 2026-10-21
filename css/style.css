@@ -186,6 +186,7 @@ body {
 .arrangement-experience-button svg { width: 18px; height: 18px; }
 .arrangement-experience-button:hover { background: #e6f3e9; }
 .arrangement-experience-button:focus-visible { outline: 2px solid #4d8275; outline-offset: 2px; }
+.arrangement-experience-dialog-content { box-sizing: border-box; max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior-y: contain; }
 .arrangement-experience-dialog-body { margin: 12px 0 0; color: #263c42; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 .arrangement-card-dates { margin: 14px 0 4px; color: #153c4a; font-weight: 700; }
 .arrangement-card-location, .arrangement-card-planning { margin: 5px 0; color: #52636a; font-size: .88rem; }
