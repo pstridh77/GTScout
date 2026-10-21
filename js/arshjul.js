@@ -37,6 +37,8 @@
     let selectedRingsForWheelId = "";
     let departmentDisplayMode = "grouped";
     let departmentDisplayForWheelId = "";
+    let departmentFilterGroupOpen = true;
+    let departmentFilterForWheelId = "";
     let view = { mode: "calendar", year: new Date().getFullYear(), startMonth: 8, chartMode: "details" };
     let startMonthOverridden = false;
     let modalMode = "";
@@ -390,6 +392,10 @@
 
     function renderRingList(wheel) {
         const list = byId("yearWheelRingList");
+        if (departmentFilterForWheelId !== wheel.id) {
+            departmentFilterForWheelId = wheel.id;
+            departmentFilterGroupOpen = true;
+        }
         const { departmentRings } = getDisplayedRings(wheel, selectedRingIds, departmentDisplayMode === "grouped");
         const otherRings = wheel.rings.filter(ring => !isDepartmentRing(ring));
         const selectedDepartments = departmentRings.filter(ring => selectedRingIds.has(ring.id)).length;
@@ -400,10 +406,9 @@
                     <span class="year-wheel-ring-swatch" style="--ring-color:${ring.color}"></span>
                     <span>${escapeHtml(ring.name)}</span>
                 </label>
-                ${canEdit() ? `<button class="year-wheel-ring-edit" type="button" data-edit-ring="${escapeHtml(ring.id)}" aria-label="Redigera ${escapeHtml(ring.name)}">Redigera</button>` : ""}
             </div>`;
         list.innerHTML = wheel.rings.length ? `
-            ${departmentRings.length && departmentDisplayMode === "grouped" ? `<details class="year-wheel-department-group" open>
+            ${departmentRings.length && departmentDisplayMode === "grouped" ? `<details class="year-wheel-department-group"${departmentFilterGroupOpen ? " open" : ""}>
                 <summary>
                     <span class="year-wheel-department-heading">
                         <input type="checkbox" data-department-toggle-all aria-label="Visa alla avdelningar" ${selectedDepartments === departmentRings.length ? "checked" : ""}>
@@ -415,6 +420,11 @@
             </details>` : ""}
             ${departmentRings.length && departmentDisplayMode === "individual" ? departmentRings.map(renderRingRow).join("") : ""}
             ${otherRings.map(renderRingRow).join("")}` : `<p class="year-wheel-empty">Lägg till en ring för att börja planera.</p>`;
+        const departmentGroup = list.querySelector(".year-wheel-department-group");
+        if (departmentGroup) {
+            departmentGroup.open = departmentFilterGroupOpen;
+            departmentGroup.addEventListener("toggle", () => { departmentFilterGroupOpen = departmentGroup.open; });
+        }
         const departmentToggle = list.querySelector("[data-department-toggle-all]");
         if (departmentToggle) {
             departmentToggle.indeterminate = selectedDepartments > 0 && selectedDepartments < departmentRings.length;
@@ -432,7 +442,6 @@
             else selectedRingIds.delete(input.dataset.ringToggle);
             render();
         }));
-        list.querySelectorAll("[data-edit-ring]").forEach(button => button.addEventListener("click", () => openRingForm(button.dataset.editRing)));
     }
 
     function getEventArcFractions(startDay, endDay, days) {

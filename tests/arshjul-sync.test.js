@@ -80,6 +80,14 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
                             return mark;
                         });
                     }
+                    if (id === "yearWheelRingList" && selector === "[data-ring-toggle]") {
+                        return [...this.innerHTML.matchAll(/data-ring-toggle="([^"]+)"( checked)?/g)].map(([, ringId, checked]) => {
+                            const input = element(`${id} ring ${ringId}`);
+                            input.dataset.ringToggle = ringId;
+                            input.checked = Boolean(checked);
+                            return input;
+                        });
+                    }
                     return [];
                 },
                 attributes: {},
@@ -316,6 +324,8 @@ test("wheel settings group department rings under Avdelning when selected", asyn
     ];
     const page = createPage({ wheels: [configuredWheel] });
     await settle();
+    assert.match(page.elements.get("yearWheelRingList").innerHTML, /data-ring-toggle="scouts"/);
+    assert.doesNotMatch(page.elements.get("yearWheelRingList").innerHTML, /data-edit-ring/);
     page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
     const form = page.elements.get("yearWheelForm");
     form.values = { name: "wheel", start_month: "8", group_departments: "grouped", ring_ids: ["scouts", "common"] };
@@ -427,6 +437,30 @@ function clickRingAction(page, action, ringId = "") {
         }
     });
 }
+
+test("collapsed department filter stays collapsed after a ring selection change", async () => {
+    const configuredWheel = wheel();
+    configuredWheel.rings = [
+        { id: "scouts", name: "Spårare", color: "#41a62a" },
+        { id: "common", name: "Kårgemensamt", color: "#991d1b" }
+    ];
+    const page = createPage({ wheels: [configuredWheel] });
+    await settle();
+
+    const list = page.elements.get("yearWheelRingList");
+    const departmentGroup = list.querySelector(".year-wheel-department-group");
+    assert.equal(departmentGroup.open, true);
+    departmentGroup.open = false;
+    departmentGroup.handlers.toggle();
+
+    const scoutToggle = list.querySelectorAll("[data-ring-toggle]").find(input => input.dataset.ringToggle === "scouts");
+    scoutToggle.checked = false;
+    scoutToggle.handlers.change();
+
+    assert.equal(departmentGroup.open, false);
+    assert.doesNotMatch(list.innerHTML, /<details class="year-wheel-department-group" open/);
+    assert.deepEqual(page.errors, []);
+});
 
 test("ring order can be changed in wheel settings and is saved for the shared wheel", async () => {
     const original = wheel();
