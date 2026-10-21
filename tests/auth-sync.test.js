@@ -352,6 +352,22 @@ test("overlapping year-wheel events use separate lanes and group overflow", () =
         { from: 1, to: 9, ids: ["a", "b", "c", "d", "e"] },
         { from: 20, to: 27, ids: ["g", "h", "i", "j"] }
     ]));
+
+    const sparseLayout = context.getEventLaneLayout([
+        { event: { id: "overlap-a", title: "A" }, from: 0, to: 7 },
+        { event: { id: "overlap-b", title: "B" }, from: 0, to: 7 },
+        { event: { id: "solo", title: "Solo" }, from: 10, to: 17 }
+    ], 3);
+    const bands = sparseLayout.lanes.flat().map(item => ({
+        id: item.event.id,
+        laneIndex: item.laneIndex,
+        laneCount: item.laneCount
+    }));
+    assert.deepEqual(JSON.parse(JSON.stringify(bands)), [
+        { id: "overlap-a", laneIndex: 0, laneCount: 2 },
+        { id: "solo", laneIndex: 0, laneCount: 1 },
+        { id: "overlap-b", laneIndex: 1, laneCount: 2 }
+    ]);
 });
 
 test("year-wheel department rings display as one filterable ring", () => {

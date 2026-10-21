@@ -493,6 +493,22 @@
             group.events = [...new Map(overlappingEvents.map(event => [event.id, event])).values()];
         });
 
+        lanes.forEach((lane, laneIndex) => lane.forEach(item => {
+            const overlaps = ordered.filter(candidate => candidate.from < item.to && candidate.to > item.from);
+            const changes = overlaps.flatMap(candidate => [
+                [Math.max(item.from, candidate.from), 1],
+                [Math.min(item.to, candidate.to), -1]
+            ]).sort((left, right) => left[0] - right[0] || left[1] - right[1]);
+            let active = 0;
+            let maxConcurrent = 1;
+            changes.forEach(([, change]) => {
+                active += change;
+                maxConcurrent = Math.max(maxConcurrent, active);
+            });
+            item.laneIndex = laneIndex;
+            item.laneCount = Math.min(maxLanes, maxConcurrent);
+        }));
+
         return { lanes, overflowGroups };
     }
 
@@ -591,11 +607,11 @@
             }).filter(Boolean);
             const maxLanes = Math.min(3, Math.max(1, Math.floor((outer - inner) / 6)));
             const { lanes, overflowGroups } = getEventLaneLayout(positionedEvents, maxLanes);
-            const laneHeight = (outer - inner) / Math.max(1, lanes.length);
-            lanes.forEach((lane, laneIndex) => {
-                const laneOuter = outer - laneIndex * laneHeight;
-                const laneInner = outer - (laneIndex + 1) * laneHeight;
-                lane.forEach(({ event, from, to: finish }) => {
+            lanes.forEach(lane => {
+                lane.forEach(({ event, from, to: finish, laneIndex, laneCount }) => {
+                    const laneHeight = (outer - inner) / laneCount;
+                    const laneOuter = outer - laneIndex * laneHeight;
+                    const laneInner = laneOuter - laneHeight;
                     const mid = (from + finish) / 2;
                     const radius = (laneOuter + laneInner) / 2;
                     const label = point(radius, mid);
