@@ -205,6 +205,7 @@ body {
 .arrangement-print-menu-options button { padding: 9px 10px; border: 0; background: transparent; color: #153c4a; font: inherit; text-align: left; cursor: pointer; }
 .arrangement-print-menu-options button:hover, .arrangement-print-menu-options button:focus-visible { background: #edf4f2; }
 .arrangement-print-preview-open { overflow: hidden; }
+.year-wheel-print-preview-open { overflow: hidden; }
 .arrangement-print-preview { position: fixed; z-index: 10000; inset: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; padding: 14px; background: rgba(16, 35, 39, .82); }
 .arrangement-print-preview-toolbar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; width: min(100%, 1200px); margin: 0 auto; color: #fff; }
 .arrangement-print-preview-toolbar-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
@@ -224,6 +225,8 @@ body {
     .arrangement-print-preview-toolbar-actions { align-self: flex-end; }
 }
 @media print {
+    .year-wheel-print-preview-open > :not(#yearWheelPrintPreview) { display: none !important; }
+    .year-wheel-print-preview-open #yearWheelPrintPreview { position: static; display: block; padding: 0; background: #fff; }
     .arrangement-print-preview-open > :not(#arrangementPrintPreview) { display: none !important; }
     .arrangement-print-preview-open #arrangementPrintPreview { position: static; display: block; padding: 0; background: #fff; }
     .arrangement-print-preview-toolbar { display: none; }
