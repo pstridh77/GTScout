@@ -34,6 +34,7 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
     const requests = [];
     const errors = [];
     const clipboardWrites = [];
+    const printCalls = [];
     const storage = new Map([
         ["gtscout_arshjul", JSON.stringify(localWheels)],
         ["gtscout_arrangemang", JSON.stringify(localArrangements)],
@@ -158,6 +159,7 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
     const context = vm.createContext({
              window: { 
             GTScoutAuth: auth,
+            GTScoutYearWheelPrint: { openDocument: options => printCalls.push(options) },
             location: { search, pathname: "/arshjul.html", href: "https://example.test/arshjul.html" },
             navigator: { clipboard: { async writeText(value) { clipboardWrites.push(value); } } },
              addEventListener() {}, confirm: () => true 
@@ -184,7 +186,7 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
          vm.runInContext(readScript(name), context); 
     }
     return {
-        requests, errors, elements, tables, clipboardWrites,
+        requests, errors, elements, tables, clipboardWrites, printCalls,
         sync: context.window.GTScoutYearWheelSync,
         arrangements: context.window.GTScoutArrangements,
         stored: () => JSON.parse(storage.get("gtscout_arshjul")),
@@ -198,6 +200,43 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
         unlockEditing() { elements.get("yearWheelEditToggle").handlers.click(); }
     };
 }
+
+test("read-only users can open both print layouts without saving data", async () => {
+    const page = createPage({ wheels: [wheel()], leader: false });
+    await settle();
+    const printButton = page.elements.get("yearWheelMenuPrintBtn");
+    assert.equal(printButton.disabled, false);
+    for (const mode of ["wheel", "list"]) {
+        printButton.handlers.click();
+        assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Skriv ut årshjul");
+        const form = page.elements.get("yearWheelForm");
+        form.values = { print_layout: mode };
+        form.handlers.submit({ preventDefault() {}, currentTarget: form });
+        assert.equal(page.printCalls.at(-1).mode, mode);
+        assert.equal(page.printCalls.at(-1).wheel.id, "wheel");
+        assert.equal(page.printCalls.at(-1).range.start.toISOString(), "2026-01-01T00:00:00.000Z");
+    }
+    assert.equal(page.printCalls.length, 2);
+    assert.equal(page.requests.filter(request => request.operation !== "select").length, 0);
+});
+
+test("print action is disabled when there is no wheel", async () => {
+    const page = createPage();
+    await settle();
+    assert.equal(page.elements.get("yearWheelMenuPrintBtn").disabled, true);
+});
+
+test("shared wheels allow printing without edit permissions", async () => {
+    const page = createPage({
+        wheels: [{ ...wheel(), share_token: "public-token" }],
+        signedIn: false, search: "?share=public-token"
+    });
+    await settle();
+    await settle();
+    assert.equal(page.elements.get("yearWheelMenuPrintBtn").disabled, false);
+    page.elements.get("yearWheelMenuPrintBtn").handlers.click();
+    assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Skriv ut årshjul");
+});
 
 function createHelpers() {
     const source = readScript("arshjul.js");

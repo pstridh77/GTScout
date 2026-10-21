@@ -778,6 +778,7 @@
         const restrictedUser = Boolean(auth()?.isOnline?.() && auth()?.isSignedIn?.()) && !auth()?.isLeader?.();
         const sharedView = isSharedWheelView();
         const wheel = currentWheel();
+        byId("yearWheelMenuPrintBtn").disabled = !wheel;
         byId("yearWheelMenuAddEventBtn").disabled = !currentWheel() || !canEdit() || !currentWheel().rings.length;
         byId("yearWheelMenuAddEventBtn").classList.toggle("hidden", sharedView);
         byId("addYearWheelEventBtn").classList.toggle("hidden", sharedView);
@@ -1147,6 +1148,20 @@
         `, "year");
     }
 
+    function openPrintForm() {
+        if (!currentWheel()) return;
+        openModal("Skriv ut årshjul", `
+            <p>Välj utskriftslayout för den aktuella perioden.</p>
+            <label class="modal-field"><span>Utskrift</span><select name="print_layout">
+                <option value="wheel">Årshjul – A3 liggande</option>
+                <option value="list">Alla händelser – A4 stående</option>
+            </select></label>
+            <p>Hjulet följer dina ringfilter och avdelningsgruppering. Listan innehåller alla händelser i perioden, även i dolda ringar.</p>
+            <p>Du får en förhandsvisning innan webbläsarens utskriftsdialog öppnas. Välj det föreslagna pappersformatet och stäng gärna av webbläsarens sidhuvud och sidfot.</p>
+        `, "print");
+        byId("yearWheelForm").querySelector('[type="submit"]').textContent = "Förhandsvisa";
+    }
+
     function openWheelForm() {
         if (!canWrite()) return;
         departmentGroupOpen = true;
@@ -1502,6 +1517,21 @@
         event.preventDefault();
         const formData = new FormData(event.currentTarget);
         const value = Object.fromEntries(formData.entries());
+        if (modalMode === "print") {
+            const wheel = currentWheel();
+            if (!wheel) return;
+            const { displayed: rings } = getDisplayedRings(wheel, selectedRingIds, departmentDisplayMode === "grouped");
+            const eventColors = Object.fromEntries(wheel.events.map(item => [
+                item.id, getEventColor(item, wheel.rings.find(ring => ring.id === item.ring_id))
+            ]));
+            const eventTextColors = Object.fromEntries(Object.entries(eventColors).map(([eventId, color]) => [eventId, getRingTextColor(color)]));
+            const ringBackgroundColors = Object.fromEntries(rings.map(ring => [ring.id, getRingBackgroundColor(ring)]));
+            window.GTScoutYearWheelPrint.openDocument({
+                wheel, rings, range: period(), mode: value.print_layout, eventColors, eventTextColors, ringBackgroundColors
+            });
+            closeModal();
+            return;
+        }
         if (modalMode === "year") {
             const year = Number(value.year);
             if (!Number.isInteger(year) || year < 1900 || year > 2200) {
@@ -1829,6 +1859,7 @@
             render();
         });
         byId("yearWheelMenuAddBtn").addEventListener("click", openWheelForm);
+        byId("yearWheelMenuPrintBtn").addEventListener("click", openPrintForm);
         byId("yearWheelMenuSettingsBtn").addEventListener("click", openWheelSettings);
         byId("yearWheelMenuCopyEventsBtn").addEventListener("click", openBulkCopyForm);
         byId("shareYearWheelBtn").addEventListener("click", shareCurrentWheel);
