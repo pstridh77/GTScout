@@ -841,13 +841,13 @@ test("month sectors preselect the clicked ring including its white label band", 
     assert.deepEqual(page.errors, []);
 });
 
-test("event arcs have four rounded corners even for narrow events", () => {
+test("event arcs keep sharp corners even for narrow events", () => {
     const source = readScript("arshjul.js");
     const context = vm.createContext({});
     vm.runInContext(source.slice(source.indexOf("    function point("), source.indexOf("    function getRingTextColor(")), context);
     for (const span of [0.001, 0.1, 0.75]) {
-        const path = context.arcPath(100, 90, 0, span, 2);
-        assert.equal((path.match(/\bQ\b/g) || []).length, 4);
+        const path = context.arcPath(100, 90, 0, span);
+        assert.doesNotMatch(path, /\bQ\b/);
         assert.doesNotMatch(path, /NaN|Infinity/);
     }
     assert.doesNotMatch(context.arcPath(100, 90, 0, 0.1), /\bQ\b/);

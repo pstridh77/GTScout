@@ -6430,7 +6430,7 @@ select:focus {
 .year-wheel-ring-label-path { fill: none; stroke: none; }
 .year-wheel-ring-label { fill: #46545f; font-size: 9px; font-weight: 700; letter-spacing: .1px; pointer-events: none; }
 .year-wheel-ring-track { fill: none; stroke: #edf2f7; stroke-width: 1; pointer-events: none; }
-.year-wheel-event-arc { stroke: #fff; stroke-width: 1.1; stroke-linejoin: round; transition: filter .12s ease; }
+.year-wheel-event-arc { stroke: #fff; stroke-width: 1.1; transition: filter .12s ease; }
 .year-wheel-event-mark { cursor: pointer; }
 .year-wheel-event-mark:hover .year-wheel-event-arc, .year-wheel-event-mark:focus .year-wheel-event-arc { filter: brightness(.86); }
 .year-wheel-event-mark:focus { outline: none; }
