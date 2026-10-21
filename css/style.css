@@ -6370,6 +6370,7 @@ select:focus {
 .year-wheel-share-button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 36px; width: 36px; height: 36px; padding: 0; }
 .year-wheel-share-button svg { width: 20px; height: 20px; }
 .year-wheel-share-modal-content { max-width: min(560px, 100%); }
+#yearWheelShareModal .modal-actions { gap: 8px; }
 .year-wheel-page--details .header-main,
 .year-wheel-page--details .year-wheel-hero,
 .year-wheel-page--details .year-wheel-toolbar { display: none; }

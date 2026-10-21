@@ -893,6 +893,11 @@ test("read-only users see linked events without uploading derived changes", asyn
 });
 
 test("year-wheel sharing saves before showing a link and admin rotation invalidates the prior token", async () => {
+    const html = fs.readFileSync(path.join(__dirname, "..", "arshjul.html"), "utf8");
+    const shareActions = html.slice(html.indexOf("id=\"rotateYearWheelShareBtn\""), html.indexOf("</div>", html.indexOf("id=\"rotateYearWheelShareBtn\"")));
+    assert.ok(shareActions.indexOf("rotateYearWheelShareBtn") < shareActions.indexOf("closeYearWheelShareBtn"));
+    assert.ok(shareActions.indexOf("closeYearWheelShareBtn") < shareActions.indexOf("copyYearWheelShareBtn"));
+
     const page = createPage({ wheels: [wheel()], admin: true });
     await settle();
     assert.equal(page.elements.get("shareYearWheelBtn").classList.contains("hidden"), false);
