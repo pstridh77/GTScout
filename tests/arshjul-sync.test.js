@@ -771,6 +771,43 @@ test("year wheel starts locked and opens events read-only until unlocked", async
     assert.deepEqual(page.errors, []);
 });
 
+test("event dialog copies saved events to next year using the list action", async () => {
+    const original = {
+        id: "event-1", ring_id: "arrangements", title: "Hajk",
+        start_date: "2026-05-10", end_date: "2026-05-12",
+        responsible: "Anna", location: "Skogen", notes: "Ta med tält"
+    };
+    const page = createPage({ wheels: [{ ...wheel(), events: [original] }] });
+    await settle();
+    const chart = page.elements.get("yearWheelChart");
+    chart.querySelectorAll("[data-event-edit]")[0].handlers.click();
+    const copyButton = page.elements.get("copyYearWheelEventBtn");
+    assert.equal(copyButton.classList.contains("hidden"), true);
+    copyButton.handlers.click();
+    assert.equal(page.tables.arshjul[0].data.events.length, 1);
+
+    page.unlockEditing();
+    chart.querySelectorAll("[data-event-edit]")[0].handlers.click();
+    assert.equal(copyButton.classList.contains("hidden"), false);
+    copyButton.handlers.click();
+    await settle();
+    const events = page.tables.arshjul[0].data.events;
+    assert.equal(events.length, 2);
+    const copy = events.find(event => event.id !== original.id);
+    assert.equal(copy.start_date, "2027-05-10");
+    assert.equal(copy.end_date, "2027-05-12");
+    assert.equal(copy.copied_from_id, original.id);
+    assert.equal(copy.needs_review, true);
+    for (const field of ["title", "ring_id", "responsible", "location", "notes"]) {
+        assert.equal(copy[field], original[field]);
+    }
+    assert.equal(page.preferences().year, 2027);
+    assert.match(page.elements.get("yearWheelFormFields").innerHTML, /name="start_date"[^>]*value="2027-05-10"/);
+    page.elements.get("addYearWheelEventBtn").handlers.click();
+    assert.equal(copyButton.classList.contains("hidden"), true);
+    assert.deepEqual(page.errors, []);
+});
+
 test("month sectors open new events on the first day in calendar and operational years", async () => {
     const page = createPage({ wheels: [wheel()] });
     await settle();

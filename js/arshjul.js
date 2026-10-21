@@ -1103,6 +1103,7 @@
         submitButton.textContent = "Spara";
         submitButton.disabled = false;
         submitButton.classList.toggle("hidden", mode === "event-view");
+        byId("copyYearWheelEventBtn").classList.toggle("hidden", mode !== "event" || !itemId || !canEdit());
         const deleteButton = byId("deleteYearWheelItemBtn");
         deleteButton.classList.toggle("hidden", !itemId || !["ring", "event", "wheel"].includes(mode));
         deleteButton.disabled = false;
@@ -1825,6 +1826,9 @@
             if (event.target === byId("yearWheelShareModal")) byId("yearWheelShareModal").classList.add("hidden");
         });
         byId("addYearWheelEventBtn").addEventListener("click", () => openEventForm());
+        byId("copyYearWheelEventBtn").addEventListener("click", () => {
+            if (modalMode === "event" && editingId) copyEventToNextYear(editingId);
+        });
         byId("closeYearWheelModal").addEventListener("click", closeModal);
         byId("yearWheelModal").addEventListener("click", event => {
             if (event.target === byId("yearWheelModal")) closeModal();
