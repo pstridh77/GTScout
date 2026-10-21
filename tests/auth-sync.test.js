@@ -288,7 +288,10 @@ test("year-wheel events use ring, light, dark, or custom colors", () => {
     assert.equal(context.getEventColor({ color_variant: "dark" }, ring), "#317e20");
     assert.equal(context.getEventColor({ color_variant: "custom", color: "#123456" }, ring), "#123456");
     assert.equal(context.getRingBackgroundColor(ring), "#e1f1dd");
-    assert.equal(context.getRingBackgroundColor({ id: "__department_group__", color: "#00a8e1" }), "#cceefa");
+    assert.equal(
+        context.getRingBackgroundColor({ id: "__department_group__", color: "#00a8e1" }),
+        context.getRingBackgroundColor({ color: "#00a8e1" })
+    );
 });
 
 test("year-wheel event arcs are at least one week wide", () => {
@@ -440,6 +443,8 @@ test("year-wheel department rings display as one filterable ring", () => {
         ]
     );
     assert.deepEqual(allShown.departmentRings.map(ring => ring.id), ["scout-1", "scout-2", "scout-leaders"]);
+    const coloredGroup = context.getDisplayedRings({ ...wheel, department_ring_color: "#123456" }, new Set(wheel.rings.map(ring => ring.id)));
+    assert.equal(coloredGroup.displayed[0].color, "#123456");
 
     const oneDepartment = context.getDisplayedRings(wheel, new Set(["scout-2"]));
     assert.equal(oneDepartment.displayed.length, 1);

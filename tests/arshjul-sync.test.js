@@ -303,9 +303,128 @@ for (const isNew of [true, false]) {
     });
 }
 
+test("wheel settings group department rings under Avdelning when selected", async () => {
+    const configuredWheel = wheel();
+    configuredWheel.group_departments = true;
+    configuredWheel.rings = [
+        { id: "scouts", name: "Spårare", color: "#41a62a" },
+        { id: "common", name: "Kårgemensamt", color: "#991d1b" }
+    ];
+    configuredWheel.events = [
+        { id: "scout-event-1", ring_id: "scouts", title: "Möte 1", start_date: "2026-03-01", end_date: "2026-03-01" },
+        { id: "scout-event-2", ring_id: "scouts", title: "Möte 2", start_date: "2026-03-08", end_date: "2026-03-08" }
+    ];
+    const page = createPage({ wheels: [configuredWheel] });
+    await settle();
+    page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
+    const form = page.elements.get("yearWheelForm");
+    form.values = { name: "wheel", start_month: "8", group_departments: "grouped", ring_ids: ["scouts", "common"] };
+
+    let markup = page.elements.get("yearWheelFormFields").innerHTML;
+    const departmentTree = markup.match(/<div class="year-wheel-ring-config-group">([\s\S]*?)<\/div>\s*<div class="year-wheel-ring-config" data-ring-id="common">/);
+    assert.ok(departmentTree);
+    assert.match(departmentTree[1], /Spårare/);
+    assert.match(departmentTree[1], /Familjescouter/);
+    assert.doesNotMatch(departmentTree[1], /Kårgemensamt/);
+    assert.match(departmentTree[1], /data-config-department-toggle-all data-indeterminate="true"/);
+    assert.match(departmentTree[1], /year-wheel-ring-swatch" style="--ring-color:#00a8e1/);
+    assert.match(departmentTree[1], /data-config-ring-action="edit-department"/);
+    assert.doesNotMatch(departmentTree[1], /class="year-wheel-ring-group-color"/);
+    assert.match(departmentTree[1], /data-department-group-count>1 av 6 valda · 2 händelser/);
+    assert.match(departmentTree[1], /<details class="year-wheel-ring-group-details" open>/);
+    assert.match(departmentTree[1], /<summary>[\s\S]*<span class="year-wheel-ring-option-name">Avdelning<\/span>/);
+    const departmentSummary = departmentTree[1].match(/<summary>([\s\S]*?)<\/summary>/);
+    assert.ok(departmentSummary);
+    assert.doesNotMatch(departmentSummary[1], /<svg/);
+    assert.doesNotMatch(departmentTree[1], /data-toggle-department-group/);
+
+    const groupInputs = Array.from({ length: 6 }, (_, index) => ({
+        checked: index === 0,
+        disabled: false,
+        dataset: { eventCount: index === 0 ? "2" : "0" }
+    }));
+    const groupCount = { textContent: "1 av 6 valda · 2 händelser" };
+    const departmentToggle = { checked: false, indeterminate: true };
+    const group = {
+        querySelector(selector) {
+            if (selector === ".year-wheel-ring-group-details") return details;
+            if (selector === "[data-department-group-count]") return groupCount;
+            if (selector === "[data-config-department-toggle-all]") return departmentToggle;
+            return null;
+        },
+        querySelectorAll: () => groupInputs
+    };
+    const fields = page.elements.get("yearWheelFormFields");
+    const details = page.elements.get("yearWheelFormFields .year-wheel-ring-group-details");
+    assert.ok(details.handlers.toggle);
+    details.open = false;
+    details.handlers.toggle();
+    assert.equal(groupCount.textContent, "1 av 6 valda · 2 händelser");
+
+    const ringInputs = groupInputs;
+    departmentToggle.closest = () => group;
+    assert.equal(ringInputs.filter(input => input.checked).length, 1);
+    assert.equal(departmentToggle.indeterminate, true);
+
+    ringInputs.slice(1, -1).forEach(input => { input.checked = true; });
+    ringInputs[ringInputs.length - 1].checked = true;
+    fields.handlers.change({ target: {
+        name: "ring_names", type: "checkbox",
+        closest: selector => selector === ".year-wheel-ring-config-group" ? group : null
+    } });
+    assert.equal(departmentToggle.checked, true);
+    assert.equal(departmentToggle.indeterminate, false);
+    assert.ok(ringInputs.every(input => input.checked));
+    assert.equal(groupCount.textContent, "6 av 6 valda · 2 händelser");
+
+    departmentToggle.checked = false;
+    fields.handlers.change({ target: {
+        name: "", closest: () => departmentToggle
+    } });
+    assert.ok(ringInputs.every(input => !input.checked));
+    assert.equal(groupCount.textContent, "0 av 6 valda · 0 händelser");
+
+    form.values = { name: "wheel", start_month: "8", group_departments: "grouped", ring_ids: ["scouts", "common"] };
+    clickRingAction(page, "edit-department");
+    assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Redigera Avdelningsringen");
+    form.values = { department_ring_color: "#abcdef" };
+    form.handlers.submit({ preventDefault() {}, currentTarget: form });
+    assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Inställningar för årshjul");
+    assert.match(page.elements.get("yearWheelFormFields").innerHTML, /--ring-color:#abcdef/);
+
+    form.values = { name: "wheel", start_month: "8", group_departments: "grouped", ring_ids: ["scouts", "common"] };
+    clickRingAction(page, "move-department-down");
+    markup = page.elements.get("yearWheelFormFields").innerHTML;
+    assert.ok(markup.indexOf('data-ring-id="common"') < markup.indexOf('class="year-wheel-ring-config-group"'));
+    assert.match(markup, /<details class="year-wheel-ring-group-details">/);
+
+    form.values = {
+        name: "wheel", start_month: "8", group_departments: "individual",
+        ring_ids: ["scouts", "common"]
+    };
+    page.elements.get("yearWheelFormFields").handlers.change({ target: { name: "group_departments" } });
+    markup = page.elements.get("yearWheelFormFields").innerHTML;
+    assert.doesNotMatch(markup, /year-wheel-ring-config-group/);
+    assert.match(markup, /value="individual" selected/);
+
+    form.values = {
+        name: "wheel", start_month: "8", group_departments: "grouped",
+        ring_ids: ["scouts", "common"], department_ring_color: "#123456"
+    };
+    form.handlers.submit({ preventDefault() {}, currentTarget: form });
+    await settle();
+    assert.deepEqual(page.tables.arshjul[0].data.rings.map(ring => ring.id), ["common", "scouts"]);
+    assert.equal(page.tables.arshjul[0].data.department_ring_color, "#123456");
+    assert.deepEqual(page.errors, []);
+});
+
 function clickRingAction(page, action, ringId = "") {
     page.elements.get("yearWheelFormFields").handlers.click({
-        target: { closest: () => ({ dataset: { configRingAction: action, ringId }, disabled: false }) }
+        target: {
+            closest: selector => selector === "[data-config-ring-action]"
+                ? { dataset: { configRingAction: action, ringId }, disabled: false }
+                : null
+        }
     });
 }
 
@@ -325,7 +444,7 @@ test("ring order can be changed in wheel settings and is saved for the shared wh
     };
 
     let markup = page.elements.get("yearWheelFormFields").innerHTML;
-    assert.match(markup, /Första ringen visas ytterst och sista innerst/);
+    assert.match(markup, /Första ringen visas ytterst/);
     assert.deepEqual(
         [...markup.matchAll(/data-config-ring-action="move-up" data-ring-id="([^"]+)"/g)].map(match => match[1]),
         ["arrangements", "custom-1", "custom-2"]
@@ -337,11 +456,26 @@ test("ring order can be changed in wheel settings and is saved for the shared wh
         ["custom-1", "arrangements", "custom-2"]
     );
 
+    const fields = page.elements.get("yearWheelFormFields");
+    fields.handlers.dragstart({
+        target: { closest: () => ({ dataset: { ringDragHandle: "custom-2" } }) },
+        dataTransfer: { setData() {}, effectAllowed: "" }
+    });
+    fields.handlers.drop({
+        target: { closest: () => ({ dataset: { ringId: "arrangements" } }) },
+        preventDefault() {}
+    });
+    markup = fields.innerHTML;
+    assert.deepEqual(
+        [...markup.matchAll(/data-ring-drag-handle="([^"]+)"/g)].map(match => match[1]),
+        ["custom-1", "custom-2", "arrangements"]
+    );
+
     form.handlers.submit({ preventDefault() {}, currentTarget: form });
     await settle();
     const saved = page.tables.arshjul[0].data;
-    assert.deepEqual(saved.rings.map(ring => ring.id), ["custom-1", "arrangements", "custom-2"]);
-    assert.deepEqual(page.stored()[0].rings.map(ring => ring.id), ["custom-1", "arrangements", "custom-2"]);
+    assert.deepEqual(saved.rings.map(ring => ring.id), ["custom-1", "custom-2", "arrangements"]);
+    assert.deepEqual(page.stored()[0].rings.map(ring => ring.id), ["custom-1", "custom-2", "arrangements"]);
     assert.deepEqual(page.errors, []);
 });
 
