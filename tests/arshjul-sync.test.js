@@ -829,8 +829,8 @@ test("month sectors preselect the clicked ring including its white label band", 
     page.unlockEditing();
     const chart = page.elements.get("yearWheelChart");
     assert.equal(chart.querySelectorAll("[data-month-create]").length, 24);
-    assert.match(chart.innerHTML, /A 253 253[^>]*A 163 163[^>]*data-ring-create="outer"/);
-    assert.match(chart.innerHTML, /A 163 163[^>]*A 64 64[^>]*data-ring-create="inner"/);
+    assert.match(chart.innerHTML, /A 250 250[^>]*A 160 160[^>]*data-ring-create="outer"/);
+    assert.match(chart.innerHTML, /A 160 160[^>]*A 64 64[^>]*data-ring-create="inner"/);
     for (const ringId of ["outer", "inner"]) {
         page.elements.get(`yearWheelChart month 2026-05-01 ring ${ringId}`).handlers.click();
         const fields = page.elements.get("yearWheelFormFields").innerHTML;
@@ -839,6 +839,37 @@ test("month sectors preselect the clicked ring including its white label band", 
         page.elements.get("closeYearWheelModal").handlers.click();
     }
     assert.deepEqual(page.errors, []);
+});
+
+test("event arcs have four rounded corners even for narrow events", () => {
+    const source = readScript("arshjul.js");
+    const context = vm.createContext({});
+    vm.runInContext(source.slice(source.indexOf("    function point("), source.indexOf("    function getRingTextColor(")), context);
+    for (const span of [0.001, 0.1, 0.75]) {
+        const path = context.arcPath(100, 90, 0, span, 2);
+        assert.equal((path.match(/\bQ\b/g) || []).length, 4);
+        assert.doesNotMatch(path, /NaN|Infinity/);
+    }
+    assert.doesNotMatch(context.arcPath(100, 90, 0, 0.1), /\bQ\b/);
+});
+
+test("colored rings occupy at least 70 percent of each ring slot", async () => {
+    for (const ringCount of [4, 10]) {
+        const page = createPage({ wheels: [{
+            ...wheel(),
+            rings: Array.from({ length: ringCount }, (_, index) => ({
+                id: `ring-${index}`, name: `Ring ${index}`, color: "#398a86"
+            }))
+        }] });
+        await settle();
+        const markup = page.elements.get("yearWheelChart").innerHTML;
+        const gaps = [...markup.matchAll(/stroke-width="([\d.]+)" class="year-wheel-ring-gap"/g)];
+        assert.equal(gaps.length, ringCount);
+        for (const [, width] of gaps) {
+            assert.ok(Number(width) <= Number((180 / ringCount * 0.3).toFixed(2)));
+        }
+        assert.deepEqual(page.errors, []);
+    }
 });
 
 test("year arrows change the personal year while locked and respect year limits", async () => {

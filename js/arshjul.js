@@ -258,12 +258,29 @@
         return { x: 320 + Math.cos(angle) * radius, y: 320 + Math.sin(angle) * radius, angle };
     }
 
-    function arcPath(outer, inner, startFraction, endFraction) {
+    function arcPath(outer, inner, startFraction, endFraction, cornerRadius = 0) {
         const start = point(outer, startFraction);
         const finish = point(outer, endFraction);
         const innerFinish = point(inner, endFraction);
         const innerStart = point(inner, startFraction);
         const largeArc = endFraction - startFraction > 0.5 ? 1 : 0;
+        if (cornerRadius > 0) {
+            const radius = Math.min(cornerRadius, (outer - inner) / 2, (endFraction - startFraction) * Math.PI * inner);
+            const outerOffset = radius / (2 * Math.PI * outer);
+            const innerOffset = radius / (2 * Math.PI * inner);
+            const coordinates = position => `${position.x.toFixed(2)} ${position.y.toFixed(2)}`;
+            const outerArc = endFraction - startFraction - 2 * outerOffset > 0.5 ? 1 : 0;
+            const innerArc = endFraction - startFraction - 2 * innerOffset > 0.5 ? 1 : 0;
+            return `M ${coordinates(point(outer, startFraction + outerOffset))}
+                A ${outer} ${outer} 0 ${outerArc} 1 ${coordinates(point(outer, endFraction - outerOffset))}
+                Q ${coordinates(finish)} ${coordinates(point(outer - radius, endFraction))}
+                L ${coordinates(point(inner + radius, endFraction))}
+                Q ${coordinates(innerFinish)} ${coordinates(point(inner, endFraction - innerOffset))}
+                A ${inner} ${inner} 0 ${innerArc} 0 ${coordinates(point(inner, startFraction + innerOffset))}
+                Q ${coordinates(innerStart)} ${coordinates(point(inner + radius, startFraction))}
+                L ${coordinates(point(outer - radius, startFraction))}
+                Q ${coordinates(start)} ${coordinates(point(outer, startFraction + outerOffset))} Z`;
+        }
         return `M ${start.x.toFixed(2)} ${start.y.toFixed(2)} A ${outer} ${outer} 0 ${largeArc} 1 ${finish.x.toFixed(2)} ${finish.y.toFixed(2)} L ${innerFinish.x.toFixed(2)} ${innerFinish.y.toFixed(2)} A ${inner} ${inner} 0 ${largeArc} 0 ${innerStart.x.toFixed(2)} ${innerStart.y.toFixed(2)} Z`;
     }
 
@@ -547,7 +564,7 @@
         const monthIntervals = [];
         const monthLabels = [];
         const overflowActions = [];
-        const ringGap = shownRings.length ? Math.min(18, Math.max(10, ringWidth * 0.5)) : 0;
+        const ringGap = Math.min(12, ringWidth * 0.3);
         for (let monthOffset = 0; monthOffset < 12; monthOffset++) {
             const monthIndex = view.mode === "calendar"
                 ? monthOffset
@@ -633,8 +650,8 @@
                         : "";
                     const laneInset = Math.min(0.8, Math.max(0.25, (laneOuter - laneInner) * 0.06));
                     const path = finish - from >= 0.999
-                        ? `${arcPath(laneOuter - laneInset, laneInner + laneInset, from, from + 0.5)} ${arcPath(laneOuter - laneInset, laneInner + laneInset, from + 0.5, finish)}`
-                        : arcPath(laneOuter - laneInset, laneInner + laneInset, from, finish);
+                        ? `${arcPath(laneOuter - laneInset, laneInner + laneInset, from, from + 0.5, 2)} ${arcPath(laneOuter - laneInset, laneInner + laneInset, from + 0.5, finish, 2)}`
+                        : arcPath(laneOuter - laneInset, laneInner + laneInset, from, finish, 2);
                     svg.push(`<g class="year-wheel-event-mark" data-event-edit="${escapeHtml(event.id)}" tabindex="0" role="button" aria-label="${escapeHtml(title)}"><title>${escapeHtml(title)}</title><path d="${path}" fill="${eventColor}" class="year-wheel-event-arc"/>${eventLabel}</g>`);
                 });
             });
@@ -650,7 +667,7 @@
         });
         shownRings.forEach((ring, ringIndex) => {
             const label = escapeHtml(ring.name.length > 24 ? `${ring.name.slice(0, 23)}…` : ring.name);
-            const fontSize = Math.max(6, Math.min(10, ringGap * 0.9));
+            const fontSize = Math.min(10, ringGap * 0.9);
             svg.push(`<text class="year-wheel-ring-label" dominant-baseline="central" style="font-size:${fontSize.toFixed(1)}px"><title>${escapeHtml(ring.name)}</title><textPath href="#year-wheel-ring-label-path-${ringIndex}" startOffset="50%" text-anchor="middle">${label}</textPath></text>`);
         });
         if (shownRings.length) {
