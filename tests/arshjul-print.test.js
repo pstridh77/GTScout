@@ -70,6 +70,8 @@ test("A3 activity summary lists selected events once in chronological order with
     }
     assert.match(summary, /activity-summary-overflow[^>]*hidden/);
     assert.match(html, /window\.addEventListener\("beforeprint", fitActivitySummary\)/);
+    assert.match(html, /\.activity-summary-row\{[^}]*grid-template-columns:34mm minmax\(0,1fr\)/);
+    assert.match(html, /\.activity-summary-date\{[^}]*white-space:nowrap/);
 });
 
 test("A3 summary preserves all input rows for fitting and includes a visible-overflow explanation", () => {

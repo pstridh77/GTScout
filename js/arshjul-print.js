@@ -321,10 +321,10 @@
             .activity-summary-heading h2{margin:0;font-size:13pt}
             .activity-summary-list{flex:1;min-height:0;overflow:hidden;list-style:none;margin:0;padding:0}
             .activity-summary-item{break-inside:avoid}
-            .activity-summary-row{display:grid;grid-template-columns:25mm minmax(0,1fr);gap:2mm;border-left:1mm solid var(--activity-color);border-bottom:1px solid #e4ebe8;padding:.25mm 0 .25mm 1.5mm}
+            .activity-summary-row{display:grid;grid-template-columns:34mm minmax(0,1fr);gap:2mm;border-left:1mm solid var(--activity-color);border-bottom:1px solid #e4ebe8;padding:.25mm 0 .25mm 1.5mm}
             .activity-summary-item[hidden]{display:none}.activity-summary-item h3{font-size:1em;line-height:1.2;margin:0;font-weight:700}
             .activity-summary-item .activity-summary-month{text-transform:capitalize;background:#eef4f2;color:#164a4d;padding:.7mm 1mm;margin:.8mm 0 .3mm}
-            .activity-summary-date{font-size:.9em;font-weight:700;color:#286d60;margin:0 0 .4mm}
+            .activity-summary-date{font-size:.9em;font-weight:700;color:#286d60;margin:0 0 .4mm;white-space:nowrap}
             .activity-summary-meta{font-size:.85em;color:#52686d;margin:.4mm 0 0}
             .activity-summary--without-rings .activity-summary-meta{display:none}
             .activity-summary-overflow{flex:none;margin:2mm 0 0;padding:2mm;background:#eef4f2;border:1px solid #b6cdc5;font-size:8pt;color:#164a4d}
