@@ -670,8 +670,16 @@
         const centerYear = view.mode === "calendar" || endYear === view.year
             ? String(view.year)
             : `${view.year}–${String(endYear).slice(-2)}`;
-        svg.push(`<text x="320" y="310" class="year-wheel-center-title year-wheel-year-edit" text-anchor="middle" role="button" tabindex="0" data-year-edit aria-label="Ändra ${view.mode === "calendar" ? "kalenderår" : "verksamhetsårets startår"}, ${view.year}">${centerYear}</text>`);
-        svg.push(`<text x="320" y="334" class="year-wheel-center-subtitle" text-anchor="middle">${view.mode === "calendar" ? "Kalenderår" : "Verksamhetsår"}</text></svg>`);
+        svg.push(`<text x="320" y="320" class="year-wheel-center-title year-wheel-year-edit" text-anchor="middle" dominant-baseline="central" role="button" tabindex="0" data-year-edit aria-label="Ändra ${view.mode === "calendar" ? "kalenderår" : "verksamhetsårets startår"}, ${view.year}">${centerYear}</text>`);
+        svg.push(`<text x="320" y="292" class="year-wheel-center-subtitle" text-anchor="middle">${view.mode === "calendar" ? "Kalenderår" : "Verksamhetsår"}</text>`);
+        [-1, 1].forEach(step => {
+            const x = 320 + step * 20;
+            const y = 350;
+            const disabled = view.year + step < 1900 || view.year + step > 2200;
+            const label = step < 0 ? "Föregående år" : "Nästa år";
+            svg.push(`<g class="year-wheel-year-step" data-year-step="${step}" transform="translate(${x} ${y})" role="button" tabindex="${disabled ? "-1" : "0"}" aria-label="${label}" aria-disabled="${disabled}"><title>${label}</title><circle r="12"/><path d="M ${-step * 2} -4 L ${step * 2} 0 L ${-step * 2} 4"/></g>`);
+        });
+        svg.push("</svg>");
         container.innerHTML = svg.join("");
         container.querySelectorAll("[data-month-create]").forEach(mark => {
             mark.addEventListener("click", () => openEventForm("", mark.dataset.monthCreate, mark.dataset.ringCreate));
@@ -689,6 +697,23 @@
                 event.preventDefault();
                 openYearForm();
             }
+        });
+        container.querySelectorAll("[data-year-step]").forEach(button => {
+            const changeYear = () => {
+                const year = view.year + Number(button.dataset.yearStep);
+                if (year < 1900 || year > 2200) return;
+                view.year = year;
+                saveViewPreferences();
+                render();
+                container.querySelector(`[data-year-step="${button.dataset.yearStep}"]`)?.focus();
+            };
+            button.addEventListener("click", changeYear);
+            button.addEventListener("keydown", event => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    changeYear();
+                }
+            });
         });
         container.querySelectorAll("[data-event-edit]").forEach(mark => {
             mark.addEventListener("click", () => openEventForm(mark.dataset.eventEdit));

@@ -73,6 +73,13 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
                     return element(`${id} ${selector}`);
                 },
                 querySelectorAll(selector) {
+                    if (selector === "[data-year-step]") {
+                        return [...this.innerHTML.matchAll(/data-year-step="(-?1)"/g)].map(([, step]) => {
+                            const button = element(`${id} [data-year-step="${step}"]`);
+                            button.dataset.yearStep = step;
+                            return button;
+                        });
+                    }
                     if (selector === "[data-month-create]") {
                         return [...this.innerHTML.matchAll(/data-month-create="([^"]+)" data-ring-create="([^"]+)"/g)].map(([, date, ringId]) => {
                             const mark = element(`${id} month ${date}${ringId === "arrangements" ? "" : ` ring ${ringId}`}`);
@@ -834,10 +841,44 @@ test("month sectors preselect the clicked ring including its white label band", 
     assert.deepEqual(page.errors, []);
 });
 
+test("year arrows change the personal year while locked and respect year limits", async () => {
+    const page = createPage({ wheels: [wheel()], leader: false });
+    await settle();
+    const chart = page.elements.get("yearWheelChart");
+    const [previous, next] = chart.querySelectorAll("[data-year-step]");
+    assert.match(chart.innerHTML, /data-year-step="-1" transform="translate\(300 350\)"/);
+    assert.match(chart.innerHTML, /data-year-step="1" transform="translate\(340 350\)"/);
+    assert.match(chart.innerHTML, /y="292" class="year-wheel-center-subtitle"[^>]*>Kalenderår</);
+    previous.handlers.click();
+    assert.equal(page.preferences().year, 2025);
+    next.handlers.keydown({ key: "Enter", preventDefault() {} });
+    assert.equal(page.preferences().year, 2026);
+    next.handlers.keydown({ key: " ", preventDefault() {} });
+    assert.equal(page.preferences().year, 2027);
+    assert.equal(page.elements.get("yearWheelYear").value, 2027);
+
+    page.elements.get("yearWheelMode").value = "operational";
+    page.elements.get("yearWheelMode").handlers.change();
+    assert.match(chart.innerHTML, /data-year-step="-1" transform="translate\(300 350\)"/);
+    assert.match(chart.innerHTML, /data-year-step="1" transform="translate\(340 350\)"/);
+    assert.match(chart.innerHTML, /y="292" class="year-wheel-center-subtitle"[^>]*>Verksamhetsår</);
+    for (const [year, button, step] of [[1900, previous, -1], [2200, next, 1]]) {
+        page.elements.get("yearWheelYear").value = year;
+        page.elements.get("yearWheelYear").handlers.change();
+        button.handlers.click();
+        assert.equal(page.preferences().year, year);
+        assert.match(chart.innerHTML, new RegExp(`data-year-step="${step}"[^>]*aria-disabled="true"`));
+    }
+    assert.equal(page.requests.filter(request => request.operation !== "select").length, 0);
+    assert.deepEqual(page.errors, []);
+});
+
 test("center year opens a dialog and changes the personal year without write permission", async () => {
     const page = createPage({ wheels: [wheel()], leader: false });
     await settle();
     const yearButton = page.elements.get("yearWheelChart [data-year-edit]");
+    assert.match(page.elements.get("yearWheelChart").innerHTML, /<text x="320" y="320" class="year-wheel-center-title year-wheel-year-edit" text-anchor="middle" dominant-baseline="central"/);
+    assert.match(page.elements.get("yearWheelChart").innerHTML, /<text x="320" y="292" class="year-wheel-center-subtitle"/);
     assert.match(page.elements.get("yearWheelChart").innerHTML, /role="button" tabindex="0" data-year-edit/);
     yearButton.handlers.click();
     assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Ändra år");

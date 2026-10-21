@@ -6451,6 +6451,13 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
 .year-wheel-overflow-edit { flex: 0 0 auto; color: #176b72; font-size: .78rem; font-weight: 600; }
 .year-wheel-center-title { fill: #003660; font-size: 23px; font-weight: 700; }
 .year-wheel-center-subtitle { fill: #64748b; font-size: 11px; }
+.year-wheel-year-step { color: #003660; cursor: pointer; }
+.year-wheel-year-step circle { fill: transparent; }
+.year-wheel-year-step path { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+.year-wheel-year-step:hover circle, .year-wheel-year-step:focus-visible circle { fill: #e7eff8; }
+.year-wheel-year-step:focus-visible { outline: none; }
+.year-wheel-year-step:focus-visible circle { stroke: currentColor; }
+.year-wheel-year-step[aria-disabled="true"] { opacity: .35; cursor: default; }
 .year-wheel-empty-center { fill: #f3f6f9; }
 .year-wheel-events-section h2 { margin-bottom: 12px; }
 .year-wheel-events { display: grid; gap: 8px; }
