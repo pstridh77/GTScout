@@ -57,7 +57,7 @@ På skärmar upp till 600 px visas Detaljer som standard, även när skärmen v�
 
 Växla mellan Översikt och Detaljer med knapparna till vänster under årshjulets rubrik och datum, i samma stil som utvecklingstrappan. Detaljer (standard) förstorar hjulet upp till 1 100 px för tydligare ringar och texter, med vanlig sidrullning. Översikt anpassar storleken efter tillgänglig bredd upp till 750 px, utan begränsning utifrån skärmhöjden. Mobilvyn begränsas alltid av tillgänglig bredd. Valet sparas som en personlig vyinställning i webbläsaren och ändrar inte kårens data.
 
-Ringfiltren finns i dropdownen Visa ringar i verktygsfältet. Den är stängd från början och innehåller samma val för enskilda ringar och avdelningar. Listan öppnas under sitt filterfält utan att ändra verktygsfältets layout och kan rullas vid många ringar. Årshjulet och händelselistan använder hela innehållsbredden utan sidopanel.
+Ringfiltren finns i dropdownen Visa ringar i verktygsfältet. Den är stängd från början och innehåller samma val för enskilda ringar och avdelningar. Listan öppnas under sitt filterfält utan att ändra verktygsfältets layout och kan rullas vid många ringar. Händelselistan använder samma layout i Översikt och Detaljer: datum först, sedan händelsenamn, ring och övrig information, med en vänsterkant i ringens färg. I Detaljer ligger listan under hjulet med vanlig sidrullning. I Översikt på skärmar från 1200 px ligger listan till höger, med samma höjd som hjulkortet och intern rullning; på mindre skärmar ligger den under.
 
 På skärmar upp till 600 px finns Fäll ihop/Visa ovanför händelselistan, i samma stil som för märkeskategorierna. Knappen fäller ihop eller öppnar alla månader och är synkroniserad med motsvarande val i hamburgermenyn.
 

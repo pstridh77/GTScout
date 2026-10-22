@@ -1023,9 +1023,15 @@
                 const eventActionIcon = canEdit()
                     ? `<path d="m16 3 5 5L9 20l-6 1 1-6L16 3Z"/><path d="m14 5 5 5"/>`
                     : `<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>`;
-                return `<article class="year-wheel-event-card${event.needs_review ? " year-wheel-event-card--needs-review" : ""}">
-                    <span class="year-wheel-event-card-swatch" style="--ring-color:${getEventColor(event, ring)}"></span>
-                    <div class="year-wheel-event-card-main"><strong>${escapeHtml(event.title)}${event.needs_review ? ` <span class="year-wheel-review-badge">Kontrollera kopia</span>` : ""}</strong><span>${escapeHtml(ring.name)} · ${escapeHtml(formatDate(event.start_date, { day: "numeric", month: "long", year: "numeric" }))}${event.end_date !== event.start_date ? ` – ${escapeHtml(formatDate(event.end_date, { day: "numeric", month: "long", year: "numeric" }))}` : ""}</span>${event.responsible ? `<small>Ansvarig: ${escapeHtml(event.responsible)}</small>` : ""}${event.location ? `<small>Plats: ${escapeHtml(event.location)}</small>` : ""}${event.notes ? `<small class="year-wheel-event-notes">${escapeHtml(event.notes)}</small>` : ""}</div>
+                const shortDate = `${formatDate(event.start_date, { day: "numeric", month: "short" })}${event.end_date !== event.start_date
+                    ? `–${formatDate(event.end_date, { day: "numeric", month: "short" })}` : ""}`;
+                return `<article class="year-wheel-event-card${event.needs_review ? " year-wheel-event-card--needs-review" : ""}" style="--event-ring-color:${escapeHtml(ring.color)}">
+                    <span class="year-wheel-event-card-date">${escapeHtml(shortDate)}</span>
+                    <div class="year-wheel-event-card-main">
+                        <strong>${escapeHtml(event.title)}${event.needs_review ? ` <span class="year-wheel-review-badge">Kontrollera kopia</span>` : ""}</strong>
+                        <span class="year-wheel-event-card-ring">${escapeHtml(ring.name)}</span>
+                        <span class="year-wheel-event-card-info">${event.responsible ? `<span>Ansvarig: ${escapeHtml(event.responsible)}</span>` : ""}${event.location ? `<span>Plats: ${escapeHtml(event.location)}</span>` : ""}${event.notes ? `<span class="year-wheel-event-notes">${escapeHtml(event.notes)}</span>` : ""}</span>
+                    </div>
                     <div class="year-wheel-event-actions">${canEdit() && event.needs_review ? `<button class="btn-secondary" type="button" data-mark-event-reviewed="${escapeHtml(event.id)}" title="Markera kopian som kontrollerad">Kontrollerad</button>` : ""}${canEdit() ? `<button class="btn-secondary" type="button" data-copy-event="${escapeHtml(event.id)}" aria-label="Kopiera ${escapeHtml(event.title)} till nästa år" title="Kopiera till nästa år"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"></rect><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path></svg></button>` : ""}<button class="btn-secondary" type="button" data-edit-event="${escapeHtml(event.id)}" aria-label="${eventAction} ${escapeHtml(event.title)}" title="${eventAction}"><svg viewBox="0 0 24 24" aria-hidden="true">${eventActionIcon}</svg></button></div>
                 </article>`;
             }).join("");
@@ -1048,6 +1054,7 @@
 
     function render() {
         document.body.classList.toggle("year-wheel-page--details", view.chartMode === "details");
+        document.body.classList.toggle("year-wheel-page--overview", view.chartMode === "overview");
         byId("yearWheelOverviewBtn").setAttribute("aria-pressed", String(view.chartMode === "overview"));
         byId("yearWheelDetailsBtn").setAttribute("aria-pressed", String(view.chartMode === "details"));
         byId("yearWheelChart").classList.toggle("year-wheel-chart--overview", view.chartMode === "overview");
@@ -1055,6 +1062,7 @@
         const previousId = selectedWheelId;
         selector.innerHTML = wheels.map(wheel => `<option value="${escapeHtml(wheel.id)}">${escapeHtml(wheel.name)}</option>`).join("");
         if (!wheels.length) {
+            updateOverviewEventListHeight();
             selectedWheelId = "";
             byId("yearWheelDisplayName").textContent = "Inget årshjul valt";
             byId("yearWheelDateRange").textContent = "";
@@ -1105,6 +1113,18 @@
             && event.start_date <= endKey && event.end_date >= startKey);
         renderWheelChart(wheel, shownRings, visibleEvents, range);
         renderEventList(wheel, visibleEvents);
+        updateOverviewEventListHeight();
+    }
+
+    function updateOverviewEventListHeight() {
+        const eventSection = byId("yearWheelEventsSection");
+        const shouldMatchChart = view.chartMode === "overview" && window.innerWidth >= 1200;
+        if (!shouldMatchChart) {
+            eventSection.style.height = "";
+            return;
+        }
+        const chartHeight = byId("yearWheelChartCard").getBoundingClientRect().height;
+        eventSection.style.height = `${chartHeight}px`;
     }
 
     function openModal(title, formFields, mode, itemId = "") {
@@ -1998,6 +2018,7 @@
             if (event.target === byId("yearWheelArrangementSyncModal")) arrangementSyncChoiceHandlers?.cancel();
         });
         byId("yearWheelForm").addEventListener("submit", submitForm);
+        window.addEventListener("resize", updateOverviewEventListHeight);
         byId("yearWheelFormFields").addEventListener("change", event => {
             const groupToggle = event.target.closest?.("[data-config-ring-group]");
             if (groupToggle && modalMode === "wheel" && wheelDraft) {

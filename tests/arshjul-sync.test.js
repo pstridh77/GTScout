@@ -28,9 +28,10 @@ function arrangement(fields = {}) {
     };
 }
 
-function createPage({ wheels = [], arrangements = [], localWheels = [], localArrangements = [], signedIn = true, leader = true, admin = false, search = "", handleRequest, chartMode } = {}) {
+function createPage({ wheels = [], arrangements = [], localWheels = [], localArrangements = [], signedIn = true, leader = true, admin = false, search = "", handleRequest, chartMode, viewportWidth = 1024 } = {}) {
     const elements = new Map();
     const listeners = [];
+    const windowListeners = {};
     const requests = [];
     const errors = [];
     const clipboardWrites = [];
@@ -54,7 +55,7 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
             const classes = new Set();
             elements.set(id, {
                 value: "", textContent: "", dataset: {}, handlers: {}, style: {},
-                getBoundingClientRect() { return { top: 200, bottom: 236, left: 500, height: 36 }; },
+                getBoundingClientRect() { return { top: 200, bottom: 236, left: 500, height: id === "yearWheelChartCard" ? 720 : 36 }; },
                 set innerHTML(value) {
                     if (id === "yearWheelChart") {
                         renderCount++;
@@ -165,7 +166,8 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
             GTScoutYearWheelPrint: { openDocument: options => printCalls.push(options) },
             location: { search, pathname: "/arshjul.html", href: "https://example.test/arshjul.html" },
             navigator: { clipboard: { async writeText(value) { clipboardWrites.push(value); } } },
-             addEventListener() {}, confirm: () => true 
+             innerWidth: viewportWidth,
+             addEventListener(name, callback) { windowListeners[name] = callback; }, confirm: () => true
         },
         document: {
             readyState: "complete", getElementById: element, querySelectorAll: () => [], querySelector: () => null,
@@ -194,6 +196,10 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
         arrangements: context.window.GTScoutArrangements,
         stored: () => JSON.parse(storage.get("gtscout_arshjul")),
         preferences: () => JSON.parse(storage.get("gtscout_arshjul_view")),
+        resize(width) {
+            context.window.innerWidth = width;
+            windowListeners.resize?.();
+        },
         changeAuth(nextUserId, nextKarId, nextLeader = isLeader) {
             userId = nextUserId;
             karId = nextKarId;
@@ -1106,6 +1112,7 @@ test("chart display mode defaults to details and persists overview without datab
     assert.equal(overview.attributes["aria-pressed"], "false");
     assert.equal(chart.classList.contains("year-wheel-chart--overview"), false);
     assert.equal(page.elements.get("body").classList.contains("year-wheel-page--details"), true);
+    assert.equal(page.elements.get("body").classList.contains("year-wheel-page--overview"), false);
     assert.match(chart.innerHTML, /viewBox="24 24 592 592"/);
     assert.match(chart.innerHTML, /class="year-wheel-ring-label" dominant-baseline="central"/);
     assert.match(chart.innerHTML, /A 244\.00 244\.00 0 0 1/);
@@ -1116,11 +1123,13 @@ test("chart display mode defaults to details and persists overview without datab
     assert.equal(details.attributes["aria-pressed"], "false");
     assert.equal(chart.classList.contains("year-wheel-chart--overview"), true);
     assert.equal(page.elements.get("body").classList.contains("year-wheel-page--details"), false);
+    assert.equal(page.elements.get("body").classList.contains("year-wheel-page--overview"), true);
     assert.equal(page.preferences().chartMode, "overview");
     details.handlers.click();
     assert.equal(chart.classList.contains("year-wheel-chart--overview"), false);
     assert.equal(page.preferences().chartMode, "details");
     assert.equal(page.elements.get("body").classList.contains("year-wheel-page--details"), true);
+    assert.equal(page.elements.get("body").classList.contains("year-wheel-page--overview"), false);
     assert.equal(page.requests.filter(request => request.operation !== "select").length, 0);
     assert.deepEqual(page.errors, []);
 });
@@ -1133,9 +1142,80 @@ for (const mode of ["overview", "details", "invalid"]) {
         assert.equal(page.elements.get("yearWheelDetailsBtn").attributes["aria-pressed"], String(mode !== "overview"));
         assert.equal(page.elements.get("yearWheelChart").classList.contains("year-wheel-chart--overview"), mode === "overview");
         assert.equal(page.elements.get("body").classList.contains("year-wheel-page--details"), mode !== "overview");
+        assert.equal(page.elements.get("body").classList.contains("year-wheel-page--overview"), mode === "overview");
         assert.deepEqual(page.errors, []);
     });
 }
+
+test("overview places a compact event list beside the wheel only on wide screens", () => {
+    const css = readScript("../css/style.css");
+    assert.match(css, /@media \(min-width: 1200px\)\s*\{\s*\.year-wheel-page--overview \.year-wheel-layout\s*\{\s*grid-template-columns:\s*minmax\(0,\s*2fr\)\s+minmax\(300px,\s*1fr\);/);
+    assert.match(css, /\.year-wheel-page--overview \.year-wheel-main\s*\{\s*display:\s*contents;/);
+    assert.match(css, /\.year-wheel-page--overview \.year-wheel-events-section\s*\{\s*display:\s*grid;\s*grid-template-rows:\s*auto auto minmax\(0,\s*1fr\);/);
+    assert.match(css, /\.year-wheel-page--overview \.year-wheel-events\s*\{\s*min-height:\s*0;\s*overflow-y:\s*auto;/);
+    assert.match(css, /\.year-wheel-page--overview \.year-wheel-events \.recipe-meal-summary\s*\{\s*position:\s*static;/);
+    assert.match(css, /\.year-wheel-layout\s*\{\s*display:\s*grid;\s*grid-template-columns:\s*minmax\(0,\s*1fr\);/);
+});
+
+test("overview event list matches wheel height on wide screens and clears the height when narrow", async () => {
+    const page = createPage({ wheels: [wheel()], chartMode: "overview", viewportWidth: 1280 });
+    await settle();
+    const eventSection = page.elements.get("yearWheelEventsSection");
+    assert.equal(eventSection.style.height, "720px");
+    page.resize(1100);
+    assert.equal(eventSection.style.height, "");
+    page.resize(1440);
+    assert.equal(eventSection.style.height, "720px");
+    page.elements.get("yearWheelDetailsBtn").handlers.click();
+    assert.equal(eventSection.style.height, "");
+    assert.deepEqual(page.errors, []);
+});
+
+test("overview event cards show date before title, ring, and details", async () => {
+    const configuredWheel = wheel();
+    configuredWheel.events = [{
+        id: "overview-event", ring_id: "arrangements", title: "Hösthajk",
+        start_date: "2026-10-20", end_date: "2026-10-21",
+        responsible: "Anna", location: "Skogen", notes: "Samling vid stugan"
+    }];
+    const overviewPage = createPage({ wheels: [configuredWheel], chartMode: "overview" });
+    await settle();
+    const overviewMarkup = overviewPage.elements.get("yearWheelEvents").innerHTML;
+    const dateIndex = overviewMarkup.indexOf("year-wheel-event-card-date");
+    const titleIndex = overviewMarkup.indexOf("<strong>Hösthajk");
+    const ringIndex = overviewMarkup.indexOf("year-wheel-event-card-ring");
+    const detailsIndex = overviewMarkup.indexOf("year-wheel-event-card-info");
+    assert.ok(dateIndex >= 0 && dateIndex < titleIndex);
+    assert.ok(titleIndex < ringIndex && ringIndex < detailsIndex);
+    assert.match(overviewMarkup, /20 okt\.\s*–21 okt\./);
+    assert.match(overviewMarkup, /Samling vid stugan/);
+
+    const detailsPage = createPage({ wheels: [configuredWheel], chartMode: "details" });
+    await settle();
+    const detailsMarkup = detailsPage.elements.get("yearWheelEvents").innerHTML;
+    const css = readScript("../css/style.css");
+    assert.equal(detailsMarkup, overviewMarkup);
+    assert.match(css, /\.year-wheel-event-card\s*\{[^}]*grid-template-columns:\s*58px minmax\(0,\s*1fr\) auto/);
+    assert.equal(detailsPage.elements.get("yearWheelEventsSection").style.height, "");
+    assert.deepEqual(overviewPage.errors, []);
+    assert.deepEqual(detailsPage.errors, []);
+});
+
+test("overview event cards are color-marked by their ring", async () => {
+    const configuredWheel = wheel();
+    configuredWheel.rings.push({ id: "board", name: "Styrelse", color: "#123456" });
+    configuredWheel.events = [
+        { id: "arrangement-event", ring_id: "arrangements", title: "Hösthajk", start_date: "2026-10-20" },
+        { id: "board-event", ring_id: "board", title: "Styrelsemöte", start_date: "2026-10-21" }
+    ];
+    const page = createPage({ wheels: [configuredWheel], chartMode: "overview" });
+    await settle();
+    const markup = page.elements.get("yearWheelEvents").innerHTML;
+    assert.match(markup, /class="year-wheel-event-card" style="--event-ring-color:#398a86"[^]*?Hösthajk/);
+    assert.match(markup, /class="year-wheel-event-card" style="--event-ring-color:#123456"[^]*?Styrelsemöte/);
+    assert.match(readScript("../css/style.css"), /\.year-wheel-event-card\s*\{[^}]*border-left:\s*3px solid var\(--event-ring-color\)/);
+    assert.deepEqual(page.errors, []);
+});
 
 test("changed arrangements automatically update wheels without repeated writes", async () => {
     const page = createPage({ wheels: [wheel()], arrangements: [arrangement()] });
