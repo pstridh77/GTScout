@@ -4629,6 +4629,17 @@ select:focus {
     transition: background 0.15s, color 0.15s;
 }
 
+#yearWheelMenuSettingsTooltip {
+    display: block;
+}
+
+#yearWheelMenuSettingsTooltip .planning-menu-item:disabled {
+    color: #87939d;
+    cursor: not-allowed;
+    opacity: .6;
+    pointer-events: none;
+}
+
 .category-collapse-menu-item {
     display: flex;
     align-items: center;

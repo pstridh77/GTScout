@@ -788,8 +788,13 @@ test("year wheel starts locked and opens events read-only until unlocked", async
 
     const lockButton = page.elements.get("yearWheelEditToggle");
     const addEventButton = page.elements.get("addYearWheelEventBtn");
+    const settingsButton = page.elements.get("yearWheelMenuSettingsBtn");
+    const settingsTooltip = page.elements.get("yearWheelMenuSettingsTooltip");
     assert.equal(lockButton.attributes["aria-pressed"], "false");
     assert.equal(addEventButton.disabled, true);
+    assert.equal(settingsButton.disabled, true);
+    assert.equal(settingsTooltip.classList.contains("hidden"), false);
+    assert.equal(settingsTooltip.title, "Lås upp årshjulet för att kunna ändra inställningar.");
     assert.doesNotMatch(page.elements.get("yearWheelChart").innerHTML, /data-month-create/);
 
     const eventMark = page.elements.get("yearWheelChart").querySelectorAll("[data-event-edit]")[0];
@@ -806,6 +811,8 @@ test("year wheel starts locked and opens events read-only until unlocked", async
     lockButton.handlers.click();
     assert.equal(lockButton.attributes["aria-pressed"], "true");
     assert.equal(addEventButton.disabled, false);
+    assert.equal(settingsButton.disabled, false);
+    assert.equal(settingsTooltip.title, "");
     eventMark.handlers.click();
     assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Redigera händelse");
     assert.deepEqual(page.errors, []);

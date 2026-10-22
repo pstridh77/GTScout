@@ -783,7 +783,13 @@
         byId("yearWheelMenuAddEventBtn").classList.toggle("hidden", sharedView);
         byId("addYearWheelEventBtn").classList.toggle("hidden", sharedView);
         byId("yearWheelMenuAddBtn").classList.toggle("hidden", restrictedUser || sharedView);
-        byId("yearWheelMenuSettingsBtn").classList.toggle("hidden", !currentWheel() || !canEdit());
+        const settingsButton = byId("yearWheelMenuSettingsBtn");
+        const settingsTooltip = byId("yearWheelMenuSettingsTooltip");
+        const settingsLocked = !canEdit();
+        settingsTooltip.classList.toggle("hidden", !wheel || !canWrite());
+        settingsTooltip.title = settingsLocked ? "Lås upp årshjulet för att kunna ändra inställningar." : "";
+        settingsButton.disabled = settingsLocked;
+        settingsButton.title = settingsLocked ? "" : "Inställningar";
         byId("yearWheelMenuCopyEventsBtn").classList.toggle("hidden", !currentWheel() || !canEdit());
         byId("shareYearWheelBtn").classList.toggle("hidden", sharedView || !wheel || wheel.local_only || !window.GTScoutYearWheelSync?.canWrite?.());
     }
