@@ -6595,6 +6595,7 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
     .year-wheel-ring-actions { opacity: 1; }
 }
 @media (max-width: 680px) {
+    .year-wheel-view-toggle { display: none; }
     .year-wheel-page-content { margin: 20px 12px 36px; }
     .year-wheel-page-content .page-hero { align-items: flex-start; flex-direction: column; padding: 24px; }
     .year-wheel-page-content .page-hero h1 { font-size: 2.6rem; }

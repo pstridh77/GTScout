@@ -1150,6 +1150,7 @@ for (const mode of ["overview", "details", "invalid"]) {
 test("overview places a compact event list beside the wheel only on wide screens", () => {
     const css = readScript("../css/style.css");
     assert.match(css, /@media \(min-width: 1200px\)\s*\{\s*\.year-wheel-page--overview \.year-wheel-layout\s*\{\s*grid-template-columns:\s*minmax\(0,\s*2fr\)\s+minmax\(300px,\s*1fr\);/);
+    assert.match(css, /@media \(max-width: 680px\)\s*\{\s*\.year-wheel-view-toggle\s*\{\s*display:\s*none;/);
     assert.match(css, /\.year-wheel-page--overview \.year-wheel-main\s*\{\s*display:\s*contents;/);
     assert.match(css, /\.year-wheel-page--overview \.year-wheel-events-section\s*\{\s*display:\s*grid;\s*grid-template-rows:\s*auto auto minmax\(0,\s*1fr\);/);
     assert.match(css, /\.year-wheel-page--overview \.year-wheel-events\s*\{\s*min-height:\s*0;\s*overflow-y:\s*auto;/);
