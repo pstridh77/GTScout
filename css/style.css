@@ -6549,6 +6549,13 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
 .year-wheel-ring-option--locked input { cursor: not-allowed; }
 .year-wheel-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .year-wheel-ring-color-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 12px; }
+.year-wheel-arrangement-sync { display: flex; align-items: flex-start; gap: 9px; color: #34495e; font-size: .9rem; }
+.year-wheel-arrangement-sync input { flex: 0 0 auto; margin: 3px 0 0; accent-color: #176b72; }
+.year-wheel-arrangement-sync-modal { z-index: 1010; }
+.year-wheel-arrangement-sync-modal-content { display: grid; gap: 14px; width: min(460px, calc(100vw - 32px)); }
+.year-wheel-arrangement-sync-modal-content p { margin: 0; color: #536477; line-height: 1.5; }
+.year-wheel-arrangement-sync-actions { display: grid; gap: 9px; }
+.year-wheel-arrangement-sync-actions button { width: 100%; }
 .year-wheel-form .modal-field { display: grid; gap: 7px; color: #536477; font-size: .84rem; font-weight: 600; }
 .year-wheel-form .modal-field[hidden] { display: none; }
 .year-wheel-form .modal-field input, .year-wheel-form .modal-field select, .year-wheel-form .modal-field textarea { width: 100%; min-width: 0; box-sizing: border-box; padding: 9px; border: 1px solid #c8d5e1; border-radius: 5px; background: #fff; color: #003660; font: inherit; }

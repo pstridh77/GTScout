@@ -374,6 +374,7 @@ for (const isNew of [true, false]) {
         assert.ok(custom);
         assert.equal(custom.color, "#123456");
         assert.equal(custom.color_variant, "custom");
+        assert.equal(custom.sync_arrangements, false);
         assert.equal(saved.rings.length, isNew ? 1 : 2);
         assert.equal(saved.start_month, 3);
         assert.equal(custom.parent_id, "");
@@ -381,6 +382,42 @@ for (const isNew of [true, false]) {
         assert.deepEqual(page.errors, []);
     });
 }
+
+test("new ring named Arrangemang enables sync by default", async () => {
+    const page = createPage({ wheels: [wheel()] });
+    await settle();
+    page.unlockEditing();
+    page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
+    const form = page.elements.get("yearWheelForm");
+    form.values = { name: "wheel", start_month: "8", ring_ids: ["arrangements"] };
+    clickRingAction(page, "add");
+
+    const fields = page.elements.get("yearWheelFormFields");
+    const nameInput = fields.querySelector('[name="name"]');
+    const syncToggle = fields.querySelector('[name="sync_arrangements"]');
+    nameInput.value = "Arrangemang";
+    nameInput.handlers.input();
+    assert.equal(syncToggle.checked, true);
+    nameInput.value = "Styrelse";
+    nameInput.handlers.input();
+    assert.equal(syncToggle.checked, false);
+    syncToggle.checked = true;
+    syncToggle.handlers.change();
+    nameInput.value = "Arrangemang";
+    nameInput.handlers.input();
+    assert.equal(syncToggle.checked, true);
+
+    form.values = { name: "Arrangemang", color: "#123456", parent_id: "", sync_arrangements: "on" };
+    form.handlers.submit({ preventDefault() {}, currentTarget: form });
+    const configuredMarkup = fields.innerHTML;
+    const ringIds = [...configuredMarkup.matchAll(/name="ring_ids" value="([^"]+)"[^>]*checked/g)].map(match => match[1]);
+    form.values = { name: "wheel", start_month: "8", ring_ids: ringIds };
+    form.handlers.submit({ preventDefault() {}, currentTarget: form });
+    await settle();
+
+    assert.equal(page.tables.arshjul[0].data.rings.find(ring => ring.id !== "arrangements").sync_arrangements, true);
+    assert.deepEqual(page.errors, []);
+});
 
 test("legacy department grouping migrates into an editable root and child rings", async () => {
     const configuredWheel = wheel("legacy", 3);
@@ -1103,6 +1140,7 @@ for (const mode of ["overview", "details", "invalid"]) {
 test("changed arrangements automatically update wheels without repeated writes", async () => {
     const page = createPage({ wheels: [wheel()], arrangements: [arrangement()] });
     await settle();
+    assert.equal(page.tables.arshjul[0].data.rings[0].sync_arrangements, true);
     const before = page.requests.filter(request => request.table === "arshjul" && request.operation === "upsert").length;
     const input = arrangement({ title: "T".repeat(121), notes: "N".repeat(2001) });
     await page.arrangements.save(input);
@@ -1114,6 +1152,74 @@ test("changed arrangements automatically update wheels without repeated writes",
     assert.equal(page.requests.filter(request => request.table === "arshjul" && request.operation === "upsert").length, before + 1);
     assert.deepEqual(page.errors, []);
 });
+
+for (const action of ["keep", "delete", "cancel"]) {
+    test(`turning off arrangement sync can ${action === "keep" ? "keep linked events as regular events" : "remove linked events"}`, async () => {
+        const page = createPage({ wheels: [wheel()], arrangements: [arrangement()] });
+        await settle();
+        assert.equal(page.tables.arshjul[0].data.events[0].source_arrangement_id, "source");
+        page.unlockEditing();
+        page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
+        const form = page.elements.get("yearWheelForm");
+        form.values = { name: "wheel", start_month: "8", ring_ids: ["arrangements"] };
+        clickRingAction(page, "edit", "arrangements");
+        const ringForm = page.elements.get("yearWheelFormFields").innerHTML;
+        assert.match(ringForm, /name="sync_arrangements" type="checkbox" checked/);
+        assert.match(ringForm, /name="arrangement_sync_action" value=""/);
+        assert.doesNotMatch(ringForm, /<select[^>]*name="arrangement_sync_action"/);
+        const syncToggle = page.elements.get("yearWheelFormFields").querySelector('[name="sync_arrangements"]');
+        syncToggle.checked = true;
+        syncToggle.checked = false;
+        syncToggle.handlers.change();
+        const choicePopup = page.elements.get("yearWheelArrangementSyncModal");
+        assert.equal(choicePopup.classList.contains("hidden"), false);
+        assert.match(page.elements.get("yearWheelArrangementSyncMessage").textContent, /1 synkad händelse/);
+        const choiceButton = page.elements.get({
+            keep: "keepYearWheelArrangementEventsBtn",
+            delete: "deleteYearWheelArrangementEventsBtn",
+            cancel: "cancelYearWheelArrangementSyncBtn"
+        }[action]);
+        choiceButton.handlers.click();
+        assert.equal(choicePopup.classList.contains("hidden"), true);
+        assert.equal(syncToggle.checked, action === "cancel");
+        const selectedAction = page.elements.get('yearWheelFormFields [name="arrangement_sync_action"]');
+        assert.equal(selectedAction.value, action === "cancel" ? "" : action);
+        form.values = {
+            name: "Arrangemang", color: "#398a86", parent_id: "",
+            children_display: "grouped", arrangement_sync_action: selectedAction.value,
+            ...(action === "cancel" ? { sync_arrangements: "on" } : {})
+        };
+        form.handlers.submit({ preventDefault() {}, currentTarget: form });
+        form.values = { name: "wheel", start_month: "8", ring_ids: ["arrangements"] };
+        form.handlers.submit({ preventDefault() {}, currentTarget: form });
+        await settle();
+
+        const saved = page.tables.arshjul[0].data;
+        assert.equal(saved.rings[0].sync_arrangements, action === "cancel");
+        if (action === "keep") {
+            assert.equal(saved.events.length, 1);
+            assert.equal(saved.events[0].source_arrangement_id, "");
+        } else if (action === "delete") {
+            assert.equal(saved.events.length, 0);
+        } else {
+            assert.equal(saved.events.length, 1);
+            assert.equal(saved.events[0].source_arrangement_id, "source");
+        }
+        const writesBeforeSourceChange = page.requests.filter(request =>
+            request.table === "arshjul" && request.operation === "upsert"
+        ).length;
+        await page.arrangements.save(arrangement({ title: "Updated after sync was disabled" }));
+        await settle();
+        assert.equal(page.requests.filter(request =>
+            request.table === "arshjul" && request.operation === "upsert"
+        ).length, writesBeforeSourceChange + Number(action === "cancel"));
+        assert.equal(page.tables.arshjul[0].data.events.length, action === "delete" ? 0 : 1);
+        if (action === "cancel") {
+            assert.equal(page.tables.arshjul[0].data.events[0].title, "Updated after sync was disabled");
+        }
+        assert.deepEqual(page.errors, []);
+    });
+}
 
 test("local wheels migrate and sync long texts without a database login", async () => {
     const page = createPage({

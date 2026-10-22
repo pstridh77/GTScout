@@ -46,6 +46,7 @@
     let wheelDraft = null;
     let draftRingIds = new Set();
     let draggedRingId = "";
+    let arrangementSyncChoiceHandlers = null;
     const collapsedEventMonths = new Set();
 
     function escapeHtml(value) {
@@ -87,7 +88,10 @@
             color: /^#[0-9a-f]{6}$/i.test(ring?.color) ? ring.color : COLORS[0],
             color_variant: ["standard", "light", "custom"].includes(ring?.color_variant) ? ring.color_variant : "custom",
             parent_id: String(ring?.parent_id || ""),
-            children_display: ring?.children_display === "individual" ? "individual" : "grouped"
+            children_display: ring?.children_display === "individual" ? "individual" : "grouped",
+            sync_arrangements: typeof ring?.sync_arrangements === "boolean"
+                ? ring.sync_arrangements
+                : String(ring?.name || "").trim().toLocaleLowerCase("sv") === "arrangemang"
         })).filter(ring => ring.name) : [];
         const ringsById = new Map(rings.map(ring => [ring.id, ring]));
         rings.forEach(ring => {
@@ -298,11 +302,12 @@
     }
 
     function syncArrangementEvents(wheel, arrangements) {
-        const ring = wheel.rings.find(item => item.name.trim().toLocaleLowerCase("sv") === "arrangemang");
-        if (!ring) return null;
+        const rings = wheel.rings.filter(ring => ring.sync_arrangements
+            ?? String(ring.name || "").trim().toLocaleLowerCase("sv") === "arrangemang");
+        if (!rings.length) return null;
         const events = [...wheel.events];
         let changed = false;
-        arrangements.forEach(arrangement => {
+        rings.forEach(ring => arrangements.forEach(arrangement => {
             const title = normalizeText(arrangement?.title, 120);
             const startDate = String(arrangement?.start_date || "");
             const endDate = String(arrangement?.end_date || startDate);
@@ -323,7 +328,7 @@
                 location: Boolean(location),
                 notes: Boolean(notes)
             };
-            const index = events.findIndex(event => event.source_arrangement_id === arrangementId);
+            const index = events.findIndex(event => event.source_arrangement_id === arrangementId && event.ring_id === ring.id);
             if (index < 0) {
                 events.push({
                     id: id(),
@@ -367,7 +372,7 @@
                 && Boolean(previousSources.notes) === sourceFields.notes) return;
             events[index] = updated;
             changed = true;
-        });
+        }));
         return changed ? normalizeWheel({ ...wheel, events }) : null;
     }
 
@@ -1124,6 +1129,8 @@
     }
 
     function closeModal() {
+        byId("yearWheelArrangementSyncModal").classList.add("hidden");
+        arrangementSyncChoiceHandlers = null;
         if (modalMode === "ring" && wheelDraft) {
             renderWheelDraft();
             return;
@@ -1318,7 +1325,8 @@
             color,
             color_variant: DEPARTMENT_RING_COLORS[ringName] ? "standard" : "custom",
             parent_id: parent?.id || "",
-            children_display: "grouped"
+            children_display: "grouped",
+            sync_arrangements: ringName.trim().toLocaleLowerCase("sv") === "arrangemang"
         };
     }
 
@@ -1376,6 +1384,9 @@
         if (!wheel || !canEdit()) return;
         const ring = wheel.rings.find(item => item.id === ringId);
         const eventCount = ring ? getRingEventCount(wheel.events, ring.id) : 0;
+        const linkedEvents = ring
+            ? wheel.events.filter(event => event.ring_id === ring.id && event.source_arrangement_id)
+            : [];
         const hasChildren = ring && wheel.rings.some(item => item.parent_id === ring.id);
         const parents = wheel.rings.filter(item => !item.parent_id && item.id !== ringId);
         const parentOptions = `<option value="" ${!ring?.parent_id && !parentId ? "selected" : ""}>Ingen, skapa som ring</option>${parents.map(parent => `<option value="${escapeHtml(parent.id)}" ${(ring?.parent_id || parentId) === parent.id ? "selected" : ""}>${escapeHtml(parent.name)}</option>`).join("")}`;
@@ -1383,6 +1394,8 @@
             <label class="modal-field"><span>Namn på ringen</span><input name="name" required maxlength="60" value="${escapeHtml(ring?.name || "")}" placeholder="Till exempel Styrelse"></label>
             <label class="modal-field"><span>Placering</span><select name="parent_id" ${hasChildren ? "disabled title=\"Flytta upp eller ta bort underringarna först\"" : ""}>${parentOptions}</select>${hasChildren ? `<input type="hidden" name="parent_id" value="">` : ""}</label>
             ${!ring?.parent_id ? `<label class="modal-field"><span>Visa underringar</span><select name="children_display"><option value="grouped" ${ring?.children_display !== "individual" ? "selected" : ""}>Summera händelser i ringen</option><option value="individual" ${ring?.children_display === "individual" ? "selected" : ""}>Visa underringar separat</option></select></label>` : ""}
+            <label class="year-wheel-arrangement-sync"><input name="sync_arrangements" type="checkbox" ${ring?.sync_arrangements ?? String(ring?.name || "").trim().toLocaleLowerCase("sv") === "arrangemang" ? "checked" : ""}><span>Synka arrangemang automatiskt till den här ringen</span></label>
+            ${linkedEvents.length ? `<input type="hidden" name="arrangement_sync_action" value="">` : ""}
             <label class="modal-field" data-ring-color-variant${DEPARTMENT_RING_COLORS[ring?.name || ""] ? "" : " hidden"}><span>Avdelningsfärg</span><select name="color_variant"><option value="standard" ${ring?.color_variant === "standard" || !ring?.color_variant && DEPARTMENT_RING_COLORS[ring?.name || ""] ? "selected" : ""}>Standardfärg</option><option value="light" ${ring?.color_variant === "light" ? "selected" : ""}>Ljusare alternativfärg</option><option value="custom" ${ring?.color_variant === "custom" ? "selected" : ""}>Egen färg</option></select></label>
             <label class="modal-field" data-ring-custom-color${DEPARTMENT_RING_COLORS[ring?.name || ""] && ring?.color_variant !== "custom" ? " hidden" : ""}><span>Färg</span><input name="color" type="color" value="${escapeHtml(ring?.color || DEPARTMENT_RING_COLORS[ring?.name || ""]?.standard || COLORS[wheel.rings.length % COLORS.length])}"></label>
             ${eventCount ? `<p class="detail-note-warning">Ringen har ${eventCount} händelser. Flytta eller ta bort dem innan ringen tas bort.</p>` : ""}
@@ -1402,7 +1415,42 @@
         const colorInput = byId("yearWheelFormFields").querySelector('[name="color"]');
         const colorVariantField = byId("yearWheelFormFields").querySelector("[data-ring-color-variant]");
         const customColorField = byId("yearWheelFormFields").querySelector("[data-ring-custom-color]");
+        const syncArrangementsInput = byId("yearWheelFormFields").querySelector('[name="sync_arrangements"]');
+        const syncAction = byId("yearWheelFormFields").querySelector('[name="arrangement_sync_action"]');
+        let syncSettingTouched = Boolean(ring);
+        syncArrangementsInput.addEventListener("change", () => {
+            syncSettingTouched = true;
+        });
+        syncArrangementsInput.addEventListener("change", () => {
+            if (syncArrangementsInput.checked || !linkedEvents.length) {
+                if (syncAction) syncAction.value = "";
+                return;
+            }
+            const popup = byId("yearWheelArrangementSyncModal");
+            byId("yearWheelArrangementSyncMessage").textContent =
+                `Det finns ${linkedEvents.length} ${linkedEvents.length === 1 ? "synkad händelse" : "synkade händelser"} i den här ringen. Välj vad som ska hända när synkningen stängs av.`;
+            arrangementSyncChoiceHandlers = {
+                choose(action) {
+                    if (syncAction) syncAction.value = action;
+                    popup.classList.add("hidden");
+                    arrangementSyncChoiceHandlers = null;
+                    syncArrangementsInput.focus();
+                },
+                cancel() {
+                    syncArrangementsInput.checked = true;
+                    if (syncAction) syncAction.value = "";
+                    popup.classList.add("hidden");
+                    arrangementSyncChoiceHandlers = null;
+                    syncArrangementsInput.focus();
+                }
+            };
+            popup.classList.remove("hidden");
+            byId("keepYearWheelArrangementEventsBtn").focus();
+        });
         const updateDepartmentColor = () => {
+            if (!ring && !syncSettingTouched) {
+                syncArrangementsInput.checked = nameInput.value.trim().toLocaleLowerCase("sv") === "arrangemang";
+            }
             const palette = DEPARTMENT_RING_COLORS[nameInput.value.trim()];
             colorVariantField.hidden = !palette;
             if (!palette) {
@@ -1651,7 +1699,8 @@
                 ...wheel,
                 name,
                 start_month: Number.parseInt(value.start_month, 10),
-                rings
+                rings,
+                events: wheelDraft?.events || wheel.events
             });
             wheels = wheels.map(item => item.id === wheel.id ? updated : item);
             selectedRingIds = new Set([...selectedRingIds].filter(ringId => selectedIds.has(ringId)));
@@ -1723,14 +1772,32 @@
                 color: palette && variant !== "custom" ? palette[variant] : value.color,
                 color_variant: variant,
                 parent_id: parentId,
-                children_display: value.children_display === "individual" ? "individual" : "grouped"
+                children_display: value.children_display === "individual" ? "individual" : "grouped",
+                sync_arrangements: value.sync_arrangements === "on"
             };
+            const linkedEvents = index < 0 ? [] : targetWheel.events.filter(event =>
+                event.ring_id === editingId && event.source_arrangement_id
+            );
+            let events = targetWheel.events;
+            if (index >= 0 && targetWheel.rings[index].sync_arrangements && !ring.sync_arrangements && linkedEvents.length) {
+                if (!["keep", "delete"].includes(value.arrangement_sync_action)) {
+                    byId("yearWheelFormMessage").textContent = "Välj om de synkade händelserna ska behållas eller tas bort.";
+                    byId("yearWheelFormMessage").classList.remove("hidden");
+                    return;
+                }
+                events = value.arrangement_sync_action === "delete"
+                    ? events.filter(event => !linkedEvents.some(linked => linked.id === event.id))
+                    : events.map(event => linkedEvents.some(linked => linked.id === event.id)
+                        ? { ...event, source_arrangement_id: "", source_arrangement_fields: {} }
+                        : event);
+            }
             if (wheelDraft) {
                 if (index < 0) {
                     rings.push(ring);
                     draftRingIds.add(ring.id);
                 } else rings[index] = ring;
                 wheelDraft.rings = rings;
+                wheelDraft.events = events;
                 renderWheelDraft();
                 return;
             }
@@ -1738,7 +1805,7 @@
                 rings.push(ring);
                 selectedRingIds.add(ring.id);
             } else rings[index] = ring;
-            const updated = normalizeWheel({ ...wheel, rings });
+            const updated = normalizeWheel({ ...wheel, rings, events });
             wheels = wheels.map(item => item.id === wheel.id ? updated : item);
             closeModal();
             render();
@@ -1923,6 +1990,12 @@
         byId("closeYearWheelModal").addEventListener("click", closeModal);
         byId("yearWheelModal").addEventListener("click", event => {
             if (event.target === byId("yearWheelModal")) closeModal();
+        });
+        byId("keepYearWheelArrangementEventsBtn").addEventListener("click", () => arrangementSyncChoiceHandlers?.choose("keep"));
+        byId("deleteYearWheelArrangementEventsBtn").addEventListener("click", () => arrangementSyncChoiceHandlers?.choose("delete"));
+        byId("cancelYearWheelArrangementSyncBtn").addEventListener("click", () => arrangementSyncChoiceHandlers?.cancel());
+        byId("yearWheelArrangementSyncModal").addEventListener("click", event => {
+            if (event.target === byId("yearWheelArrangementSyncModal")) arrangementSyncChoiceHandlers?.cancel();
         });
         byId("yearWheelForm").addEventListener("submit", submitForm);
         byId("yearWheelFormFields").addEventListener("change", event => {
