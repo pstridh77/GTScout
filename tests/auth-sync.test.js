@@ -370,22 +370,16 @@ test("overlapping year-wheel events use separate lanes and group overflow", () =
     ]);
 });
 
-test("year-wheel department rings display as one filterable ring", () => {
+test("year-wheel root rings can summarize child rings or show them separately", () => {
     const source = fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8");
-    const start = source.indexOf("function isDepartmentRing(");
+    const start = source.indexOf("function getDisplayedRings(");
     const end = source.indexOf("function renderRingList(", start);
-    const context = vm.createContext({
-        DEPARTMENT_RING_COLORS: {
-            "Spårare": {},
-            "Upptäckare": {},
-            "Ledare": {}
-        }
-    });
+    const context = vm.createContext({});
 
-    test("year-wheel mirrors arrangements into the Arrangemang ring without duplicates", () => {
+    {
         const source = fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8");
         const start = source.indexOf("function syncArrangementEvents(");
-        const end = source.indexOf("function isDepartmentRing(", start);
+        const end = source.indexOf("function getDisplayedRings(", start);
         const context = vm.createContext({ crypto: globalThis.crypto });
         vm.runInContext(source.slice(source.indexOf("    const VIEW_STORAGE_KEY"), source.indexOf("    function readViewPreferences(")), context);
         vm.runInContext(source.slice(start, end), context);
@@ -437,40 +431,42 @@ test("year-wheel department rings display as one filterable ring", () => {
             location: false,
             notes: false
         });
-    });
+    }
     vm.runInContext(source.slice(start, end), context);
     const wheel = { rings: [
-        { id: "scout-1", name: "Spårare", color: "#41a62a" },
+        { id: "department-root", name: "Avdelning", color: "#123456", children_display: "grouped" },
+        { id: "scout-1", name: "Spårare", color: "#41a62a", parent_id: "department-root" },
         { id: "board", name: "Styrelse", color: "#398a86" },
-        { id: "scout-2", name: "Upptäckare", color: "#00a8e1" },
-        { id: "scout-leaders", name: "Ledare", color: "#455a64" }
+        { id: "scout-2", name: "Upptäckare", color: "#00a8e1", parent_id: "department-root" },
+        { id: "scout-leaders", name: "Ledare", color: "#455a64", parent_id: "department-root" }
     ] };
 
     const allShown = context.getDisplayedRings(wheel, new Set(wheel.rings.map(ring => ring.id)));
     assert.deepEqual(
-        JSON.parse(JSON.stringify(allShown.displayed.map(ring => ({
+        JSON.parse(JSON.stringify(allShown.map(ring => ({
             id: ring.id,
             name: ring.name,
             sourceIds: ring.sourceRings?.map(sourceRing => sourceRing.id) || null
         })))),
         [
-            { id: "__department_group__", name: "Avdelning", sourceIds: ["scout-1", "scout-2", "scout-leaders"] },
+            { id: "department-root", name: "Avdelning", sourceIds: ["department-root", "scout-1", "scout-2", "scout-leaders"] },
             { id: "board", name: "Styrelse", sourceIds: null }
         ]
     );
-    assert.deepEqual(allShown.departmentRings.map(ring => ring.id), ["scout-1", "scout-2", "scout-leaders"]);
-    const coloredGroup = context.getDisplayedRings({ ...wheel, department_ring_color: "#123456" }, new Set(wheel.rings.map(ring => ring.id)));
-    assert.equal(coloredGroup.displayed[0].color, "#123456");
 
     const oneDepartment = context.getDisplayedRings(wheel, new Set(["scout-2"]));
-    assert.equal(oneDepartment.displayed.length, 1);
-    assert.equal(oneDepartment.displayed[0].name, "Avdelning");
-    assert.deepEqual(oneDepartment.displayed[0].sourceRings.map(ring => ring.id), ["scout-2"]);
+    assert.equal(oneDepartment.length, 1);
+    assert.equal(oneDepartment[0].name, "Avdelning");
+    assert.deepEqual(JSON.parse(JSON.stringify(oneDepartment[0].sourceRings.map(ring => ring.id))), ["scout-2"]);
 
-    const individualDepartments = context.getDisplayedRings(wheel, new Set(wheel.rings.map(ring => ring.id)), false);
+    const individualWheel = {
+        ...wheel,
+        rings: wheel.rings.map(ring => ring.id === "department-root" ? { ...ring, children_display: "individual" } : ring)
+    };
+    const individualDepartments = context.getDisplayedRings(individualWheel, new Set(wheel.rings.map(ring => ring.id)));
     assert.equal(
-        JSON.stringify(individualDepartments.displayed.map(ring => ring.id)),
-        JSON.stringify(["scout-1", "board", "scout-2", "scout-leaders"])
+        JSON.stringify(individualDepartments.map(ring => ring.id)),
+        JSON.stringify(["department-root", "scout-1", "scout-2", "scout-leaders", "board"])
     );
 });
 
@@ -496,10 +492,10 @@ test("year-wheel ring configuration preserves selected rings and locks rings wit
     const customRing = { id: "custom", name: "Styrelse extra", color: "#123456", color_variant: "custom" };
     const events = [{ id: "event-1", ring_id: "scout" }];
     const markup = context.ringOptionsMarkup([scoutRing, customRing], events, false);
-    assert.match(markup, /name="ring_ids" value="scout" checked disabled/);
+    assert.match(markup, /name="ring_ids" value="scout"[^>]*checked[^>]*disabled/);
     assert.match(markup, /<input type="hidden" name="ring_ids" value="scout">/);
     assert.match(markup, /name="ring_names" value="Styrelse"/);
-    assert.match(markup, /name="ring_ids" value="custom" checked/);
+    assert.match(markup, /name="ring_ids" value="custom"[^>]*checked/);
 
     const configured = context.buildConfiguredRings(
         [scoutRing, customRing],
