@@ -6606,4 +6606,10 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
     .year-wheel-event-label { font-size: 8px; }
     .year-wheel-form-grid { grid-template-columns: minmax(0, 1fr); }
     .year-wheel-ring-options { grid-template-columns: minmax(0, 1fr); }
+    .year-wheel-ring-config { grid-template-columns: minmax(0, 1fr); padding-bottom: 7px; }
+    .year-wheel-ring-config.year-wheel-ring-config-group-row { grid-template-columns: 16px 13px minmax(0, 1fr); }
+    .year-wheel-ring-actions { grid-column: 1 / -1; justify-self: end; flex-wrap: wrap; opacity: 1; }
+    .year-wheel-ring-option, .year-wheel-ring-config-children .year-wheel-ring-option { grid-template-columns: 16px 13px minmax(0, 1fr); }
+    .year-wheel-ring-option small { grid-column: 3; white-space: normal; overflow-wrap: anywhere; }
+    .year-wheel-ring-group-details > summary .year-wheel-ring-option-name { flex: 0 1 auto; }
 }

@@ -1172,6 +1172,16 @@ test("overview event list matches wheel height on wide screens and clears the he
     assert.deepEqual(page.errors, []);
 });
 
+test("ring settings stack mobile controls and give names and lock status their own space", () => {
+    const css = readScript("../css/style.css");
+    const mobileCss = css.slice(css.lastIndexOf("@media (max-width: 680px)"));
+    assert.match(mobileCss, /\.year-wheel-ring-config\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\);/);
+    assert.match(mobileCss, /\.year-wheel-ring-config\.year-wheel-ring-config-group-row\s*\{\s*grid-template-columns:\s*16px 13px minmax\(0,\s*1fr\);/);
+    assert.match(mobileCss, /\.year-wheel-ring-actions\s*\{\s*grid-column:\s*1 \/ -1;\s*justify-self:\s*end;\s*flex-wrap:\s*wrap;\s*opacity:\s*1;/);
+    assert.match(mobileCss, /\.year-wheel-ring-option,\s*\.year-wheel-ring-config-children \.year-wheel-ring-option\s*\{\s*grid-template-columns:\s*16px 13px minmax\(0,\s*1fr\);/);
+    assert.match(mobileCss, /\.year-wheel-ring-option small\s*\{\s*grid-column:\s*3;\s*white-space:\s*normal;\s*overflow-wrap:\s*anywhere;/);
+});
+
 test("overview event cards show date before title, ring, and details", async () => {
     const configuredWheel = wheel();
     configuredWheel.events = [{

@@ -496,6 +496,11 @@ test("year-wheel ring configuration preserves selected rings and locks rings wit
     assert.match(markup, /<input type="hidden" name="ring_ids" value="scout">/);
     assert.match(markup, /name="ring_names" value="Styrelse"/);
     assert.match(markup, /name="ring_ids" value="custom"[^>]*checked/);
+    assert.match(markup, /<small>1 händelse<\/small>/);
+    const multipleEventsMarkup = context.ringOptionsMarkup(
+        [scoutRing, customRing], [...events, { id: "event-2", ring_id: "scout" }], false
+    );
+    assert.match(multipleEventsMarkup, /<small>2 händelser<\/small>/);
 
     const configured = context.buildConfiguredRings(
         [scoutRing, customRing],

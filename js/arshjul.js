@@ -1289,7 +1289,7 @@
                     ${locked ? `<input type="hidden" name="ring_ids" value="${escapeHtml(ring.id)}">` : ""}
                     <span class="year-wheel-ring-swatch" style="--ring-color:${escapeHtml(ring?.color || item.color)}"></span>
                     <span class="year-wheel-ring-option-name">${escapeHtml(item.name)}</span>
-                    ${locked ? `<small>${count} ${count === 1 ? "händelse" : "händelser"} · låst</small>` : ""}
+                    ${locked ? `<small>${count} ${count === 1 ? "händelse" : "händelser"}</small>` : ""}
                 </label>${actions(item)}
             </div>`;
         };
