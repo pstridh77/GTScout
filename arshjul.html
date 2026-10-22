@@ -59,7 +59,9 @@
                         <summary class="planning-menu-section-label">Funktioner</summary>
                         <button id="yearWheelMenuAddEventBtn" class="planning-menu-item" type="button" role="menuitem" data-header-action="addYearWheelEventBtn">+ Händelse</button>
                         <button id="yearWheelMenuAddBtn" class="planning-menu-item" type="button" role="menuitem">Nytt årshjul</button>
-                        <button id="yearWheelMenuSettingsBtn" class="planning-menu-item hidden" type="button" role="menuitem">Inställningar</button>
+                        <span id="yearWheelMenuSettingsTooltip">
+                            <button id="yearWheelMenuSettingsBtn" class="planning-menu-item" type="button" role="menuitem">Inställningar</button>
+                        </span>
                         <button id="yearWheelMenuCopyEventsBtn" class="planning-menu-item hidden" type="button" role="menuitem">Kopiera händelser till nästa år</button>
                     </details>
                     <div class="planning-menu-divider" role="separator"></div>
@@ -124,14 +126,6 @@
                     <option value="11">November</option><option value="12">December</option>
                 </select>
             </label>
-            <label id="yearWheelDepartmentDisplayField" class="filter-field hidden">
-                <span>Avdelningar</span>
-                <select id="yearWheelDepartmentDisplay">
-                    <option value="grouped">Samlade</option>
-                    <option value="individual">Avdelningsvis</option>
-                </select>
-            </label>
-            
             <details id="yearWheelRingFilters" class="year-wheel-ring-filters">
                 <summary>Visa ringar</summary>
                 <div class="year-wheel-ring-filter-content">
@@ -144,7 +138,7 @@
 
         <section class="year-wheel-layout" aria-label="Årshjulets innehåll">
             <div class="year-wheel-main">
-                <div class="year-wheel-chart-card">
+                <div id="yearWheelChartCard" class="year-wheel-chart-card">
                     <div class="year-wheel-chart-heading">
                         <div><h2 id="yearWheelDisplayName"></h2><p id="yearWheelDateRange"></p></div>
                         <div id="yearWheelEditControl" class="arrangement-detail-edit-control year-wheel-edit-control">
@@ -159,7 +153,7 @@
                     </div>
                     <div id="yearWheelChart" class="year-wheel-chart"></div>
                 </div>
-                <section class="year-wheel-events-section" aria-labelledby="yearWheelEventsTitle">
+                <section id="yearWheelEventsSection" class="year-wheel-events-section" aria-labelledby="yearWheelEventsTitle">
                     <h2 id="yearWheelEventsTitle">Händelser i perioden</h2>
                     <div class="section-collapse-controls">
                         <button class="section-collapse-toggle" type="button" data-collapse-all="year-wheel-months" aria-controls="yearWheelEvents" aria-expanded="true">Fäll ihop</button>
@@ -183,6 +177,18 @@
                     <button class="btn-primary" type="submit">Spara</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <div id="yearWheelArrangementSyncModal" class="modal hidden year-wheel-arrangement-sync-modal" role="dialog" aria-modal="true" aria-labelledby="yearWheelArrangementSyncTitle">
+        <div class="modal-content year-wheel-arrangement-sync-modal-content">
+            <h2 id="yearWheelArrangementSyncTitle">Stänga av arrangemangssynkning?</h2>
+            <p id="yearWheelArrangementSyncMessage"></p>
+            <div class="year-wheel-arrangement-sync-actions">
+                <button id="keepYearWheelArrangementEventsBtn" class="btn-secondary" type="button">Behåll som vanliga händelser</button>
+                <button id="deleteYearWheelArrangementEventsBtn" class="btn-danger" type="button">Ta bort synkade händelser</button>
+                <button id="cancelYearWheelArrangementSyncBtn" class="btn-secondary" type="button">Avbryt</button>
+            </div>
         </div>
     </div>
 
