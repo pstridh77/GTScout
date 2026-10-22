@@ -1212,6 +1212,26 @@ test("overview event cards show date before title, ring, and details", async () 
     assert.deepEqual(detailsPage.errors, []);
 });
 
+for (const chartMode of ["overview", "details"]) {
+    test(`${chartMode} event list shows parent and child ring names while root names stay unchanged`, async () => {
+        const configuredWheel = wheel();
+        configuredWheel.rings.push(
+            { id: "department", name: "Avdelning & kår", color: "#123456" },
+            { id: "scouts", name: "Spårare <yngre>", color: "#41a62a", parent_id: "department" }
+        );
+        configuredWheel.events = [
+            { id: "child-event", ring_id: "scouts", title: "Scoutmöte", start_date: "2026-10-20" },
+            { id: "root-event", ring_id: "department", title: "Avdelningsmöte", start_date: "2026-10-21" }
+        ];
+        const page = createPage({ wheels: [configuredWheel], chartMode });
+        await settle();
+        const markup = page.elements.get("yearWheelEvents").innerHTML;
+        assert.match(markup, /class="year-wheel-event-card-ring">Avdelning &amp; kår · Spårare &lt;yngre&gt;<\/span>/);
+        assert.match(markup, /class="year-wheel-event-card-ring">Avdelning &amp; kår<\/span>/);
+        assert.deepEqual(page.errors, []);
+    });
+}
+
 test("overview event cards are color-marked by their ring", async () => {
     const configuredWheel = wheel();
     configuredWheel.rings.push({ id: "board", name: "Styrelse", color: "#123456" });

@@ -1019,6 +1019,8 @@
             const title = monthLabel.charAt(0).toLocaleUpperCase("sv") + monthLabel.slice(1);
             const cards = monthEvents.map(event => {
                 const ring = ringById.get(event.ring_id);
+                const parent = ringById.get(ring.parent_id);
+                const ringLabel = parent ? `${parent.name} · ${ring.name}` : ring.name;
                 const eventAction = canEdit() ? "Redigera" : "Visa";
                 const eventActionIcon = canEdit()
                     ? `<path d="m16 3 5 5L9 20l-6 1 1-6L16 3Z"/><path d="m14 5 5 5"/>`
@@ -1029,7 +1031,7 @@
                     <span class="year-wheel-event-card-date">${escapeHtml(shortDate)}</span>
                     <div class="year-wheel-event-card-main">
                         <strong>${escapeHtml(event.title)}${event.needs_review ? ` <span class="year-wheel-review-badge">Kontrollera kopia</span>` : ""}</strong>
-                        <span class="year-wheel-event-card-ring">${escapeHtml(ring.name)}</span>
+                        <span class="year-wheel-event-card-ring">${escapeHtml(ringLabel)}</span>
                         <span class="year-wheel-event-card-info">${event.responsible ? `<span>Ansvarig: ${escapeHtml(event.responsible)}</span>` : ""}${event.location ? `<span>Plats: ${escapeHtml(event.location)}</span>` : ""}${event.notes ? `<span class="year-wheel-event-notes">${escapeHtml(event.notes)}</span>` : ""}</span>
                     </div>
                     <div class="year-wheel-event-actions">${canEdit() && event.needs_review ? `<button class="btn-secondary" type="button" data-mark-event-reviewed="${escapeHtml(event.id)}" title="Markera kopian som kontrollerad">Kontrollerad</button>` : ""}${canEdit() ? `<button class="btn-secondary" type="button" data-copy-event="${escapeHtml(event.id)}" aria-label="Kopiera ${escapeHtml(event.title)} till nästa år" title="Kopiera till nästa år"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"></rect><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path></svg></button>` : ""}<button class="btn-secondary" type="button" data-edit-event="${escapeHtml(event.id)}" aria-label="${eventAction} ${escapeHtml(event.title)}" title="${eventAction}"><svg viewBox="0 0 24 24" aria-hidden="true">${eventActionIcon}</svg></button></div>

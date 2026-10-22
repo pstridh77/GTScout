@@ -255,12 +255,14 @@
             <div class="activity-summary-heading"><h2 id="activity-summary-title">Aktiviteter i perioden</h2></div>
             <ol class="activity-summary-list">${events.map(event => {
                 const ring = ringById.get(event.ring_id);
+                const parent = ringById.get(ring.parent_id);
+                const ringLabel = parent ? `${parent.name} · ${ring.name}` : ring.name;
                 const visibleStart = event.start_date < dateKey(range.start) ? dateKey(range.start) : event.start_date;
                 const month = visibleStart.slice(0, 7);
                 const heading = month !== previousMonth
                     ? `<h3 class="activity-summary-month">${escapeHtml(formatDate(`${month}-01`, { month: "long", year: "numeric" }))}</h3>` : "";
                 previousMonth = month;
-                return `<li class="activity-summary-item">${heading}<div class="activity-summary-row" style="--activity-color:${eventColors[event.id] || ring.color}"><p class="activity-summary-date">${escapeHtml(dateSpan(event, { day: "numeric", month: "short" }))}</p><div><h3>${escapeHtml(event.title)}</h3><p class="activity-summary-meta">${escapeHtml(ring.name)}</p></div></div></li>`;
+                return `<li class="activity-summary-item">${heading}<div class="activity-summary-row" style="--activity-color:${eventColors[event.id] || ring.color}"><p class="activity-summary-date">${escapeHtml(dateSpan(event, { day: "numeric", month: "short" }))}</p><div><h3>${escapeHtml(event.title)}</h3><p class="activity-summary-meta">${escapeHtml(ringLabel)}</p></div></div></li>`;
             }).join("")}</ol>
             ${events.length ? "" : '<p class="empty">Inga händelser i valda ringar under perioden.</p>'}
             <p class="activity-summary-overflow" role="status" hidden></p>

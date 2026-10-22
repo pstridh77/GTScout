@@ -74,6 +74,22 @@ test("A3 activity summary lists selected events once in chronological order with
     assert.match(html, /\.activity-summary-date\{[^}]*white-space:nowrap/);
 });
 
+test("A3 summary shows parent and child names from the wheel even when the parent is not selected", () => {
+    const parent = { id: "department", name: "Avdelning & kår", color: "#123456" };
+    const child = { id: "younger", name: "Spårare <yngre>", color: "#41a62a", parent_id: parent.id };
+    const events = [
+        event("Scoutmöte", "2026-04-01", undefined, { ring_id: child.id }),
+        event("Styrelsemöte", "2026-04-02")
+    ];
+    const html = buildDocument(options(events, {
+        wheel: { name: "Kårens årshjul", rings: [...rings, parent, child], events },
+        rings: [rings[0], child]
+    }));
+    const summary = html.slice(html.indexOf('<aside class="activity-summary"'), html.indexOf("</aside>"));
+    assert.match(summary, /class="activity-summary-meta">Avdelning &amp; kår · Spårare &lt;yngre&gt;<\/p>/);
+    assert.match(summary, /class="activity-summary-meta">Styrelse<\/p>/);
+});
+
 test("A3 summary preserves all input rows for fitting and includes a visible-overflow explanation", () => {
     const events = Array.from({ length: 100 }, (_, index) => event(`Aktivitet ${index}`, "2026-04-01"));
     const html = buildDocument(options(events));
