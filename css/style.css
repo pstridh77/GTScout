@@ -6529,8 +6529,8 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
 .year-wheel-ring-config.year-wheel-ring-config-group-row { grid-template-columns: 16px 13px minmax(0, 1fr) auto; align-items: start; border-bottom: 0; }
 .year-wheel-ring-config-group-row > input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: #176b72; }
 .year-wheel-ring-config-group-row > input[type="checkbox"], .year-wheel-ring-config-group-row > .year-wheel-ring-swatch { margin-top: 7px; }
-.year-wheel-ring-group-details { min-width: 0; }
-.year-wheel-ring-group-details > summary { display: flex; align-items: baseline; justify-content: flex-start; gap: 8px; min-width: 0; padding: 7px 0; color: #34495e; font-size: .82rem; cursor: pointer; list-style: none; }
+.year-wheel-ring-group-details { min-width: 0; grid-column: 3 / -1; }
+.year-wheel-ring-group-details > summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; padding: 7px 0; color: #34495e; font-size: .82rem; cursor: pointer; list-style: none; }
 .year-wheel-ring-group-details > summary::-webkit-details-marker { display: none; }
 .year-wheel-ring-group-details > summary .year-wheel-ring-option-name { flex: 0 0 auto; font-size: inherit; font-weight: 700; }
 .year-wheel-ring-group-details > summary small { color: #8a5a00; font-size: .72rem; text-align: left; white-space: nowrap; }
@@ -6611,5 +6611,7 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
     .year-wheel-ring-actions { grid-column: 1 / -1; justify-self: end; flex-wrap: wrap; opacity: 1; }
     .year-wheel-ring-option, .year-wheel-ring-config-children .year-wheel-ring-option { grid-template-columns: 16px 13px minmax(0, 1fr); }
     .year-wheel-ring-option small { grid-column: 3; white-space: normal; overflow-wrap: anywhere; }
+    .year-wheel-ring-group-details > summary { flex-wrap: wrap; }
+    .year-wheel-ring-group-details > summary > .year-wheel-ring-actions { flex-basis: 100%; justify-content: flex-end; }
     .year-wheel-ring-group-details > summary .year-wheel-ring-option-name { flex: 0 1 auto; }
 }

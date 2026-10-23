@@ -423,7 +423,7 @@
                     </span>
                     <span class="year-wheel-ring-filter-chevron" aria-hidden="true"></span>
                 </summary>
-                <div class="year-wheel-ring-filter-children">${renderRingRow(root, `${root.name} · egna händelser`)}${children.map(renderRingRow).join("")}</div>
+                <div class="year-wheel-ring-filter-children">${renderRingRow(root, `${root.name} · egna händelser`)}${children.map(child => renderRingRow(child)).join("")}</div>
             </details>`;
         };
         list.innerHTML = roots.length
@@ -1268,15 +1268,15 @@
             if (!ring) return "";
             const siblings = rings.filter(candidate => (candidate.parent_id || "") === (ring.parent_id || ""));
             const index = siblings.findIndex(candidate => candidate.id === ring.id);
-            return `<div class="year-wheel-ring-actions">
-                <div class="year-wheel-ring-order">
+            return `<span class="year-wheel-ring-actions">
+                <span class="year-wheel-ring-order">
                     <button class="year-wheel-ring-order-button" type="button" data-config-ring-action="move-up" data-ring-id="${escapeHtml(ring.id)}" aria-label="Flytta ${escapeHtml(ring.name)} utåt" title="Flytta utåt" ${index <= 0 ? "disabled" : ""}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 14 6-6 6 6"/></svg></button>
                     <button class="year-wheel-ring-order-button" type="button" data-config-ring-action="move-down" data-ring-id="${escapeHtml(ring.id)}" aria-label="Flytta ${escapeHtml(ring.name)} inåt" title="Flytta inåt" ${index < 0 || index === siblings.length - 1 ? "disabled" : ""}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 10 6 6 6-6"/></svg></button>
-                </div>
+                </span>
                 ${!ring.parent_id ? `<button class="year-wheel-ring-add-child" type="button" data-config-ring-action="add-child" data-parent-id="${escapeHtml(ring.id)}" title="Lägg till underring" aria-label="Lägg till underring under ${escapeHtml(ring.name)}">+</button>` : ""}
                 <button class="year-wheel-ring-edit" type="button" data-config-ring-action="edit" data-ring-id="${escapeHtml(ring.id)}" aria-label="Redigera ${escapeHtml(ring.name)}" title="Redigera ring"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l4.2-.8L19 8.4 15.6 5 4.8 15.8 4 20Z"/></svg></button>
                 <span class="year-wheel-ring-drag-handle" draggable="true" data-ring-drag-handle="${escapeHtml(ring.id)}" aria-hidden="true" title="Dra för att ändra ordning"><svg viewBox="0 0 24 24"><path d="M9 5h.01M15 5h.01M9 12h.01M15 12h.01M9 19h.01M15 19h.01"/></svg></span>
-            </div>`;
+            </span>`;
         };
         const renderOption = item => {
             const ring = item.ring;
@@ -1311,10 +1311,12 @@
                     <input type="checkbox" data-config-ring-group="${rootRing?.id || "__default_avdelning__"}" data-indeterminate="${totalSelected > 0 && !allSelected}" name="${rootControlName}" value="${escapeHtml(rootControlValue)}" aria-label="Ingår: ${escapeHtml(item.name)}" ${rootSelected ? "checked" : ""}>
                     <span class="year-wheel-ring-swatch" style="--ring-color:${escapeHtml(rootRing?.color || item.color)}"></span>
                     <details class="year-wheel-ring-group-details"${ringGroupOpen ? " open" : ""}>
-                        <summary><span class="year-wheel-ring-option-name">${escapeHtml(item.name)}</span></summary>
+                        <summary>
+                            <span class="year-wheel-ring-option-name">${escapeHtml(item.name)}</span>
+                            ${rootRing ? actions(item) : ""}
+                        </summary>
                         <div class="year-wheel-ring-config-children">${children.map(renderOption).join("")}</div>
                     </details>
-                    ${rootRing ? actions(item) : ""}
                 </div>
             </div>`;
         };
@@ -2038,6 +2040,10 @@
             }
         });
         byId("yearWheelFormFields").addEventListener("click", event => {
+            if (event.target.closest("[data-ring-drag-handle]")) {
+                event.preventDefault();
+                return;
+            }
             const button = event.target.closest("[data-config-ring-action]");
             if (!button || button.disabled || modalMode !== "wheel" || !wheelDraft || !canEdit()) return;
             captureWheelDraft();

@@ -541,6 +541,38 @@ function clickRingAction(page, action, ringId = "", parentId = "") {
     });
 }
 
+test("ring filters show root and child names instead of array indexes", async () => {
+    const configuredWheel = wheel();
+    configuredWheel.rings = [
+        { id: "department", name: "Avdelning", color: "#00a8d6" },
+        { id: "younger", name: "Spårare", color: "#41a62a", parent_id: "department" },
+        { id: "older", name: "Äventyrare <äldre>", color: "#692b99", parent_id: "department" },
+        { id: "board", name: "Styrelse & kår", color: "#398a86" },
+        { id: "treasurer", name: "Kassör", color: "#123456", parent_id: "board" },
+        { id: "common", name: "Kårgemensamt", color: "#991d1b" }
+    ];
+    const page = createPage({ wheels: [configuredWheel] });
+    await settle();
+
+    const list = page.elements.get("yearWheelRingList");
+    const assertLabels = () => {
+        const labels = [...list.innerHTML.matchAll(/<span>([^<]*)<\/span>/g)].map(match => match[1]);
+        assert.deepEqual(labels, [
+            "Avdelning", "Avdelning · egna händelser", "Spårare", "Äventyrare &lt;äldre&gt;",
+            "Styrelse &amp; kår", "Styrelse &amp; kår · egna händelser", "Kassör", "Kårgemensamt"
+        ]);
+    };
+    assertLabels();
+
+    const scoutToggle = list.querySelectorAll("[data-ring-toggle]").find(input => input.dataset.ringToggle === "younger");
+    scoutToggle.checked = false;
+    scoutToggle.handlers.change();
+
+    assertLabels();
+    assert.equal(list.querySelectorAll("[data-ring-toggle]").find(input => input.dataset.ringToggle === "younger").checked, false);
+    assert.deepEqual(page.errors, []);
+});
+
 test("collapsed department filter stays collapsed after a ring selection change", async () => {
     const configuredWheel = wheel();
     configuredWheel.rings = [
@@ -1180,6 +1212,39 @@ test("ring settings stack mobile controls and give names and lock status their o
     assert.match(mobileCss, /\.year-wheel-ring-actions\s*\{\s*grid-column:\s*1 \/ -1;\s*justify-self:\s*end;\s*flex-wrap:\s*wrap;\s*opacity:\s*1;/);
     assert.match(mobileCss, /\.year-wheel-ring-option,\s*\.year-wheel-ring-config-children \.year-wheel-ring-option\s*\{\s*grid-template-columns:\s*16px 13px minmax\(0,\s*1fr\);/);
     assert.match(mobileCss, /\.year-wheel-ring-option small\s*\{\s*grid-column:\s*3;\s*white-space:\s*normal;\s*overflow-wrap:\s*anywhere;/);
+    assert.match(css, /\.year-wheel-ring-group-details\s*\{[^}]*grid-column:\s*3 \/ -1;/);
+    assert.match(mobileCss, /\.year-wheel-ring-group-details > summary\s*\{\s*flex-wrap:\s*wrap;/);
+    assert.match(mobileCss, /\.year-wheel-ring-group-details > summary > \.year-wheel-ring-actions\s*\{\s*flex-basis:\s*100%;\s*justify-content:\s*flex-end;/);
+});
+
+test("root ring actions stay in the group heading before child rings", async () => {
+    const configuredWheel = wheel();
+    configuredWheel.rings.push(
+        { id: "board", name: "Styrelse", color: "#398a86" },
+        { id: "treasurer", name: "Kassör", color: "#123456", parent_id: "board" }
+    );
+    const page = createPage({ wheels: [configuredWheel], viewportWidth: 320 });
+    await settle();
+    page.unlockEditing();
+    page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
+    const fields = page.elements.get("yearWheelFormFields");
+    const markup = fields.innerHTML;
+    const heading = markup.match(/<summary>\s*<span class="year-wheel-ring-option-name">Styrelse<\/span>([\s\S]*?)<\/summary>/)?.[1];
+    assert.ok(heading);
+    for (const action of ["move-up", "move-down", "edit"]) {
+        assert.ok(heading.includes(`data-config-ring-action="${action}" data-ring-id="board"`));
+    }
+    assert.ok(heading.includes('data-config-ring-action="add-child" data-parent-id="board"'));
+    assert.ok(heading.includes('data-ring-drag-handle="board"'));
+    assert.ok(markup.indexOf(heading) < markup.indexOf('data-ring-id="treasurer"'));
+
+    let prevented = false;
+    fields.handlers.click({
+        target: { closest: selector => selector === "[data-ring-drag-handle]" ? {} : null },
+        preventDefault() { prevented = true; }
+    });
+    assert.equal(prevented, true, "Clicking the drag handle must not collapse the group");
+    assert.deepEqual(page.errors, []);
 });
 
 test("overview event cards show date before title, ring, and details", async () => {
