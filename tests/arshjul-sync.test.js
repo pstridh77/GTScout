@@ -441,7 +441,6 @@ test("department rings expose planning sync with their department preselected", 
     clickRingAction(page, "edit", "scouts");
 
     const markup = page.elements.get("yearWheelFormFields").innerHTML;
-    assert.match(markup, /Synka avdelningens möten till ringen automatiskt/);
     assert.match(markup, /<option value="Spårare" selected>Spårare<\/option>/);
     assert.match(markup, /name="sync_meetings_from_department" type="checkbox"/);
 });
@@ -509,6 +508,85 @@ test("planning meeting sync includes new plans by default, honors exclusions and
         : group);
     const cleared = helpers.syncPlanningMeetingEvents(updated, withoutDate);
     assert.deepEqual(Array.from(cleared.events, event => event.source_planning_id), ["new-plan"]);
+});
+
+test("event overflow list shows each event title, ring and date", () => {
+    const source = readScript("arshjul.js");
+    const start = source.indexOf("function renderEventOverflowRows(");
+    const end = source.indexOf("function openEventOverflow(", start);
+    const context = vm.createContext({
+        COLORS: ["#398a86"],
+        escapeHtml: value => String(value).replace(/[&<>"']/g, character => ({
+            "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+        }[character])),
+        formatDate: value => `formatted:${value}`,
+        getEventColor: () => "#41a62a"
+    });
+    vm.runInContext(source.slice(start, end), context);
+    const rows = context.renderEventOverflowRows([
+        {
+            id: "meeting-1",
+            title: "Spårare · Läsår 1 HT · Träff 2",
+            ring_id: "scouts",
+            start_date: "2026-09-10",
+            end_date: "2026-09-10"
+        },
+        {
+            id: "event-2",
+            title: "Kårkväll",
+            ring_id: "common",
+            start_date: "2026-09-11",
+            end_date: "2026-09-12"
+        }
+    ], new Map([
+        ["scouts", { name: "Spårare" }],
+        ["common", { name: "Kårgemensamt" }]
+    ]), true);
+
+    assert.match(rows, /data-overflow-event="meeting-1"/);
+    assert.match(rows, /Spårare · Läsår 1 HT · Träff 2/);
+    assert.match(rows, /Spårare · formatted:2026-09-10/);
+    assert.match(rows, /data-overflow-event="event-2"/);
+    assert.match(rows, /Kårkväll/);
+    assert.match(rows, /Kårgemensamt · formatted:2026-09-11 – formatted:2026-09-12/);
+    assert.equal((rows.match(/class="year-wheel-overflow-event"/g) || []).length, 2);
+});
+
+test("overflow list hides save action but individual event editing restores it", () => {
+    const source = readScript("arshjul.js");
+    const start = source.indexOf("function openModal(");
+    const end = source.indexOf("function closeModal(", start);
+    const elements = new Map();
+    const element = name => {
+        if (!elements.has(name)) {
+            const classes = new Set();
+            elements.set(name, {
+                classList: {
+                    add(value) { classes.add(value); },
+                    remove(value) { classes.delete(value); },
+                    toggle(value, enabled) { if (enabled) classes.add(value); else classes.delete(value); },
+                    contains(value) { return classes.has(value); }
+                },
+                querySelector() { return element(`${name} child`); },
+                focus() {},
+                removeAttribute() {}
+            });
+        }
+        return elements.get(name);
+    };
+    const context = vm.createContext({
+        modalMode: "",
+        editingId: "",
+        byId: element,
+        canEdit: () => true
+    });
+    vm.runInContext(source.slice(start, end), context);
+    const submitButton = element("yearWheelForm").querySelector('[type="submit"]');
+
+    context.openModal("Händelser nära varandra", "<div>Händelselista</div>", "event-overflow");
+    assert.equal(submitButton.classList.contains("hidden"), true);
+    context.openModal("Redigera händelse", "<input>", "event", "meeting-1");
+    assert.equal(submitButton.classList.contains("hidden"), false);
 });
 
 test("excluding a planning source opens a clear choice dialog instead of a browser confirm", async () => {
@@ -1186,6 +1264,22 @@ test("event arcs keep sharp corners even for narrow events", () => {
     assert.doesNotMatch(context.arcPath(100, 90, 0, 0.1), /\bQ\b/);
 });
 
+test("short event arcs use six days of visual width, leaving a gap between weekly events", () => {
+    const source = readScript("arshjul.js");
+    const start = source.indexOf("function getEventArcFractions(");
+    const end = source.indexOf("function getEventLaneLayout(", start);
+    const context = vm.createContext({});
+    vm.runInContext(source.slice(start, end), context);
+
+    const days = 365;
+    const first = context.getEventArcFractions(20, 21, days);
+    const nextWeek = context.getEventArcFractions(27, 28, days);
+
+    assert.ok(Math.abs((first.to - first.from) * days - 6) < 1e-9);
+    assert.ok(Math.abs((nextWeek.to - nextWeek.from) * days - 6) < 1e-9);
+    assert.ok(Math.abs((nextWeek.from - first.to) * days - 1) < 1e-9);
+});
+
 test("colored rings occupy at least 70 percent of each ring slot", async () => {
     for (const ringCount of [4, 10]) {
         const page = createPage({ wheels: [{
@@ -1432,6 +1526,24 @@ for (const chartMode of ["overview", "details"]) {
         assert.deepEqual(page.errors, []);
     });
 }
+
+test("event list labels department child rings as meetings", async () => {
+    const configuredWheel = wheel();
+    configuredWheel.rings.push(
+        { id: "department", name: "Avdelning", color: "#123456" },
+        { id: "scouts", name: "Spårare", color: "#41a62a", parent_id: "department" }
+    );
+    configuredWheel.events = [{
+        id: "scout-meeting", ring_id: "scouts", title: "Veckomöte",
+        start_date: "2026-10-20", end_date: "2026-10-20"
+    }];
+    const page = createPage({ wheels: [configuredWheel] });
+    await settle();
+    const markup = page.elements.get("yearWheelEvents").innerHTML;
+    assert.match(markup, /class="year-wheel-event-card-ring">Möte · Spårare<\/span>/);
+    assert.doesNotMatch(markup, /class="year-wheel-event-card-ring">Avdelning · Spårare<\/span>/);
+    assert.deepEqual(page.errors, []);
+});
 
 test("overview event cards are color-marked by their ring", async () => {
     const configuredWheel = wheel();

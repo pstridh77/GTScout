@@ -601,7 +601,7 @@
         let to = Math.min(1, endDay / days);
         if (to <= from) return null;
 
-        const minimumWidth = Math.min(1, 7 / days);
+        const minimumWidth = Math.min(1, 6 / days);
         if (to - from < minimumWidth) {
             from = Math.max(0, Math.min((from + to - minimumWidth) / 2, 1 - minimumWidth));
             to = from + minimumWidth;
@@ -664,14 +664,24 @@
         return { lanes, overflowGroups };
     }
 
-    function openEventOverflow(events, ringById) {
-        const rows = events.map(event => {
+    function renderEventOverflowRows(events, ringById, editable) {
+        return events.map(event => {
             const ring = ringById.get(event.ring_id);
-            const details = `${ring?.name || "Avdelning"} · ${formatDate(event.start_date, { day: "numeric", month: "long", year: "numeric" })}${event.end_date !== event.start_date ? ` – ${formatDate(event.end_date, { day: "numeric", month: "long", year: "numeric" })}` : ""}`;
-            const action = canEdit() ? "Redigera" : "Visa";
-            return `<button class="year-wheel-overflow-event" type="button" data-overflow-event="${escapeHtml(event.id)}" aria-label="${action} ${escapeHtml(event.title)}">${content}<span class="year-wheel-overflow-edit">${action}</span></button>`;
+            const ringName = ring?.name || "Avdelning";
+            const date = `${formatDate(event.start_date, { day: "numeric", month: "long", year: "numeric" })}${event.end_date !== event.start_date ? ` – ${formatDate(event.end_date, { day: "numeric", month: "long", year: "numeric" })}` : ""}`;
+            const action = editable ? "Redigera" : "Visa";
+            const color = ring ? getEventColor(event, ring) : COLORS[0];
+            return `<button class="year-wheel-overflow-event" type="button" data-overflow-event="${escapeHtml(event.id)}" aria-label="${action} ${escapeHtml(event.title)}">
+                <span class="year-wheel-overflow-swatch" style="--event-color:${escapeHtml(color)}" aria-hidden="true"></span>
+                <span class="year-wheel-overflow-event-text"><strong>${escapeHtml(event.title)}</strong><small>${escapeHtml(ringName)} · ${escapeHtml(date)}</small></span>
+                <span class="year-wheel-overflow-edit">${action}</span>
+            </button>`;
         }).join("");
-        openModal("Flera aktiviteter samtidigt", `<div class="year-wheel-overflow-list">${rows}</div>`, "event-overflow");
+    }
+
+    function openEventOverflow(events, ringById) {
+        const rows = renderEventOverflowRows(events, ringById, canEdit());
+        openModal("Händelser nära varandra", `<div class="year-wheel-overflow-list">${rows}</div>`, "event-overflow");
         byId("yearWheelFormFields").querySelectorAll("[data-overflow-event]").forEach(button => {
             button.addEventListener("click", () => openEventForm(button.dataset.overflowEvent));
         });
@@ -786,7 +796,7 @@
                 const badge = point((outer + inner) / 2, mid);
                 const count = group.events.length;
                 const label = `+${count}`;
-                const title = `${count} ${count === 1 ? "aktivitet" : "aktiviteter"} samtidigt. Klicka för att visa hela listan.`;
+                const title = `${count} ${count === 1 ? "händelse visas" : "händelser visas"} tillsammans eftersom de ligger nära varandra. Klicka för att visa listan.`;
                 const actionIndex = overflowActions.push(group.events) - 1;
                 svg.push(`<g class="year-wheel-overflow-mark" data-event-overflow="${actionIndex}" tabindex="0" role="button" aria-label="${escapeHtml(title)}"><title>${escapeHtml(title)}</title><circle cx="${badge.x.toFixed(2)}" cy="${badge.y.toFixed(2)}" r="10" class="year-wheel-overflow-badge"/><text x="${badge.x.toFixed(2)}" y="${badge.y.toFixed(2)}" class="year-wheel-overflow-label">${label}</text></g>`);
             });
@@ -1161,8 +1171,7 @@
             const title = monthLabel.charAt(0).toLocaleUpperCase("sv") + monthLabel.slice(1);
             const cards = monthEvents.map(event => {
                 const ring = ringById.get(event.ring_id);
-                const parent = ringById.get(ring.parent_id);
-                const ringLabel = parent ? `${parent.name} · ${ring.name}` : ring.name;
+                const ringLabel = getEventRingLabel(ring, ringById);
                 const eventAction = canEdit() ? "Redigera" : "Visa";
                 const eventActionIcon = canEdit()
                     ? `<path d="m16 3 5 5L9 20l-6 1 1-6L16 3Z"/><path d="m14 5 5 5"/>`
@@ -1194,6 +1203,14 @@
         list.querySelectorAll("[data-copy-event]").forEach(button => button.addEventListener("click", () => copyEventToNextYear(button.dataset.copyEvent)));
         list.querySelectorAll("[data-mark-event-reviewed]").forEach(button => button.addEventListener("click", () => markEventReviewed(button.dataset.markEventReviewed)));
         list.querySelectorAll("[data-edit-event]").forEach(button => button.addEventListener("click", () => openEventForm(button.dataset.editEvent)));
+    }
+
+    function getEventRingLabel(ring, ringById) {
+        const parent = ringById.get(ring?.parent_id);
+        if (!parent) return ring?.name || "Möte";
+        return parent.name === "Avdelning"
+            ? `Möte · ${ring.name}`
+            : `${parent.name} · ${ring.name}`;
     }
 
     function render() {
@@ -1282,7 +1299,7 @@
         const submitButton = byId("yearWheelForm").querySelector('[type="submit"]');
         submitButton.textContent = "Spara";
         submitButton.disabled = false;
-        submitButton.classList.toggle("hidden", mode === "event-view");
+        submitButton.classList.toggle("hidden", mode === "event-view" || mode === "event-overflow");
         byId("copyYearWheelEventBtn").classList.toggle("hidden", mode !== "event" || !itemId || !canEdit());
         const deleteButton = byId("deleteYearWheelItemBtn");
         deleteButton.classList.toggle("hidden", !itemId || !["ring", "event", "wheel"].includes(mode));
