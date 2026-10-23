@@ -1,6 +1,9 @@
 -- One-off conversion of existing planning records that have no standard-planning origin.
 -- Run in the Supabase SQL Editor. This script is intentionally separate from schema.sql
 -- so the conversion can be skipped by not running this file.
+-- Supabase may show a generic RLS warning for the CREATE TABLE statements below.
+-- They create temporary tables that are dropped at commit and are not exposed through the API.
+-- Choose "Run without RLS" for this script; enabling RLS is not needed for these temporary tables.
 --
 -- 1. Add one explicit mapping row per planning UUID below.
 -- 2. Run with apply_changes = false and inspect the preview.
@@ -23,7 +26,7 @@ CREATE TEMP TABLE planning_origin_mapping (
 
 -- Add explicit planning UUID → origin mappings here before running the script.
  INSERT INTO planning_origin_mapping (planning_id, template_name, plan_name, level)
- VALUES ('<planning-uuid>', 'Gullbrandstorps Scoutkår', 'Läsår 1 VT', 'Spårare');
+ VALUES ('b8097873-5bc9-496e-9375-de27aceeb78e', 'Gullbrandstorps Scoutkår', 'Läsår 1 HT', 'Spårare');
 
 CREATE TEMP TABLE planning_origin_conversion_settings (
     apply_changes boolean NOT NULL
