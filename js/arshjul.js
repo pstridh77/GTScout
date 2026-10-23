@@ -19,13 +19,8 @@
         Rover: "#a45db2"
     };
     const DEFAULT_RINGS = [
-        ["Avdelning", DEPARTMENT_RING_COLORS.Upptäckare.standard],
-        ["Familjescouter", DEPARTMENT_RING_COLORS.Familjescouter.standard],
-        ["Spårare", DEPARTMENT_RING_COLORS.Spårare.standard],
-        ["Upptäckare", DEPARTMENT_RING_COLORS.Upptäckare.standard],
-        ["Äventyrare", DEPARTMENT_RING_COLORS.Äventyrare.standard],
-        ["Utmanare", DEPARTMENT_RING_COLORS.Utmanare.standard],
-        ["Rover", DEPARTMENT_RING_COLORS.Rover.standard],
+        ["Avdelningar", DEPARTMENT_RING_COLORS.Upptäckare.standard],
+        ...Object.entries(DEPARTMENT_RING_COLORS).map(([name, palette]) => [name, palette.standard]),
         ["Styrelse", COLORS[0]], ["Kårgemensamt", COLORS[1]], ["Arrangemang", COLORS[2]],
         ["Terminer", COLORS[3]]
     ];
@@ -46,7 +41,6 @@
     let editingId = "";
     let unlockedWheelId = "";
     let wheelDraft = null;
-    let draftRingIds = new Set();
     let draggedRingId = "";
     let syncChoiceHandlers = null;
     const collapsedEventMonths = new Set();
@@ -667,7 +661,7 @@
     function renderEventOverflowRows(events, ringById, editable) {
         return events.map(event => {
             const ring = ringById.get(event.ring_id);
-            const ringName = ring?.name || "Avdelning";
+            const ringName = ring?.name || "Möte";
             const date = `${formatDate(event.start_date, { day: "numeric", month: "long", year: "numeric" })}${event.end_date !== event.start_date ? ` – ${formatDate(event.end_date, { day: "numeric", month: "long", year: "numeric" })}` : ""}`;
             const action = editable ? "Redigera" : "Visa";
             const color = ring ? getEventColor(event, ring) : COLORS[0];
@@ -1208,9 +1202,7 @@
     function getEventRingLabel(ring, ringById) {
         const parent = ringById.get(ring?.parent_id);
         if (!parent) return ring?.name || "Möte";
-        return parent.name === "Avdelning"
-            ? `Möte · ${ring.name}`
-            : `${parent.name} · ${ring.name}`;
+        return `${parent.name} · ${ring.name}`;
     }
 
     function render() {
@@ -1339,7 +1331,7 @@
                 <option value="wheel">Årshjul – A3 liggande</option>
                 <option value="list">Alla händelser – A4 stående</option>
             </select></label>
-            <p>Hjulet följer dina ringfilter och avdelningsgruppering. Listan innehåller alla händelser i perioden, även i dolda ringar.</p>
+            <p>Hjulet följer dina ringfilter och hur ringarna har grupperats. Listan innehåller alla händelser i perioden, även i dolda ringar.</p>
             <p>Du får en förhandsvisning innan webbläsarens utskriftsdialog öppnas. Välj det föreslagna pappersformatet och stäng gärna av webbläsarens sidhuvud och sidfot.</p>
         `, "print");
         byId("yearWheelForm").querySelector('[type="submit"]').textContent = "Förhandsvisa";
@@ -1349,8 +1341,7 @@
         if (!canWrite()) return;
         ringGroupOpen = true;
         wheelDraft = { id: "", name: "", start_month: view.startMonth,
-            rings: createDefaultRings(), events: [] };
-        draftRingIds = new Set(wheelDraft.rings.map(ring => ring.id));
+            rings: [], events: [] };
         renderWheelDraft();
     }
 
@@ -1359,7 +1350,6 @@
         if (!wheel || !canEdit()) return;
         ringGroupOpen = true;
         wheelDraft = { ...wheel, rings: [...wheel.rings] };
-        draftRingIds = new Set(wheel.rings.map(ring => ring.id));
         renderWheelDraft();
     }
 
@@ -1368,11 +1358,8 @@
         openModal(draft.id ? "Inställningar för årshjul" : "Nytt årshjul", `
             <label class="modal-field"><span>Namn</span><input name="name" required maxlength="100" value="${escapeHtml(draft.name)}" placeholder="Till exempel Kårens verksamhetsår"></label>
             <label class="modal-field"><span>Verksamhetsåret börjar</span><select name="start_month">${MONTHS.map((month, index) => `<option value="${index + 1}" ${index + 1 === Number(draft.start_month) ? "selected" : ""}>${month}</option>`).join("")}</select></label>
-            ${renderRingSelection(draft.rings, draft.events, false, draftRingIds)}
+            ${renderRingSelection(draft.rings, draft.events)}
         `, "wheel", draft.id);
-        byId("yearWheelFormFields").querySelectorAll("[data-config-ring-group]").forEach(toggle => {
-            toggle.indeterminate = toggle.dataset.indeterminate === "true";
-        });
         byId("yearWheelFormFields").querySelectorAll(".year-wheel-ring-group-details").forEach(details => {
             details.addEventListener("toggle", () => { ringGroupOpen = details.open; });
         });
@@ -1383,11 +1370,6 @@
         const value = Object.fromEntries(data.entries());
         wheelDraft.name = String(value.name || "");
         wheelDraft.start_month = value.start_month;
-        const selected = buildConfiguredRings(wheelDraft.rings, data.getAll("ring_ids").map(String), data.getAll("ring_names").map(String));
-        selected.forEach(ring => {
-            if (!wheelDraft.rings.some(item => item.id === ring.id)) wheelDraft.rings.push(ring);
-        });
-        draftRingIds = new Set(selected.map(ring => ring.id));
     }
 
     function deleteDraftRing(ringId) {
@@ -1404,27 +1386,13 @@
             return;
         }
         wheelDraft.rings = wheelDraft.rings.filter(item => item.id !== ringId);
-        draftRingIds.delete(ringId);
         renderWheelDraft();
     }
 
-    function ringOptionsMarkup(rings, events, isNewWheel, selectedIds = new Set(rings.map(ring => ring.id))) {
-        const existingByName = new Map(rings.map(ring => [ring.name, ring]));
-        const defaults = DEFAULT_RINGS.filter(([name]) => !existingByName.has(name)).map(([name, color]) => ({
-            ring: null,
-            name,
-            color,
-            parent_id: DEPARTMENT_RING_COLORS[name] ? rings.find(ring => ring.name === "Avdelning" && !ring.parent_id)?.id || "__default_avdelning__" : ""
-        }));
-        const items = [
-            ...rings.map(ring => ({ ring, name: ring.name, color: ring.color, parent_id: ring.parent_id || "" })),
-            ...defaults
-        ];
+    function ringOptionsMarkup(rings, events) {
         const eventsByRing = new Map();
         events.forEach(event => eventsByRing.set(event.ring_id, (eventsByRing.get(event.ring_id) || 0) + 1));
-        const actions = item => {
-            const ring = item.ring;
-            if (!ring) return "";
+        const actions = ring => {
             const siblings = rings.filter(candidate => (candidate.parent_id || "") === (ring.parent_id || ""));
             const index = siblings.findIndex(candidate => candidate.id === ring.id);
             return `<span class="year-wheel-ring-actions">
@@ -1437,42 +1405,27 @@
                 <span class="year-wheel-ring-drag-handle" draggable="true" data-ring-drag-handle="${escapeHtml(ring.id)}" aria-hidden="true" title="Dra för att ändra ordning"><svg viewBox="0 0 24 24"><path d="M9 5h.01M15 5h.01M9 12h.01M15 12h.01M9 19h.01M15 19h.01"/></svg></span>
             </span>`;
         };
-        const renderOption = item => {
-            const ring = item.ring;
-            const locked = Boolean(ring && eventsByRing.has(ring.id));
-            const checked = isNewWheel || Boolean(ring && selectedIds.has(ring.id));
-            const count = ring ? eventsByRing.get(ring.id) || 0 : 0;
-            const controlName = ring ? "ring_ids" : "ring_names";
-            const controlValue = ring ? ring.id : item.name;
+        const renderOption = ring => {
+            const count = eventsByRing.get(ring.id) || 0;
             return `<div class="year-wheel-ring-config"${ring ? ` data-ring-id="${escapeHtml(ring.id)}"` : ""}>
-                <label class="year-wheel-ring-option${locked ? " year-wheel-ring-option--locked" : ""}">
-                    <input type="checkbox" data-event-count="${count}" name="${controlName}" value="${escapeHtml(controlValue)}" aria-label="Ingår: ${escapeHtml(item.name)}" ${checked ? "checked" : ""} ${locked ? `disabled title="Flytta eller ta bort ringens händelser för att kunna ta bort ringen"` : ""}>
-                    ${locked ? `<input type="hidden" name="ring_ids" value="${escapeHtml(ring.id)}">` : ""}
-                    <span class="year-wheel-ring-swatch" style="--ring-color:${escapeHtml(ring?.color || item.color)}"></span>
-                    <span class="year-wheel-ring-option-name">${escapeHtml(item.name)}</span>
-                    ${locked ? `<small>${count} ${count === 1 ? "händelse" : "händelser"}</small>` : ""}
-                </label>${actions(item)}
+                <div class="year-wheel-ring-option">
+                    <span class="year-wheel-ring-swatch" style="--ring-color:${escapeHtml(ring.color)}"></span>
+                    <span class="year-wheel-ring-option-name">${escapeHtml(ring.name)}</span>
+                    ${count ? `<small>${count} ${count === 1 ? "händelse" : "händelser"}</small>` : ""}
+                </div>${actions(ring)}
             </div>`;
         };
-        const roots = items.filter(item => !item.parent_id);
-        const renderRoot = item => {
-            const children = items.filter(candidate => candidate.parent_id === (item.ring?.id || "__default_avdelning__"));
-            if (!children.length) return renderOption(item);
-            const rootRing = item.ring;
-            const rootSelected = isNewWheel || Boolean(rootRing && selectedIds.has(rootRing.id));
-            const childSelected = children.filter(child => isNewWheel || (child.ring && selectedIds.has(child.ring.id))).length;
-            const totalSelected = Number(rootSelected) + childSelected;
-            const allSelected = totalSelected === children.length + 1;
-            const rootControlName = rootRing ? "ring_ids" : "ring_names";
-            const rootControlValue = rootRing ? rootRing.id : item.name;
+        const roots = rings.filter(ring => !ring.parent_id);
+        const renderRoot = ring => {
+            const children = rings.filter(candidate => candidate.parent_id === ring.id);
+            if (!children.length) return renderOption(ring);
             return `<div class="year-wheel-ring-config-group">
-                <div class="year-wheel-ring-config year-wheel-ring-config-group-row">
-                    <input type="checkbox" data-config-ring-group="${rootRing?.id || "__default_avdelning__"}" data-indeterminate="${totalSelected > 0 && !allSelected}" name="${rootControlName}" value="${escapeHtml(rootControlValue)}" aria-label="Ingår: ${escapeHtml(item.name)}" ${rootSelected ? "checked" : ""}>
-                    <span class="year-wheel-ring-swatch" style="--ring-color:${escapeHtml(rootRing?.color || item.color)}"></span>
+                <div class="year-wheel-ring-config year-wheel-ring-config-group-row" data-ring-id="${escapeHtml(ring.id)}">
+                    <span class="year-wheel-ring-swatch" style="--ring-color:${escapeHtml(ring.color)}"></span>
                     <details class="year-wheel-ring-group-details"${ringGroupOpen ? " open" : ""}>
                         <summary>
-                            <span class="year-wheel-ring-option-name">${escapeHtml(item.name)}</span>
-                            ${rootRing ? actions(item) : ""}
+                            <span class="year-wheel-ring-option-name">${escapeHtml(ring.name)}</span>
+                            ${actions(ring)}
                         </summary>
                         <div class="year-wheel-ring-config-children">${children.map(renderOption).join("")}</div>
                     </details>
@@ -1480,85 +1433,35 @@
             </div>`;
         };
         const rootsMarkup = roots.map(renderRoot).join("");
-        const otherMarkup = items.filter(item => item.parent_id && item.parent_id !== "__default_avdelning__"
-            && !rings.some(ring => ring.id === item.parent_id)).map(renderOption).join("");
         return `<fieldset class="year-wheel-ring-selection">
             <legend>Ringar i årshjulet</legend>
-            <p>Välj vilka ringar som ska ingå. Den första ringen visas ytterst. Ringar med händelser är låsta tills händelserna flyttats eller tagits bort.</p>
-            <div class="year-wheel-ring-options">${rootsMarkup}${otherMarkup}</div>
+            <p>Den första ringen visas ytterst. Ändra ringens placering för att göra den till en underring.</p>
+            <div class="year-wheel-ring-options">${rootsMarkup || `<p class="year-wheel-empty">Inga ringar har lagts till ännu.</p>`}</div>
         </fieldset>`;
     }
 
-    function renderRingSelection(rings, events, isNewWheel, selectedIds) {
-        return `${ringOptionsMarkup(rings, events, isNewWheel, selectedIds)}
+    function renderRingSelection(rings, events) {
+        return `${ringOptionsMarkup(rings, events)}
             <button class="btn-secondary" type="button" data-config-ring-action="add">+ Lägg till ring</button>
             <p>Ändringarna sparas när du sparar årshjulet.</p>`;
     }
 
-    function createDefaultRing(name, existingRings = []) {
+    function createDefaultRing(name) {
         const defaultRing = DEFAULT_RINGS.find(([defaultName]) => defaultName === name);
         if (!defaultRing) return null;
         const [ringName, color] = defaultRing;
-        const parent = DEPARTMENT_RING_COLORS[ringName] && ringName !== "Avdelning"
-            ? existingRings.find(ring => ring.name === "Avdelning" && !ring.parent_id)
-            : null;
         return {
             id: id(),
             name: ringName,
             color,
             color_variant: DEPARTMENT_RING_COLORS[ringName] ? "standard" : "custom",
-            parent_id: parent?.id || "",
+            parent_id: "",
             children_display: "grouped",
             sync_arrangements: ringName.trim().toLocaleLowerCase("sv") === "arrangemang",
             sync_meetings_from_department: false,
             sync_meetings_department: PLANNING_DEPARTMENTS.includes(ringName) ? ringName : "",
             sync_excluded_planning_ids: []
         };
-    }
-
-    function createDefaultRings() {
-        const rings = [];
-        DEFAULT_RINGS.forEach(([name]) => {
-            const ring = createDefaultRing(name, rings);
-            if (ring) {
-                if (DEPARTMENT_RING_COLORS[name] && name !== "Avdelning") {
-                    ring.parent_id = rings.find(item => item.name === "Avdelning")?.id || "";
-                }
-                rings.push(ring);
-            }
-        });
-        return rings;
-    }
-
-    function buildConfiguredRings(existingRings, selectedRingIds, selectedRingNames) {
-        const selectedIds = new Set(selectedRingIds);
-        const rings = existingRings.filter(ring => selectedIds.has(ring.id));
-        const existingNames = new Set(existingRings.map(ring => ring.name));
-        const selectedNames = new Set(selectedRingNames);
-        selectedNames.forEach(name => {
-            if (existingNames.has(name)) return;
-            if (DEPARTMENT_RING_COLORS[name] && name !== "Avdelning"
-                && !rings.some(ring => ring.name === "Avdelning" && !ring.parent_id)) {
-                const root = existingRings.find(ring => ring.name === "Avdelning" && !ring.parent_id)
-                    || createDefaultRing("Avdelning");
-                rings.push(root);
-            }
-            const ring = createDefaultRing(name, rings);
-            if (ring) rings.push(ring);
-        });
-        const byId = new Map(existingRings.map(ring => [ring.id, ring]));
-        rings.forEach(ring => {
-            let parent = byId.get(ring.parent_id) || rings.find(item => item.id === ring.parent_id);
-            while (parent && !rings.some(item => item.id === parent.id)) {
-                rings.push(parent);
-                parent = byId.get(parent.parent_id);
-            }
-        });
-        return rings;
-    }
-
-    function getRingIdsWithEvents(events) {
-        return new Set(events.map(event => event.ring_id));
     }
 
     function getRingEventCount(events, ringId) {
@@ -1580,7 +1483,9 @@
         const hasChildren = ring && wheel.rings.some(item => item.parent_id === ring.id);
         const parents = wheel.rings.filter(item => !item.parent_id && item.id !== ringId);
         const parentOptions = `<option value="" ${!ring?.parent_id && !parentId ? "selected" : ""}>Ingen, skapa som ring</option>${parents.map(parent => `<option value="${escapeHtml(parent.id)}" ${(ring?.parent_id || parentId) === parent.id ? "selected" : ""}>${escapeHtml(parent.name)}</option>`).join("")}`;
+        const availableDefaults = DEFAULT_RINGS.filter(([name]) => !wheel.rings.some(item => item.name === name));
         openModal(ring ? "Redigera ring" : "Lägg till ring", `
+            ${!ring ? `<label class="modal-field"><span>Utgå från</span><select name="default_ring"><option value="">Egen ring</option>${availableDefaults.map(([name]) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("")}</select></label>` : ""}
             <label class="modal-field"><span>Namn på ringen</span><input name="name" required maxlength="60" value="${escapeHtml(ring?.name || "")}" placeholder="Till exempel Styrelse"></label>
             <label class="modal-field"><span>Placering</span><select name="parent_id" ${hasChildren ? "disabled title=\"Flytta upp eller ta bort underringarna först\"" : ""}>${parentOptions}</select>${hasChildren ? `<input type="hidden" name="parent_id" value="">` : ""}</label>
             ${!ring?.parent_id ? `<label class="modal-field"><span>Visa underringar</span><select name="children_display"><option value="grouped" ${ring?.children_display !== "individual" ? "selected" : ""}>Summera händelser i ringen</option><option value="individual" ${ring?.children_display === "individual" ? "selected" : ""}>Visa underringar separat</option></select></label>` : ""}
@@ -1599,7 +1504,7 @@
             ${ring && wheel.events.some(event => event.ring_id === ring.id && event.source_planning_id)
                 ? `<input type="hidden" name="planning_sync_action" value="">`
                 : ""}
-            <label class="modal-field" data-ring-color-variant${DEPARTMENT_RING_COLORS[ring?.name || ""] ? "" : " hidden"}><span>Avdelningsfärg</span><select name="color_variant"><option value="standard" ${ring?.color_variant === "standard" || !ring?.color_variant && DEPARTMENT_RING_COLORS[ring?.name || ""] ? "selected" : ""}>Standardfärg</option><option value="light" ${ring?.color_variant === "light" ? "selected" : ""}>Ljusare alternativfärg</option><option value="custom" ${ring?.color_variant === "custom" ? "selected" : ""}>Egen färg</option></select></label>
+            <label class="modal-field" data-ring-color-variant${DEPARTMENT_RING_COLORS[ring?.name || ""] ? "" : " hidden"}><span>Färgvariant</span><select name="color_variant"><option value="standard" ${ring?.color_variant === "standard" || !ring?.color_variant && DEPARTMENT_RING_COLORS[ring?.name || ""] ? "selected" : ""}>Standardfärg</option><option value="light" ${ring?.color_variant === "light" ? "selected" : ""}>Ljusare alternativfärg</option><option value="custom" ${ring?.color_variant === "custom" ? "selected" : ""}>Egen färg</option></select></label>
             <label class="modal-field" data-ring-custom-color${DEPARTMENT_RING_COLORS[ring?.name || ""] && ring?.color_variant !== "custom" ? " hidden" : ""}><span>Färg</span><input name="color" type="color" value="${escapeHtml(ring?.color || DEPARTMENT_RING_COLORS[ring?.name || ""]?.standard || COLORS[wheel.rings.length % COLORS.length])}"></label>
             ${eventCount ? `<p class="detail-note-warning">Ringen har ${eventCount} händelser. Flytta eller ta bort dem innan ringen tas bort.</p>` : ""}
         `, "ring", ringId);
@@ -1614,6 +1519,7 @@
             deleteButton.title = "Flytta upp eller ta bort underringarna först";
         }
         const nameInput = byId("yearWheelFormFields").querySelector('[name="name"]');
+        const defaultRingInput = byId("yearWheelFormFields").querySelector('[name="default_ring"]');
         const colorVariant = byId("yearWheelFormFields").querySelector('[name="color_variant"]');
         const colorInput = byId("yearWheelFormFields").querySelector('[name="color"]');
         const colorVariantField = byId("yearWheelFormFields").querySelector("[data-ring-color-variant]");
@@ -1691,6 +1597,23 @@
                 customColorField.hidden = true;
             }
         };
+        defaultRingInput?.addEventListener("change", () => {
+            const preset = createDefaultRing(defaultRingInput.value);
+            if (!preset) {
+                nameInput.value = "";
+                colorInput.value = COLORS[wheel.rings.length % COLORS.length];
+                colorVariant.value = "custom";
+                syncMeetingsInput.checked = false;
+                syncDepartmentInput.value = "";
+            } else {
+                nameInput.value = preset.name;
+                colorInput.value = preset.color;
+                colorVariant.value = preset.color_variant;
+                syncDepartmentInput.value = preset.sync_meetings_department;
+                syncArrangementsInput.checked = preset.sync_arrangements;
+            }
+            updateDepartmentColor();
+        });
         nameInput.addEventListener("input", updateDepartmentColor);
         colorVariant?.addEventListener("change", updateDepartmentColor);
     }
@@ -1792,34 +1715,6 @@
         window.GTScoutYearWheelSync?.saveWheel(updated);
     }
 
-    function migrateDepartmentGroups(input) {
-        const rings = Array.isArray(input?.rings) ? input.rings.map(ring => ({ ...ring })) : [];
-        const departments = rings.filter(ring => DEPARTMENT_RING_COLORS[String(ring.name || "").trim()]);
-        if (!departments.length) return { ...input, schema_version: 4 };
-        let root = rings.find(ring => String(ring.name || "").trim() === "Avdelning" && !ring.parent_id);
-        if (!root) {
-            root = {
-                id: id(),
-                name: "Avdelning",
-                color: /^#[0-9a-f]{6}$/i.test(input.department_ring_color || "")
-                    ? input.department_ring_color
-                    : DEPARTMENT_RING_COLORS.Upptäckare.standard,
-                color_variant: "custom",
-                parent_id: "",
-                children_display: input.group_departments === false ? "individual" : "grouped"
-            };
-            const firstDepartmentIndex = rings.findIndex(ring => departments.includes(ring));
-            rings.splice(firstDepartmentIndex < 0 ? rings.length : firstDepartmentIndex, 0, root);
-        } else {
-            root.children_display = input.group_departments === false ? "individual" : "grouped";
-        }
-        departments.forEach(ring => {
-            ring.parent_id = root.id;
-            ring.children_display = "grouped";
-        });
-        return { ...input, schema_version: 4, rings };
-    }
-
     function syncArrangementsIntoWheels(arrangements) {
         if (!Array.isArray(arrangements) || !wheels.length) return;
         const updates = [];
@@ -1893,8 +1788,6 @@
             render();
             return;
         }
-        const selectedRingIdsFromForm = formData.getAll("ring_ids").map(String);
-        const selectedRingNamesFromForm = formData.getAll("ring_names").map(String);
         const wheel = currentWheel();
         if (modalMode === "bulk-copy") {
             if (!wheel || !canEdit()) return;
@@ -1936,10 +1829,10 @@
         }
         if (modalMode === "wheel" && editingId) {
             if (!wheel) return;
-            const rings = buildConfiguredRings(wheelDraft?.rings || wheel.rings, selectedRingIdsFromForm, selectedRingNamesFromForm);
+            const rings = wheelDraft?.rings || wheel.rings;
             const name = String(value.name || "").trim();
-            if (!name || !rings.length) {
-                byId("yearWheelFormMessage").textContent = !rings.length ? "Välj minst en ring till årshjulet." : "Ange ett namn på årshjulet.";
+            if (!name) {
+                byId("yearWheelFormMessage").textContent = "Ange ett namn på årshjulet.";
                 byId("yearWheelFormMessage").classList.remove("hidden");
                 return;
             }
@@ -1971,13 +1864,11 @@
         if (modalMode === "wheel") {
             const name = String(value.name || "").trim();
             const startMonth = Number.parseInt(value.start_month, 10);
-            const rings = buildConfiguredRings(wheelDraft?.rings || [], selectedRingIdsFromForm, selectedRingNamesFromForm);
-            if (!name || !rings.length || !Number.isInteger(startMonth) || startMonth < 1 || startMonth > 12) {
+            const rings = wheelDraft?.rings || [];
+            if (!name || !Number.isInteger(startMonth) || startMonth < 1 || startMonth > 12) {
                 byId("yearWheelFormMessage").textContent = !name
                     ? "Ange ett namn på årshjulet."
-                    : !rings.length
-                        ? "Välj minst en ring till årshjulet."
-                        : "Välj en giltig startmånad för verksamhetsåret.";
+                    : "Välj en giltig startmånad för verksamhetsåret.";
                 byId("yearWheelFormMessage").classList.remove("hidden");
                 return;
             }
@@ -2111,7 +2002,6 @@
             if (wheelDraft) {
                 if (index < 0) {
                     rings.push(ring);
-                    draftRingIds.add(ring.id);
                 } else rings[index] = ring;
                 wheelDraft.rings = rings;
                 wheelDraft.events = events;
@@ -2327,22 +2217,6 @@
         });
         byId("yearWheelForm").addEventListener("submit", submitForm);
         window.addEventListener("resize", updateOverviewEventListHeight);
-        byId("yearWheelFormFields").addEventListener("change", event => {
-            const groupToggle = event.target.closest?.("[data-config-ring-group]");
-            if (groupToggle && modalMode === "wheel" && wheelDraft) {
-                const group = groupToggle.closest(".year-wheel-ring-config-group");
-                const ringInputs = [...group.querySelectorAll(".year-wheel-ring-config-children input[type=checkbox]")];
-                ringInputs.forEach(input => { if (!input.disabled) input.checked = groupToggle.checked; });
-                captureWheelDraft();
-                renderWheelDraft();
-                return;
-            }
-            if ((event.target.name === "ring_ids" || event.target.name === "ring_names") && event.target.type === "checkbox" && modalMode === "wheel" && wheelDraft) {
-                captureWheelDraft();
-                renderWheelDraft();
-                return;
-            }
-        });
         byId("yearWheelFormFields").addEventListener("click", event => {
             if (event.target.closest("[data-ring-drag-handle]")) {
                 event.preventDefault();
@@ -2413,7 +2287,6 @@
                 let changed = false;
                 if (Number(candidate?.schema_version) < 3) {
                     const existingRings = Array.isArray(candidate?.rings) ? candidate.rings : [];
-                    const alreadyHasTerms = existingRings.some(ring => String(ring?.name || "").trim().toLocaleLowerCase("sv") === "terminer");
                     const migratedRings = existingRings.map(ring => {
                         const name = String(ring?.name || "").trim();
                         const palette = DEPARTMENT_RING_COLORS[name];
@@ -2424,14 +2297,12 @@
                     candidate = {
                         ...candidate,
                         schema_version: 3,
-                        rings: alreadyHasTerms
-                            ? migratedRings
-                            : [...migratedRings, { id: id(), name: "Terminer", color: COLORS[3], color_variant: "custom" }]
+                        rings: migratedRings
                     };
                     changed = true;
                 }
                 if (Number(candidate?.schema_version) < 4) {
-                    candidate = migrateDepartmentGroups(candidate);
+                    candidate = { ...candidate, schema_version: 4 };
                     changed = true;
                 }
                 return { wheel: normalizeWheel(candidate), changed };
@@ -2449,13 +2320,6 @@
                 });
             }
             wheels = migrated.map(entry => entry.wheel);
-            const activeMigration = migrated.find(entry => entry.changed && entry.wheel.id === selectedWheelId);
-            if (activeMigration && selectedRingsForWheelId === selectedWheelId) {
-                const termRing = activeMigration.wheel.rings.find(ring => ring.name === "Terminer");
-                if (termRing) selectedRingIds.add(termRing.id);
-                const departmentRoot = activeMigration.wheel.rings.find(ring => ring.name === "Avdelning" && !ring.parent_id);
-                if (departmentRoot) selectedRingIds.add(departmentRoot.id);
-            }
             render();
             if (source === "load" && canWrite()) {
                 migrated.filter(entry => entry.changed).forEach(entry => window.GTScoutYearWheelSync?.saveWheel(entry.wheel));

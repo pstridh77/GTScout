@@ -470,21 +470,13 @@ test("year-wheel root rings can summarize child rings or show them separately", 
     );
 });
 
-test("year-wheel ring configuration preserves selected rings and locks rings with events", () => {
+test("year-wheel ring configuration shows only existing rings", () => {
     const source = fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8");
     const start = source.indexOf("function ringOptionsMarkup(");
     const end = source.indexOf("function openRingForm(", start);
     const context = vm.createContext({
-        COLORS: ["#398a86"],
-        DEFAULT_RINGS: [
-            ["Spårare", "#41a62a"],
-            ["Styrelse", "#398a86"],
-            ["Terminer", "#5d7cc5"]
-        ],
-        DEPARTMENT_RING_COLORS: { Spårare: { standard: "#41a62a", light: "#d9efd2" } },
-        PLANNING_DEPARTMENTS: ["Spårare"],
+        ringGroupOpen: true,
         escapeHtml: value => String(value),
-        id: (() => { let next = 0; return () => `added-${++next}`; })()
     });
     vm.runInContext(source.slice(source.indexOf("function normalizeText("), source.indexOf("function normalizeWheel(")), context);
     vm.runInContext(source.slice(start, end), context);
@@ -492,27 +484,15 @@ test("year-wheel ring configuration preserves selected rings and locks rings wit
     const scoutRing = { id: "scout", name: "Spårare", color: "#41a62a", color_variant: "standard" };
     const customRing = { id: "custom", name: "Styrelse extra", color: "#123456", color_variant: "custom" };
     const events = [{ id: "event-1", ring_id: "scout" }];
-    const markup = context.ringOptionsMarkup([scoutRing, customRing], events, false);
-    assert.match(markup, /name="ring_ids" value="scout"[^>]*checked[^>]*disabled/);
-    assert.match(markup, /<input type="hidden" name="ring_ids" value="scout">/);
-    assert.match(markup, /name="ring_names" value="Styrelse"/);
-    assert.match(markup, /name="ring_ids" value="custom"[^>]*checked/);
+    const markup = context.ringOptionsMarkup([scoutRing, customRing], events);
+    assert.match(markup, /data-ring-id="scout"/);
+    assert.match(markup, /data-ring-id="custom"/);
+    assert.doesNotMatch(markup, /ring_ids|ring_names|Terminer/);
     assert.match(markup, /<small>1 händelse<\/small>/);
     const multipleEventsMarkup = context.ringOptionsMarkup(
-        [scoutRing, customRing], [...events, { id: "event-2", ring_id: "scout" }], false
+        [scoutRing, customRing], [...events, { id: "event-2", ring_id: "scout" }]
     );
     assert.match(multipleEventsMarkup, /<small>2 händelser<\/small>/);
-
-    const configured = context.buildConfiguredRings(
-        [scoutRing, customRing],
-        ["scout", "custom"],
-        ["Terminer"]
-    );
-    assert.deepEqual(JSON.parse(JSON.stringify(configured.map(ring => [ring.id, ring.name]))), [
-        ["scout", "Spårare"],
-        ["custom", "Styrelse extra"],
-        ["added-1", "Terminer"]
-    ]);
     assert.equal(context.getRingEventCount(events, "scout"), 1);
     assert.equal(context.getRingEventCount(events, "custom"), 0);
 });
