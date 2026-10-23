@@ -425,6 +425,220 @@ test("new ring named Arrangemang enables sync by default", async () => {
     assert.deepEqual(page.errors, []);
 });
 
+test("department rings expose planning sync with their department preselected", async () => {
+    const page = createPage({
+        wheels: [{
+            ...wheel(),
+            rings: [{ id: "scouts", name: "Spårare", color: "#41a62a", color_variant: "standard" }]
+        }]
+    });
+    await settle();
+    page.unlockEditing();
+    page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
+    page.elements.get("yearWheelForm").values = {
+        name: "wheel", start_month: "8", ring_ids: ["scouts"]
+    };
+    clickRingAction(page, "edit", "scouts");
+
+    const markup = page.elements.get("yearWheelFormFields").innerHTML;
+    assert.match(markup, /<option value="Spårare" selected>Spårare<\/option>/);
+    assert.match(markup, /name="sync_meetings_from_department" type="checkbox"/);
+});
+
+test("planning meeting sync imports only dated meetings from the selected department and identifies their plan", () => {
+    const helpers = createHelpers();
+    const input = {
+        ...wheel(),
+        rings: [{
+            id: "spares",
+            name: "Spårare",
+            color: "#41a62a",
+            sync_meetings_from_department: true,
+            sync_meetings_department: "Spårare"
+        }]
+    };
+    const groups = [
+        {
+            id: "plan-1", level: "Spårare", name: "Läsår 1 HT",
+            meetings: [
+                { id: "meeting-1", week: "2", date: "2026-09-10", responsible: "Ada", location: "Scoutstugan" },
+                { id: "meeting-undated", week: "3", date: "" }
+            ]
+        },
+        {
+            id: "plan-other", level: "Upptäckare", name: "Läsår 1 HT",
+            meetings: [{ id: "other-meeting", date: "2026-09-11" }]
+        }
+    ];
+
+    const updated = helpers.syncPlanningMeetingEvents(input, groups);
+    assert.equal(updated.events.length, 1);
+    assert.equal(updated.events[0].source_planning_id, "plan-1");
+    assert.equal(updated.events[0].source_meeting_id, "meeting-1");
+    assert.match(updated.events[0].title, /Spårare · Läsår 1 HT · Träff 2/);
+    assert.equal(updated.events[0].start_date, "2026-09-10");
+    assert.equal(updated.events[0].end_date, "2026-09-10");
+    assert.equal(updated.events[0].responsible, "Ada");
+    assert.equal(helpers.syncPlanningMeetingEvents(updated, groups), null, "Repeated source data must not create or change events");
+});
+
+test("planning meeting sync includes new plans by default, honors exclusions and drops meetings whose date is cleared", () => {
+    const helpers = createHelpers();
+    const configuredWheel = {
+        ...wheel(),
+        rings: [{
+            id: "spares",
+            name: "Spårare",
+            color: "#41a62a",
+            sync_meetings_from_department: true,
+            sync_meetings_department: "Spårare",
+            sync_excluded_planning_ids: ["excluded-plan"]
+        }]
+    };
+    const groups = [
+        { id: "included-plan", level: "Spårare", name: "Läsår 1 HT", meetings: [{ id: "m1", date: "2026-09-10" }] },
+        { id: "new-plan", level: "Spårare", name: "Läsår 2 VT", meetings: [{ id: "m2", date: "2027-02-10" }] },
+        { id: "excluded-plan", level: "Spårare", name: "Undantagen", meetings: [{ id: "m3", date: "2027-03-10" }] }
+    ];
+
+    const updated = helpers.syncPlanningMeetingEvents(configuredWheel, groups);
+    assert.deepEqual(Array.from(updated.events, event => event.source_planning_id).sort(), ["included-plan", "new-plan"]);
+    const withoutDate = groups.map(group => group.id === "included-plan"
+        ? { ...group, meetings: [{ id: "m1", date: "" }] }
+        : group);
+    const cleared = helpers.syncPlanningMeetingEvents(updated, withoutDate);
+    assert.deepEqual(Array.from(cleared.events, event => event.source_planning_id), ["new-plan"]);
+});
+
+test("event overflow list shows each event title, ring and date", () => {
+    const source = readScript("arshjul.js");
+    const start = source.indexOf("function renderEventOverflowRows(");
+    const end = source.indexOf("function openEventOverflow(", start);
+    const context = vm.createContext({
+        COLORS: ["#398a86"],
+        escapeHtml: value => String(value).replace(/[&<>"']/g, character => ({
+            "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+        }[character])),
+        formatDate: value => `formatted:${value}`,
+        getEventColor: () => "#41a62a"
+    });
+    vm.runInContext(source.slice(start, end), context);
+    const rows = context.renderEventOverflowRows([
+        {
+            id: "meeting-1",
+            title: "Spårare · Läsår 1 HT · Träff 2",
+            ring_id: "scouts",
+            start_date: "2026-09-10",
+            end_date: "2026-09-10"
+        },
+        {
+            id: "event-2",
+            title: "Kårkväll",
+            ring_id: "common",
+            start_date: "2026-09-11",
+            end_date: "2026-09-12"
+        }
+    ], new Map([
+        ["scouts", { name: "Spårare" }],
+        ["common", { name: "Kårgemensamt" }]
+    ]), true);
+
+    assert.match(rows, /data-overflow-event="meeting-1"/);
+    assert.match(rows, /Spårare · Läsår 1 HT · Träff 2/);
+    assert.match(rows, /Spårare · formatted:2026-09-10/);
+    assert.match(rows, /data-overflow-event="event-2"/);
+    assert.match(rows, /Kårkväll/);
+    assert.match(rows, /Kårgemensamt · formatted:2026-09-11 – formatted:2026-09-12/);
+    assert.equal((rows.match(/class="year-wheel-overflow-event"/g) || []).length, 2);
+});
+
+test("overflow list hides save action but individual event editing restores it", () => {
+    const source = readScript("arshjul.js");
+    const start = source.indexOf("function openModal(");
+    const end = source.indexOf("function closeModal(", start);
+    const elements = new Map();
+    const element = name => {
+        if (!elements.has(name)) {
+            const classes = new Set();
+            elements.set(name, {
+                classList: {
+                    add(value) { classes.add(value); },
+                    remove(value) { classes.delete(value); },
+                    toggle(value, enabled) { if (enabled) classes.add(value); else classes.delete(value); },
+                    contains(value) { return classes.has(value); }
+                },
+                querySelector() { return element(`${name} child`); },
+                focus() {},
+                removeAttribute() {}
+            });
+        }
+        return elements.get(name);
+    };
+    const context = vm.createContext({
+        modalMode: "",
+        editingId: "",
+        byId: element,
+        canEdit: () => true
+    });
+    vm.runInContext(source.slice(start, end), context);
+    const submitButton = element("yearWheelForm").querySelector('[type="submit"]');
+
+    context.openModal("Händelser nära varandra", "<div>Händelselista</div>", "event-overflow");
+    assert.equal(submitButton.classList.contains("hidden"), true);
+    context.openModal("Redigera händelse", "<input>", "event", "meeting-1");
+    assert.equal(submitButton.classList.contains("hidden"), false);
+});
+
+test("excluding a planning source opens a clear choice dialog instead of a browser confirm", async () => {
+    const sourceWheel = {
+        ...wheel(),
+        rings: [{
+            id: "scouts",
+            name: "Spårare",
+            color: "#41a62a",
+            sync_meetings_from_department: true,
+            sync_meetings_department: "Spårare"
+        }],
+        events: [{
+            id: "linked-meeting",
+            ring_id: "scouts",
+            title: "Spårare · Läsår 1 HT · Träff 2",
+            start_date: "2026-09-10",
+            end_date: "2026-09-10",
+            source_planning_id: "plan-1",
+            source_meeting_id: "meeting-1"
+        }]
+    };
+    const page = createPage({ wheels: [sourceWheel] });
+    await settle();
+    page.unlockEditing();
+    page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
+    const form = page.elements.get("yearWheelForm");
+    form.values = { name: "wheel", start_month: "8", ring_ids: ["scouts"] };
+    clickRingAction(page, "edit", "scouts");
+
+    form.values = {
+        name: "Spårare",
+        color: "#41a62a",
+        parent_id: "",
+        color_variant: "standard",
+        sync_meetings_from_department: "on",
+        sync_meetings_department: "Spårare",
+        sync_excluded_planning_ids: JSON.stringify(["plan-1"]),
+        planning_sync_action: ""
+    };
+    form.handlers.submit({ preventDefault() {}, currentTarget: form });
+
+    const popup = page.elements.get("yearWheelArrangementSyncModal");
+    assert.equal(popup.classList.contains("hidden"), false);
+    assert.equal(page.elements.get("yearWheelArrangementSyncTitle").textContent, "Planeringens möten synkas inte längre");
+    assert.match(page.elements.get("yearWheelArrangementSyncMessage").textContent, /Det synkade mötet kommer inte längre att uppdateras/);
+    assert.equal(page.elements.get("keepYearWheelArrangementEventsBtn").textContent, "Behåll mötet som vanlig händelse");
+    assert.equal(page.elements.get("deleteYearWheelArrangementEventsBtn").textContent, "Ta bort mötet från årshjulet");
+    page.elements.get("cancelYearWheelArrangementSyncBtn").handlers.click();
+    assert.equal(popup.classList.contains("hidden"), true);
+});
+
 test("legacy department grouping migrates into an editable root and child rings", async () => {
     const configuredWheel = wheel("legacy", 3);
     configuredWheel.group_departments = true;
@@ -884,6 +1098,29 @@ test("year wheel starts locked and opens events read-only until unlocked", async
     assert.deepEqual(page.errors, []);
 });
 
+test("leaders and admins delete year wheels from settings when editing is unlocked", async () => {
+    const html = fs.readFileSync(path.join(__dirname, "..", "arshjul.html"), "utf8");
+    assert.doesNotMatch(html, /deleteYearWheelBtn/);
+    for (const role of [{ leader: true }, { leader: false, admin: true }]) {
+        const page = createPage({ wheels: [wheel("first"), wheel("second")], ...role });
+        await settle();
+        assert.equal(page.elements.get("yearWheelMenuSettingsBtn").disabled, true);
+
+        page.unlockEditing();
+        page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
+        assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Inställningar för årshjul");
+        const deleteButton = page.elements.get("deleteYearWheelItemBtn");
+        assert.equal(deleteButton.classList.contains("hidden"), false);
+        deleteButton.handlers.click();
+        await settle();
+
+        assert.deepEqual(page.stored().map(item => item.id), ["second"]);
+        assert.equal(page.elements.get("yearWheelDisplayName").textContent, "second");
+        assert.equal(page.requests.filter(request => request.operation === "delete").length, 1);
+        assert.deepEqual(page.errors, []);
+    }
+});
+
 test("only the lock floats throughout the page and adapts to header and toolbar visibility", () => {
     const classes = new Set();
     const button = {
@@ -1048,6 +1285,22 @@ test("event arcs keep sharp corners even for narrow events", () => {
         assert.doesNotMatch(path, /NaN|Infinity/);
     }
     assert.doesNotMatch(context.arcPath(100, 90, 0, 0.1), /\bQ\b/);
+});
+
+test("short event arcs use six days of visual width, leaving a gap between weekly events", () => {
+    const source = readScript("arshjul.js");
+    const start = source.indexOf("function getEventArcFractions(");
+    const end = source.indexOf("function getEventLaneLayout(", start);
+    const context = vm.createContext({});
+    vm.runInContext(source.slice(start, end), context);
+
+    const days = 365;
+    const first = context.getEventArcFractions(20, 21, days);
+    const nextWeek = context.getEventArcFractions(27, 28, days);
+
+    assert.ok(Math.abs((first.to - first.from) * days - 6) < 1e-9);
+    assert.ok(Math.abs((nextWeek.to - nextWeek.from) * days - 6) < 1e-9);
+    assert.ok(Math.abs((nextWeek.from - first.to) * days - 1) < 1e-9);
 });
 
 test("colored rings occupy at least 70 percent of each ring slot", async () => {
@@ -1296,6 +1549,24 @@ for (const chartMode of ["overview", "details"]) {
         assert.deepEqual(page.errors, []);
     });
 }
+
+test("event list labels department child rings as meetings", async () => {
+    const configuredWheel = wheel();
+    configuredWheel.rings.push(
+        { id: "department", name: "Avdelning", color: "#123456" },
+        { id: "scouts", name: "Spårare", color: "#41a62a", parent_id: "department" }
+    );
+    configuredWheel.events = [{
+        id: "scout-meeting", ring_id: "scouts", title: "Veckomöte",
+        start_date: "2026-10-20", end_date: "2026-10-20"
+    }];
+    const page = createPage({ wheels: [configuredWheel] });
+    await settle();
+    const markup = page.elements.get("yearWheelEvents").innerHTML;
+    assert.match(markup, /class="year-wheel-event-card-ring">Möte · Spårare<\/span>/);
+    assert.doesNotMatch(markup, /class="year-wheel-event-card-ring">Avdelning · Spårare<\/span>/);
+    assert.deepEqual(page.errors, []);
+});
 
 test("overview event cards are color-marked by their ring", async () => {
     const configuredWheel = wheel();

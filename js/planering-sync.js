@@ -282,7 +282,7 @@
         reload: load,
         init(config) {
             hooks = config;
-            sharedToken = new URLSearchParams(window.location.search).get("share");
+            sharedToken = config.ignoreShared ? null : new URLSearchParams(window.location.search).get("share");
             if (sharedToken) {
                 document.body.classList.add("shared-planning-view");
                 auth()?.onChange(() => loadShared());
