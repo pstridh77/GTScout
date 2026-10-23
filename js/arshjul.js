@@ -2185,6 +2185,7 @@
         const wheel = currentWheel();
         if (!wheel || !editingId) return;
         if (modalMode === "wheel") {
+            if (!canEdit()) return;
             if (!window.confirm(`Ta bort årshjulet "${wheel.name}" och alla dess händelser?`)) return;
             wheels = wheels.filter(item => item.id !== wheel.id);
             selectedWheelId = wheels[0]?.id || "";

@@ -1098,6 +1098,29 @@ test("year wheel starts locked and opens events read-only until unlocked", async
     assert.deepEqual(page.errors, []);
 });
 
+test("leaders and admins delete year wheels from settings when editing is unlocked", async () => {
+    const html = fs.readFileSync(path.join(__dirname, "..", "arshjul.html"), "utf8");
+    assert.doesNotMatch(html, /deleteYearWheelBtn/);
+    for (const role of [{ leader: true }, { leader: false, admin: true }]) {
+        const page = createPage({ wheels: [wheel("first"), wheel("second")], ...role });
+        await settle();
+        assert.equal(page.elements.get("yearWheelMenuSettingsBtn").disabled, true);
+
+        page.unlockEditing();
+        page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
+        assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Inställningar för årshjul");
+        const deleteButton = page.elements.get("deleteYearWheelItemBtn");
+        assert.equal(deleteButton.classList.contains("hidden"), false);
+        deleteButton.handlers.click();
+        await settle();
+
+        assert.deepEqual(page.stored().map(item => item.id), ["second"]);
+        assert.equal(page.elements.get("yearWheelDisplayName").textContent, "second");
+        assert.equal(page.requests.filter(request => request.operation === "delete").length, 1);
+        assert.deepEqual(page.errors, []);
+    }
+});
+
 test("only the lock floats throughout the page and adapts to header and toolbar visibility", () => {
     const classes = new Set();
     const button = {
