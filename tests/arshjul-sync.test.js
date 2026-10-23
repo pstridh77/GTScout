@@ -425,6 +425,142 @@ test("new ring named Arrangemang enables sync by default", async () => {
     assert.deepEqual(page.errors, []);
 });
 
+test("department rings expose planning sync with their department preselected", async () => {
+    const page = createPage({
+        wheels: [{
+            ...wheel(),
+            rings: [{ id: "scouts", name: "Spårare", color: "#41a62a", color_variant: "standard" }]
+        }]
+    });
+    await settle();
+    page.unlockEditing();
+    page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
+    page.elements.get("yearWheelForm").values = {
+        name: "wheel", start_month: "8", ring_ids: ["scouts"]
+    };
+    clickRingAction(page, "edit", "scouts");
+
+    const markup = page.elements.get("yearWheelFormFields").innerHTML;
+    assert.match(markup, /Synka avdelningens möten till ringen automatiskt/);
+    assert.match(markup, /<option value="Spårare" selected>Spårare<\/option>/);
+    assert.match(markup, /name="sync_meetings_from_department" type="checkbox"/);
+});
+
+test("planning meeting sync imports only dated meetings from the selected department and identifies their plan", () => {
+    const helpers = createHelpers();
+    const input = {
+        ...wheel(),
+        rings: [{
+            id: "spares",
+            name: "Spårare",
+            color: "#41a62a",
+            sync_meetings_from_department: true,
+            sync_meetings_department: "Spårare"
+        }]
+    };
+    const groups = [
+        {
+            id: "plan-1", level: "Spårare", name: "Läsår 1 HT",
+            meetings: [
+                { id: "meeting-1", week: "2", date: "2026-09-10", responsible: "Ada", location: "Scoutstugan" },
+                { id: "meeting-undated", week: "3", date: "" }
+            ]
+        },
+        {
+            id: "plan-other", level: "Upptäckare", name: "Läsår 1 HT",
+            meetings: [{ id: "other-meeting", date: "2026-09-11" }]
+        }
+    ];
+
+    const updated = helpers.syncPlanningMeetingEvents(input, groups);
+    assert.equal(updated.events.length, 1);
+    assert.equal(updated.events[0].source_planning_id, "plan-1");
+    assert.equal(updated.events[0].source_meeting_id, "meeting-1");
+    assert.match(updated.events[0].title, /Spårare · Läsår 1 HT · Träff 2/);
+    assert.equal(updated.events[0].start_date, "2026-09-10");
+    assert.equal(updated.events[0].end_date, "2026-09-10");
+    assert.equal(updated.events[0].responsible, "Ada");
+    assert.equal(helpers.syncPlanningMeetingEvents(updated, groups), null, "Repeated source data must not create or change events");
+});
+
+test("planning meeting sync includes new plans by default, honors exclusions and drops meetings whose date is cleared", () => {
+    const helpers = createHelpers();
+    const configuredWheel = {
+        ...wheel(),
+        rings: [{
+            id: "spares",
+            name: "Spårare",
+            color: "#41a62a",
+            sync_meetings_from_department: true,
+            sync_meetings_department: "Spårare",
+            sync_excluded_planning_ids: ["excluded-plan"]
+        }]
+    };
+    const groups = [
+        { id: "included-plan", level: "Spårare", name: "Läsår 1 HT", meetings: [{ id: "m1", date: "2026-09-10" }] },
+        { id: "new-plan", level: "Spårare", name: "Läsår 2 VT", meetings: [{ id: "m2", date: "2027-02-10" }] },
+        { id: "excluded-plan", level: "Spårare", name: "Undantagen", meetings: [{ id: "m3", date: "2027-03-10" }] }
+    ];
+
+    const updated = helpers.syncPlanningMeetingEvents(configuredWheel, groups);
+    assert.deepEqual(Array.from(updated.events, event => event.source_planning_id).sort(), ["included-plan", "new-plan"]);
+    const withoutDate = groups.map(group => group.id === "included-plan"
+        ? { ...group, meetings: [{ id: "m1", date: "" }] }
+        : group);
+    const cleared = helpers.syncPlanningMeetingEvents(updated, withoutDate);
+    assert.deepEqual(Array.from(cleared.events, event => event.source_planning_id), ["new-plan"]);
+});
+
+test("excluding a planning source opens a clear choice dialog instead of a browser confirm", async () => {
+    const sourceWheel = {
+        ...wheel(),
+        rings: [{
+            id: "scouts",
+            name: "Spårare",
+            color: "#41a62a",
+            sync_meetings_from_department: true,
+            sync_meetings_department: "Spårare"
+        }],
+        events: [{
+            id: "linked-meeting",
+            ring_id: "scouts",
+            title: "Spårare · Läsår 1 HT · Träff 2",
+            start_date: "2026-09-10",
+            end_date: "2026-09-10",
+            source_planning_id: "plan-1",
+            source_meeting_id: "meeting-1"
+        }]
+    };
+    const page = createPage({ wheels: [sourceWheel] });
+    await settle();
+    page.unlockEditing();
+    page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
+    const form = page.elements.get("yearWheelForm");
+    form.values = { name: "wheel", start_month: "8", ring_ids: ["scouts"] };
+    clickRingAction(page, "edit", "scouts");
+
+    form.values = {
+        name: "Spårare",
+        color: "#41a62a",
+        parent_id: "",
+        color_variant: "standard",
+        sync_meetings_from_department: "on",
+        sync_meetings_department: "Spårare",
+        sync_excluded_planning_ids: JSON.stringify(["plan-1"]),
+        planning_sync_action: ""
+    };
+    form.handlers.submit({ preventDefault() {}, currentTarget: form });
+
+    const popup = page.elements.get("yearWheelArrangementSyncModal");
+    assert.equal(popup.classList.contains("hidden"), false);
+    assert.equal(page.elements.get("yearWheelArrangementSyncTitle").textContent, "Planeringens möten synkas inte längre");
+    assert.match(page.elements.get("yearWheelArrangementSyncMessage").textContent, /Det synkade mötet kommer inte längre att uppdateras/);
+    assert.equal(page.elements.get("keepYearWheelArrangementEventsBtn").textContent, "Behåll mötet som vanlig händelse");
+    assert.equal(page.elements.get("deleteYearWheelArrangementEventsBtn").textContent, "Ta bort mötet från årshjulet");
+    page.elements.get("cancelYearWheelArrangementSyncBtn").handlers.click();
+    assert.equal(popup.classList.contains("hidden"), true);
+});
+
 test("legacy department grouping migrates into an editable root and child rings", async () => {
     const configuredWheel = wheel("legacy", 3);
     configuredWheel.group_departments = true;

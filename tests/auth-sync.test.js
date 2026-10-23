@@ -482,6 +482,7 @@ test("year-wheel ring configuration preserves selected rings and locks rings wit
             ["Terminer", "#5d7cc5"]
         ],
         DEPARTMENT_RING_COLORS: { Spårare: { standard: "#41a62a", light: "#d9efd2" } },
+        PLANNING_DEPARTMENTS: ["Spårare"],
         escapeHtml: value => String(value),
         id: (() => { let next = 0; return () => `added-${++next}`; })()
     });

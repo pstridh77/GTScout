@@ -29,10 +29,12 @@
         ["Styrelse", COLORS[0]], ["Kårgemensamt", COLORS[1]], ["Arrangemang", COLORS[2]],
         ["Terminer", COLORS[3]]
     ];
+    const PLANNING_DEPARTMENTS = Object.keys(DEPARTMENT_RING_COLORS);
     const MONTHS = ["Januari", "Februari", "Mars", "April", "Maj", "Juni", "Juli", "Augusti", "September", "Oktober", "November", "December"];
     const byId = id => document.getElementById(id);
     const auth = () => window.GTScoutAuth;
     let wheels = [];
+    let planningGroups = [];
     let selectedWheelId = "";
     let selectedRingIds = new Set();
     let selectedRingsForWheelId = "";
@@ -46,7 +48,7 @@
     let wheelDraft = null;
     let draftRingIds = new Set();
     let draggedRingId = "";
-    let arrangementSyncChoiceHandlers = null;
+    let syncChoiceHandlers = null;
     const collapsedEventMonths = new Set();
 
     function escapeHtml(value) {
@@ -91,7 +93,14 @@
             children_display: ring?.children_display === "individual" ? "individual" : "grouped",
             sync_arrangements: typeof ring?.sync_arrangements === "boolean"
                 ? ring.sync_arrangements
-                : String(ring?.name || "").trim().toLocaleLowerCase("sv") === "arrangemang"
+                : String(ring?.name || "").trim().toLocaleLowerCase("sv") === "arrangemang",
+            sync_meetings_from_department: Boolean(ring?.sync_meetings_from_department),
+            sync_meetings_department: PLANNING_DEPARTMENTS.includes(ring?.sync_meetings_department)
+                ? ring.sync_meetings_department
+                : (PLANNING_DEPARTMENTS.includes(String(ring?.name || "").trim()) ? String(ring.name).trim() : ""),
+            sync_excluded_planning_ids: Array.isArray(ring?.sync_excluded_planning_ids)
+                ? [...new Set(ring.sync_excluded_planning_ids.map(String).filter(Boolean))]
+                : []
         })).filter(ring => ring.name) : [];
         const ringsById = new Map(rings.map(ring => [ring.id, ring]));
         rings.forEach(ring => {
@@ -123,6 +132,13 @@
                     responsible: Boolean(event.source_arrangement_fields?.responsible),
                     location: Boolean(event.source_arrangement_fields?.location),
                     notes: Boolean(event.source_arrangement_fields?.notes)
+                },
+                source_planning_id: String(event.source_planning_id || ""),
+                source_meeting_id: String(event.source_meeting_id || ""),
+                source_planning_fields: {
+                    responsible: Boolean(event.source_planning_fields?.responsible),
+                    location: Boolean(event.source_planning_fields?.location),
+                    notes: Boolean(event.source_planning_fields?.notes)
                 }
             };
         }).filter(event => event?.title) : [];
@@ -373,6 +389,132 @@
             events[index] = updated;
             changed = true;
         }));
+        return changed ? normalizeWheel({ ...wheel, events }) : null;
+    }
+
+    function readLocalPlanningGroups() {
+        try {
+            const groups = JSON.parse(localStorage.getItem("gtscout_planering") || "[]");
+            return Array.isArray(groups) ? groups.filter(group => group && typeof group === "object") : [];
+        } catch (error) {
+            console.error("Kunde inte läsa lokala planeringar för årshjulet", error);
+            return [];
+        }
+    }
+
+    function renderPlanningSyncSelection(department, excludedIds) {
+        const plans = planningGroups.filter(group => group.level === department && group.id);
+        if (!plans.length) return `<p class="detail-note">Inga planeringar för avdelningen har hämtats ännu. Nya planeringar inkluderas automatiskt.</p>`;
+        return `<div class="year-wheel-planning-sync-plans">
+            ${plans.map(group => {
+                const idValue = String(group.id || "");
+                const name = getPlanningSourceLabel(group);
+                const datedMeetings = Array.isArray(group.meetings)
+                    ? group.meetings.filter(meeting => isDate(String(meeting?.date || ""))).length
+                    : 0;
+                return `<label class="year-wheel-planning-sync-plan">
+                    <input type="checkbox" name="included_planning_ids" value="${escapeHtml(idValue)}" ${!excludedIds.has(idValue) ? "checked" : ""}>
+                    <span><strong>${escapeHtml(name)}</strong><small>${datedMeetings} ${datedMeetings === 1 ? "möte med datum" : "möten med datum"}</small></span>
+                </label>`;
+            }).join("")}
+        </div>`;
+    }
+
+    function getPlanningSourceLabel(group) {
+        const name = normalizeText(group.name || "Planering", 65);
+        const year = group.year !== "" && group.year !== undefined && Number.isFinite(Number(group.year))
+            ? String(group.year)
+            : "";
+        const term = String(group.term || "").trim();
+        const period = [
+            year && !name.includes(year) ? year : "",
+            term && !name.toLocaleUpperCase("sv").includes(term.toLocaleUpperCase("sv")) ? term : ""
+        ].filter(Boolean).join(" ");
+        return normalizeText(period ? `${name} · ${period}` : name, 80);
+    }
+
+    function syncPlanningMeetingEvents(wheel, groups) {
+        const rings = wheel.rings.filter(ring => ring.sync_meetings_from_department
+            && PLANNING_DEPARTMENTS.includes(ring.sync_meetings_department));
+        if (!rings.length) return null;
+        const events = [...wheel.events];
+        let changed = false;
+        rings.forEach(ring => {
+            const excluded = new Set(ring.sync_excluded_planning_ids || []);
+            const activePlans = groups.filter(group => group.level === ring.sync_meetings_department
+                && group.id && !excluded.has(String(group.id)));
+            const activePlanIds = new Set(activePlans.map(group => String(group.id)));
+            const desiredMeetingKeys = new Set();
+            activePlans.forEach(group => (Array.isArray(group.meetings) ? group.meetings : []).forEach(meeting => {
+                const meetingDate = String(meeting?.date || "");
+                const planId = String(group.id);
+                const meetingId = String(meeting?.id || "");
+                if (!meetingId || !isDate(meetingDate)) return;
+                desiredMeetingKeys.add(`${planId}:${meetingId}`);
+                const planName = getPlanningSourceLabel(group);
+                const week = normalizeText(meeting.week || "", 20);
+                const title = normalizeText(`${ring.sync_meetings_department} · ${planName} · Träff ${week || "möte"}`, 120);
+                const responsible = normalizeText(meeting.responsible, 100);
+                const location = normalizeText(meeting.location, 120);
+                const notes = normalizeText(meeting.notes, 2000);
+                const sourceFields = {
+                    responsible: Boolean(responsible),
+                    location: Boolean(location),
+                    notes: Boolean(notes)
+                };
+                const index = events.findIndex(event => event.ring_id === ring.id
+                    && event.source_planning_id === planId && event.source_meeting_id === meetingId);
+                if (index < 0) {
+                    events.push({
+                        id: id(),
+                        ring_id: ring.id,
+                        title,
+                        start_date: meetingDate,
+                        end_date: meetingDate,
+                        color_variant: "ring",
+                        color: "",
+                        responsible,
+                        location,
+                        notes,
+                        source_planning_id: planId,
+                        source_meeting_id: meetingId,
+                        source_planning_fields: sourceFields
+                    });
+                    changed = true;
+                    return;
+                }
+                const existing = events[index];
+                const previousSources = existing.source_planning_fields || {};
+                const syncedValue = (field, value) => value
+                    ? value
+                    : previousSources[field] ? "" : existing[field];
+                const updated = {
+                    ...existing,
+                    title,
+                    start_date: meetingDate,
+                    end_date: meetingDate,
+                    responsible: syncedValue("responsible", responsible),
+                    location: syncedValue("location", location),
+                    notes: syncedValue("notes", notes),
+                    source_planning_fields: sourceFields
+                };
+                if (existing.title === updated.title && existing.start_date === updated.start_date
+                    && existing.end_date === updated.end_date && existing.responsible === updated.responsible
+                    && existing.location === updated.location && existing.notes === updated.notes
+                    && Boolean(previousSources.responsible) === sourceFields.responsible
+                    && Boolean(previousSources.location) === sourceFields.location
+                    && Boolean(previousSources.notes) === sourceFields.notes) return;
+                events[index] = updated;
+                changed = true;
+            }));
+            const retainedEvents = events.filter(event => event.ring_id !== ring.id || !event.source_planning_id
+                || !activePlanIds.has(event.source_planning_id)
+                || desiredMeetingKeys.has(`${event.source_planning_id}:${event.source_meeting_id}`));
+            if (retainedEvents.length !== events.length) {
+                events.splice(0, events.length, ...retainedEvents);
+                changed = true;
+            }
+        });
         return changed ? normalizeWheel({ ...wheel, events }) : null;
     }
 
@@ -1152,7 +1294,7 @@
 
     function closeModal() {
         byId("yearWheelArrangementSyncModal").classList.add("hidden");
-        arrangementSyncChoiceHandlers = null;
+        syncChoiceHandlers = null;
         if (modalMode === "ring" && wheelDraft) {
             renderWheelDraft();
             return;
@@ -1350,7 +1492,10 @@
             color_variant: DEPARTMENT_RING_COLORS[ringName] ? "standard" : "custom",
             parent_id: parent?.id || "",
             children_display: "grouped",
-            sync_arrangements: ringName.trim().toLocaleLowerCase("sv") === "arrangemang"
+            sync_arrangements: ringName.trim().toLocaleLowerCase("sv") === "arrangemang",
+            sync_meetings_from_department: false,
+            sync_meetings_department: PLANNING_DEPARTMENTS.includes(ringName) ? ringName : "",
+            sync_excluded_planning_ids: []
         };
     }
 
@@ -1411,6 +1556,10 @@
         const linkedEvents = ring
             ? wheel.events.filter(event => event.ring_id === ring.id && event.source_arrangement_id)
             : [];
+        const excludedPlanningIds = new Set(ring?.sync_excluded_planning_ids || []);
+        const initialDepartment = ring?.sync_meetings_department
+            || (PLANNING_DEPARTMENTS.includes(ring?.name) ? ring.name : "");
+        const planningEnabled = Boolean(ring?.sync_meetings_from_department);
         const hasChildren = ring && wheel.rings.some(item => item.parent_id === ring.id);
         const parents = wheel.rings.filter(item => !item.parent_id && item.id !== ringId);
         const parentOptions = `<option value="" ${!ring?.parent_id && !parentId ? "selected" : ""}>Ingen, skapa som ring</option>${parents.map(parent => `<option value="${escapeHtml(parent.id)}" ${(ring?.parent_id || parentId) === parent.id ? "selected" : ""}>${escapeHtml(parent.name)}</option>`).join("")}`;
@@ -1418,8 +1567,21 @@
             <label class="modal-field"><span>Namn på ringen</span><input name="name" required maxlength="60" value="${escapeHtml(ring?.name || "")}" placeholder="Till exempel Styrelse"></label>
             <label class="modal-field"><span>Placering</span><select name="parent_id" ${hasChildren ? "disabled title=\"Flytta upp eller ta bort underringarna först\"" : ""}>${parentOptions}</select>${hasChildren ? `<input type="hidden" name="parent_id" value="">` : ""}</label>
             ${!ring?.parent_id ? `<label class="modal-field"><span>Visa underringar</span><select name="children_display"><option value="grouped" ${ring?.children_display !== "individual" ? "selected" : ""}>Summera händelser i ringen</option><option value="individual" ${ring?.children_display === "individual" ? "selected" : ""}>Visa underringar separat</option></select></label>` : ""}
-            <label class="year-wheel-arrangement-sync"><input name="sync_arrangements" type="checkbox" ${ring?.sync_arrangements ?? String(ring?.name || "").trim().toLocaleLowerCase("sv") === "arrangemang" ? "checked" : ""}><span>Synka arrangemang automatiskt till den här ringen</span></label>
+            <label class="year-wheel-arrangement-sync"><input name="sync_arrangements" type="checkbox" ${ring?.sync_arrangements ?? String(ring?.name || "").trim().toLocaleLowerCase("sv") === "arrangemang" ? "checked" : ""}><span>Synka arrangemang automatiskt</span></label>
+            <label class="year-wheel-arrangement-sync"><input name="sync_meetings_from_department" type="checkbox" ${planningEnabled ? "checked" : ""}><span>Synka avdelning möten automatiskt</span></label>
+            <div data-meeting-sync-settings${planningEnabled ? "" : " hidden"}>
+                <label class="modal-field"><span>Avdelning</span><select name="sync_meetings_department">
+                    <option value="">Välj avdelning</option>
+                    ${PLANNING_DEPARTMENTS.map(department => `<option value="${escapeHtml(department)}" ${initialDepartment === department ? "selected" : ""}>${escapeHtml(department)}</option>`).join("")}
+                </select></label>
+                <input type="hidden" name="sync_excluded_planning_ids" value="${escapeHtml(JSON.stringify([...excludedPlanningIds]))}">
+                <div data-meeting-sync-plans>${initialDepartment ? renderPlanningSyncSelection(initialDepartment, excludedPlanningIds) : `<p class="detail-note">Välj en avdelning för att se dess planeringar.</p>`}</div>
+                <p class="detail-note">Planeringar inkluderas automatiskt. Avmarkera de planeringar som inte ska synkas.</p>
+            </div>
             ${linkedEvents.length ? `<input type="hidden" name="arrangement_sync_action" value="">` : ""}
+            ${ring && wheel.events.some(event => event.ring_id === ring.id && event.source_planning_id)
+                ? `<input type="hidden" name="planning_sync_action" value="">`
+                : ""}
             <label class="modal-field" data-ring-color-variant${DEPARTMENT_RING_COLORS[ring?.name || ""] ? "" : " hidden"}><span>Avdelningsfärg</span><select name="color_variant"><option value="standard" ${ring?.color_variant === "standard" || !ring?.color_variant && DEPARTMENT_RING_COLORS[ring?.name || ""] ? "selected" : ""}>Standardfärg</option><option value="light" ${ring?.color_variant === "light" ? "selected" : ""}>Ljusare alternativfärg</option><option value="custom" ${ring?.color_variant === "custom" ? "selected" : ""}>Egen färg</option></select></label>
             <label class="modal-field" data-ring-custom-color${DEPARTMENT_RING_COLORS[ring?.name || ""] && ring?.color_variant !== "custom" ? " hidden" : ""}><span>Färg</span><input name="color" type="color" value="${escapeHtml(ring?.color || DEPARTMENT_RING_COLORS[ring?.name || ""]?.standard || COLORS[wheel.rings.length % COLORS.length])}"></label>
             ${eventCount ? `<p class="detail-note-warning">Ringen har ${eventCount} händelser. Flytta eller ta bort dem innan ringen tas bort.</p>` : ""}
@@ -1441,6 +1603,28 @@
         const customColorField = byId("yearWheelFormFields").querySelector("[data-ring-custom-color]");
         const syncArrangementsInput = byId("yearWheelFormFields").querySelector('[name="sync_arrangements"]');
         const syncAction = byId("yearWheelFormFields").querySelector('[name="arrangement_sync_action"]');
+        const syncMeetingsInput = byId("yearWheelFormFields").querySelector('[name="sync_meetings_from_department"]');
+        const syncDepartmentInput = byId("yearWheelFormFields").querySelector('[name="sync_meetings_department"]');
+        const excludedPlanningInput = byId("yearWheelFormFields").querySelector('[name="sync_excluded_planning_ids"]');
+        const planningSyncSettings = byId("yearWheelFormFields").querySelector("[data-meeting-sync-settings]");
+        const planningSyncPlans = byId("yearWheelFormFields").querySelector("[data-meeting-sync-plans]");
+        syncMeetingsInput.addEventListener("change", () => {
+            planningSyncSettings.hidden = !syncMeetingsInput.checked;
+        });
+        syncDepartmentInput.addEventListener("change", () => {
+            const excluded = new Set(JSON.parse(excludedPlanningInput.value || "[]"));
+            planningSyncPlans.innerHTML = syncDepartmentInput.value
+                ? renderPlanningSyncSelection(syncDepartmentInput.value, excluded)
+                : `<p class="detail-note">Välj en avdelning för att se dess planeringar.</p>`;
+        });
+        planningSyncPlans.addEventListener("change", event => {
+            const checkbox = event.target.closest?.('input[name="included_planning_ids"]');
+            if (!checkbox) return;
+            const excluded = new Set(JSON.parse(excludedPlanningInput.value || "[]"));
+            if (checkbox.checked) excluded.delete(checkbox.value);
+            else excluded.add(checkbox.value);
+            excludedPlanningInput.value = JSON.stringify([...excluded]);
+        });
         let syncSettingTouched = Boolean(ring);
         syncArrangementsInput.addEventListener("change", () => {
             syncSettingTouched = true;
@@ -1451,20 +1635,23 @@
                 return;
             }
             const popup = byId("yearWheelArrangementSyncModal");
+            byId("yearWheelArrangementSyncTitle").textContent = "Stänga av arrangemangssynkning?";
             byId("yearWheelArrangementSyncMessage").textContent =
                 `Det finns ${linkedEvents.length} ${linkedEvents.length === 1 ? "synkad händelse" : "synkade händelser"} i den här ringen. Välj vad som ska hända när synkningen stängs av.`;
-            arrangementSyncChoiceHandlers = {
+            byId("keepYearWheelArrangementEventsBtn").textContent = "Behåll som vanliga händelser";
+            byId("deleteYearWheelArrangementEventsBtn").textContent = "Ta bort synkade händelser";
+            syncChoiceHandlers = {
                 choose(action) {
                     if (syncAction) syncAction.value = action;
                     popup.classList.add("hidden");
-                    arrangementSyncChoiceHandlers = null;
+                    syncChoiceHandlers = null;
                     syncArrangementsInput.focus();
                 },
                 cancel() {
                     syncArrangementsInput.checked = true;
                     if (syncAction) syncAction.value = "";
                     popup.classList.add("hidden");
-                    arrangementSyncChoiceHandlers = null;
+                    syncChoiceHandlers = null;
                     syncArrangementsInput.focus();
                 }
             };
@@ -1583,7 +1770,8 @@
     }
 
     function saveWheel(wheel) {
-        const updated = syncArrangementEvents(wheel, window.GTScoutArrangements?.getAll?.() || []) || wheel;
+        const withArrangements = syncArrangementEvents(wheel, window.GTScoutArrangements?.getAll?.() || []) || wheel;
+        const updated = syncPlanningMeetingEvents(withArrangements, planningGroups) || withArrangements;
         window.GTScoutYearWheelSync?.saveWheel(updated);
     }
 
@@ -1626,6 +1814,32 @@
             }
             return wheel;
         });
+        render();
+        if (canWrite()) updates.forEach(wheel => window.GTScoutYearWheelSync?.saveWheel(wheel));
+    }
+
+    function syncPlanningIntoWheels(groups) {
+        planningGroups = Array.isArray(groups) ? groups.filter(group => group && typeof group === "object") : [];
+        if (!wheels.length) return;
+        const updates = [];
+        wheels = wheels.map(wheel => {
+            const updated = syncPlanningMeetingEvents(wheel, planningGroups);
+            if (updated) {
+                updates.push(updated);
+                return updated;
+            }
+            return wheel;
+        });
+        if (modalMode === "ring") {
+            const departmentInput = byId("yearWheelFormFields").querySelector('[name="sync_meetings_department"]');
+            const planList = byId("yearWheelFormFields").querySelector("[data-meeting-sync-plans]");
+            if (departmentInput && planList) {
+                const excluded = new Set(JSON.parse(byId("yearWheelFormFields").querySelector('[name="sync_excluded_planning_ids"]').value || "[]"));
+                planList.innerHTML = departmentInput.value
+                    ? renderPlanningSyncSelection(departmentInput.value, excluded)
+                    : `<p class="detail-note">Välj en avdelning för att se dess planeringar.</p>`;
+            }
+        }
         render();
         if (canWrite()) updates.forEach(wheel => window.GTScoutYearWheelSync?.saveWheel(wheel));
     }
@@ -1797,12 +2011,74 @@
                 color_variant: variant,
                 parent_id: parentId,
                 children_display: value.children_display === "individual" ? "individual" : "grouped",
-                sync_arrangements: value.sync_arrangements === "on"
+                sync_arrangements: value.sync_arrangements === "on",
+                sync_meetings_from_department: value.sync_meetings_from_department === "on",
+                sync_meetings_department: PLANNING_DEPARTMENTS.includes(String(value.sync_meetings_department || ""))
+                    ? String(value.sync_meetings_department)
+                    : "",
+                sync_excluded_planning_ids: (() => {
+                    try {
+                        const excluded = JSON.parse(String(value.sync_excluded_planning_ids || "[]"));
+                        return Array.isArray(excluded) ? [...new Set(excluded.map(String).filter(Boolean))] : [];
+                    } catch {
+                        return [];
+                    }
+                })()
             };
+            if (ring.sync_meetings_from_department && !ring.sync_meetings_department) {
+                byId("yearWheelFormMessage").textContent = "Välj en avdelning för att synka möten.";
+                byId("yearWheelFormMessage").classList.remove("hidden");
+                return;
+            }
+            const linkedMeetingEvents = index < 0 ? [] : targetWheel.events.filter(event =>
+                event.ring_id === editingId && event.source_planning_id
+            );
+            const excludedPlanIds = new Set(ring.sync_excluded_planning_ids);
+            const staleMeetingEvents = linkedMeetingEvents.filter(event => !ring.sync_meetings_from_department
+                || event.source_planning_id && (ring.sync_meetings_department !== targetWheel.rings[index].sync_meetings_department
+                    || excludedPlanIds.has(event.source_planning_id)));
+            const planningSyncAction = String(value.planning_sync_action || "");
+            if (staleMeetingEvents.length && !["keep", "delete"].includes(planningSyncAction)) {
+                const popup = byId("yearWheelArrangementSyncModal");
+                byId("yearWheelArrangementSyncTitle").textContent = "Planeringens möten synkas inte längre";
+                const isSingleMeeting = staleMeetingEvents.length === 1;
+                byId("yearWheelArrangementSyncMessage").textContent = isSingleMeeting
+                    ? "Det synkade mötet kommer inte längre att uppdateras från planeringen. Välj om du vill behålla det i årshjulet eller ta bort det."
+                    : `${staleMeetingEvents.length} synkade möten kommer inte längre att uppdateras från planeringen. Välj om du vill behålla dem i årshjulet eller ta bort dem.`;
+                byId("keepYearWheelArrangementEventsBtn").textContent = isSingleMeeting
+                    ? "Behåll mötet som vanlig händelse"
+                    : "Behåll möten som vanliga händelser";
+                byId("deleteYearWheelArrangementEventsBtn").textContent = isSingleMeeting
+                    ? "Ta bort mötet från årshjulet"
+                    : "Ta bort möten från årshjulet";
+                syncChoiceHandlers = {
+                    choose(action) {
+                        byId("yearWheelFormFields").querySelector('[name="planning_sync_action"]').value = action;
+                        popup.classList.add("hidden");
+                        syncChoiceHandlers = null;
+                        byId("yearWheelForm").requestSubmit();
+                    },
+                    cancel() {
+                        popup.classList.add("hidden");
+                        syncChoiceHandlers = null;
+                        byId("yearWheelFormFields").querySelector('[name="planning_sync_action"]').value = "";
+                    }
+                };
+                popup.classList.remove("hidden");
+                byId("keepYearWheelArrangementEventsBtn").focus();
+                return;
+            }
             const linkedEvents = index < 0 ? [] : targetWheel.events.filter(event =>
                 event.ring_id === editingId && event.source_arrangement_id
             );
             let events = targetWheel.events;
+            if (staleMeetingEvents.length) {
+                events = planningSyncAction === "delete"
+                    ? events.filter(event => !staleMeetingEvents.some(stale => stale.id === event.id))
+                    : events.map(event => staleMeetingEvents.some(stale => stale.id === event.id)
+                        ? { ...event, source_planning_id: "", source_meeting_id: "", source_planning_fields: {} }
+                        : event);
+            }
             if (index >= 0 && targetWheel.rings[index].sync_arrangements && !ring.sync_arrangements && linkedEvents.length) {
                 if (!["keep", "delete"].includes(value.arrangement_sync_action)) {
                     byId("yearWheelFormMessage").textContent = "Välj om de synkade händelserna ska behållas eller tas bort.";
@@ -1859,8 +2135,17 @@
                 copied_from_id: wheel.events.find(item => item.id === editingId)?.copied_from_id || "",
                 needs_review: false,
                 source_arrangement_id: wheel.events.find(item => item.id === editingId)?.source_arrangement_id || "",
-                source_arrangement_fields: wheel.events.find(item => item.id === editingId)?.source_arrangement_fields || {}
+                source_arrangement_fields: wheel.events.find(item => item.id === editingId)?.source_arrangement_fields || {},
+                source_planning_id: wheel.events.find(item => item.id === editingId)?.source_planning_id || "",
+                source_meeting_id: wheel.events.find(item => item.id === editingId)?.source_meeting_id || "",
+                source_planning_fields: wheel.events.find(item => item.id === editingId)?.source_planning_fields || {}
             };
+            const previousEvent = wheel.events.find(item => item.id === editingId);
+            if (previousEvent?.source_planning_id && previousEvent.ring_id !== eventData.ring_id) {
+                eventData.source_planning_id = "";
+                eventData.source_meeting_id = "";
+                eventData.source_planning_fields = {};
+            }
             if (!eventData.title || !wheel.rings.some(ring => ring.id === eventData.ring_id)) return;
             selectedRingIds.add(eventData.ring_id);
             showEventInCurrentPeriod(eventData);
@@ -1926,6 +2211,7 @@
     }
 
     function initialize() {
+        planningGroups = readLocalPlanningGroups();
         readViewPreferences();
         window.addEventListener("scroll", updateStickyYearWheelLock, { passive: true });
         window.addEventListener("resize", updateStickyYearWheelLock);
@@ -2015,11 +2301,11 @@
         byId("yearWheelModal").addEventListener("click", event => {
             if (event.target === byId("yearWheelModal")) closeModal();
         });
-        byId("keepYearWheelArrangementEventsBtn").addEventListener("click", () => arrangementSyncChoiceHandlers?.choose("keep"));
-        byId("deleteYearWheelArrangementEventsBtn").addEventListener("click", () => arrangementSyncChoiceHandlers?.choose("delete"));
-        byId("cancelYearWheelArrangementSyncBtn").addEventListener("click", () => arrangementSyncChoiceHandlers?.cancel());
+        byId("keepYearWheelArrangementEventsBtn").addEventListener("click", () => syncChoiceHandlers?.choose("keep"));
+        byId("deleteYearWheelArrangementEventsBtn").addEventListener("click", () => syncChoiceHandlers?.choose("delete"));
+        byId("cancelYearWheelArrangementSyncBtn").addEventListener("click", () => syncChoiceHandlers?.cancel());
         byId("yearWheelArrangementSyncModal").addEventListener("click", event => {
-            if (event.target === byId("yearWheelArrangementSyncModal")) arrangementSyncChoiceHandlers?.cancel();
+            if (event.target === byId("yearWheelArrangementSyncModal")) syncChoiceHandlers?.cancel();
         });
         byId("yearWheelForm").addEventListener("submit", submitForm);
         window.addEventListener("resize", updateOverviewEventListHeight);
@@ -2136,9 +2422,10 @@
             if (source === "load") {
                 const arrangements = window.GTScoutArrangements?.getAll?.() || [];
                 migrated.forEach(entry => {
-                    const updated = syncArrangementEvents(entry.wheel, arrangements);
-                    if (updated) {
-                        entry.wheel = updated;
+                    const withArrangements = syncArrangementEvents(entry.wheel, arrangements) || entry.wheel;
+                    const updated = syncPlanningMeetingEvents(withArrangements, planningGroups);
+                    if (updated || withArrangements !== entry.wheel) {
+                        entry.wheel = updated || withArrangements;
                         entry.changed = true;
                     }
                 });
@@ -2156,6 +2443,11 @@
                 migrated.filter(entry => entry.changed).forEach(entry => window.GTScoutYearWheelSync?.saveWheel(entry.wheel));
             }
         } });
+        window.GTScoutPlanningSync?.init({
+            ignoreShared: true,
+            getGroups: () => planningGroups,
+            applyGroups: syncPlanningIntoWheels
+        });
     }
 
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initialize);
