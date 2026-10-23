@@ -1077,6 +1077,17 @@ function normalizeGroupList(list) {
             group.year = Number.isFinite(year) ? year : "";
             group.term = normalizePlanningTerm(term);
             group.note = typeof group.note === "string" ? group.note : "";
+            const source = group.standard_planning_source;
+            group.standard_planning_source = source
+                && typeof source.templateName === "string"
+                && typeof source.planName === "string"
+                && typeof source.level === "string"
+                ? {
+                    templateName: source.templateName,
+                    planName: source.planName,
+                    level: source.level
+                }
+                : null;
             group.activities = Array.isArray(group.activities) ? group.activities : [];
             group.arrangements = normalizePlanningArrangementLinks(group.arrangements);
             group.badges = Array.isArray(group.badges) ? group.badges : [];
@@ -2382,6 +2393,7 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                 const card = document.createElement("div");
                 card.className = "group-card";
                 const noteText = String(group.note ?? "").trim();
+                const planningSource = getStandardPlanningSourceOverviewLabel(group.standard_planning_source);
                 const planningYear = getGroupYearValue(group);
                 const planningTerm = getGroupTermValue(group);
                 const visibilityStatus = group.visibility === "private"
@@ -2403,6 +2415,7 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                     </div>
                 </div>
                 ${noteText ? `<div class="group-note">${renderLinkedText(noteText)}</div>` : ""}
+                ${planningSource ? `<div class="group-planning-source">${escapeHtml(planningSource)}</div>` : ""}
                 <div class="group-badges" data-group-id="${group.id}">
                     ${renderGroupBadges(group, activeOpenActivityGroupIds, activeOpenMeetingGroupIds)}
                 </div>
@@ -2883,6 +2896,10 @@ function openGroupEditor(groupId) {
     groupModal.querySelector(".group-modal-actions").classList.add("group-modal-actions--editing");
     document.getElementById("groupModalTitle").textContent = "Redigera planering";
     document.getElementById("groupName").value = stripPlanningYearPrefix(group.name || "");
+    const sourceInfo = document.getElementById("groupPlanningSource");
+    const sourceLabel = getStandardPlanningSourceLabel(group.standard_planning_source);
+    sourceInfo.textContent = sourceLabel;
+    sourceInfo.classList.toggle("hidden", !sourceLabel);
     document.getElementById("groupYear").value = Number.isFinite(getGroupYearValue(group)) ? getGroupYearValue(group) : "";
     document.getElementById("groupTerm").value = getGroupTermValue(group) || "";
     document.getElementById("groupNote").value = typeof group.note === "string" ? group.note : "";
@@ -2933,6 +2950,9 @@ function resetGroupModalState() {
     document.getElementById("saveGroupBtn").textContent = "Spara";
     document.getElementById("saveGroupBtn").title = "Spara planering";
     document.getElementById("groupNote").value = "";
+    const sourceInfo = document.getElementById("groupPlanningSource");
+    sourceInfo.textContent = "";
+    sourceInfo.classList.add("hidden");
     const visibilitySelect = document.getElementById("groupVisibility");
     visibilitySelect.value = "kar_edit";
     visibilitySelect.disabled = false;
@@ -4041,6 +4061,23 @@ function getDefaultPlanningTemplate() {
         || { plannings: [] };
 }
 
+function getStandardPlanningSourceLabel(source) {
+    if (!source || typeof source !== "object") return "";
+    const planName = String(source.planName || "").trim();
+    const level = String(source.level || "").trim();
+    const templateName = String(source.templateName || "").trim();
+    if (!planName || !level) return "";
+    return `Standardplanering – ${planName} för ${level}${templateName ? ` (${templateName})` : ""}`;
+}
+
+function getStandardPlanningSourceOverviewLabel(source) {
+    if (!source || typeof source !== "object") return "";
+    const planName = String(source.planName || "").trim();
+    const year = planName.match(/\b(\d+)\b/u)?.[1];
+    const term = planName.match(/\b(VT|HT)\b/iu)?.[1]?.toUpperCase();
+    return year && term ? `Schema: ${year} · ${term}` : `Schema: ${planName}`;
+}
+
 function populateDefaultPlanningTemplates() {
     defaultPlanningTemplate.innerHTML = defaultPlanningTemplates
         .map(template => `<option value="${escapeHtml(template.name)}">${escapeHtml(template.name)}</option>`)
@@ -4109,7 +4146,8 @@ function getUniquePlanningName(level, name) {
 }
 
 function addDefaultPlanningForLevel(level, yearCount) {
-    const template = getDefaultPlanningTemplate().plannings.find(item => item.level === level);
+    const selectedTemplate = getDefaultPlanningTemplate();
+    const template = selectedTemplate.plannings.find(item => item.level === level);
     if (!template) return 0;
 
     const auth = window.GTScoutAuth;
@@ -4143,6 +4181,11 @@ function addDefaultPlanningForLevel(level, yearCount) {
             note: typeof plan.note === "string" ? plan.note.trim() : "",
             badges: Array.isArray(plan.badges) ? [...new Set(plan.badges)] : [],
             activities: Array.isArray(plan.activities) ? [...new Set(plan.activities)] : [],
+            standard_planning_source: {
+                templateName: selectedTemplate.name,
+                planName: plan.name,
+                level
+            },
             // Märken som kom med från standardplaneringen, så de kan markeras/skyddas i UI:t.
             template_badge_ids: Array.isArray(plan.badges) ? [...new Set(plan.badges)] : []
         });

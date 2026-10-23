@@ -4947,6 +4947,13 @@ select:focus {
     font-weight: 500;
 }
 
+.group-planning-source {
+    padding: 8px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    color: #64748b;
+    font-size: 0.82rem;
+}
+
 .planning-archived-badge {
     color: #7c4a12;
     font-weight: 700;
