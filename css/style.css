@@ -6533,10 +6533,9 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
 .year-wheel-ring-selection > p { margin: 0 0 10px; color: #64748b; font-size: .8rem; }
 .year-wheel-ring-options { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
 .year-wheel-ring-config-group { min-width: 0; }
-.year-wheel-ring-config.year-wheel-ring-config-group-row { grid-template-columns: 16px 13px minmax(0, 1fr) auto; align-items: start; border-bottom: 0; }
-.year-wheel-ring-config-group-row > input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: #176b72; }
-.year-wheel-ring-config-group-row > input[type="checkbox"], .year-wheel-ring-config-group-row > .year-wheel-ring-swatch { margin-top: 7px; }
-.year-wheel-ring-group-details { min-width: 0; grid-column: 3 / -1; }
+.year-wheel-ring-config.year-wheel-ring-config-group-row { grid-template-columns: 13px minmax(0, 1fr) auto; align-items: start; border-bottom: 0; }
+.year-wheel-ring-config-group-row > .year-wheel-ring-swatch { margin-top: 7px; }
+.year-wheel-ring-group-details { min-width: 0; grid-column: 2 / -1; }
 .year-wheel-ring-group-details > summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; padding: 7px 0; color: #34495e; font-size: .82rem; cursor: pointer; list-style: none; }
 .year-wheel-ring-group-details > summary::-webkit-details-marker { display: none; }
 .year-wheel-ring-group-details > summary .year-wheel-ring-option-name { flex: 0 0 auto; font-size: inherit; font-weight: 700; }
@@ -6544,7 +6543,7 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
 .year-wheel-ring-group-details > summary:focus-visible { outline: 2px solid #176b72; outline-offset: 1px; }
 .year-wheel-ring-config-children { display: grid; margin: 0 0 8px 6px; padding-left: 12px; border-left: 1px solid #d7e1eb; }
 .year-wheel-ring-config-children[hidden] { display: none; }
-.year-wheel-ring-config-children .year-wheel-ring-option { grid-template-columns: 16px 13px max-content minmax(0, 1fr); }
+.year-wheel-ring-config-children .year-wheel-ring-option { grid-template-columns: 13px minmax(0, 1fr) auto; }
 .year-wheel-ring-config { display: grid; grid-template-columns: minmax(0, 1fr) auto 28px; align-items: center; min-width: 0; gap: 4px; border-bottom: 1px solid #edf1f5; }
 .year-wheel-ring-config:last-child { border-bottom: 0; }
 .year-wheel-ring-actions { display: flex; align-items: center; gap: 3px; opacity: 0; transition: opacity .12s ease; }
@@ -6559,13 +6558,10 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
 .year-wheel-ring-order-button:focus-visible, .year-wheel-ring-edit:focus-visible { outline: 2px solid #176b72; outline-offset: 2px; }
 .year-wheel-ring-drag-handle { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 32px; color: #64748b; cursor: grab; }
 .year-wheel-ring-drag-handle:active { cursor: grabbing; }
-.year-wheel-ring-option { display: grid; grid-template-columns: 16px 13px auto minmax(0, 1fr); align-items: center; gap: 7px; min-width: 0; padding: 7px 6px; border-radius: 5px; color: #34495e; font-size: .82rem; cursor: pointer; }
+.year-wheel-ring-option { display: grid; grid-template-columns: 13px minmax(0, 1fr) auto; align-items: center; gap: 7px; min-width: 0; padding: 7px 6px; border-radius: 5px; color: #34495e; font-size: .82rem; }
 .year-wheel-ring-option:hover { background: #f4f8fb; }
-.year-wheel-ring-option input { width: 16px; height: 16px; margin: 0; accent-color: #176b72; }
 .year-wheel-ring-option-name { min-width: 0; overflow-wrap: anywhere; }
-.year-wheel-ring-option small { grid-column: 4; justify-self: start; color: #8a5a00; font-size: .72rem; text-align: left; white-space: nowrap; }
-.year-wheel-ring-option--locked { cursor: not-allowed; }
-.year-wheel-ring-option--locked input { cursor: not-allowed; }
+.year-wheel-ring-option small { grid-column: 3; justify-self: start; color: #8a5a00; font-size: .72rem; text-align: left; white-space: nowrap; }
 .year-wheel-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .year-wheel-ring-color-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 12px; }
 .year-wheel-arrangement-sync { display: flex; align-items: flex-start; gap: 9px; color: #34495e; font-size: .9rem; }
@@ -6619,9 +6615,9 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
     .year-wheel-form-grid { grid-template-columns: minmax(0, 1fr); }
     .year-wheel-ring-options { grid-template-columns: minmax(0, 1fr); }
     .year-wheel-ring-config { grid-template-columns: minmax(0, 1fr); padding-bottom: 7px; }
-    .year-wheel-ring-config.year-wheel-ring-config-group-row { grid-template-columns: 16px 13px minmax(0, 1fr); }
+    .year-wheel-ring-config.year-wheel-ring-config-group-row { grid-template-columns: 13px minmax(0, 1fr) auto; }
     .year-wheel-ring-actions { grid-column: 1 / -1; justify-self: end; flex-wrap: wrap; opacity: 1; }
-    .year-wheel-ring-option, .year-wheel-ring-config-children .year-wheel-ring-option { grid-template-columns: 16px 13px minmax(0, 1fr); }
+    .year-wheel-ring-option, .year-wheel-ring-config-children .year-wheel-ring-option { grid-template-columns: 13px minmax(0, 1fr) auto; }
     .year-wheel-ring-option small { grid-column: 3; white-space: normal; overflow-wrap: anywhere; }
     .year-wheel-ring-group-details > summary { flex-wrap: wrap; }
     .year-wheel-ring-group-details > summary > .year-wheel-ring-actions { flex-basis: 100%; justify-content: flex-end; }
