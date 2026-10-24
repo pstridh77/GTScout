@@ -342,6 +342,49 @@ function linkedWheels() {
     return { source, target };
 }
 
+test("wheel chart marks every sync type with an overlay and explains sources on hover and focus", async () => {
+    const original = wheel();
+    original.rings = [{ id: "mixed", name: "Styrelse", color: "#398a86", sync_arrangements: false }];
+    original.events = [
+        { id: "own", title: "Egen", ring_id: "mixed", start_date: "2026-02-01", end_date: "2026-02-01" },
+        { id: "wheel-event", title: "Hämtat möte", ring_id: "mixed", start_date: "2026-03-01", end_date: "2026-03-01", source_wheel_id: "board", source_wheel_name: "Styrelse <2026>", source_wheel_ring_name: "Möten" },
+        { id: "arrangement-event", title: "Hajk", ring_id: "mixed", start_date: "2026-04-01", end_date: "2026-04-01", source_arrangement_id: "arrangement" },
+        { id: "planning-event", title: "Avdelningsmöte", ring_id: "mixed", start_date: "2026-05-01", end_date: "2026-05-01", source_planning_id: "plan" }
+    ];
+    const page = createPage({ wheels: [original] });
+    await settle();
+    const chart = page.elements.get("yearWheelChart");
+    assert.equal((chart.innerHTML.match(/class="year-wheel-event-sync-overlay"/g) || []).length, 3);
+    assert.match(chart.innerHTML, /year-wheel-sync-legend/);
+    assert.match(chart.innerHTML, /Hämtad från Styrelse &lt;2026&gt; → Möten/);
+    assert.match(chart.innerHTML, /Hämtad från arrangemang/);
+    assert.match(chart.innerHTML, /Hämtad från avdelningsmöten/);
+    assert.match(chart.innerHTML, /Egen händelse/);
+    const own = chart.innerHTML.split('data-event-edit="own"')[1].split("</g>")[0];
+    assert.doesNotMatch(own, /sync-overlay/);
+    const mark = chart.querySelectorAll("[data-event-edit]").find(item => item.dataset.eventEdit === "wheel-event");
+    const info = chart.querySelector("[data-chart-event-info]");
+    mark.handlers.focus();
+    assert.match(info.textContent, /Hämtad från Styrelse <2026> → Möten/);
+    mark.handlers.mouseenter();
+    mark.handlers.mouseleave();
+    assert.match(info.textContent, /Hämtad från/);
+    mark.handlers.blur();
+    assert.equal(info.textContent, "");
+    mark.handlers.mouseenter();
+    assert.match(info.textContent, /Hämtad från/);
+    mark.handlers.mouseleave();
+    assert.equal(info.textContent, "");
+});
+
+test("wheel chart omits the source legend when only own events are visible", async () => {
+    const original = wheel();
+    original.events = [{ id: "own", title: "Egen", ring_id: "arrangements", start_date: "2026-02-01", end_date: "2026-02-01" }];
+    const page = createPage({ wheels: [original] });
+    await settle();
+    assert.doesNotMatch(page.elements.get("yearWheelChart").innerHTML, /class="year-wheel-sync-legend"/);
+});
+
 test("wheel sources merge selected rings and children across years and converge without duplicates", () => {
     const helpers = createHelpers();
     const { source, target } = linkedWheels();

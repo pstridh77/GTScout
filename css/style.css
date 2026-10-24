@@ -6472,6 +6472,12 @@ select:focus {
 .year-wheel-ring-label { fill: #46545f; font-size: 9px; font-weight: 700; letter-spacing: .1px; pointer-events: none; }
 .year-wheel-ring-track { fill: none; stroke: #edf2f7; stroke-width: 1; pointer-events: none; }
 .year-wheel-event-arc { stroke: #fff; stroke-width: 1.1; transition: filter .12s ease; }
+.year-wheel-event-sync-overlay { pointer-events: none; }
+.year-wheel-sync-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 18px; margin-top: 8px; color: #536477; font-size: .8rem; }
+.year-wheel-sync-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.year-wheel-legend-swatch { width: 14px; height: 14px; border-radius: 2px; background: #398a86; }
+.year-wheel-legend-swatch--synced { background: repeating-linear-gradient(135deg, transparent 0 4px, rgba(255, 255, 255, .55) 4px 5px), #398a86; }
+.year-wheel-chart-event-info { min-height: 2.8em; margin: 8px 0 0; color: #536477; text-align: center; font-size: .8rem; overflow-wrap: anywhere; }
 .year-wheel-event-mark { cursor: pointer; }
 .year-wheel-event-mark:hover .year-wheel-event-arc, .year-wheel-event-mark:focus .year-wheel-event-arc { filter: brightness(.86); }
 .year-wheel-event-mark:focus { outline: none; }

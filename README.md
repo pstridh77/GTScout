@@ -79,6 +79,8 @@ I ringens inställningar kan **Synka från annat årshjul** samla händelser fr�
 
 I årshjulets inställningar visas en diskret text under namnet på ringar med aktiverad synkning: **Synkar från arrangemang**, **Synkar från avdelningsmöten** eller **Synkar från årshjul: [namn]**. Alla aktiverade källor visas om ringen har flera, även för underringar och ringar som ännu saknar händelser.
 
+I det interaktiva hjulet har synkade händelser ett glest diagonalt ljust mönster ovanpå sin vanliga färg. Egna händelser är helfärgade. Mönstret används för alla tre källtyper: andra årshjul, arrangemang och avdelningsmöten. En teckenförklaring visas under hjulet när den valda perioden och ringurvalet innehåller synkade händelser. Vid hovring eller tangentbordsfokus visas rubrik, datum och källa under hjulet; tryck eller Enter öppnar händelsens dialog som tidigare.
+
 Om ett källårshjul redan hämtar från målhjulet, direkt eller via andra årshjul, är det inaktivt i hjulväljaren och märkt **hämtar redan från det här årshjulet**. Hjälptexten förklarar att händelserna annars skulle skickas runt mellan hjulen. Skyddet gäller mellan hela årshjul. Om en sådan koppling redan finns sparad gråmarkeras och låses även dess källringar med en förklaring. Välj ett annat källårshjul eller ta bort den andra synkningen först. Samma kontroll görs även när inställningen sparas.
 
 Underringar som inkluderas via en rotring visas ikryssade och låsta med texten **Ingår via [rotring]**. När **Ta med underringar** stängs av återställs underringarnas tidigare manuella val, även efter att inställningarna sparats. Sammanfattningen **Hämtas** visar det faktiska urvalet och förklarar att händelserna samlas i målringen utan att nya underringar skapas.

@@ -780,6 +780,21 @@
         });
     }
 
+    function getEventSourceLabel(event) {
+        if (event.source_wheel_id) return `Hämtad från ${event.source_wheel_name || "annat årshjul"} → ${event.source_wheel_ring_name || "ring"}`;
+        if (event.source_arrangement_id) return "Hämtad från arrangemang";
+        if (event.source_planning_id) {
+            const group = planningGroups.find(item => String(item.id) === event.source_planning_id);
+            return `Hämtad från avdelningsmöten${group ? ` → ${getPlanningSourceLabel(group)}` : ""}`;
+        }
+        return "";
+    }
+
+    function getChartEventDescription(event) {
+        const source = getEventSourceLabel(event);
+        return `${event.title} · ${formatDate(event.start_date)}${event.end_date !== event.start_date ? `–${formatDate(event.end_date)}` : ""}${source ? ` · ${source}` : " · Egen händelse"}`;
+    }
+
     function renderWheelChart(wheel, shownRings, visibleEvents, periodRange) {
         const container = byId("yearWheelChart");
         const { start, endExclusive } = periodRange;
@@ -787,7 +802,7 @@
         const outerRadius = 244;
         const innerRadius = 64;
         const ringWidth = shownRings.length ? (outerRadius - innerRadius) / shownRings.length : 0;
-        const svg = [`<svg class="year-wheel-svg" viewBox="24 24 592 592" role="img" aria-label="Årshjul med månader och händelser"><defs><filter id="year-wheel-seam-shadow" x="60" y="60" width="520" height="520" filterUnits="userSpaceOnUse"><feDropShadow dx="3" dy="0" stdDeviation="2" flood-color="#142637" flood-opacity=".52"/></filter></defs>`];
+        const svg = [`<svg class="year-wheel-svg" viewBox="24 24 592 592" role="img" aria-label="Årshjul med månader och händelser"><defs><pattern id="year-wheel-sync-pattern" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" stroke="#fff" stroke-opacity=".55" stroke-width="1.3"/></pattern><filter id="year-wheel-seam-shadow" x="60" y="60" width="520" height="520" filterUnits="userSpaceOnUse"><feDropShadow dx="3" dy="0" stdDeviation="2" flood-color="#142637" flood-opacity=".52"/></filter></defs>`];
         const monthIntervals = [];
         const monthLabels = [];
         const overflowActions = [];
@@ -873,7 +888,7 @@
                     const eventColor = getEventColor(event, sourceRingById.get(event.ring_id));
                     const tangentRotation = (mid * 360) % 360;
                     const rotation = tangentRotation > 90 && tangentRotation < 270 ? tangentRotation + 180 : tangentRotation;
-                    const title = `${event.title} · ${formatDate(event.start_date)}${event.end_date !== event.start_date ? `–${formatDate(event.end_date)}` : ""}`;
+                    const title = getChartEventDescription(event);
                     const eventLabel = finish - from >= 0.04
                         ? `<text x="${label.x.toFixed(2)}" y="${label.y.toFixed(2)}" transform="rotate(${rotation.toFixed(1)} ${label.x.toFixed(2)} ${label.y.toFixed(2)})" style="fill:${getRingTextColor(eventColor)}" class="year-wheel-event-label">${escapeHtml(event.title)}</text>`
                         : "";
@@ -881,7 +896,7 @@
                     const path = finish - from >= 0.999
                         ? `${arcPath(laneOuter - laneInset, laneInner + laneInset, from, from + 0.5)} ${arcPath(laneOuter - laneInset, laneInner + laneInset, from + 0.5, finish)}`
                         : arcPath(laneOuter - laneInset, laneInner + laneInset, from, finish);
-                    svg.push(`<g class="year-wheel-event-mark" data-event-edit="${escapeHtml(event.id)}" tabindex="0" role="button" aria-label="${escapeHtml(title)}"><title>${escapeHtml(title)}</title><path d="${path}" fill="${eventColor}" class="year-wheel-event-arc"/>${eventLabel}</g>`);
+                    svg.push(`<g class="year-wheel-event-mark" data-event-edit="${escapeHtml(event.id)}" tabindex="0" role="button" aria-label="${escapeHtml(title)}"><title>${escapeHtml(title)}</title><path d="${path}" fill="${eventColor}" class="year-wheel-event-arc"/>${getEventSourceLabel(event) ? `<path d="${path}" fill="url(#year-wheel-sync-pattern)" class="year-wheel-event-sync-overlay" aria-hidden="true"/>` : ""}${eventLabel}</g>`);
                 });
             });
             overflowGroups.forEach(group => {
@@ -926,7 +941,10 @@
             svg.push(`<g class="year-wheel-year-step" data-year-step="${step}" transform="translate(${x} ${y})" role="button" tabindex="${disabled ? "-1" : "0"}" aria-label="${label}" aria-disabled="${disabled}"><title>${label}</title><circle r="12"/><path d="M ${-step * 2} -4 L ${step * 2} 0 L ${-step * 2} 4"/></g>`);
         });
         svg.push("</svg>");
-        container.innerHTML = svg.join("");
+        const hasSyncedEvents = visibleEvents.some(event => getEventSourceLabel(event));
+        container.innerHTML = svg.join("") + (hasSyncedEvents
+            ? `<div class="year-wheel-sync-legend" aria-label="Händelsernas ursprung"><span><i class="year-wheel-legend-swatch" aria-hidden="true"></i>Egen händelse</span><span><i class="year-wheel-legend-swatch year-wheel-legend-swatch--synced" aria-hidden="true"></i>Synkad händelse</span></div>` : "")
+            + `<p class="year-wheel-chart-event-info" data-chart-event-info role="status" aria-live="polite"></p>`;
         container.querySelectorAll("[data-month-create]").forEach(mark => {
             mark.addEventListener("click", () => openEventForm("", mark.dataset.monthCreate, mark.dataset.ringCreate));
             mark.addEventListener("keydown", event => {
@@ -962,6 +980,17 @@
             });
         });
         container.querySelectorAll("[data-event-edit]").forEach(mark => {
+            const event = visibleEvents.find(item => item.id === mark.dataset.eventEdit);
+            const info = container.querySelector("[data-chart-event-info]");
+            let hovered = false;
+            let focused = false;
+            const updateInfo = () => {
+                info.textContent = (hovered || focused) && event ? getChartEventDescription(event) : "";
+            };
+            mark.addEventListener("mouseenter", () => { hovered = true; updateInfo(); });
+            mark.addEventListener("mouseleave", () => { hovered = false; updateInfo(); });
+            mark.addEventListener("focus", () => { focused = true; updateInfo(); });
+            mark.addEventListener("blur", () => { focused = false; updateInfo(); });
             mark.addEventListener("click", () => openEventForm(mark.dataset.eventEdit));
             mark.addEventListener("keydown", event => {
                 if (event.key === "Enter" || event.key === " ") {
