@@ -930,6 +930,9 @@
         byId("yearWheelMenuAddEventBtn").classList.toggle("hidden", sharedView);
         byId("addYearWheelEventBtn").classList.toggle("hidden", sharedView);
         byId("yearWheelMenuAddBtn").classList.toggle("hidden", restrictedUser || sharedView);
+        byId("yearWheelMenuDefaultBtn").classList.toggle("hidden",
+            sharedView || !auth()?.isSignedIn?.() || !auth()?.isOnline?.()
+            || !auth()?.isAdmin?.() || !window.GTScoutYearWheelSync?.canWrite?.());
         const settingsButton = byId("yearWheelMenuSettingsBtn");
         const settingsTooltip = byId("yearWheelMenuSettingsTooltip");
         const settingsLocked = !canEdit();
@@ -1230,7 +1233,10 @@
             byId("yearWheelReadOnlyNote").classList.add("hidden");
             return;
         }
-        selectedWheelId = wheels.some(wheel => wheel.id === previousId) ? previousId : wheels[0].id;
+        const defaultWheelId = window.GTScoutYearWheelSync?.getDefaultWheelId?.();
+        selectedWheelId = wheels.some(wheel => wheel.id === previousId)
+            ? previousId
+            : wheels.some(wheel => wheel.id === defaultWheelId) ? defaultWheelId : wheels[0].id;
         selector.value = selectedWheelId;
         const wheel = currentWheel();
         if (!startMonthOverridden) view.startMonth = wheel.start_month;
@@ -1335,6 +1341,19 @@
             <p>Du får en förhandsvisning innan webbläsarens utskriftsdialog öppnas. Välj det föreslagna pappersformatet och stäng gärna av webbläsarens sidhuvud och sidfot.</p>
         `, "print");
         byId("yearWheelForm").querySelector('[type="submit"]').textContent = "Förhandsvisa";
+    }
+
+    function openDefaultWheelForm() {
+        if (!auth()?.isAdmin?.() || !window.GTScoutYearWheelSync?.canWrite?.() || isSharedWheelView()) return;
+        const defaultWheelId = window.GTScoutYearWheelSync.getDefaultWheelId?.();
+        const savedWheels = wheels.filter(wheel => !wheel.local_only);
+        openModal("Välj standardårshjul", `
+            <p>Det valda hjulet öppnas automatiskt för alla i kåren.</p>
+            <label class="modal-field"><span>Standardårshjul</span><select name="default_wheel_id">
+                <option value="" ${!defaultWheelId ? "selected" : ""}>Första årshjulet alfabetiskt</option>
+                ${savedWheels.map(wheel => `<option value="${escapeHtml(wheel.id)}" ${wheel.id === defaultWheelId ? "selected" : ""}>${escapeHtml(wheel.name)}</option>`).join("")}
+            </select></label>
+        `, "default-wheel");
     }
 
     function openWheelForm() {
@@ -1458,7 +1477,7 @@
             parent_id: "",
             children_display: "grouped",
             sync_arrangements: ringName.trim().toLocaleLowerCase("sv") === "arrangemang",
-            sync_meetings_from_department: false,
+            sync_meetings_from_department: PLANNING_DEPARTMENTS.includes(ringName),
             sync_meetings_department: PLANNING_DEPARTMENTS.includes(ringName) ? ringName : "",
             sync_excluded_planning_ids: []
         };
@@ -1531,7 +1550,10 @@
         const excludedPlanningInput = byId("yearWheelFormFields").querySelector('[name="sync_excluded_planning_ids"]');
         const planningSyncSettings = byId("yearWheelFormFields").querySelector("[data-meeting-sync-settings]");
         const planningSyncPlans = byId("yearWheelFormFields").querySelector("[data-meeting-sync-plans]");
+        let syncSettingTouched = Boolean(ring);
+        let planningSyncSettingTouched = Boolean(ring);
         syncMeetingsInput.addEventListener("change", () => {
+            planningSyncSettingTouched = true;
             planningSyncSettings.hidden = !syncMeetingsInput.checked;
         });
         syncDepartmentInput.addEventListener("change", () => {
@@ -1548,7 +1570,6 @@
             else excluded.add(checkbox.value);
             excludedPlanningInput.value = JSON.stringify([...excluded]);
         });
-        let syncSettingTouched = Boolean(ring);
         syncArrangementsInput.addEventListener("change", () => {
             syncSettingTouched = true;
         });
@@ -1585,6 +1606,13 @@
             if (!ring && !syncSettingTouched) {
                 syncArrangementsInput.checked = nameInput.value.trim().toLocaleLowerCase("sv") === "arrangemang";
             }
+            if (!ring && !planningSyncSettingTouched) {
+                const department = nameInput.value.trim();
+                const isDepartment = PLANNING_DEPARTMENTS.includes(department);
+                syncMeetingsInput.checked = isDepartment;
+                syncDepartmentInput.value = isDepartment ? department : "";
+                planningSyncSettings.hidden = !isDepartment;
+            }
             const palette = DEPARTMENT_RING_COLORS[nameInput.value.trim()];
             colorVariantField.hidden = !palette;
             if (!palette) {
@@ -1605,11 +1633,13 @@
                 colorVariant.value = "custom";
                 syncMeetingsInput.checked = false;
                 syncDepartmentInput.value = "";
+                planningSyncSettings.hidden = true;
             } else {
                 nameInput.value = preset.name;
                 colorInput.value = preset.color;
                 colorVariant.value = preset.color_variant;
                 syncDepartmentInput.value = preset.sync_meetings_department;
+                syncMeetingsInput.checked = preset.sync_meetings_from_department;
                 syncArrangementsInput.checked = preset.sync_arrangements;
             }
             updateDepartmentColor();
@@ -1756,10 +1786,24 @@
         if (canWrite()) updates.forEach(wheel => window.GTScoutYearWheelSync?.saveWheel(wheel));
     }
 
-    function submitForm(event) {
+    async function submitForm(event) {
         event.preventDefault();
         const formData = new FormData(event.currentTarget);
         const value = Object.fromEntries(formData.entries());
+        if (modalMode === "default-wheel") {
+            if (!auth()?.isAdmin?.()) return;
+            const selectedId = String(value.default_wheel_id || "");
+            const result = await window.GTScoutYearWheelSync?.setDefaultWheel?.(selectedId);
+            if (!result?.saved) {
+                byId("yearWheelFormMessage").textContent = result?.error?.message || "Kunde inte spara standardårshjulet.";
+                byId("yearWheelFormMessage").classList.remove("hidden");
+                return;
+            }
+            selectedWheelId = selectedId || wheels[0]?.id || "";
+            closeModal();
+            render();
+            return;
+        }
         if (modalMode === "print") {
             const wheel = currentWheel();
             if (!wheel) return;
@@ -2182,6 +2226,7 @@
         byId("yearWheelMenuAddBtn").addEventListener("click", openWheelForm);
         byId("yearWheelMenuPrintBtn").addEventListener("click", openPrintForm);
         byId("yearWheelMenuSettingsBtn").addEventListener("click", openWheelSettings);
+        byId("yearWheelMenuDefaultBtn").addEventListener("click", openDefaultWheelForm);
         byId("yearWheelMenuCopyEventsBtn").addEventListener("click", openBulkCopyForm);
         byId("shareYearWheelBtn").addEventListener("click", shareCurrentWheel);
         byId("rotateYearWheelShareBtn").addEventListener("click", rotateYearWheelShareToken);

@@ -6,6 +6,7 @@
     let loadedForUserId = null;
     let revision = 0;
     let sharedToken = null;
+    let defaultWheelId = null;
     const pendingWrites = new Map();
     let status = null;
     let detachedWheels = [];
@@ -111,7 +112,9 @@
         const currentKarId = karId();
         const currentUserId = auth()?.getUser?.()?.id || null;
         const existing = wheels.find(item => item.id === id);
+        const existingDefaultWheelId = defaultWheelId;
         wheels = wheels.filter(item => item.id !== id);
+        if (defaultWheelId === id) defaultWheelId = null;
         writeLocal();
         notify();
         if (!canWrite()) return;
@@ -127,6 +130,7 @@
                 console.error("Kunde inte ta bort årshjul", error);
                 if (existing && !wheels.some(item => item.id === id)) {
                     wheels = [...wheels, existing];
+                    defaultWheelId = existingDefaultWheelId;
                     writeLocal();
                     notify();
                 }
@@ -135,17 +139,66 @@
         });
     }
 
+    async function loadDefaultWheel() {
+        try {
+            const { data, error } = await client().from("kar_arshjul_settings")
+                .select("default_wheel_id")
+                .eq("kar_id", karId());
+            if (error) throw error;
+            return { id: data?.[0]?.default_wheel_id || null, error: null };
+        } catch (error) {
+            console.error("Kunde inte hämta kårens standardårshjul", error);
+            return { id: null, error };
+        }
+    }
+
+    async function setDefaultWheel(id) {
+        const currentRevision = revision;
+        const currentKarId = karId();
+        const currentUserId = auth()?.getUser?.()?.id || null;
+        if (!canWrite() || !auth()?.isAdmin?.()) {
+            return { saved: false, error: new Error("Administratörsbehörighet krävs för att ändra standardårshjulet.") };
+        }
+        if (id && !wheels.some(wheel => wheel.id === id && !wheel.local_only)) {
+            return { saved: false, error: new Error("Välj ett sparat årshjul från kåren.") };
+        }
+        try {
+            const { error } = await client().from("kar_arshjul_settings").upsert({
+                kar_id: currentKarId,
+                default_wheel_id: id || null
+            }, { onConflict: "kar_id" });
+            if (error) throw error;
+            if (currentRevision !== revision || currentKarId !== karId()
+                || currentUserId !== (auth()?.getUser?.()?.id || null)) {
+                return { saved: false, stale: true };
+            }
+            defaultWheelId = id || null;
+            setStatus(defaultWheelId ? "Standardårshjulet är sparat för kåren." : "Kårens standardårshjul är återställt.");
+            return { saved: true, defaultWheelId };
+        } catch (error) {
+            console.error("Kunde inte spara kårens standardårshjul", error);
+            setStatus(`Kunde inte spara kårens standardårshjul: ${error.message || "okänt fel"}.`, true);
+            return { saved: false, error };
+        }
+    }
+
     async function load() {
         const currentRevision = ++revision;
         if (!canRead()) return;
+        defaultWheelId = null;
         setStatus("Hämtar kårens årshjul...");
         try {
-            const { data, error } = await client().from("arshjul")
-                .select("id, created_by, name, data, updated_at, share_token")
-                .eq("kar_id", karId())
-                .order("name");
+            const [wheelResult, defaultWheel] = await Promise.all([
+                client().from("arshjul")
+                    .select("id, created_by, name, data, updated_at, share_token")
+                    .eq("kar_id", karId())
+                    .order("name"),
+                loadDefaultWheel()
+            ]);
+            const { data, error } = wheelResult;
             if (error) throw error;
             if (currentRevision !== revision || !canRead()) return;
+            defaultWheelId = defaultWheel.id;
             const local = readLocal();
             const activeLocal = local.filter(item => !item.local_kar_id || item.local_kar_id === karId());
             detachedWheels = local.filter(item => item.local_only && item.local_kar_id && item.local_kar_id !== karId());
@@ -165,6 +218,9 @@
             wheels.push(...localOnly.filter(item => !remoteIds.has(item.id)));
             writeLocal();
             setStatus(wheels.length ? `Synkad med databasen (${wheels.length} årshjul).` : "Kåren har inga årshjul ännu.");
+            if (defaultWheel.error) {
+                setStatus(`Kunde inte hämta kårens standardårshjul: ${defaultWheel.error.message || "okänt fel"}. Visar första årshjulet i stället.`, true);
+            }
             notify("load");
             if (canWrite()) {
                 for (const pending of wheels.filter(item => item.local_only)) {
@@ -190,6 +246,7 @@
 
     async function loadShared() {
         const currentRevision = ++revision;
+        defaultWheelId = null;
         wheels = [];
         notify("shared");
         if (!client()) {
@@ -233,6 +290,7 @@
             revision++;
             loadedForKarId = null;
             loadedForUserId = null;
+            defaultWheelId = null;
             const local = readLocal();
             detachedWheels = local.filter(wheel => wheel.local_only && wheel.local_kar_id);
             wheels = local.filter(wheel => wheel.local_only && !wheel.local_kar_id);
@@ -260,6 +318,8 @@
         },
         saveWheel,
         removeWheel,
+        setDefaultWheel,
+        getDefaultWheelId: () => defaultWheelId,
         canWrite
     };
 })();

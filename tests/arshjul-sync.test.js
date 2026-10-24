@@ -28,7 +28,7 @@ function arrangement(fields = {}) {
     };
 }
 
-function createPage({ wheels = [], arrangements = [], localWheels = [], localArrangements = [], signedIn = true, leader = true, admin = false, search = "", handleRequest, chartMode, viewportWidth = 1024 } = {}) {
+function createPage({ wheels = [], arrangements = [], localWheels = [], localArrangements = [], defaultWheelId = null, signedIn = true, leader = true, admin = false, search = "", handleRequest, chartMode, viewportWidth = 1024 } = {}) {
     const elements = new Map();
     const listeners = [];
     const windowListeners = {};
@@ -42,8 +42,9 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
         ["gtscout_arshjul_view", JSON.stringify({ mode: "calendar", year: 2026, chartMode })]
     ]);
     const tables = {
-        arshjul: wheels.map(item => ({ id: item.id, name: item.name, share_token: item.share_token || null, data: structuredClone(item) })),
-        arrangemang: arrangements.map(item => ({ id: item.id, data: structuredClone(item) }))
+        arshjul: wheels.map(item => ({ id: item.id, kar_id: "kar-1", name: item.name, share_token: item.share_token || null, data: structuredClone(item) })),
+        arrangemang: arrangements.map(item => ({ id: item.id, data: structuredClone(item) })),
+        kar_arshjul_settings: defaultWheelId ? [{ kar_id: "kar-1", default_wheel_id: defaultWheelId }] : []
     };
     let userId = signedIn ? "user-1" : null;
     let karId = signedIn ? "kar-1" : null;
@@ -127,9 +128,17 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
             const row = tables.arshjul.find(item => (item.share_token || item.data.share_token) === request.args.requested_token); 
             return { data: row ? [{ id: row.id, name: row.name, data: structuredClone(row.data) }] : [], error: null };
         }
-        if (request.operation === "select") return { data: structuredClone(tables[request.table]) };
-        const rows = tables[request.table]; 
-        const index = rows.findIndex(row => row.id === (request.row?.id || request.id));
+        if (request.operation === "select") {
+            const rows = tables[request.table] || [];
+            const selectedRows = request.table === "kar_arshjul_settings"
+                ? rows.filter(row => Object.entries(request.filters || {}).every(([key, value]) => row[key] === value))
+                : rows;
+            return { data: structuredClone(selectedRows) };
+        }
+        const rows = tables[request.table] || (tables[request.table] = []);
+        const index = rows.findIndex(row => request.table === "kar_arshjul_settings"
+            ? row.kar_id === request.row?.kar_id
+            : row.id === (request.row?.id || request.id));
         if (request.operation === "delete") {
             if (index >= 0) rows.splice(index, 1); 
         } else if (index >= 0) rows[index] = structuredClone(request.row);
@@ -141,7 +150,7 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
             const request = { table, operation: "select" };
             return { 
                 select() { return this; },
-                eq(key, value) { request[key] = value; return this; }, 
+                eq(key, value) { request[key] = value; request.filters = { ...request.filters, [key]: value }; return this; },
                 order() { return this; },
                 upsert(row) { request.operation = "upsert"; request.row = structuredClone(row); return this; }, 
                 delete() { request.operation = "delete"; return this; },
@@ -215,6 +224,7 @@ test("read-only users can open both print layouts without saving data", async ()
     await settle();
     const printButton = page.elements.get("yearWheelMenuPrintBtn");
     assert.equal(printButton.disabled, false);
+    assert.equal(page.elements.get("yearWheelMenuDefaultBtn").classList.contains("hidden"), true);
     for (const mode of ["wheel", "list"]) {
         printButton.handlers.click();
         assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Skriv ut årshjul");
@@ -233,6 +243,43 @@ test("print action is disabled when there is no wheel", async () => {
     const page = createPage();
     await settle();
     assert.equal(page.elements.get("yearWheelMenuPrintBtn").disabled, true);
+});
+
+test("the configured troop default wheel opens first and admins can change it", async () => {
+    const page = createPage({
+        wheels: [
+            { ...wheel("wheel-a"), name: "Alpha" },
+            { ...wheel("wheel-b"), name: "Beta" }
+        ],
+        defaultWheelId: "wheel-b",
+        admin: true,
+        leader: false
+    });
+    await settle();
+    await settle();
+
+    assert.equal(page.elements.get("yearWheelSelect").value, "wheel-b");
+    assert.equal(page.elements.get("yearWheelDisplayName").textContent, "Beta");
+    const defaultButton = page.elements.get("yearWheelMenuDefaultBtn");
+    assert.equal(defaultButton.classList.contains("hidden"), false);
+    defaultButton.handlers.click();
+    assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Välj standardårshjul");
+    assert.match(page.elements.get("yearWheelFormFields").innerHTML, /option value="wheel-b" selected/);
+
+    const form = page.elements.get("yearWheelForm");
+    form.values = { default_wheel_id: "wheel-a" };
+    await form.handlers.submit({ preventDefault() {}, currentTarget: form });
+    assert.equal(page.tables.kar_arshjul_settings[0].default_wheel_id, "wheel-a");
+    assert.equal(page.elements.get("yearWheelSelect").value, "wheel-a");
+    assert.equal(page.elements.get("yearWheelDisplayName").textContent, "Alpha");
+    assert.deepEqual(page.errors, []);
+
+    const fallback = createPage({
+        wheels: [{ ...wheel("wheel-a"), name: "Alpha" }, { ...wheel("wheel-b"), name: "Beta" }],
+        defaultWheelId: "deleted-wheel"
+    });
+    await settle();
+    assert.equal(fallback.elements.get("yearWheelSelect").value, "wheel-a");
 });
 
 test("shared wheels allow printing without edit permissions", async () => {
@@ -430,9 +477,25 @@ test("standard departments can be added as independent rings or placed under Avd
     fields = page.elements.get("yearWheelFormFields");
     fields.querySelector('[name="default_ring"]').value = "Spårare";
     fields.querySelector('[name="default_ring"]').handlers.change();
+    const syncMeetings = fields.querySelector('[name="sync_meetings_from_department"]');
+    assert.equal(syncMeetings.checked, true);
+    assert.equal(fields.querySelector('[name="sync_meetings_department"]').value, "Spårare");
+    assert.equal(fields.querySelector("[data-meeting-sync-settings]").hidden, false);
+    const ringName = fields.querySelector('[name="name"]');
+    ringName.value = "Äventyrare";
+    ringName.handlers.input();
+    assert.equal(syncMeetings.checked, true);
+    assert.equal(fields.querySelector('[name="sync_meetings_department"]').value, "Äventyrare");
+    ringName.value = "Egen ring";
+    ringName.handlers.input();
+    assert.equal(syncMeetings.checked, false);
+    assert.equal(fields.querySelector("[data-meeting-sync-settings]").hidden, true);
+    ringName.value = "Spårare";
+    ringName.handlers.input();
     form.values = {
         name: "Spårare", color: "#41a62a", color_variant: "standard",
-        parent_id: departmentRootId
+        parent_id: departmentRootId, sync_meetings_from_department: "on",
+        sync_meetings_department: "Spårare"
     };
     form.handlers.submit({ preventDefault() {}, currentTarget: form });
     savedDraft = page.elements.get("yearWheelFormFields").innerHTML;
@@ -448,6 +511,8 @@ test("standard departments can be added as independent rings or placed under Avd
     assert.ok(root);
     assert.equal(root.parent_id, "");
     assert.equal(scout.parent_id, root.id);
+    assert.equal(scout.sync_meetings_from_department, true);
+    assert.equal(scout.sync_meetings_department, "Spårare");
     assert.deepEqual(page.errors, []);
 });
 
