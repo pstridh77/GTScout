@@ -61,7 +61,7 @@ Ringfiltren finns i dropdownen Visa ringar i verktygsfältet. Den är stängd fr
 
 På skärmar upp till 600 px finns Fäll ihop/Visa ovanför händelselistan, i samma stil som för märkeskategorierna. Knappen fäller ihop eller öppnar alla månader och är synkroniserad med motsvarande val i hamburgermenyn.
 
-Årshjulets filterrad är dold som standard på skärmar upp till 600 px och synlig på bredare skärmar. Ett manuellt val att visa eller dölja raden sparas i webbläsaren och bevaras mellan sidbesök och byte av visningsläge. Detaljläget döljer alltid raden tillfälligt utan att ändra det sparade valet.
+Årshjulets filterrad är dold som standard på skärmar upp till 600 px och synlig på bredare skärmar. Ett manuellt val att visa eller dölja raden sparas i webbläsaren och bevaras mellan sidbesök och byte av visningsläge. Detaljläget döljer alltid raden tillfälligt utan att ändra det sparade valet. Rubriken ovanför hjulet är också väljaren för årshjul, alltid synlig utanför filterraden, och visar vilket av kårens hjul som är valt samt dess position i listan.
 
 I detaljläget döljs bannern, huvudnavigeringen, sidans introduktion och filterraden för att ge hjulet mer plats. Den blå översta raden med inloggning finns kvar. Växla till Översikt för att visa de dolda delarna igen; filtervalen bevaras.
 

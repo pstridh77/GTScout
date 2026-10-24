@@ -98,13 +98,7 @@
         </section>
         <p id="yearWheelSyncStatus" class="planning-sync-status page-sync-status" role="status" aria-live="polite"></p>
 
-        <section id="yearWheelToolbar" class="year-wheel-toolbar filters" data-page-filters data-filter-preference="gtscout_arshjul_filters_visible" aria-label="Välj årshjul och tidsperiod">
-            <label class="filter-field">
-                <span>Årshjul</span>
-                <select id="yearWheelSelect"></select>
-            </label>
-            
-            
+        <section id="yearWheelToolbar" class="year-wheel-toolbar filters" data-page-filters data-filter-preference="gtscout_arshjul_filters_visible" aria-label="Välj tidsperiod och ringar">
             <label class="filter-field">
                 <span>Visa period</span>
                 <select id="yearWheelMode">
@@ -141,7 +135,18 @@
             <div class="year-wheel-main">
                 <div id="yearWheelChartCard" class="year-wheel-chart-card">
                     <div class="year-wheel-chart-heading">
-                        <div><h2 id="yearWheelDisplayName"></h2><p id="yearWheelDateRange"></p></div>
+                        <div class="year-wheel-chart-identity">
+                            <div class="year-wheel-chart-title-row">
+                                <h2 class="year-wheel-selector">
+                                    <label>
+                                        <span class="visually-hidden">Välj årshjul</span>
+                                        <select id="yearWheelSelect" aria-label="Välj årshjul"></select>
+                                    </label>
+                                </h2>
+                                <span id="yearWheelCount" class="year-wheel-count"></span>
+                            </div>
+                            <p id="yearWheelDateRange"></p>
+                        </div>
                         <div id="yearWheelEditControl" class="arrangement-detail-edit-control year-wheel-edit-control">
                             <button id="yearWheelEditToggle" class="btn-secondary arrangement-detail-edit-toggle" type="button" aria-label="Lås upp för redigering" title="Lås upp för redigering" aria-pressed="false">
                                 <svg viewBox="0 0 24 24" aria-hidden="true"></svg>

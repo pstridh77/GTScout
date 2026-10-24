@@ -259,7 +259,8 @@ test("the configured troop default wheel opens first and admins can change it", 
     await settle();
 
     assert.equal(page.elements.get("yearWheelSelect").value, "wheel-b");
-    assert.equal(page.elements.get("yearWheelDisplayName").textContent, "Beta");
+    assert.equal(page.elements.get("yearWheelCount").textContent, "2 av 2");
+    assert.equal(page.elements.get("yearWheelSelect").attributes["aria-label"], "Välj årshjul: Beta, 2 av 2");
     const defaultButton = page.elements.get("yearWheelMenuDefaultBtn");
     assert.equal(defaultButton.classList.contains("hidden"), false);
     defaultButton.handlers.click();
@@ -271,7 +272,8 @@ test("the configured troop default wheel opens first and admins can change it", 
     await form.handlers.submit({ preventDefault() {}, currentTarget: form });
     assert.equal(page.tables.kar_arshjul_settings[0].default_wheel_id, "wheel-a");
     assert.equal(page.elements.get("yearWheelSelect").value, "wheel-a");
-    assert.equal(page.elements.get("yearWheelDisplayName").textContent, "Alpha");
+    assert.equal(page.elements.get("yearWheelCount").textContent, "1 av 2");
+    assert.equal(page.elements.get("yearWheelSelect").attributes["aria-label"], "Välj årshjul: Alpha, 1 av 2");
     assert.deepEqual(page.errors, []);
 
     const fallback = createPage({
@@ -280,6 +282,18 @@ test("the configured troop default wheel opens first and admins can change it", 
     });
     await settle();
     assert.equal(fallback.elements.get("yearWheelSelect").value, "wheel-a");
+});
+
+test("year wheel selector stays with the chart outside the hideable filters", () => {
+    const html = fs.readFileSync(path.join(__dirname, "..", "arshjul.html"), "utf8");
+    const filters = html.indexOf('id="yearWheelToolbar"');
+    const selector = html.indexOf('id="yearWheelSelect"');
+    const chart = html.indexOf('id="yearWheelChartCard"');
+    assert.ok(selector > chart);
+    assert.ok(selector > html.indexOf("</section>", filters));
+    assert.match(html, /id="yearWheelCount"/);
+    assert.match(html, /<h2 class="year-wheel-selector">[^]*?<select id="yearWheelSelect"/);
+    assert.doesNotMatch(html, /id="yearWheelDisplayName"/);
 });
 
 test("shared wheels allow printing without edit permissions", async () => {
@@ -375,7 +389,7 @@ test("saving a wheel notifies the view without re-reading arrangement sources", 
     await settle();
     page.arrangements.getAll = () => assert.fail("Save notifications must not restart automatic sync");
     await page.sync.saveWheel({ ...wheel(), name: "Manually edited" });
-    assert.equal(page.elements.get("yearWheelDisplayName").textContent, "Manually edited");
+    assert.match(page.elements.get("yearWheelSelect").attributes["aria-label"], /Manually edited/);
     assert.equal(page.stored()[0].local_only, false);
     assert.deepEqual(page.errors, []);
 });
@@ -1199,7 +1213,7 @@ test("leaders and admins delete year wheels from settings when editing is unlock
         await settle();
 
         assert.deepEqual(page.stored().map(item => item.id), ["second"]);
-        assert.equal(page.elements.get("yearWheelDisplayName").textContent, "second");
+        assert.match(page.elements.get("yearWheelSelect").attributes["aria-label"], /second/);
         assert.equal(page.requests.filter(request => request.operation === "delete").length, 1);
         assert.deepEqual(page.errors, []);
     }
@@ -1803,7 +1817,7 @@ test("year-wheel share token opens a read-only view without login", async () => 
     shared.share_token = globalThis.crypto.randomUUID();
     const page = createPage({ wheels: [shared], signedIn: false, search: `?share=${shared.share_token}` });
     await settle();
-    assert.equal(page.elements.get("yearWheelDisplayName").textContent, shared.name);
+    assert.match(page.elements.get("yearWheelSelect").attributes["aria-label"], new RegExp(shared.name));
     assert.match(page.elements.get("yearWheelSyncStatus").textContent, /Delat årshjul/);
     assert.equal(page.elements.get("addYearWheelEventBtn").disabled, true);
     assert.equal(page.elements.get("shareYearWheelBtn").classList.contains("hidden"), true);
@@ -1913,7 +1927,7 @@ test("failed deletion restores the wheel locally and reports the error", async (
     await settle();
     await page.sync.removeWheel("wheel");
     assert.equal(page.stored()[0].id, "wheel");
-    assert.equal(page.elements.get("yearWheelDisplayName").textContent, "wheel");
+    assert.match(page.elements.get("yearWheelSelect").attributes["aria-label"], /wheel/);
     assert.match(page.elements.get("yearWheelSyncStatus").textContent, /Delete denied/);
     assert.equal(page.errors.length, 1);
 });
@@ -1932,7 +1946,7 @@ test("logout invalidates running and queued writes without restoring shared data
     gate.resolve(undefined);
     await Promise.all([first, queued]);
     assert.equal(page.requests.filter(request => request.operation === "upsert").length, 1);
-    assert.equal(page.elements.get("yearWheelDisplayName").textContent, "Inget årshjul valt");
+    assert.equal(page.elements.get("yearWheelSelect").attributes["aria-label"], "Inga årshjul");
     assert.equal(page.stored().every(item => item.local_only && item.local_kar_id === "kar-1"), true);
     assert.deepEqual(page.errors, []);
 });
@@ -1954,7 +1968,7 @@ test("switching user and troop invalidates queued writes from the previous conte
     gate.resolve(undefined);
     await Promise.all([first, queued]);
     assert.equal(page.requests.filter(request => request.operation === "upsert").length, 1);
-    assert.equal(page.elements.get("yearWheelDisplayName").textContent, "Inget årshjul valt");
+    assert.equal(page.elements.get("yearWheelSelect").attributes["aria-label"], "Inga årshjul");
     assert.equal(page.stored().some(item => item.local_kar_id === "kar-2"), false);
     assert.deepEqual(page.errors, []);
 });
@@ -1971,7 +1985,7 @@ test("a late year-wheel load cannot restore data after logout", async () => {
     gate.resolve(undefined);
     await settle();
     assert.equal(page.stored().length, 0);
-    assert.equal(page.elements.get("yearWheelDisplayName").textContent, "Inget årshjul valt");
+    assert.equal(page.elements.get("yearWheelSelect").attributes["aria-label"], "Inga årshjul");
     assert.equal(page.requests.filter(request => request.operation === "upsert").length, 0);
     assert.deepEqual(page.errors, []);
 });

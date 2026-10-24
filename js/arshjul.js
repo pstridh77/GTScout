@@ -1215,12 +1215,14 @@
         byId("yearWheelDetailsBtn").setAttribute("aria-pressed", String(view.chartMode === "details"));
         byId("yearWheelChart").classList.toggle("year-wheel-chart--overview", view.chartMode === "overview");
         const selector = byId("yearWheelSelect");
+        const wheelCount = byId("yearWheelCount");
         const previousId = selectedWheelId;
         selector.innerHTML = wheels.map(wheel => `<option value="${escapeHtml(wheel.id)}">${escapeHtml(wheel.name)}</option>`).join("");
         if (!wheels.length) {
             updateOverviewEventListHeight();
             selectedWheelId = "";
-            byId("yearWheelDisplayName").textContent = "Inget årshjul valt";
+            wheelCount.textContent = "Inga årshjul";
+            selector.setAttribute("aria-label", "Inga årshjul");
             byId("yearWheelDateRange").textContent = "";
             byId("yearWheelChart").innerHTML = `<p class="year-wheel-empty">Skapa ett årshjul för att komma igång.</p>`;
             byId("yearWheelRingList").innerHTML = `<p class="year-wheel-empty">Inga ringar att visa.</p>`;
@@ -1238,7 +1240,10 @@
             ? previousId
             : wheels.some(wheel => wheel.id === defaultWheelId) ? defaultWheelId : wheels[0].id;
         selector.value = selectedWheelId;
+        const selectedIndex = wheels.findIndex(wheel => wheel.id === selectedWheelId);
+        wheelCount.textContent = wheels.length === 1 ? "1 hjul" : `${selectedIndex + 1} av ${wheels.length}`;
         const wheel = currentWheel();
+        selector.setAttribute("aria-label", `Välj årshjul: ${wheel.name}, ${selectedIndex + 1} av ${wheels.length}`);
         if (!startMonthOverridden) view.startMonth = wheel.start_month;
         const validRingIds = new Set(wheel.rings.map(ring => ring.id));
         if (selectedRingsForWheelId !== wheel.id || [...selectedRingIds].some(ringId => !validRingIds.has(ringId))) {
@@ -1254,7 +1259,6 @@
                 ? "Det här årshjulet sparas lokalt. Logga in som ledare för att dela med kåren."
                 : "Du kan visa och filtrera hjulet. Ledare kan redigera.";
         byId("yearWheelReadOnlyNote").classList.toggle("hidden", remoteWritable && !isSharedWheelView());
-        byId("yearWheelDisplayName").textContent = wheel.name;
         updateYearWheelEditToggle();
         updateYearWheelMenuActions();
         byId("yearWheelMode").value = view.mode;
