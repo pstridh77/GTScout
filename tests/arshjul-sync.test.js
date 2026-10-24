@@ -425,6 +425,9 @@ test("recurrence checkbox opens a separate dialog and cancelling restores the un
         assert.equal(page.elements.get("yearWheelRecurrenceModal").classList.contains("hidden"), false);
         assert.match(page.elements.get("yearWheelRecurrenceFields").innerHTML, /name="recurrence_type"/);
         assert.match(page.elements.get("yearWheelRecurrenceFields").innerHTML, /value="yearly_weekday" selected/);
+        const ruleOptions = page.elements.get("yearWheelRecurrenceFields").innerHTML.match(/name="recurrence_type">([^]*?)<\/select>/)[1];
+        assert.deepEqual([...ruleOptions.matchAll(/value="([^"]+)"/g)].map(([, value]) => value),
+            ["yearly_date", "yearly_weekday", "yearly_week", "monthly_date", "monthly_weekday", "weekly"]);
         assert.match(page.elements.get("yearWheelRecurrenceFields").innerHTML, /class="year-wheel-dialog-help" aria-label="Hjälp om upprepning"/);
         cancel();
         assert.equal(page.elements.get("yearWheelModal").classList.contains("hidden"), false);
@@ -501,6 +504,11 @@ test("moving a single year persists an exception through reload without changing
     assert.match(page.elements.get("yearWheelEvents").innerHTML, /Ny plats/);
     openOccurrence(page, "2027-11-21");
     assert.match(page.elements.get("yearWheelFormFields").innerHTML, /name="start_date"[^>]*value="2027-11-13"/);
+    const movedMarkup = page.elements.get("yearWheelFormFields").innerHTML;
+    assert.match(movedMarkup, /Flyttad från 21 november 2027/);
+    assert.ok(movedMarkup.indexOf("Flyttad från") > movedMarkup.indexOf('name="end_date"'));
+    assert.ok(movedMarkup.indexOf("Flyttad från") < movedMarkup.indexOf('name="responsible"'));
+    assert.doesNotMatch(movedMarkup, /Ursprungligt tillfälle/);
     page.elements.get("closeYearWheelModal").handlers.click();
     const reloaded = createPage({ wheels: [saved] });
     await settle();
@@ -605,6 +613,22 @@ test("whole-series text edits preserve patches, while rule edits require confirm
     assert.deepEqual(page.tables.arshjul[0].data.events[0].exceptions, {});
 });
 
+test("only moved occurrences show their original date beside the date fields in read-only views", async () => {
+    for (const [override, moved] of [
+        [{ notes: "Ta med handskar" }, false],
+        [{ start_date: "2026-11-15", end_date: "2026-11-16" }, false],
+        [{ start_date: "2026-11-07", end_date: "2026-11-07" }, true]
+    ]) {
+        const page = createPage({ wheels: [recurringWheel({ exceptions: { "2026-11-15": override } })], leader: false });
+        await settle();
+        openOccurrence(page, "2026-11-15");
+        const markup = page.elements.get("yearWheelFormFields").innerHTML;
+        assert.equal(markup.includes("Flyttad från 15 november 2026"), moved);
+        assert.doesNotMatch(markup, /Ursprungligt tillfälle|Tillfället har ett undantag/);
+        assert.equal(page.requests.filter(item => item.operation === "upsert").length, 0);
+    }
+});
+
 test("public recurring wheels calculate occurrences read-only without uploading generated events", async () => {
     const original = { ...recurringWheel(), share_token: "recurring-public" };
     const page = createPage({ wheels: [original], signedIn: false, leader: false, search: "?share=recurring-public" });
@@ -612,6 +636,7 @@ test("public recurring wheels calculate occurrences read-only without uploading 
     openOccurrence(page, "2026-11-15");
     assert.equal(page.elements.get("yearWheelEditScopeModal").classList.contains("hidden"), true);
     assert.match(page.elements.get("yearWheelFormFields").innerHTML, /söndag vecka 46/);
+    assert.doesNotMatch(page.elements.get("yearWheelFormFields").innerHTML, /Ursprungligt tillfälle|Flyttad från|Tillfället har ett undantag/);
     assert.doesNotMatch(page.elements.get("yearWheelFormFields").innerHTML, /name="recurrence_type"/);
     assert.equal(page.elements.get("deleteYearWheelItemBtn").classList.contains("hidden"), true);
     assert.equal(page.requests.filter(item => item.operation === "upsert").length, 0);

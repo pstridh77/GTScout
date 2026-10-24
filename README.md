@@ -108,6 +108,8 @@ Utskrift kräver inte redigeringsbehörighet och fungerar även i delade årshju
 
 Hjälp- och infotexter i årshjulets dialoger visas med mindre text i diskreta ljusgrå rutor. Varningar, fel och statusmeddelanden har kvar sin tydligare utformning.
 
+Flyttade tillfällen visar **Flyttad från [datum]** direkt under datumfälten. Tillfällen som följer seriens datum visar ingen sådan text, även om exempelvis plats eller anteckningar har ändrats.
+
 I händelseformuläret kryssar du i **Återkommande** för att öppna en separat dialog med upprepningsregeln. Där väljer du **Upprepas**:
 
 - Varje vecka, på vald veckodag.

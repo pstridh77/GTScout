@@ -1923,9 +1923,9 @@
         const week = Math.ceil(((thursday - yearStart) / 86400000 + 1) / 7);
         const weekdays = ["Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag", "Lördag", "Söndag"];
         const options = [
-            ["weekly", "Varje vecka"], ["monthly_date", "Varje månad – datum"],
-            ["monthly_weekday", "Varje månad – veckodag"], ["yearly_date", "Varje år – datum"],
-            ["yearly_weekday", "Varje år – veckodag i månad"], ["yearly_week", "Varje år – veckonummer"]
+            ["yearly_date", "Varje år – datum"], ["yearly_weekday", "Varje år – veckodag i månad"],
+            ["yearly_week", "Varje år – veckonummer"], ["monthly_date", "Varje månad – datum"],
+            ["monthly_weekday", "Varje månad – veckodag"], ["weekly", "Varje vecka"]
         ];
         return `<fieldset><legend>Upprepning</legend>
             <label class="modal-field"><span>Upprepas</span><select name="recurrence_type">${options.map(([value, label]) =>
@@ -2112,8 +2112,6 @@
             ? singleOccurrence ? "Redigera tillfälle" : "Redigera serie"
             : event ? "Redigera händelse" : "Lägg till händelse", `
             ${series?.recurrence ? `<p class="year-wheel-recurrence-preview">${escapeHtml(recurrence().describe(series.recurrence))}. Gäller från ${escapeHtml(series.start_date)}.</p>
-                ${singleOccurrence ? `<p>Ursprungligt tillfälle: ${escapeHtml(occurrenceDate)}.${event.cancelled ? " Tillfället är inställt." : event.is_exception ? " Tillfället har ett undantag." : ""}</p>
-                    ${event.is_exception && !readOnly ? `<button type="button" class="btn-secondary" data-restore-occurrence="${escapeHtml(occurrenceDate)}">Återställ till seriens mönster</button>` : ""}` : ""}
             ` : ""}
             ${event?.source_wheel_id ? `<p class="year-wheel-dialog-help">Hämtad från ${escapeHtml(event.source_wheel_name)} → ${escapeHtml(event.source_wheel_ring_name)}. Händelsen ändras i källårshjulet.${!isSharedWheelView() ? ` <a href="arshjul.html?wheel=${encodeURIComponent(event.source_wheel_id)}">Öppna i källårshjulet</a>` : ""}</p>` : ""}
             ${linkedArrangement ? `<p id="yearWheelLinkedArrangementNote" class="year-wheel-dialog-help">${escapeHtml(linkedArrangementNote)}</p>` : ""}
@@ -2141,6 +2139,9 @@
                 <label class="modal-field"><span>Från och med</span><input name="start_date" type="date" required value="${escapeHtml(event?.start_date || date)}" ${linkedArrangementAttributes}></label>
                 <label class="modal-field"><span>Till och med</span><input name="end_date" type="date" required value="${escapeHtml(event?.end_date || event?.start_date || date)}" ${linkedArrangementAttributes}></label>
             </div>
+            ${singleOccurrence && event.start_date !== occurrenceDate ? `<p class="year-wheel-dialog-help">Flyttad från ${escapeHtml(formatDate(occurrenceDate, { day: "numeric", month: "long", year: "numeric" }))}.</p>` : ""}
+            ${singleOccurrence && event.cancelled ? `<p class="detail-note-warning" role="status">Tillfället är inställt.</p>` : ""}
+            ${singleOccurrence && event.is_exception && !readOnly ? `<button type="button" class="btn-secondary" data-restore-occurrence="${escapeHtml(occurrenceDate)}">Återställ till seriens mönster</button>` : ""}
             <div class="year-wheel-form-grid">
                 <label class="modal-field"><span>Ansvarig (valfritt)</span><input name="responsible" maxlength="100" value="${escapeHtml(event?.responsible || "")}" ${sourceFieldAttributes("responsible")}></label>
                 <label class="modal-field"><span>Plats (valfritt)</span><input name="location" maxlength="120" value="${escapeHtml(event?.location || "")}" ${sourceFieldAttributes("location")}></label>
