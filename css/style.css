@@ -6472,6 +6472,12 @@ select:focus {
 .year-wheel-ring-label { fill: #46545f; font-size: 9px; font-weight: 700; letter-spacing: .1px; pointer-events: none; }
 .year-wheel-ring-track { fill: none; stroke: #edf2f7; stroke-width: 1; pointer-events: none; }
 .year-wheel-event-arc { stroke: #fff; stroke-width: 1.1; transition: filter .12s ease; }
+.year-wheel-event-sync-overlay { pointer-events: none; }
+.year-wheel-sync-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 18px; margin-top: 8px; color: #536477; font-size: .8rem; }
+.year-wheel-sync-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.year-wheel-legend-swatch { width: 14px; height: 14px; border-radius: 2px; background: #398a86; }
+.year-wheel-legend-swatch--synced { background: repeating-linear-gradient(135deg, transparent 0 4px, rgba(255, 255, 255, .55) 4px 5px), #398a86; }
+.year-wheel-chart-event-info { min-height: 2.8em; margin: 8px 0 0; color: #536477; text-align: center; font-size: .8rem; overflow-wrap: anywhere; }
 .year-wheel-event-mark { cursor: pointer; }
 .year-wheel-event-mark:hover .year-wheel-event-arc, .year-wheel-event-mark:focus .year-wheel-event-arc { filter: brightness(.86); }
 .year-wheel-event-mark:focus { outline: none; }
@@ -6543,6 +6549,7 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
 .year-wheel-ring-selection > p { margin: 0 0 10px; color: #64748b; font-size: .8rem; }
 .year-wheel-ring-options { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
 .year-wheel-ring-config-group { min-width: 0; }
+.year-wheel-ring-sync-label { display: block; margin-top: 2px; color: #536477; font-size: .75rem; font-weight: 400; line-height: 1.4; overflow-wrap: anywhere; }
 .year-wheel-ring-config.year-wheel-ring-config-group-row { grid-template-columns: 13px minmax(0, 1fr) auto; align-items: start; border-bottom: 0; }
 .year-wheel-ring-config-group-row > .year-wheel-ring-swatch { margin-top: 7px; }
 .year-wheel-ring-group-details { min-width: 0; grid-column: 2 / -1; }
@@ -6576,6 +6583,15 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
 .year-wheel-ring-color-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 12px; }
 .year-wheel-arrangement-sync { display: flex; align-items: flex-start; gap: 9px; color: #34495e; font-size: .9rem; }
 .year-wheel-arrangement-sync input { flex: 0 0 auto; margin: 3px 0 0; accent-color: #176b72; }
+.year-wheel-source-list { display: grid; gap: 4px; margin: 8px 0; }
+.year-wheel-source-options { min-width: 0; margin: 0; padding: 0; border: 0; }
+.year-wheel-source-options--blocked { opacity: .55; }
+.year-wheel-source-options--blocked label { cursor: not-allowed; }
+.year-wheel-source-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 12px; padding: 6px 0; }
+.year-wheel-source-row > label span { min-width: 0; overflow-wrap: anywhere; }
+.year-wheel-source-row--child { margin-left: 8px; padding-left: 20px; border-left: 2px solid #d3dadd; }
+.year-wheel-source-children { font-size: .8rem; white-space: nowrap; }
+.year-wheel-source-inherited { color: #536477; font-size: .8rem; overflow-wrap: anywhere; }
 .year-wheel-planning-sync-plans { display: grid; gap: 6px; max-height: 220px; overflow-y: auto; margin-top: 8px; padding: 8px; border: 1px solid #d8e2eb; border-radius: 5px; }
 .year-wheel-planning-sync-plan { display: flex; align-items: flex-start; gap: 9px; padding: 6px; color: #34495e; cursor: pointer; }
 .year-wheel-planning-sync-plan input { flex: 0 0 auto; margin-top: 3px; accent-color: #176b72; }

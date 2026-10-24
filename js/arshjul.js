@@ -94,7 +94,18 @@
                 : (PLANNING_DEPARTMENTS.includes(String(ring?.name || "").trim()) ? String(ring.name).trim() : ""),
             sync_excluded_planning_ids: Array.isArray(ring?.sync_excluded_planning_ids)
                 ? [...new Set(ring.sync_excluded_planning_ids.map(String).filter(Boolean))]
-                : []
+                : [],
+            sync_from_wheel: ring?.sync_from_wheel?.wheel_id ? {
+                wheel_id: String(ring.sync_from_wheel.wheel_id),
+                ring_ids: Array.isArray(ring.sync_from_wheel.ring_ids)
+                    ? [...new Set(ring.sync_from_wheel.ring_ids.map(String).filter(Boolean))] : [],
+                include_children_ring_ids: [...new Set((Array.isArray(ring.sync_from_wheel.include_children_ring_ids)
+                    ? ring.sync_from_wheel.include_children_ring_ids
+                    : ring.sync_from_wheel.include_children && Array.isArray(ring.sync_from_wheel.ring_ids)
+                        ? ring.sync_from_wheel.ring_ids : []).map(String))]
+                    .filter(ringId => Array.isArray(ring.sync_from_wheel.ring_ids)
+                        && ring.sync_from_wheel.ring_ids.map(String).includes(ringId))
+            } : null
         })).filter(ring => ring.name) : [];
         const ringsById = new Map(rings.map(ring => [ring.id, ring]));
         rings.forEach(ring => {
@@ -128,6 +139,11 @@
                     notes: Boolean(event.source_arrangement_fields?.notes)
                 },
                 source_planning_id: String(event.source_planning_id || ""),
+                source_wheel_id: String(event.source_wheel_id || ""),
+                source_wheel_event_id: String(event.source_wheel_event_id || ""),
+                source_wheel_ring_id: String(event.source_wheel_ring_id || ""),
+                source_wheel_name: normalizeText(event.source_wheel_name, 100),
+                source_wheel_ring_name: normalizeText(event.source_wheel_ring_name, 60),
                 source_meeting_id: String(event.source_meeting_id || ""),
                 source_planning_fields: {
                     responsible: Boolean(event.source_planning_fields?.responsible),
@@ -143,7 +159,7 @@
             rings,
             events,
             share_token: String(wheel.share_token || "") || null,
-            schema_version: Math.max(4, Number(wheel.schema_version) || 0),
+            schema_version: Math.max(5, Number(wheel.schema_version) || 0),
             created_by: wheel.created_by || null,
             local_kar_id: wheel.local_kar_id || null,
             updated_at: wheel.updated_at || null,
@@ -155,6 +171,89 @@
         if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
         const date = new Date(`${value}T12:00:00Z`);
         return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+    }
+
+    function getWheelSourceRings(source, settings) {
+        const selected = new Set(settings.ring_ids);
+        const includeChildren = new Set(settings.include_children_ring_ids || []);
+        const roots = new Set(source.rings.filter(ring => !ring.parent_id).map(ring => ring.id));
+        return new Set(source.rings.filter(ring => selected.has(ring.id)
+            || roots.has(ring.parent_id) && selected.has(ring.parent_id)
+                && includeChildren.has(ring.parent_id)).map(ring => ring.id));
+    }
+
+    function wheelDependsOn(sourceId, targetId, allWheels, visited = new Set()) {
+        if (sourceId === targetId) return true;
+        if (visited.has(sourceId)) return false;
+        visited.add(sourceId);
+        return allWheels.find(wheel => wheel.id === sourceId)?.rings.some(ring =>
+            ring.sync_from_wheel && wheelDependsOn(ring.sync_from_wheel.wheel_id, targetId, allWheels, visited)) || false;
+    }
+
+    function getWheelSourceError(wheel, settings, allWheels) {
+        if (!settings) return "";
+        const source = allWheels.find(item => item.id === settings.wheel_id);
+        if (!source || source.local_kar_id !== wheel.local_kar_id) return "Källårshjulet saknas eller är inte tillgängligt i samma kår.";
+        if (wheelDependsOn(source.id, wheel.id, allWheels)) return "De här årshjulen skulle hämta händelser från varandra. Välj ett annat källårshjul eller ta bort den andra synkningen först.";
+        if (!settings.ring_ids.length) return "Välj minst en källring.";
+        if (settings.ring_ids.some(ringId => !source.rings.some(ring => ring.id === ringId))) return "En vald källring saknas. Välj nya ringar eller koppla loss synkningen.";
+        return "";
+    }
+
+    function detachWheelEvent(event) {
+        return { ...event, source_wheel_id: "", source_wheel_event_id: "", source_wheel_ring_id: "",
+            source_wheel_name: "", source_wheel_ring_name: "" };
+    }
+
+    function syncWheelSources(allWheels) {
+        const resolved = new Map();
+        function resolve(wheel) {
+            if (resolved.has(wheel.id)) return resolved.get(wheel.id);
+            let events = wheel.events;
+            wheel.rings.forEach(ring => {
+                const settings = ring.sync_from_wheel;
+                // Missing sources must never be treated as an empty, successfully loaded source.
+                if (!settings || getWheelSourceError(wheel, settings, allWheels)) return;
+                const source = resolve(allWheels.find(item => item.id === settings.wheel_id));
+                const ringIds = getWheelSourceRings(source, settings);
+                const sourceEvents = source.events.filter(event => ringIds.has(event.ring_id));
+                const desired = new Set(sourceEvents.map(event => event.id));
+                const retained = events.filter(event => event.ring_id !== ring.id
+                    || event.source_wheel_id !== source.id || desired.has(event.source_wheel_event_id));
+                sourceEvents.forEach(event => {
+                    const index = retained.findIndex(item => item.ring_id === ring.id
+                        && item.source_wheel_id === source.id && item.source_wheel_event_id === event.id);
+                    const existing = index < 0 ? null : retained[index];
+                    const copy = {
+                        ...event,
+                        id: existing?.id || id(),
+                        ring_id: ring.id,
+                        color_variant: existing?.color_variant || "ring",
+                        color: existing?.color || "",
+                        copied_from_id: "",
+                        needs_review: false,
+                        source_arrangement_id: "",
+                        source_arrangement_fields: {},
+                        source_planning_id: "",
+                        source_meeting_id: "",
+                        source_planning_fields: {},
+                        source_wheel_id: source.id,
+                        source_wheel_event_id: event.id,
+                        source_wheel_ring_id: event.ring_id,
+                        source_wheel_name: source.name,
+                        source_wheel_ring_name: source.rings.find(item => item.id === event.ring_id).name
+                    };
+                    if (index < 0) retained.push(copy);
+                    else retained[index] = copy;
+                });
+                events = retained;
+            });
+            const updated = normalizeWheel({ ...wheel, events });
+            const result = JSON.stringify(updated) === JSON.stringify(wheel) ? wheel : updated;
+            resolved.set(wheel.id, result);
+            return result;
+        }
+        return allWheels.map(resolve);
     }
 
     function readViewPreferences() {
@@ -681,6 +780,21 @@
         });
     }
 
+    function getEventSourceLabel(event) {
+        if (event.source_wheel_id) return `Hämtad från ${event.source_wheel_name || "annat årshjul"} → ${event.source_wheel_ring_name || "ring"}`;
+        if (event.source_arrangement_id) return "Hämtad från arrangemang";
+        if (event.source_planning_id) {
+            const group = planningGroups.find(item => String(item.id) === event.source_planning_id);
+            return `Hämtad från avdelningsmöten${group ? ` → ${getPlanningSourceLabel(group)}` : ""}`;
+        }
+        return "";
+    }
+
+    function getChartEventDescription(event) {
+        const source = getEventSourceLabel(event);
+        return `${event.title} · ${formatDate(event.start_date)}${event.end_date !== event.start_date ? `–${formatDate(event.end_date)}` : ""}${source ? ` · ${source}` : " · Egen händelse"}`;
+    }
+
     function renderWheelChart(wheel, shownRings, visibleEvents, periodRange) {
         const container = byId("yearWheelChart");
         const { start, endExclusive } = periodRange;
@@ -688,7 +802,7 @@
         const outerRadius = 244;
         const innerRadius = 64;
         const ringWidth = shownRings.length ? (outerRadius - innerRadius) / shownRings.length : 0;
-        const svg = [`<svg class="year-wheel-svg" viewBox="24 24 592 592" role="img" aria-label="Årshjul med månader och händelser"><defs><filter id="year-wheel-seam-shadow" x="60" y="60" width="520" height="520" filterUnits="userSpaceOnUse"><feDropShadow dx="3" dy="0" stdDeviation="2" flood-color="#142637" flood-opacity=".52"/></filter></defs>`];
+        const svg = [`<svg class="year-wheel-svg" viewBox="24 24 592 592" role="img" aria-label="Årshjul med månader och händelser"><defs><pattern id="year-wheel-sync-pattern" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="5" stroke="#fff" stroke-opacity=".55" stroke-width="1.3"/></pattern><filter id="year-wheel-seam-shadow" x="60" y="60" width="520" height="520" filterUnits="userSpaceOnUse"><feDropShadow dx="3" dy="0" stdDeviation="2" flood-color="#142637" flood-opacity=".52"/></filter></defs>`];
         const monthIntervals = [];
         const monthLabels = [];
         const overflowActions = [];
@@ -774,7 +888,7 @@
                     const eventColor = getEventColor(event, sourceRingById.get(event.ring_id));
                     const tangentRotation = (mid * 360) % 360;
                     const rotation = tangentRotation > 90 && tangentRotation < 270 ? tangentRotation + 180 : tangentRotation;
-                    const title = `${event.title} · ${formatDate(event.start_date)}${event.end_date !== event.start_date ? `–${formatDate(event.end_date)}` : ""}`;
+                    const title = getChartEventDescription(event);
                     const eventLabel = finish - from >= 0.04
                         ? `<text x="${label.x.toFixed(2)}" y="${label.y.toFixed(2)}" transform="rotate(${rotation.toFixed(1)} ${label.x.toFixed(2)} ${label.y.toFixed(2)})" style="fill:${getRingTextColor(eventColor)}" class="year-wheel-event-label">${escapeHtml(event.title)}</text>`
                         : "";
@@ -782,7 +896,7 @@
                     const path = finish - from >= 0.999
                         ? `${arcPath(laneOuter - laneInset, laneInner + laneInset, from, from + 0.5)} ${arcPath(laneOuter - laneInset, laneInner + laneInset, from + 0.5, finish)}`
                         : arcPath(laneOuter - laneInset, laneInner + laneInset, from, finish);
-                    svg.push(`<g class="year-wheel-event-mark" data-event-edit="${escapeHtml(event.id)}" tabindex="0" role="button" aria-label="${escapeHtml(title)}"><title>${escapeHtml(title)}</title><path d="${path}" fill="${eventColor}" class="year-wheel-event-arc"/>${eventLabel}</g>`);
+                    svg.push(`<g class="year-wheel-event-mark" data-event-edit="${escapeHtml(event.id)}" tabindex="0" role="button" aria-label="${escapeHtml(title)}"><title>${escapeHtml(title)}</title><path d="${path}" fill="${eventColor}" class="year-wheel-event-arc"/>${getEventSourceLabel(event) ? `<path d="${path}" fill="url(#year-wheel-sync-pattern)" class="year-wheel-event-sync-overlay" aria-hidden="true"/>` : ""}${eventLabel}</g>`);
                 });
             });
             overflowGroups.forEach(group => {
@@ -827,7 +941,10 @@
             svg.push(`<g class="year-wheel-year-step" data-year-step="${step}" transform="translate(${x} ${y})" role="button" tabindex="${disabled ? "-1" : "0"}" aria-label="${label}" aria-disabled="${disabled}"><title>${label}</title><circle r="12"/><path d="M ${-step * 2} -4 L ${step * 2} 0 L ${-step * 2} 4"/></g>`);
         });
         svg.push("</svg>");
-        container.innerHTML = svg.join("");
+        const hasSyncedEvents = visibleEvents.some(event => getEventSourceLabel(event));
+        container.innerHTML = svg.join("") + (hasSyncedEvents
+            ? `<div class="year-wheel-sync-legend" aria-label="Händelsernas ursprung"><span><i class="year-wheel-legend-swatch" aria-hidden="true"></i>Egen händelse</span><span><i class="year-wheel-legend-swatch year-wheel-legend-swatch--synced" aria-hidden="true"></i>Synkad händelse</span></div>` : "")
+            + `<p class="year-wheel-chart-event-info" data-chart-event-info role="status" aria-live="polite"></p>`;
         container.querySelectorAll("[data-month-create]").forEach(mark => {
             mark.addEventListener("click", () => openEventForm("", mark.dataset.monthCreate, mark.dataset.ringCreate));
             mark.addEventListener("keydown", event => {
@@ -863,6 +980,17 @@
             });
         });
         container.querySelectorAll("[data-event-edit]").forEach(mark => {
+            const event = visibleEvents.find(item => item.id === mark.dataset.eventEdit);
+            const info = container.querySelector("[data-chart-event-info]");
+            let hovered = false;
+            let focused = false;
+            const updateInfo = () => {
+                info.textContent = (hovered || focused) && event ? getChartEventDescription(event) : "";
+            };
+            mark.addEventListener("mouseenter", () => { hovered = true; updateInfo(); });
+            mark.addEventListener("mouseleave", () => { hovered = false; updateInfo(); });
+            mark.addEventListener("focus", () => { focused = true; updateInfo(); });
+            mark.addEventListener("blur", () => { focused = false; updateInfo(); });
             mark.addEventListener("click", () => openEventForm(mark.dataset.eventEdit));
             mark.addEventListener("keydown", event => {
                 if (event.key === "Enter" || event.key === " ") {
@@ -1060,7 +1188,7 @@
             return;
         }
         const copiedEvent = {
-            ...event,
+            ...detachWheelEvent(event),
             id: id(),
             start_date: startDate,
             end_date: endDate,
@@ -1174,8 +1302,9 @@
             const cards = monthEvents.map(event => {
                 const ring = ringById.get(event.ring_id);
                 const ringLabel = getEventRingLabel(ring, ringById);
-                const eventAction = canEdit() ? "Redigera" : "Visa";
-                const eventActionIcon = canEdit()
+                const editable = canEdit() && !event.source_wheel_id;
+                const eventAction = editable ? "Redigera" : "Visa";
+                const eventActionIcon = editable
                     ? `<path d="m16 3 5 5L9 20l-6 1 1-6L16 3Z"/><path d="m14 5 5 5"/>`
                     : `<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>`;
                 const shortDate = `${formatDate(event.start_date, { day: "numeric", month: "short" })}${event.end_date !== event.start_date
@@ -1185,6 +1314,7 @@
                     <div class="year-wheel-event-card-main">
                         <strong>${escapeHtml(event.title)}${event.needs_review ? ` <span class="year-wheel-review-badge">Kontrollera kopia</span>` : ""}</strong>
                         <span class="year-wheel-event-card-ring">${escapeHtml(ringLabel)}</span>
+                        ${event.source_wheel_id ? `<span class="year-wheel-event-card-ring">Hämtad från ${escapeHtml(event.source_wheel_name)} · ${escapeHtml(event.source_wheel_ring_name)}</span>` : ""}
                         <span class="year-wheel-event-card-info">${event.responsible ? `<span>Ansvarig: ${escapeHtml(event.responsible)}</span>` : ""}${event.location ? `<span>Plats: ${escapeHtml(event.location)}</span>` : ""}${event.notes ? `<span class="year-wheel-event-notes">${escapeHtml(event.notes)}</span>` : ""}</span>
                     </div>
                     <div class="year-wheel-event-actions">${canEdit() && event.needs_review ? `<button class="btn-secondary" type="button" data-mark-event-reviewed="${escapeHtml(event.id)}" title="Markera kopian som kontrollerad">Kontrollerad</button>` : ""}${canEdit() ? `<button class="btn-secondary" type="button" data-copy-event="${escapeHtml(event.id)}" aria-label="Kopiera ${escapeHtml(event.title)} till nästa år" title="Kopiera till nästa år"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"></rect><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path></svg></button>` : ""}<button class="btn-secondary" type="button" data-edit-event="${escapeHtml(event.id)}" aria-label="${eventAction} ${escapeHtml(event.title)}" title="${eventAction}"><svg viewBox="0 0 24 24" aria-hidden="true">${eventActionIcon}</svg></button></div>
@@ -1238,9 +1368,11 @@
             selector.disabled = true;
             byId("addYearWheelEventBtn").disabled = true;
             byId("yearWheelReadOnlyNote").classList.add("hidden");
+            byId("yearWheelSourceStatus").classList.add("hidden");
             return;
         }
-        const defaultWheelId = window.GTScoutYearWheelSync?.getDefaultWheelId?.();
+        const requestedWheelId = new URLSearchParams(window.location.search).get("wheel");
+        const defaultWheelId = requestedWheelId || window.GTScoutYearWheelSync?.getDefaultWheelId?.();
         selectedWheelId = wheels.some(wheel => wheel.id === previousId)
             ? previousId
             : wheels.some(wheel => wheel.id === defaultWheelId) ? defaultWheelId : wheels[0].id;
@@ -1248,6 +1380,12 @@
         const selectedIndex = wheels.findIndex(wheel => wheel.id === selectedWheelId);
         wheelCount.textContent = wheels.length === 1 ? "1 hjul" : `${selectedIndex + 1} av ${wheels.length}`;
         const wheel = currentWheel();
+        const sourceWarnings = isSharedWheelView() ? [] : wheel.rings.flatMap(ring => {
+            const error = getWheelSourceError(wheel, ring.sync_from_wheel, wheels);
+            return error ? [`${ring.name}: ${error} Tidigare hämtade händelser behålls tills kopplingen ändras.`] : [];
+        });
+        byId("yearWheelSourceStatus").textContent = sourceWarnings.join(" ");
+        byId("yearWheelSourceStatus").classList.toggle("hidden", !sourceWarnings.length);
         selector.setAttribute("aria-label", `Välj årshjul: ${wheel.name}, ${selectedIndex + 1} av ${wheels.length}`);
         if (!startMonthOverridden) view.startMonth = wheel.start_month;
         const validRingIds = new Set(wheel.rings.map(ring => ring.id));
@@ -1420,6 +1558,17 @@
     function ringOptionsMarkup(rings, events) {
         const eventsByRing = new Map();
         events.forEach(event => eventsByRing.set(event.ring_id, (eventsByRing.get(event.ring_id) || 0) + 1));
+        const ringName = ring => {
+            const sources = [];
+            if (ring.sync_arrangements) sources.push("arrangemang");
+            if (ring.sync_meetings_from_department) sources.push("avdelningsmöten");
+            if (ring.sync_from_wheel) {
+                const source = wheels.find(item => item.id === ring.sync_from_wheel.wheel_id);
+                sources.push(source ? `årshjul: ${source.name}` : "annat årshjul");
+            }
+            return `<span class="year-wheel-ring-option-name">${escapeHtml(ring.name)}${sources.length
+                ? `<span class="year-wheel-ring-sync-label">Synkar från ${escapeHtml(sources.join(", "))}</span>` : ""}</span>`;
+        };
         const actions = ring => {
             const siblings = rings.filter(candidate => (candidate.parent_id || "") === (ring.parent_id || ""));
             const index = siblings.findIndex(candidate => candidate.id === ring.id);
@@ -1438,7 +1587,7 @@
             return `<div class="year-wheel-ring-config"${ring ? ` data-ring-id="${escapeHtml(ring.id)}"` : ""}>
                 <div class="year-wheel-ring-option">
                     <span class="year-wheel-ring-swatch" style="--ring-color:${escapeHtml(ring.color)}"></span>
-                    <span class="year-wheel-ring-option-name">${escapeHtml(ring.name)}</span>
+                    ${ringName(ring)}
                     ${count ? `<small>${count} ${count === 1 ? "händelse" : "händelser"}</small>` : ""}
                 </div>${actions(ring)}
             </div>`;
@@ -1452,7 +1601,7 @@
                     <span class="year-wheel-ring-swatch" style="--ring-color:${escapeHtml(ring.color)}"></span>
                     <details class="year-wheel-ring-group-details"${ringGroupOpen ? " open" : ""}>
                         <summary>
-                            <span class="year-wheel-ring-option-name">${escapeHtml(ring.name)}</span>
+                            ${ringName(ring)}
                             ${actions(ring)}
                         </summary>
                         <div class="year-wheel-ring-config-children">${children.map(renderOption).join("")}</div>
@@ -1496,6 +1645,36 @@
         return events.filter(event => event.ring_id === ringId).length;
     }
 
+    function renderWheelSourceSelection(sourceId, selectedIds, includeChildrenIds = [], targetName = "", targetWheelId = "") {
+        const source = wheels.find(wheel => wheel.id === sourceId);
+        if (!source) return `<p class="detail-note">Välj ett årshjul för att se dess ringar.</p>`;
+        const circular = Boolean(targetWheelId && wheelDependsOn(source.id, targetWheelId, wheels));
+        const orderedRings = source.rings.filter(ring => !ring.parent_id).flatMap(root =>
+            [root, ...source.rings.filter(ring => ring.parent_id === root.id)]);
+        return `${circular ? `<p class="detail-note" role="status">De här årshjulen hämtar händelser från varandra, direkt eller via andra årshjul. Välj ett annat källårshjul eller ta bort den andra synkningen först.</p>` : ""}
+            <fieldset class="year-wheel-source-options${circular ? " year-wheel-source-options--blocked" : ""}" aria-label="Källringar"${circular ? ' disabled title="Kan inte väljas – hämtar redan från det här årshjulet"' : ""}>
+            <div class="year-wheel-source-list">${orderedRings.map(ring => {
+            const selected = selectedIds.includes(ring.id);
+            const parent = source.rings.find(item => item.id === ring.parent_id);
+            const inherited = parent && selectedIds.includes(parent.id) && includeChildrenIds.includes(parent.id);
+            return `<div class="year-wheel-source-row${ring.parent_id ? " year-wheel-source-row--child" : ""}">
+                <label class="year-wheel-arrangement-sync"><input type="checkbox" name="source_ring_ids" value="${escapeHtml(ring.id)}" ${selected || inherited ? "checked" : ""} ${inherited ? `disabled aria-label="${escapeHtml(ring.name)} – ingår via ${escapeHtml(parent.name)}"` : ""}><span>${escapeHtml(ring.name)}</span></label>
+                ${inherited ? `${selected ? `<input type="hidden" name="source_ring_ids" value="${escapeHtml(ring.id)}">` : ""}<span class="year-wheel-source-inherited">Ingår via ${escapeHtml(parent.name)}</span>` : ""}
+                ${!ring.parent_id ? `<div data-source-children="${escapeHtml(ring.id)}"${selected ? "" : " hidden"}><label class="year-wheel-arrangement-sync year-wheel-source-children"><input type="checkbox" name="source_child_ring_ids" value="${escapeHtml(ring.id)}" aria-label="Ta med underringar till ${escapeHtml(ring.name)}" title="Alla nuvarande och framtida underringar tas med. Avmarkera för att välja underringar separat." ${selected && includeChildrenIds.includes(ring.id) ? "checked" : ""} ${selected ? "" : "disabled"}><span>Ta med underringar</span></label></div>` : ""}
+            </div>`;
+        }).join("")}</div></fieldset>
+            ${circular ? "" : `
+            <p class="detail-note">Alla nuvarande och framtida underringar tas med när alternativet är valt. Avmarkera för att välja underringar separat.</p>
+            <p class="detail-note" data-wheel-source-summary aria-live="polite">${(() => {
+                const included = getWheelSourceRings(source, { ring_ids: selectedIds, include_children_ring_ids: includeChildrenIds });
+                const names = orderedRings.filter(ring => included.has(ring.id)).map(ring => {
+                    const parent = source.rings.find(item => item.id === ring.parent_id);
+                    return parent ? `${parent.name} · ${ring.name}` : ring.name;
+                });
+                return `<strong>Hämtas:</strong> ${names.length ? escapeHtml(names.join(", ")) : "Inga ringar valda"}. Händelserna samlas i ${targetName ? `målringen ${escapeHtml(targetName)}` : "målringen"}. Inga underringar skapas där.`;
+            })()}</p>`}`;
+    }
+
     function openRingForm(ringId = "", parentId = "") {
         const wheel = wheelDraft || currentWheel();
         if (!wheel || !canEdit()) return;
@@ -1508,6 +1687,9 @@
         const initialDepartment = ring?.sync_meetings_department
             || (PLANNING_DEPARTMENTS.includes(ring?.name) ? ring.name : "");
         const planningEnabled = Boolean(ring?.sync_meetings_from_department);
+        const wheelSource = ring?.sync_from_wheel;
+        const sourceWheels = wheels.filter(item => item.id !== wheel.id
+            && item.local_kar_id === (wheel.local_kar_id || auth()?.getState?.().karId || null));
         const hasChildren = ring && wheel.rings.some(item => item.parent_id === ring.id);
         const parents = wheel.rings.filter(item => !item.parent_id && item.id !== ringId);
         const parentOptions = `<option value="" ${!ring?.parent_id && !parentId ? "selected" : ""}>Ingen, skapa som ring</option>${parents.map(parent => `<option value="${escapeHtml(parent.id)}" ${(ring?.parent_id || parentId) === parent.id ? "selected" : ""}>${escapeHtml(parent.name)}</option>`).join("")}`;
@@ -1519,6 +1701,21 @@
             ${!ring?.parent_id ? `<label class="modal-field"><span>Visa underringar</span><select name="children_display"><option value="grouped" ${ring?.children_display !== "individual" ? "selected" : ""}>Summera händelser i ringen</option><option value="individual" ${ring?.children_display === "individual" ? "selected" : ""}>Visa underringar separat</option></select></label>` : ""}
             <label class="year-wheel-arrangement-sync"><input name="sync_arrangements" type="checkbox" ${ring?.sync_arrangements ?? String(ring?.name || "").trim().toLocaleLowerCase("sv") === "arrangemang" ? "checked" : ""}><span>Synka arrangemang automatiskt</span></label>
             <label class="year-wheel-arrangement-sync"><input name="sync_meetings_from_department" type="checkbox" ${planningEnabled ? "checked" : ""}><span>Synka avdelning möten automatiskt</span></label>
+            <label class="year-wheel-arrangement-sync"><input name="sync_from_wheel_enabled" type="checkbox" ${wheelSource ? "checked" : ""}><span>Synka från annat årshjul</span></label>
+            <div data-wheel-sync-settings${wheelSource ? "" : " hidden"}>
+                <label class="modal-field"><span>Årshjul</span><select name="source_wheel_id">
+                    <option value="">Välj årshjul</option>
+                    ${wheelSource && !sourceWheels.some(item => item.id === wheelSource.wheel_id) ? `<option value="${escapeHtml(wheelSource.wheel_id)}" selected>Källårshjulet saknas</option>` : ""}
+                    ${sourceWheels.map(item => {
+                        const circular = wheelDependsOn(item.id, wheel.id, wheels);
+                        return `<option value="${escapeHtml(item.id)}" ${wheelSource?.wheel_id === item.id ? "selected" : ""} ${circular ? "disabled" : ""}>${escapeHtml(item.name)}${circular ? " – hämtar redan från det här årshjulet" : ""}</option>`;
+                    }).join("")}
+                </select></label>
+                <p class="detail-note">Du kan inte hämta från ett årshjul som redan hämtar händelser från det du redigerar, direkt eller via andra årshjul. Händelserna skulle då skickas runt mellan hjulen.</p>
+                <div data-wheel-sync-rings>${renderWheelSourceSelection(wheelSource?.wheel_id, wheelSource?.ring_ids || [], wheelSource?.include_children_ring_ids || [], ring?.name || "", wheel.id || "")}</div>
+                <p class="detail-note">Valda ringars händelser samlas i den här ringen. Ändra händelserna i källårshjulet. Nya ringar väljs inte automatiskt. Hämtat innehåll blir även synligt via det här hjulets delningslänk.</p>
+            </div>
+            <input type="hidden" name="wheel_sync_action" value="">
             <div data-meeting-sync-settings${planningEnabled ? "" : " hidden"}>
                 <label class="modal-field"><span>Avdelning</span><select name="sync_meetings_department">
                     <option value="">Välj avdelning</option>
@@ -1559,6 +1756,39 @@
         const excludedPlanningInput = byId("yearWheelFormFields").querySelector('[name="sync_excluded_planning_ids"]');
         const planningSyncSettings = byId("yearWheelFormFields").querySelector("[data-meeting-sync-settings]");
         const planningSyncPlans = byId("yearWheelFormFields").querySelector("[data-meeting-sync-plans]");
+        const wheelSyncInput = byId("yearWheelFormFields").querySelector('[name="sync_from_wheel_enabled"]');
+        const sourceWheelInput = byId("yearWheelFormFields").querySelector('[name="source_wheel_id"]');
+        let selectedSourceIds = new Set(wheelSource?.ring_ids || []);
+        let includedChildIds = new Set(wheelSource?.include_children_ring_ids || []);
+        const sourceList = byId("yearWheelFormFields").querySelector("[data-wheel-sync-rings]");
+        const updateSourceList = () => {
+            sourceList.innerHTML = renderWheelSourceSelection(sourceWheelInput.value,
+                [...selectedSourceIds], [...includedChildIds], nameInput.value, wheel.id || "");
+        };
+        wheelSyncInput.addEventListener("change", () => {
+            byId("yearWheelFormFields").querySelector("[data-wheel-sync-settings]").hidden = !wheelSyncInput.checked;
+        });
+        sourceWheelInput.addEventListener("change", () => {
+            selectedSourceIds = new Set();
+            includedChildIds = new Set();
+            updateSourceList();
+        });
+        sourceList.addEventListener("change", event => {
+            const checkbox = event.target.closest?.('input[type="checkbox"]');
+            if (!checkbox || checkbox.disabled) return;
+            const selection = checkbox.name === "source_ring_ids" ? selectedSourceIds : includedChildIds;
+            if (checkbox.checked) selection.add(checkbox.value);
+            else selection.delete(checkbox.value);
+            if (checkbox.name === "source_ring_ids" && !checkbox.checked) includedChildIds.delete(checkbox.value);
+            const { name, value } = checkbox;
+            updateSourceList();
+            [...sourceList.querySelectorAll('input[type="checkbox"]')]
+                .find(input => input.name === name && input.value === value)?.focus();
+        });
+        nameInput.addEventListener("input", updateSourceList);
+        byId("yearWheelFormFields").querySelector("[data-wheel-sync-settings]").addEventListener("change", () => {
+            byId("yearWheelFormFields").querySelector('[name="wheel_sync_action"]').value = "";
+        });
         let syncSettingTouched = Boolean(ring);
         let planningSyncSettingTouched = Boolean(ring);
         syncMeetingsInput.addEventListener("change", () => {
@@ -1661,7 +1891,7 @@
         const wheel = currentWheel();
         if (!wheel) return;
         const event = wheel.events.find(item => item.id === eventId);
-        const readOnly = !canEdit();
+        const readOnly = !canEdit() || Boolean(event?.source_wheel_id);
         if ((!readOnly && !wheel.rings.length) || (readOnly && !event)) return;
         const linkedArrangement = Boolean(event?.source_arrangement_id);
         const linkedArrangementNote = "Fält som hämtas från arrangemanget ändras där och synkas automatiskt hit.";
@@ -1677,6 +1907,7 @@
         const chosenRing = event?.ring_id || wheel.rings.find(ring => ring.id === initialRingId)?.id || wheel.rings.find(ring => selectedRingIds.has(ring.id))?.id || wheel.rings[0].id;
         const date = initialDate || dateKey(period().start);
         openModal(readOnly ? "Visa händelse" : event ? "Redigera händelse" : "Lägg till händelse", `
+            ${event?.source_wheel_id ? `<p class="year-wheel-linked-arrangement-note">Hämtad från ${escapeHtml(event.source_wheel_name)} → ${escapeHtml(event.source_wheel_ring_name)}. Händelsen ändras i källårshjulet.${!isSharedWheelView() ? ` <a href="arshjul.html?wheel=${encodeURIComponent(event.source_wheel_id)}">Öppna i källårshjulet</a>` : ""}</p>` : ""}
             ${linkedArrangement ? `<p id="yearWheelLinkedArrangementNote" class="year-wheel-linked-arrangement-note">${escapeHtml(linkedArrangementNote)}</p>` : ""}
             <label class="modal-field"><span>Rubrik</span><input name="title" required maxlength="120" value="${escapeHtml(event?.title || "")}" placeholder="Till exempel Kårstämma" ${linkedArrangementAttributes}></label>
             <div class="year-wheel-ring-color-grid">
@@ -1751,7 +1982,19 @@
     function saveWheel(wheel) {
         const withArrangements = syncArrangementEvents(wheel, window.GTScoutArrangements?.getAll?.() || []) || wheel;
         const updated = syncPlanningMeetingEvents(withArrangements, planningGroups) || withArrangements;
-        window.GTScoutYearWheelSync?.saveWheel(updated);
+        const before = wheels;
+        const incoming = wheels.some(item => item.id === wheel.id)
+            ? wheels.map(item => item.id === wheel.id ? updated : item) : [...wheels, updated];
+        persistWheelSources(incoming, new Set([updated.id]), before);
+    }
+
+    function persistWheelSources(incoming, changedIds = new Set(), before = incoming) {
+        const updated = isSharedWheelView() ? incoming : syncWheelSources(incoming);
+        const changes = updated.filter(wheel => changedIds.has(wheel.id)
+            || wheel !== before.find(item => item.id === wheel.id));
+        wheels = updated;
+        render();
+        if (canWrite()) changes.forEach(wheel => window.GTScoutYearWheelSync?.saveWheel(wheel));
     }
 
     function syncArrangementsIntoWheels(arrangements) {
@@ -1765,8 +2008,7 @@
             }
             return wheel;
         });
-        render();
-        if (canWrite()) updates.forEach(wheel => window.GTScoutYearWheelSync?.saveWheel(wheel));
+        persistWheelSources(wheels, new Set(updates.map(wheel => wheel.id)));
     }
 
     function syncPlanningIntoWheels(groups) {
@@ -1791,8 +2033,7 @@
                     : `<p class="detail-note">Välj en avdelning för att se dess planeringar.</p>`;
             }
         }
-        render();
-        if (canWrite()) updates.forEach(wheel => window.GTScoutYearWheelSync?.saveWheel(wheel));
+        persistWheelSources(wheels, new Set(updates.map(wheel => wheel.id)));
     }
 
     async function submitForm(event) {
@@ -1856,7 +2097,7 @@
                 const startDate = shiftDateToNextYear(item.start_date);
                 const endDate = shiftDateToNextYear(item.end_date);
                 return startDate && endDate ? {
-                    ...item,
+                    ...detachWheelEvent(item),
                     id: id(),
                     start_date: startDate,
                     end_date: endDate,
@@ -1932,7 +2173,8 @@
                 start_month: startMonth,
                 rings,
                 events: [],
-                schema_version: 4,
+                schema_version: 5,
+                local_kar_id: auth()?.getState?.().karId || null,
                 created_by: auth()?.getUser?.()?.id || null
             });
             wheels = [...wheels, created];
@@ -1974,6 +2216,14 @@
                 parent_id: parentId,
                 children_display: value.children_display === "individual" ? "individual" : "grouped",
                 sync_arrangements: value.sync_arrangements === "on",
+                sync_from_wheel: value.sync_from_wheel_enabled === "on" ? {
+                    wheel_id: String(value.source_wheel_id || ""),
+                    ring_ids: [...new Set(formData.getAll("source_ring_ids").map(String))],
+                    include_children_ring_ids: [...new Set(formData.getAll("source_child_ring_ids").map(String))]
+                        .filter(ringId => formData.getAll("source_ring_ids").map(String).includes(ringId)
+                            && wheels.find(item => item.id === String(value.source_wheel_id || ""))?.rings
+                                .some(item => item.id === ringId && !item.parent_id))
+                } : null,
                 sync_meetings_from_department: value.sync_meetings_from_department === "on",
                 sync_meetings_department: PLANNING_DEPARTMENTS.includes(String(value.sync_meetings_department || ""))
                     ? String(value.sync_meetings_department)
@@ -1990,6 +2240,46 @@
             if (ring.sync_meetings_from_department && !ring.sync_meetings_department) {
                 byId("yearWheelFormMessage").textContent = "Välj en avdelning för att synka möten.";
                 byId("yearWheelFormMessage").classList.remove("hidden");
+                return;
+            }
+            const sourceError = getWheelSourceError({
+                ...targetWheel, local_kar_id: targetWheel.local_kar_id || auth()?.getState?.().karId || null
+            }, ring.sync_from_wheel, wheels);
+            if (sourceError) {
+                byId("yearWheelFormMessage").textContent = sourceError;
+                byId("yearWheelFormMessage").classList.remove("hidden");
+                return;
+            }
+            const sourceWheel = wheels.find(item => item.id === ring.sync_from_wheel?.wheel_id);
+            const sourceRings = sourceWheel ? getWheelSourceRings(sourceWheel, ring.sync_from_wheel) : new Set();
+            const staleWheelEvents = targetWheel.events.filter(item => item.ring_id === editingId && item.source_wheel_id
+                && (!ring.sync_from_wheel || item.source_wheel_id !== sourceWheel?.id
+                    || !sourceRings.has(item.source_wheel_ring_id)));
+            const wheelSyncAction = String(value.wheel_sync_action || "");
+            if (staleWheelEvents.length && !["keep", "delete"].includes(wheelSyncAction)) {
+                const popup = byId("yearWheelArrangementSyncModal");
+                byId("yearWheelArrangementSyncTitle").textContent = "Ändra synkning från årshjul?";
+                byId("yearWheelArrangementSyncMessage").textContent =
+                    staleWheelEvents.length === 1
+                        ? "1 hämtad händelse omfattas inte längre av urvalet. Välj om den ska behållas eller tas bort."
+                        : `${staleWheelEvents.length} hämtade händelser omfattas inte längre av urvalet. Välj om de ska behållas eller tas bort.`;
+                byId("keepYearWheelArrangementEventsBtn").textContent = "Behåll som vanliga händelser";
+                byId("deleteYearWheelArrangementEventsBtn").textContent = "Ta bort synkade händelser";
+                syncChoiceHandlers = {
+                    choose(action) {
+                        byId("yearWheelFormFields").querySelector('[name="wheel_sync_action"]').value = action;
+                        popup.classList.add("hidden");
+                        syncChoiceHandlers = null;
+                        byId("yearWheelForm").requestSubmit();
+                    },
+                    cancel() {
+                        popup.classList.add("hidden");
+                        syncChoiceHandlers = null;
+                        byId("yearWheelFormFields").querySelector('[name="wheel_sync_action"]').value = "";
+                    }
+                };
+                popup.classList.remove("hidden");
+                byId("keepYearWheelArrangementEventsBtn").focus();
                 return;
             }
             const linkedMeetingEvents = index < 0 ? [] : targetWheel.events.filter(event =>
@@ -2033,7 +2323,10 @@
             const linkedEvents = index < 0 ? [] : targetWheel.events.filter(event =>
                 event.ring_id === editingId && event.source_arrangement_id
             );
-            let events = targetWheel.events;
+            const staleWheelIds = new Set(staleWheelEvents.map(item => item.id));
+            let events = wheelSyncAction === "delete"
+                ? targetWheel.events.filter(item => !staleWheelIds.has(item.id))
+                : targetWheel.events.map(item => staleWheelIds.has(item.id) ? detachWheelEvent(item) : item);
             if (staleMeetingEvents.length) {
                 events = planningSyncAction === "delete"
                     ? events.filter(event => !staleMeetingEvents.some(stale => stale.id === event.id))
@@ -2075,6 +2368,11 @@
         }
         if (!wheel || !canEdit()) return;
         if (modalMode === "event") {
+            if (wheel.events.find(item => item.id === editingId)?.source_wheel_id) {
+                byId("yearWheelFormMessage").textContent = "Händelsen ändras i källårshjulet.";
+                byId("yearWheelFormMessage").classList.remove("hidden");
+                return;
+            }
             const startDate = String(value.start_date || "");
             const endDate = String(value.end_date || "");
             if (!isDate(startDate) || !isDate(endDate) || endDate < startDate) {
@@ -2163,6 +2461,7 @@
             return;
         }
         if (modalMode === "event") {
+            if (!canEdit() || wheel.events.find(item => item.id === editingId)?.source_wheel_id) return;
             if (!window.confirm("Ta bort den här händelsen?")) return;
             const updated = normalizeWheel({ ...wheel, events: wheel.events.filter(item => item.id !== editingId) });
             wheels = wheels.map(item => item.id === wheel.id ? updated : item);
@@ -2356,8 +2655,8 @@
                     };
                     changed = true;
                 }
-                if (Number(candidate?.schema_version) < 4) {
-                    candidate = { ...candidate, schema_version: 4 };
+                if (Number(candidate?.schema_version) < 5) {
+                    candidate = { ...candidate, schema_version: 5 };
                     changed = true;
                 }
                 return { wheel: normalizeWheel(candidate), changed };
@@ -2375,10 +2674,9 @@
                 });
             }
             wheels = migrated.map(entry => entry.wheel);
-            render();
-            if (source === "load" && canWrite()) {
-                migrated.filter(entry => entry.changed).forEach(entry => window.GTScoutYearWheelSync?.saveWheel(entry.wheel));
-            }
+            if (source === "load") {
+                persistWheelSources(wheels, new Set(migrated.filter(entry => entry.changed).map(entry => entry.wheel.id)));
+            } else render();
         } });
         window.GTScoutPlanningSync?.init({
             ignoreShared: true,
