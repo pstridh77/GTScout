@@ -802,7 +802,8 @@
 
     function getChartEventDescription(event) {
         const source = getEventSourceLabel(event);
-        return `${event.title} · ${formatDate(event.start_date)}${event.end_date !== event.start_date ? `–${formatDate(event.end_date)}` : ""}${source ? ` · ${source}` : " · Egen händelse"}`;
+        const origin = source || (event.recurrence ? "Återkommande egen händelse" : "Egen händelse");
+        return `${event.title} · ${formatDate(event.start_date)}${event.end_date !== event.start_date ? `–${formatDate(event.end_date)}` : ""} · ${origin}`;
     }
 
     function renderWheelChart(wheel, shownRings, visibleEvents, periodRange) {

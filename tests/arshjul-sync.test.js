@@ -756,6 +756,23 @@ test("wheel chart omits the source legend when only own events are visible", asy
     assert.doesNotMatch(page.elements.get("yearWheelChart").innerHTML, /class="year-wheel-sync-legend"/);
 });
 
+test("wheel chart tooltip identifies recurring own events", async () => {
+    const original = wheel();
+    original.events = [{
+        id: "recurring-own", title: "Egen händelse", ring_id: "arrangements",
+        start_date: "2026-02-01", end_date: "2026-02-01",
+        recurrence: { type: "yearly_date", month: 2, day: 1 }
+    }];
+    const page = createPage({ wheels: [original] });
+    await settle();
+    const chart = page.elements.get("yearWheelChart");
+    const mark = chart.querySelectorAll("[data-event-edit]").find(item => item.dataset.eventEdit === "recurring-own@2026-02-01");
+    const info = chart.querySelector("[data-chart-event-info]");
+    assert.match(chart.innerHTML, /aria-label="Egen händelse · 1 feb\. · Återkommande egen händelse"/);
+    mark.handlers.mouseenter();
+    assert.match(info.textContent, /Återkommande egen händelse/);
+});
+
 test("wheel sources merge selected rings and children across years and converge without duplicates", () => {
     const helpers = createHelpers();
     const { source, target } = linkedWheels();
