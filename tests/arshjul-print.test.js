@@ -5,6 +5,7 @@ const test = require("node:test");
 const vm = require("node:vm");
 
 const context = vm.createContext({ window: {}, TextEncoder });
+vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "js", "arshjul-recurrence.js"), "utf8"), context);
 vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "js", "arshjul-print.js"), "utf8"), context);
 const { buildDocument, qrCodeSvg } = context.window.GTScoutYearWheelPrint;
 
@@ -24,6 +25,41 @@ const range = (start = "2026-01-01", next = "2027-01-01") => ({
 const options = (events = [], fields = {}) => ({
     wheel: { name: "Kårens årshjul", rings, events },
     rings, range: range(), mode: "wheel", ...fields
+});
+
+test("both print layouts expand series and apply moved and cancelled exceptions", () => {
+    const series = event("Städdag", "2026-01-01", "2026-01-01", {
+        recurrence: { type: "yearly_week", week: 46, weekday: 7 },
+        exceptions: { "2027-11-21": { start_date: "2027-11-13", end_date: "2027-11-13", location: "Annan plats" } }
+    });
+    for (const mode of ["wheel", "list"]) {
+        const html = buildDocument(options([series], { range: range("2027-01-01", "2028-01-01"), mode }));
+        assert.match(html, /Städdag/);
+        assert.match(html, /13 nov/);
+        assert.doesNotMatch(html, /21 nov/);
+        assert.match(html, /1 händelse/);
+        const cancelled = { ...series, exceptions: { "2027-11-21": { cancelled: true } } };
+        const empty = buildDocument(options([cancelled], { range: range("2027-01-01", "2028-01-01"), mode }));
+        assert.match(empty, /0 händelser/);
+        assert.doesNotMatch(empty, /Städdag/);
+    }
+});
+
+test("print includes moved-in exceptions and weekly occurrences over an operational year", () => {
+    const events = [
+        event("Inflyttad", "2026-01-01", "2026-01-01", {
+            recurrence: { type: "yearly_date", month: 11, day: 15 },
+            exceptions: { "2027-11-15": { start_date: "2027-07-31", end_date: "2027-08-02" } }
+        }),
+        event("Tisdag", "2026-08-01", "2026-08-01", {
+            recurrence: { type: "weekly", weekday: 2, until: "2026-08-11" }
+        })
+    ];
+    const html = buildDocument(options(events, { range: range("2026-08-01", "2027-08-01"), mode: "list" }));
+    assert.match(html, /4 händelser/);
+    assert.equal((html.match(/<h3>Tisdag<\/h3>/g) || []).length, 2);
+    assert.equal((html.match(/<h3>Inflyttad<\/h3>/g) || []).length, 2);
+    assert.match(html, /31 juli 2027 – 2 aug\. 2027/);
 });
 
 test("wheel fits an A3 landscape sheet and includes twelve months and an activity summary", () => {

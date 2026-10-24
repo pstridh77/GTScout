@@ -12,7 +12,7 @@
         return `${yyyy}-${mm}-${dd}`;
     }
 
-    function updateVersionDisplay() {
+    function updateVersionDisplay() {0
         const buildDate = getFormattedLastModified();
 
         // Uppdatera byggdatum i sidfot

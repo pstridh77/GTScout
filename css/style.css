@@ -6515,6 +6515,15 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
 .year-wheel-event-card-info { display: grid; gap: 2px; color: #64748b; font-size: .72rem; overflow-wrap: anywhere; }
 .year-wheel-event-card--needs-review { border-color: #e7b94b; border-left-color: var(--event-ring-color); background: #fff8df; }
 .year-wheel-review-badge { display: inline-block; margin-left: 5px; padding: 2px 6px; border-radius: 10px; background: #f5dfa0; color: #704d00; font-size: .68rem; font-weight: 700; vertical-align: middle; }
+.year-wheel-recurrence-choice { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.year-wheel-edit-scope-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.year-wheel-recurrence-choice input { width: auto; }
+.year-wheel-recurrence-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; font-size: .85rem; }
+.year-wheel-recurrence-preview { margin: 14px 0 10px; font-size: .9rem; font-weight: 600; line-height: 1.5; }
+.year-wheel-dialog-help { margin-top: 12px; padding: 10px 12px; border-left: 3px solid #c9d9e5; border-radius: 4px; background: #f5f8fa; color: #536477; font-size: .8rem; line-height: 1.5; }
+.year-wheel-dialog-help > strong { display: block; margin-bottom: 4px; font-size: inherit; }
+.year-wheel-dialog-help > p { margin: 0; color: inherit; font-size: inherit; line-height: inherit; }
+.year-wheel-dialog-help > p + p { margin-top: 8px; }
 .year-wheel-event-actions { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .year-wheel-event-actions button { display: inline-flex; align-items: center; justify-content: center; min-height: 30px; padding: 5px 7px; }
 .year-wheel-event-actions [data-copy-event] { width: 30px; border-color: #c9d9e5; color: #176b72; }
@@ -6606,7 +6615,6 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
 .year-wheel-form .modal-field[hidden] { display: none; }
 .year-wheel-form .modal-field input, .year-wheel-form .modal-field select, .year-wheel-form .modal-field textarea { width: 100%; min-width: 0; box-sizing: border-box; padding: 9px; border: 1px solid #c8d5e1; border-radius: 5px; background: #fff; color: #003660; font: inherit; }
 .year-wheel-form .modal-field input[readonly], .year-wheel-form .modal-field textarea[readonly] { background: #f1f5f9; color: #536477; cursor: not-allowed; }
-.year-wheel-linked-arrangement-note { margin: 0; padding: 9px 11px; border-left: 3px solid #398a86; background: #eef7f7; color: #34495e; font-size: .82rem; }
 .year-wheel-form .modal-field input[type="color"] { height: 42px; padding: 4px; }
 .year-wheel-color-choice-row { display: flex; align-items: center; gap: 10px; }
 .year-wheel-form .year-wheel-color-choice-row select { flex: 1 1 auto; width: 100%; }
@@ -6615,9 +6623,10 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
 .year-wheel-color-picker input:disabled { cursor: default; }
 .year-wheel-color-preview { display: block; width: 26px; height: 26px; flex: 0 0 26px; box-sizing: border-box; border: 2px solid #fff; border-radius: 5px; box-shadow: 0 0 0 1px #c8d5e1; pointer-events: none; }
 .year-wheel-color-picker input:focus-visible + .year-wheel-color-preview { outline: 2px solid #2477d4; outline-offset: 2px; }
-.year-wheel-form .modal-actions { gap: 10px; margin-top: 4px; }
+.year-wheel-form .modal-actions { flex-wrap: wrap; gap: 10px; margin-top: 4px; }
 .year-wheel-delete-button { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; margin-right: auto; padding: 0; }
 .year-wheel-delete-button svg { width: 20px; height: 20px; }
+.year-wheel-delete-button--text { flex: 0 0 auto; width: auto; max-width: 100%; height: auto; min-height: 42px; padding: 10px 14px; white-space: normal; overflow-wrap: anywhere; }
 .year-wheel-modal-content { max-height: 90vh; max-height: 90dvh; overflow-y: auto; }
 .year-wheel-modal-content > h2 { padding-right: 30px; }
 .year-wheel-modal-content--bulk-copy { box-sizing: border-box; height: 90vh; height: 90dvh; overflow: hidden; }

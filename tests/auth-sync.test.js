@@ -380,7 +380,8 @@ test("year-wheel root rings can summarize child rings or show them separately", 
         const source = fs.readFileSync(path.join(__dirname, "..", "js", "arshjul.js"), "utf8");
         const start = source.indexOf("function syncArrangementEvents(");
         const end = source.indexOf("function getDisplayedRings(", start);
-        const context = vm.createContext({ crypto: globalThis.crypto });
+        const context = vm.createContext({ crypto: globalThis.crypto, window: {} });
+        vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "js", "arshjul-recurrence.js"), "utf8"), context);
         vm.runInContext(source.slice(source.indexOf("    const VIEW_STORAGE_KEY"), source.indexOf("    function readViewPreferences(")), context);
         vm.runInContext(source.slice(start, end), context);
         const wheel = {

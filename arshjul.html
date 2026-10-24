@@ -187,6 +187,34 @@
         </div>
     </div>
 
+    <div id="yearWheelEditScopeModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="yearWheelEditScopeTitle">
+        <div class="modal-content year-wheel-modal-content">
+            <button id="closeYearWheelEditScopeModal" class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2 id="yearWheelEditScopeTitle">Vad vill du redigera?</h2>
+            <p id="yearWheelEditScopeDescription"></p>
+            <div class="year-wheel-edit-scope-actions">
+                <button id="yearWheelEditOccurrenceBtn" class="btn-primary" type="button">Bara detta tillfälle</button>
+                <button id="yearWheelEditSeriesBtn" class="btn-secondary" type="button">Hela serien</button>
+                <button id="cancelYearWheelEditScopeBtn" class="btn-secondary" type="button">Avbryt</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="yearWheelRecurrenceModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="yearWheelRecurrenceTitle">
+        <div class="modal-content year-wheel-modal-content">
+            <button id="closeYearWheelRecurrenceModal" class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2 id="yearWheelRecurrenceTitle">Återkommande händelse</h2>
+            <form id="yearWheelRecurrenceForm" class="year-wheel-form">
+                <div id="yearWheelRecurrenceFields"></div>
+                <div id="yearWheelRecurrenceMessage" class="auth-message hidden" role="alert"></div>
+                <div class="modal-actions">
+                    <button id="cancelYearWheelRecurrenceBtn" class="btn-secondary" type="button">Avbryt</button>
+                    <button class="btn-primary" type="submit">Använd regel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="yearWheelArrangementSyncModal" class="modal hidden year-wheel-arrangement-sync-modal" role="dialog" aria-modal="true" aria-labelledby="yearWheelArrangementSyncTitle">
         <div class="modal-content year-wheel-arrangement-sync-modal-content">
             <h2 id="yearWheelArrangementSyncTitle">Hantera synkade händelser</h2>
@@ -203,7 +231,7 @@
         <div class="modal-content year-wheel-share-modal-content">
             <button id="closeYearWheelShareModal" class="close-popup" type="button" aria-label="Stäng">&times;</button>
             <h2 id="yearWheelShareTitle">Dela årshjul</h2>
-            <p>Alla som har länken kan visa årshjulet utan att logga in.</p>
+            <p class="year-wheel-dialog-help">Alla som har länken kan visa årshjulet utan att logga in.</p>
             <label class="modal-field"><span>Länk</span><input id="yearWheelShareUrl" class="share-planning-url" type="text" readonly aria-label="Länk till årshjulet"></label>
             <p id="yearWheelShareStatus" class="detail-planning-status" role="status" aria-live="polite"></p>
             <div class="modal-actions">
@@ -230,6 +258,7 @@
     <script src="js/planering-sync.js"></script>
     <script src="js/arshjul-sync.js"></script>
     <script src="js/version.js"></script>
+    <script src="js/arshjul-recurrence.js"></script>
     <script src="js/arshjul-print.js"></script>
     <script src="js/arshjul.js"></script>
     <script src="js/header-controls.js"></script>
