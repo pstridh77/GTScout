@@ -1932,7 +1932,7 @@
                     `<option value="${index + 1}" ${index + 1 === (rule?.ordinal || 1) ? "selected" : ""}>${label}</option>`).join("")}</select></label>
                 <label class="modal-field" data-recurrence-field="weekday"><span>Veckodag</span><select name="recurrence_weekday">${weekdays.map((label, index) =>
                     `<option value="${index + 1}" ${index + 1 === weekday ? "selected" : ""}>${label}</option>`).join("")}</select></label>
-                <label class="modal-field" data-recurrence-field="week"><span>ISO-vecka</span><input name="recurrence_week" type="number" min="1" max="53" required value="${rule?.week || week}"></label>
+                <label class="modal-field" data-recurrence-field="week"><span>Vecka</span><input name="recurrence_week" type="number" min="1" max="53" required value="${rule?.week || week}"></label>
                 <label class="modal-field" data-recurrence-field="until"><span>Sista tillfällets datum (valfritt)</span><input name="recurrence_until" type="date" value="${escapeHtml(rule?.until || "")}"></label>
             </div>
             <p data-recurrence-summary></p>
