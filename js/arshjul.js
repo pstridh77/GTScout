@@ -2001,7 +2001,7 @@
             return;
         }
         const fields = byId("yearWheelRecurrenceFields");
-        fields.innerHTML = recurrenceForm(recurrenceDraft || { type: "weekly" }, startInput.value);
+        fields.innerHTML = recurrenceForm(recurrenceDraft || { type: "yearly_weekday" }, startInput.value);
         byId("yearWheelRecurrenceMessage").classList.add("hidden");
         bindRecurrenceForm(startInput.value);
         byId("yearWheelModal").classList.add("hidden");
