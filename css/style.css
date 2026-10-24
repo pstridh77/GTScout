@@ -6578,6 +6578,9 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
 .year-wheel-arrangement-sync { display: flex; align-items: flex-start; gap: 9px; color: #34495e; font-size: .9rem; }
 .year-wheel-arrangement-sync input { flex: 0 0 auto; margin: 3px 0 0; accent-color: #176b72; }
 .year-wheel-source-list { display: grid; gap: 4px; margin: 8px 0; }
+.year-wheel-source-options { min-width: 0; margin: 0; padding: 0; border: 0; }
+.year-wheel-source-options--blocked { opacity: .55; }
+.year-wheel-source-options--blocked label { cursor: not-allowed; }
 .year-wheel-source-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 12px; padding: 6px 0; }
 .year-wheel-source-row > label span { min-width: 0; overflow-wrap: anywhere; }
 .year-wheel-source-row--child { margin-left: 8px; padding-left: 20px; border-left: 2px solid #d3dadd; }

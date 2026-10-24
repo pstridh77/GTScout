@@ -431,6 +431,31 @@ test("source selection only offers individual child controls for root rings", ()
     assert.match(helpers.renderWheelSourceSelection("board", [], []), /Inga ringar valda/);
 });
 
+test("source lists disable all ring choices for direct and indirect circular wheel links", () => {
+    const helpers = createHelpers();
+    const { source, target } = linkedWheels();
+    const script = readScript("arshjul.js");
+    vm.runInContext(script.slice(script.indexOf("    function renderWheelSourceSelection("),
+        script.indexOf("    function openRingForm(")), helpers);
+    const bridge = {
+        ...wheel("bridge"),
+        rings: [{ id: "bridge-ring", name: "Samlat", sync_from_wheel: { wheel_id: "troop", ring_ids: ["board-summary"] } }]
+    };
+    helpers.inputWheels = [source, target, bridge];
+    vm.runInContext("wheels = inputWheels", helpers);
+    for (const sourceId of ["troop", "bridge", "board"]) {
+        const markup = helpers.renderWheelSourceSelection(sourceId, [], [], "Ordförande", "board");
+        assert.match(markup, /year-wheel-source-options--blocked/);
+        assert.match(markup, /<fieldset[^>]* disabled/);
+        assert.match(markup, /hämtar händelser från varandra/);
+        assert.doesNotMatch(markup, /<strong>Hämtas:/);
+    }
+    const allowed = helpers.renderWheelSourceSelection("board", [], [], "Styrelse", "troop");
+    assert.doesNotMatch(allowed, /year-wheel-source-options--blocked/);
+    assert.doesNotMatch(allowed, /<fieldset[^>]* disabled/);
+    assert.match(allowed, /<strong>Hämtas:/);
+});
+
 test("wheel settings discreetly label sync sources on roots, children and empty rings", async () => {
     const { source, target } = linkedWheels();
     target.rings.push(
@@ -495,8 +520,8 @@ test("wheel source chains resolve in dependency order and cyclic or cross-troop 
     assert.equal(result[0].events.length, 3);
     assert.equal(helpers.syncWheelSources(result)[0], result[0]);
     const settings = { wheel_id: "overview", ring_ids: ["all"] };
-    assert.match(helpers.getWheelSourceError(result[2], settings, result), /cirkulär/);
-    assert.match(helpers.getWheelSourceError(result[1], { wheel_id: "troop", ring_ids: ["board-summary"] }, result), /cirkulär/);
+    assert.match(helpers.getWheelSourceError(result[2], settings, result), /hämta händelser från varandra/);
+    assert.match(helpers.getWheelSourceError(result[1], { wheel_id: "troop", ring_ids: ["board-summary"] }, result), /hämta händelser från varandra/);
     const foreign = { ...result[2], local_kar_id: "kar-2" };
     assert.match(helpers.getWheelSourceError(result[1], result[1].rings[0].sync_from_wheel, [foreign]), /samma kår/);
     const cyclic = result.map(item => item.id === "board"
@@ -617,12 +642,19 @@ test("missing source warnings are visible and cyclic settings cannot be saved", 
     const form = page.elements.get("yearWheelForm");
     form.values = { name: "board", start_month: "8" };
     clickRingAction(page, "edit", "chair");
+    const fields = page.elements.get("yearWheelFormFields");
+    assert.match(fields.innerHTML, /<option value="troop"[^>]* disabled>troop – hämtar redan från det här årshjulet<\/option>/);
+    const selector = fields.querySelector('[name="source_wheel_id"]');
+    selector.value = "troop";
+    selector.handlers.change();
+    assert.match(fields.querySelector("[data-wheel-sync-rings]").innerHTML,
+        /<fieldset[^>]*year-wheel-source-options--blocked[^>]* disabled/);
     form.values = {
         name: "Ordförande", color: "#123456", sync_from_wheel_enabled: "on",
         source_wheel_id: "troop", source_ring_ids: ["board-summary"]
     };
     await form.handlers.submit({ preventDefault() {}, currentTarget: form });
-    assert.match(page.elements.get("yearWheelFormMessage").textContent, /cirkulär/);
+    assert.match(page.elements.get("yearWheelFormMessage").textContent, /hämta händelser från varandra/);
     assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Redigera ring");
 });
 

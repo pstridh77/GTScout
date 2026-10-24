@@ -194,7 +194,7 @@
         if (!settings) return "";
         const source = allWheels.find(item => item.id === settings.wheel_id);
         if (!source || source.local_kar_id !== wheel.local_kar_id) return "Källårshjulet saknas eller är inte tillgängligt i samma kår.";
-        if (wheelDependsOn(source.id, wheel.id, allWheels)) return "Kopplingen skulle skapa en cirkulär synkning mellan årshjul.";
+        if (wheelDependsOn(source.id, wheel.id, allWheels)) return "De här årshjulen skulle hämta händelser från varandra. Välj ett annat källårshjul eller ta bort den andra synkningen först.";
         if (!settings.ring_ids.length) return "Välj minst en källring.";
         if (settings.ring_ids.some(ringId => !source.rings.some(ring => ring.id === ringId))) return "En vald källring saknas. Välj nya ringar eller koppla loss synkningen.";
         return "";
@@ -1616,12 +1616,15 @@
         return events.filter(event => event.ring_id === ringId).length;
     }
 
-    function renderWheelSourceSelection(sourceId, selectedIds, includeChildrenIds = [], targetName = "") {
+    function renderWheelSourceSelection(sourceId, selectedIds, includeChildrenIds = [], targetName = "", targetWheelId = "") {
         const source = wheels.find(wheel => wheel.id === sourceId);
         if (!source) return `<p class="detail-note">Välj ett årshjul för att se dess ringar.</p>`;
+        const circular = Boolean(targetWheelId && wheelDependsOn(source.id, targetWheelId, wheels));
         const orderedRings = source.rings.filter(ring => !ring.parent_id).flatMap(root =>
             [root, ...source.rings.filter(ring => ring.parent_id === root.id)]);
-        return `<div class="year-wheel-source-list">${orderedRings.map(ring => {
+        return `${circular ? `<p class="detail-note" role="status">De här årshjulen hämtar händelser från varandra, direkt eller via andra årshjul. Välj ett annat källårshjul eller ta bort den andra synkningen först.</p>` : ""}
+            <fieldset class="year-wheel-source-options${circular ? " year-wheel-source-options--blocked" : ""}" aria-label="Källringar"${circular ? ' disabled title="Kan inte väljas – hämtar redan från det här årshjulet"' : ""}>
+            <div class="year-wheel-source-list">${orderedRings.map(ring => {
             const selected = selectedIds.includes(ring.id);
             const parent = source.rings.find(item => item.id === ring.parent_id);
             const inherited = parent && selectedIds.includes(parent.id) && includeChildrenIds.includes(parent.id);
@@ -1630,7 +1633,8 @@
                 ${inherited ? `${selected ? `<input type="hidden" name="source_ring_ids" value="${escapeHtml(ring.id)}">` : ""}<span class="year-wheel-source-inherited">Ingår via ${escapeHtml(parent.name)}</span>` : ""}
                 ${!ring.parent_id ? `<div data-source-children="${escapeHtml(ring.id)}"${selected ? "" : " hidden"}><label class="year-wheel-arrangement-sync year-wheel-source-children"><input type="checkbox" name="source_child_ring_ids" value="${escapeHtml(ring.id)}" aria-label="Ta med underringar till ${escapeHtml(ring.name)}" title="Alla nuvarande och framtida underringar tas med. Avmarkera för att välja underringar separat." ${selected && includeChildrenIds.includes(ring.id) ? "checked" : ""} ${selected ? "" : "disabled"}><span>Ta med underringar</span></label></div>` : ""}
             </div>`;
-        }).join("")}</div>
+        }).join("")}</div></fieldset>
+            ${circular ? "" : `
             <p class="detail-note">Alla nuvarande och framtida underringar tas med när alternativet är valt. Avmarkera för att välja underringar separat.</p>
             <p class="detail-note" data-wheel-source-summary aria-live="polite">${(() => {
                 const included = getWheelSourceRings(source, { ring_ids: selectedIds, include_children_ring_ids: includeChildrenIds });
@@ -1639,7 +1643,7 @@
                     return parent ? `${parent.name} · ${ring.name}` : ring.name;
                 });
                 return `<strong>Hämtas:</strong> ${names.length ? escapeHtml(names.join(", ")) : "Inga ringar valda"}. Händelserna samlas i ${targetName ? `målringen ${escapeHtml(targetName)}` : "målringen"}. Inga underringar skapas där.`;
-            })()}</p>`;
+            })()}</p>`}`;
     }
 
     function openRingForm(ringId = "", parentId = "") {
@@ -1673,9 +1677,13 @@
                 <label class="modal-field"><span>Årshjul</span><select name="source_wheel_id">
                     <option value="">Välj årshjul</option>
                     ${wheelSource && !sourceWheels.some(item => item.id === wheelSource.wheel_id) ? `<option value="${escapeHtml(wheelSource.wheel_id)}" selected>Källårshjulet saknas</option>` : ""}
-                    ${sourceWheels.map(item => `<option value="${escapeHtml(item.id)}" ${wheelSource?.wheel_id === item.id ? "selected" : ""}>${escapeHtml(item.name)}</option>`).join("")}
+                    ${sourceWheels.map(item => {
+                        const circular = wheelDependsOn(item.id, wheel.id, wheels);
+                        return `<option value="${escapeHtml(item.id)}" ${wheelSource?.wheel_id === item.id ? "selected" : ""} ${circular ? "disabled" : ""}>${escapeHtml(item.name)}${circular ? " – hämtar redan från det här årshjulet" : ""}</option>`;
+                    }).join("")}
                 </select></label>
-                <div data-wheel-sync-rings>${renderWheelSourceSelection(wheelSource?.wheel_id, wheelSource?.ring_ids || [], wheelSource?.include_children_ring_ids || [], ring?.name || "")}</div>
+                <p class="detail-note">Du kan inte hämta från ett årshjul som redan hämtar händelser från det du redigerar, direkt eller via andra årshjul. Händelserna skulle då skickas runt mellan hjulen.</p>
+                <div data-wheel-sync-rings>${renderWheelSourceSelection(wheelSource?.wheel_id, wheelSource?.ring_ids || [], wheelSource?.include_children_ring_ids || [], ring?.name || "", wheel.id || "")}</div>
                 <p class="detail-note">Valda ringars händelser samlas i den här ringen. Ändra händelserna i källårshjulet. Nya ringar väljs inte automatiskt. Hämtat innehåll blir även synligt via det här hjulets delningslänk.</p>
             </div>
             <input type="hidden" name="wheel_sync_action" value="">
@@ -1726,7 +1734,7 @@
         const sourceList = byId("yearWheelFormFields").querySelector("[data-wheel-sync-rings]");
         const updateSourceList = () => {
             sourceList.innerHTML = renderWheelSourceSelection(sourceWheelInput.value,
-                [...selectedSourceIds], [...includedChildIds], nameInput.value);
+                [...selectedSourceIds], [...includedChildIds], nameInput.value, wheel.id || "");
         };
         wheelSyncInput.addEventListener("change", () => {
             byId("yearWheelFormFields").querySelector("[data-wheel-sync-settings]").hidden = !wheelSyncInput.checked;
