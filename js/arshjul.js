@@ -506,7 +506,7 @@
 
     function renderPlanningSyncSelection(department, excludedIds) {
         const plans = planningGroups.filter(group => group.level === department && group.id);
-        if (!plans.length) return `<p class="detail-note">Inga planeringar för avdelningen har hämtats ännu. Nya planeringar inkluderas automatiskt.</p>`;
+        if (!plans.length) return `<p class="year-wheel-dialog-help">Inga planeringar för avdelningen har hämtats ännu. Nya planeringar inkluderas automatiskt.</p>`;
         return `<div class="year-wheel-planning-sync-plans">
             ${plans.map(group => {
                 const idValue = String(group.id || "");
@@ -1238,7 +1238,7 @@
                 <summary class="year-wheel-copy-month-summary"><span class="year-wheel-copy-chevron" aria-hidden="true"></span><input type="checkbox" data-copy-month="${escapeHtml(month)}" aria-label="Markera alla händelser i ${escapeHtml(title)}"><strong>${escapeHtml(title)}</strong><span class="year-wheel-copy-month-count">${monthEvents.length} ${monthEvents.length === 1 ? "händelse" : "händelser"}</span></summary>
                 <div class="year-wheel-copy-month-events">${monthEvents.map(event => `<label class="year-wheel-copy-option"><input type="checkbox" name="copy_event_ids" value="${escapeHtml(event.id)}" data-copy-month-event="${escapeHtml(month)}"><span>${escapeHtml(event.title)}</span><small>${escapeHtml(formatDate(event.start_date, { day: "numeric", month: "long" }))}${event.end_date !== event.start_date ? ` – ${escapeHtml(formatDate(event.end_date, { day: "numeric", month: "long" }))}` : ""}</small></label>`).join("")}</div>
             </details>`;
-        }).join("") : `<p class="year-wheel-empty">Inga händelser att kopiera för den valda perioden. Händelser som redan har en kopia hoppas över.</p>`;
+        }).join("") : `<p class="year-wheel-dialog-help">Inga händelser att kopiera för den valda perioden. Händelser som redan har en kopia hoppas över.</p>`;
         const range = period();
         const startYear = range.start.getUTCFullYear();
         const endYear = range.end.getUTCFullYear();
@@ -1498,13 +1498,15 @@
     function openPrintForm() {
         if (!currentWheel()) return;
         openModal("Skriv ut årshjul", `
-            <p>Välj utskriftslayout för den aktuella perioden.</p>
+            <p class="year-wheel-dialog-help">Välj utskriftslayout för den aktuella perioden.</p>
             <label class="modal-field"><span>Utskrift</span><select name="print_layout">
                 <option value="wheel">Årshjul – A3 liggande</option>
                 <option value="list">Alla händelser – A4 stående</option>
             </select></label>
-            <p>A3-utskriften får en QR-kod nere till vänster om årshjulet har en publik delningslänk. Hjulet följer dina ringfilter och hur ringarna har grupperats. Listan innehåller alla händelser i perioden, även i dolda ringar.</p>
-            <p>Du får en förhandsvisning innan webbläsarens utskriftsdialog öppnas. Välj det föreslagna pappersformatet och stäng gärna av webbläsarens sidhuvud och sidfot.</p>
+            <aside class="year-wheel-dialog-help" aria-label="Hjälp om utskrift">
+                <p>A3-utskriften får en QR-kod nere till vänster om årshjulet har en publik delningslänk. Hjulet följer dina ringfilter och hur ringarna har grupperats. Listan innehåller alla händelser i perioden, även i dolda ringar.</p>
+                <p>Du får en förhandsvisning innan webbläsarens utskriftsdialog öppnas. Välj det föreslagna pappersformatet och stäng gärna av webbläsarens sidhuvud och sidfot.</p>
+            </aside>
         `, "print");
         byId("yearWheelForm").querySelector('[type="submit"]').textContent = "Förhandsvisa";
     }
@@ -1514,7 +1516,7 @@
         const defaultWheelId = window.GTScoutYearWheelSync.getDefaultWheelId?.();
         const savedWheels = wheels.filter(wheel => !wheel.local_only);
         openModal("Välj standardårshjul", `
-            <p>Det valda hjulet öppnas automatiskt för alla i kåren.</p>
+            <p class="year-wheel-dialog-help">Det valda hjulet öppnas automatiskt för alla i kåren.</p>
             <label class="modal-field"><span>Standardårshjul</span><select name="default_wheel_id">
                 <option value="" ${!defaultWheelId ? "selected" : ""}>Första årshjulet alfabetiskt</option>
                 ${savedWheels.map(wheel => `<option value="${escapeHtml(wheel.id)}" ${wheel.id === defaultWheelId ? "selected" : ""}>${escapeHtml(wheel.name)}</option>`).join("")}
@@ -1631,7 +1633,7 @@
         const rootsMarkup = roots.map(renderRoot).join("");
         return `<fieldset class="year-wheel-ring-selection">
             <legend>Ringar i årshjulet</legend>
-            <p>Den första ringen visas ytterst. Ändra ringens placering för att göra den till en underring.</p>
+            <p class="year-wheel-dialog-help">Den första ringen visas ytterst. Ändra ringens placering för att göra den till en underring.</p>
             <div class="year-wheel-ring-options">${rootsMarkup || `<p class="year-wheel-empty">Inga ringar har lagts till ännu.</p>`}</div>
         </fieldset>`;
     }
@@ -1639,7 +1641,7 @@
     function renderRingSelection(rings, events) {
         return `${ringOptionsMarkup(rings, events)}
             <button class="btn-secondary" type="button" data-config-ring-action="add">+ Lägg till ring</button>
-            <p>Ändringarna sparas när du sparar årshjulet.</p>`;
+            <p class="year-wheel-dialog-help">Ändringarna sparas när du sparar årshjulet.</p>`;
     }
 
     function createDefaultRing(name) {
@@ -1666,7 +1668,7 @@
 
     function renderWheelSourceSelection(sourceId, selectedIds, includeChildrenIds = [], targetName = "", targetWheelId = "") {
         const source = wheels.find(wheel => wheel.id === sourceId);
-        if (!source) return `<p class="detail-note">Välj ett årshjul för att se dess ringar.</p>`;
+        if (!source) return `<p class="year-wheel-dialog-help">Välj ett årshjul för att se dess ringar.</p>`;
         const circular = Boolean(targetWheelId && wheelDependsOn(source.id, targetWheelId, wheels));
         const orderedRings = source.rings.filter(ring => !ring.parent_id).flatMap(root =>
             [root, ...source.rings.filter(ring => ring.parent_id === root.id)]);
@@ -1683,8 +1685,8 @@
             </div>`;
         }).join("")}</div></fieldset>
             ${circular ? "" : `
-            <p class="detail-note">Alla nuvarande och framtida underringar tas med när alternativet är valt. Avmarkera för att välja underringar separat.</p>
-            <p class="detail-note" data-wheel-source-summary aria-live="polite">${(() => {
+            <p class="year-wheel-dialog-help">Alla nuvarande och framtida underringar tas med när alternativet är valt. Avmarkera för att välja underringar separat.</p>
+            <p class="year-wheel-dialog-help" data-wheel-source-summary aria-live="polite">${(() => {
                 const included = getWheelSourceRings(source, { ring_ids: selectedIds, include_children_ring_ids: includeChildrenIds });
                 const names = orderedRings.filter(ring => included.has(ring.id)).map(ring => {
                     const parent = source.rings.find(item => item.id === ring.parent_id);
@@ -1730,9 +1732,9 @@
                         return `<option value="${escapeHtml(item.id)}" ${wheelSource?.wheel_id === item.id ? "selected" : ""} ${circular ? "disabled" : ""}>${escapeHtml(item.name)}${circular ? " – hämtar redan från det här årshjulet" : ""}</option>`;
                     }).join("")}
                 </select></label>
-                <p class="detail-note">Du kan inte hämta från ett årshjul som redan hämtar händelser från det du redigerar, direkt eller via andra årshjul. Händelserna skulle då skickas runt mellan hjulen.</p>
+                <p class="year-wheel-dialog-help">Du kan inte hämta från ett årshjul som redan hämtar händelser från det du redigerar, direkt eller via andra årshjul. Händelserna skulle då skickas runt mellan hjulen.</p>
                 <div data-wheel-sync-rings>${renderWheelSourceSelection(wheelSource?.wheel_id, wheelSource?.ring_ids || [], wheelSource?.include_children_ring_ids || [], ring?.name || "", wheel.id || "")}</div>
-                <p class="detail-note">Valda ringars händelser samlas i den här ringen. Ändra händelserna i källårshjulet. Nya ringar väljs inte automatiskt. Hämtat innehåll blir även synligt via det här hjulets delningslänk.</p>
+                <p class="year-wheel-dialog-help">Valda ringars händelser samlas i den här ringen. Ändra händelserna i källårshjulet. Nya ringar väljs inte automatiskt. Hämtat innehåll blir även synligt via det här hjulets delningslänk.</p>
             </div>
             <input type="hidden" name="wheel_sync_action" value="">
             <div data-meeting-sync-settings${planningEnabled ? "" : " hidden"}>
@@ -1741,8 +1743,8 @@
                     ${PLANNING_DEPARTMENTS.map(department => `<option value="${escapeHtml(department)}" ${initialDepartment === department ? "selected" : ""}>${escapeHtml(department)}</option>`).join("")}
                 </select></label>
                 <input type="hidden" name="sync_excluded_planning_ids" value="${escapeHtml(JSON.stringify([...excludedPlanningIds]))}">
-                <div data-meeting-sync-plans>${initialDepartment ? renderPlanningSyncSelection(initialDepartment, excludedPlanningIds) : `<p class="detail-note">Välj en avdelning för att se dess planeringar.</p>`}</div>
-                <p class="detail-note">Planeringar inkluderas automatiskt. Avmarkera de planeringar som inte ska synkas.</p>
+                <div data-meeting-sync-plans>${initialDepartment ? renderPlanningSyncSelection(initialDepartment, excludedPlanningIds) : `<p class="year-wheel-dialog-help">Välj en avdelning för att se dess planeringar.</p>`}</div>
+                <p class="year-wheel-dialog-help">Planeringar inkluderas automatiskt. Avmarkera de planeringar som inte ska synkas.</p>
             </div>
             ${linkedEvents.length ? `<input type="hidden" name="arrangement_sync_action" value="">` : ""}
             ${ring && wheel.events.some(event => event.ring_id === ring.id && event.source_planning_id)
@@ -1818,7 +1820,7 @@
             const excluded = new Set(JSON.parse(excludedPlanningInput.value || "[]"));
             planningSyncPlans.innerHTML = syncDepartmentInput.value
                 ? renderPlanningSyncSelection(syncDepartmentInput.value, excluded)
-                : `<p class="detail-note">Välj en avdelning för att se dess planeringar.</p>`;
+                : `<p class="year-wheel-dialog-help">Välj en avdelning för att se dess planeringar.</p>`;
         });
         planningSyncPlans.addEventListener("change", event => {
             const checkbox = event.target.closest?.('input[name="included_planning_ids"]');
@@ -2078,16 +2080,16 @@
         const linkedSource = linkedArrangement || Boolean(event?.source_planning_id || event?.source_wheel_id);
         recurrenceDraft = event?.recurrence || null;
         openModal(readOnly ? "Visa händelse" : event ? "Redigera händelse" : "Lägg till händelse", `
-            ${series?.recurrence ? `<p>${escapeHtml(recurrence().describe(series.recurrence))}. Gäller från ${escapeHtml(series.start_date)}.</p>
+            ${series?.recurrence ? `<p class="year-wheel-recurrence-preview">${escapeHtml(recurrence().describe(series.recurrence))}. Gäller från ${escapeHtml(series.start_date)}.</p>
                 ${!readOnly && occurrenceDate ? `<label class="modal-field"><span>Redigera</span><select name="recurrence_scope">
                     <option value="occurrence" ${singleOccurrence ? "selected" : ""}>Bara detta tillfälle</option>
                     <option value="series" ${!singleOccurrence ? "selected" : ""}>Hela serien</option>
-                </select></label><p>Välj omfattning innan du ändrar fälten. Byte av omfattning laddar om formuläret.</p>` : ""}
+                </select></label><p class="year-wheel-dialog-help">Välj omfattning innan du ändrar fälten. Byte av omfattning laddar om formuläret.</p>` : ""}
                 ${singleOccurrence ? `<p>Ursprungligt tillfälle: ${escapeHtml(occurrenceDate)}.${event.cancelled ? " Tillfället är inställt." : event.is_exception ? " Tillfället har ett undantag." : ""}</p>
                     ${event.is_exception && !readOnly ? `<button type="button" class="btn-secondary" data-restore-occurrence="${escapeHtml(occurrenceDate)}">Återställ till seriens mönster</button>` : ""}` : ""}
             ` : ""}
-            ${event?.source_wheel_id ? `<p class="year-wheel-linked-arrangement-note">Hämtad från ${escapeHtml(event.source_wheel_name)} → ${escapeHtml(event.source_wheel_ring_name)}. Händelsen ändras i källårshjulet.${!isSharedWheelView() ? ` <a href="arshjul.html?wheel=${encodeURIComponent(event.source_wheel_id)}">Öppna i källårshjulet</a>` : ""}</p>` : ""}
-            ${linkedArrangement ? `<p id="yearWheelLinkedArrangementNote" class="year-wheel-linked-arrangement-note">${escapeHtml(linkedArrangementNote)}</p>` : ""}
+            ${event?.source_wheel_id ? `<p class="year-wheel-dialog-help">Hämtad från ${escapeHtml(event.source_wheel_name)} → ${escapeHtml(event.source_wheel_ring_name)}. Händelsen ändras i källårshjulet.${!isSharedWheelView() ? ` <a href="arshjul.html?wheel=${encodeURIComponent(event.source_wheel_id)}">Öppna i källårshjulet</a>` : ""}</p>` : ""}
+            ${linkedArrangement ? `<p id="yearWheelLinkedArrangementNote" class="year-wheel-dialog-help">${escapeHtml(linkedArrangementNote)}</p>` : ""}
             <label class="modal-field"><span>Rubrik</span><input name="title" required maxlength="120" value="${escapeHtml(event?.title || "")}" placeholder="Till exempel Kårstämma" ${linkedArrangementAttributes}></label>
             <div class="year-wheel-ring-color-grid">
                 <label class="modal-field"><span>Ring</span><select ${linkedArrangement ? "" : 'name="ring_id"'} required ${linkedArrangementRingAttributes}>${wheel.rings.map(ring => {
@@ -2251,7 +2253,7 @@
                 const excluded = new Set(JSON.parse(byId("yearWheelFormFields").querySelector('[name="sync_excluded_planning_ids"]').value || "[]"));
                 planList.innerHTML = departmentInput.value
                     ? renderPlanningSyncSelection(departmentInput.value, excluded)
-                    : `<p class="detail-note">Välj en avdelning för att se dess planeringar.</p>`;
+                    : `<p class="year-wheel-dialog-help">Välj en avdelning för att se dess planeringar.</p>`;
             }
         }
         persistWheelSources(wheels, new Set(updates.map(wheel => wheel.id)));

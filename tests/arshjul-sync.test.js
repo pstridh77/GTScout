@@ -237,6 +237,7 @@ test("read-only users can open both print layouts without saving data", async ()
     for (const mode of ["wheel", "list"]) {
         printButton.handlers.click();
         assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Skriv ut årshjul");
+        assert.match(page.elements.get("yearWheelFormFields").innerHTML, /class="year-wheel-dialog-help" aria-label="Hjälp om utskrift"/);
         const form = page.elements.get("yearWheelForm");
         form.values = { print_layout: mode };
         form.handlers.submit({ preventDefault() {}, currentTarget: form });

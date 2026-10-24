@@ -106,6 +106,8 @@ Utskrift kräver inte redigeringsbehörighet och fungerar även i delade årshju
 
 ### Återkommande händelser
 
+Hjälp- och infotexter i årshjulets dialoger visas med mindre text i diskreta ljusgrå rutor. Varningar, fel och statusmeddelanden har kvar sin tydligare utformning.
+
 I händelseformuläret kryssar du i **Återkommande** för att öppna en separat dialog med upprepningsregeln. Där väljer du **Upprepas**:
 
 - Varje vecka, på vald veckodag.
