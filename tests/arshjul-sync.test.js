@@ -345,11 +345,14 @@ function selectYear(page, year) {
     input.handlers.change();
 }
 
-function openOccurrence(page, date) {
+function openOccurrence(page, date, scope = "occurrence") {
     const chart = page.elements.get("yearWheelChart");
     const mark = chart.querySelectorAll("[data-event-edit]").find(item => item.dataset.eventEdit === `cleanup@${date}`);
     assert.ok(mark, `Expected visible occurrence ${date}`);
     mark.handlers.click();
+    if (!page.elements.get("yearWheelEditScopeModal").classList.contains("hidden")) {
+        page.elements.get(scope === "series" ? "yearWheelEditSeriesBtn" : "yearWheelEditOccurrenceBtn").handlers.click();
+    }
 }
 
 async function saveEvent(page, values) {
@@ -388,6 +391,7 @@ test("creating a recurring event saves a series, not generated occurrences, and 
     const mark = page.elements.get("yearWheelChart").querySelectorAll("[data-event-edit]")[0];
     assert.match(mark.dataset.eventEdit, /@2026-11-15$/);
     mark.handlers.click();
+    page.elements.get("yearWheelEditOccurrenceBtn").handlers.click();
     assert.equal(page.elements.get("copyYearWheelEventBtn").classList.contains("hidden"), true);
     page.elements.get("copyYearWheelEventBtn").handlers.click();
     assert.equal(page.tables.arshjul[0].data.events.length, 1);
@@ -508,12 +512,52 @@ test("moving a single year persists an exception through reload without changing
     assert.equal(reloaded.errors.length, 0);
 });
 
+test("recurring occurrence asks scope before opening either editor and cancellation leaves data unchanged", async () => {
+    const page = createPage({ wheels: [recurringWheel({
+        exceptions: { "2026-11-15": { start_date: "2026-11-07", end_date: "2026-11-07", location: "Annan plats" } }
+    })] });
+    await settle();
+    page.unlockEditing();
+    const modal = page.elements.get("yearWheelEditScopeModal");
+    const clickOccurrence = () => page.elements.get("yearWheelChart").querySelectorAll("[data-event-edit]")[0].handlers.click();
+    const before = JSON.stringify(page.tables.arshjul);
+    for (const cancel of [
+        () => page.elements.get("cancelYearWheelEditScopeBtn").handlers.click(),
+        () => page.elements.get("closeYearWheelEditScopeModal").handlers.click(),
+        () => modal.handlers.click({ target: modal }),
+        () => modal.handlers.keydown({ key: "Escape", preventDefault() {} })
+    ]) {
+        clickOccurrence();
+        assert.equal(modal.classList.contains("hidden"), false);
+        assert.match(page.elements.get("yearWheelEditScopeDescription").textContent, /Städdag.*7 november 2026/);
+        assert.equal(page.elements.get("yearWheelModal").classList.contains("hidden"), true);
+        cancel();
+        assert.equal(modal.classList.contains("hidden"), true);
+        assert.equal(page.elements.get("yearWheelModal").classList.contains("hidden"), true);
+    }
+    clickOccurrence();
+    page.elements.get("yearWheelEditOccurrenceBtn").handlers.click();
+    assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Redigera tillfälle");
+    assert.match(page.elements.get("yearWheelFormFields").innerHTML, /name="start_date"[^>]*value="2026-11-07"/);
+    assert.doesNotMatch(page.elements.get("yearWheelFormFields").innerHTML, /recurrence_scope|name="recurring"/);
+    page.elements.get("closeYearWheelModal").handlers.click();
+    clickOccurrence();
+    page.elements.get("yearWheelEditSeriesBtn").handlers.click();
+    assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Redigera serie");
+    assert.match(page.elements.get("yearWheelFormFields").innerHTML, /name="start_date"[^>]*value="2026-01-01"/);
+    assert.match(page.elements.get("yearWheelFormFields").innerHTML, /name="recurring"/);
+    assert.doesNotMatch(page.elements.get("yearWheelFormFields").innerHTML, /recurrence_scope/);
+    assert.equal(JSON.stringify(page.tables.arshjul), before);
+});
+
 test("cancelled occurrences stay absent and can be restored from the series manager", async () => {
     const page = createPage({ wheels: [recurringWheel()] });
     await settle();
     page.unlockEditing();
     openOccurrence(page, "2026-11-15");
     assert.equal(page.elements.get("deleteYearWheelItemBtn").textContent, "Ställ in tillfället");
+    assert.equal(page.elements.get("deleteYearWheelItemBtn").attributes["aria-label"], "Ställ in tillfället");
+    assert.equal(page.elements.get("deleteYearWheelItemBtn").classList.contains("year-wheel-delete-button--text"), true);
     page.elements.get("deleteYearWheelItemBtn").handlers.click();
     await settle();
     assert.deepEqual(page.tables.arshjul[0].data.events[0].exceptions, { "2026-11-15": { cancelled: true } });
@@ -538,8 +582,12 @@ test("whole-series text edits preserve patches, while rule edits require confirm
     });
     await settle();
     page.unlockEditing();
-    openOccurrence(page, "2026-11-15");
-    page.elements.get('yearWheelFormFields [name="recurrence_scope"]').handlers.change({ target: { value: "series" } });
+    openOccurrence(page, "2026-11-15", "series");
+    const deleteButton = page.elements.get("deleteYearWheelItemBtn");
+    assert.match(deleteButton.innerHTML, /<svg/);
+    assert.equal(deleteButton.classList.contains("year-wheel-delete-button--text"), false);
+    assert.equal(deleteButton.attributes["aria-label"], "Ta bort hela serien");
+    assert.equal(deleteButton.attributes.title, "Ta bort hela serien");
     const values = {
         title: "Gemensam städdag", ring_id: "arrangements", start_date: "2026-01-01", end_date: "2026-01-01",
         responsible: "Anna", location: "Stugan", notes: "", recurrence_type: "yearly_week", recurrence_week: "46", recurrence_weekday: "7"
@@ -562,6 +610,7 @@ test("public recurring wheels calculate occurrences read-only without uploading 
     const page = createPage({ wheels: [original], signedIn: false, leader: false, search: "?share=recurring-public" });
     await settle();
     openOccurrence(page, "2026-11-15");
+    assert.equal(page.elements.get("yearWheelEditScopeModal").classList.contains("hidden"), true);
     assert.match(page.elements.get("yearWheelFormFields").innerHTML, /söndag vecka 46/);
     assert.doesNotMatch(page.elements.get("yearWheelFormFields").innerHTML, /name="recurrence_type"/);
     assert.equal(page.elements.get("deleteYearWheelItemBtn").classList.contains("hidden"), true);
@@ -1451,6 +1500,7 @@ test("overflow list hides save action but individual event editing restores it",
                 },
                 querySelector() { return element(`${name} child`); },
                 focus() {},
+                setAttribute() {},
                 removeAttribute() {}
             });
         }
@@ -1469,6 +1519,12 @@ test("overflow list hides save action but individual event editing restores it",
     assert.equal(submitButton.classList.contains("hidden"), true);
     context.openModal("Redigera händelse", "<input>", "event", "meeting-1");
     assert.equal(submitButton.classList.contains("hidden"), false);
+    const deleteButton = element("deleteYearWheelItemBtn");
+    deleteButton.classList.add("year-wheel-delete-button--text");
+    deleteButton.innerHTML = "Ta bort hela serien";
+    context.openModal("Redigera ring", "<input>", "ring", "ring-1");
+    assert.equal(deleteButton.classList.contains("year-wheel-delete-button--text"), false);
+    assert.match(deleteButton.innerHTML, /<svg/);
 });
 
 test("excluding a planning source opens a clear choice dialog instead of a browser confirm", async () => {

@@ -42,6 +42,7 @@
     let editingId = "";
     let editingOccurrenceDate = "";
     let recurrenceDraft = null;
+    let pendingEditScope = null;
     let unlockedWheelId = "";
     let wheelDraft = null;
     let draggedRingId = "";
@@ -1463,6 +1464,9 @@
         submitButton.classList.toggle("hidden", mode === "event-view" || mode === "event-overflow");
         byId("copyYearWheelEventBtn").classList.toggle("hidden", mode !== "event" || !itemId || !canEdit());
         const deleteButton = byId("deleteYearWheelItemBtn");
+        deleteButton.classList.remove("year-wheel-delete-button--text");
+        deleteButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z"/></svg>';
+        deleteButton.setAttribute("aria-label", "Ta bort");
         deleteButton.classList.toggle("hidden", !itemId || !["ring", "event", "wheel"].includes(mode));
         deleteButton.disabled = false;
         deleteButton.removeAttribute("title");
@@ -2052,6 +2056,22 @@
         openEventForm(seriesId);
     }
 
+    function closeEditScopeDialog() {
+        byId("yearWheelEditScopeModal").classList.add("hidden");
+        const trigger = pendingEditScope?.trigger;
+        pendingEditScope = null;
+        trigger?.focus?.();
+    }
+
+    function chooseEditScope(wholeSeries) {
+        const choice = pendingEditScope;
+        closeEditScopeDialog();
+        if (!choice || currentWheel()?.id !== choice.wheelId || !canEdit()) return;
+        const series = currentWheel().events.find(item => item.id === choice.seriesId);
+        if (!series?.recurrence || series.source_wheel_id) return;
+        openEventForm(choice.seriesId, "", "", choice.date, wholeSeries);
+    }
+
     function openEventForm(eventId = "", initialDate = "", initialRingId = "", originalDate = "", wholeSeries = false) {
         const wheel = currentWheel();
         if (!wheel) return;
@@ -2064,6 +2084,15 @@
         if (series && !event) return;
         const readOnly = !canEdit() || Boolean(event?.source_wheel_id);
         if ((!readOnly && !wheel.rings.length) || (readOnly && !event)) return;
+        if (singleOccurrence && !readOnly && !originalDate) {
+            const trigger = document.activeElement;
+            closeModal();
+            pendingEditScope = { wheelId: wheel.id, seriesId, date: occurrenceDate, trigger };
+            byId("yearWheelEditScopeDescription").textContent = `${event.title} · ${formatDate(event.start_date, { day: "numeric", month: "long", year: "numeric" })}`;
+            byId("yearWheelEditScopeModal").classList.remove("hidden");
+            byId("yearWheelEditOccurrenceBtn").focus();
+            return;
+        }
         const linkedArrangement = Boolean(event?.source_arrangement_id);
         const linkedArrangementNote = "Fält som hämtas från arrangemanget ändras där och synkas automatiskt hit.";
         const linkedArrangementAttributes = linkedArrangement
@@ -2079,12 +2108,10 @@
         const date = initialDate || dateKey(period().start);
         const linkedSource = linkedArrangement || Boolean(event?.source_planning_id || event?.source_wheel_id);
         recurrenceDraft = event?.recurrence || null;
-        openModal(readOnly ? "Visa händelse" : event ? "Redigera händelse" : "Lägg till händelse", `
+        openModal(readOnly ? "Visa händelse" : series?.recurrence
+            ? singleOccurrence ? "Redigera tillfälle" : "Redigera serie"
+            : event ? "Redigera händelse" : "Lägg till händelse", `
             ${series?.recurrence ? `<p class="year-wheel-recurrence-preview">${escapeHtml(recurrence().describe(series.recurrence))}. Gäller från ${escapeHtml(series.start_date)}.</p>
-                ${!readOnly && occurrenceDate ? `<label class="modal-field"><span>Redigera</span><select name="recurrence_scope">
-                    <option value="occurrence" ${singleOccurrence ? "selected" : ""}>Bara detta tillfälle</option>
-                    <option value="series" ${!singleOccurrence ? "selected" : ""}>Hela serien</option>
-                </select></label><p class="year-wheel-dialog-help">Välj omfattning innan du ändrar fälten. Byte av omfattning laddar om formuläret.</p>` : ""}
                 ${singleOccurrence ? `<p>Ursprungligt tillfälle: ${escapeHtml(occurrenceDate)}.${event.cancelled ? " Tillfället är inställt." : event.is_exception ? " Tillfället har ett undantag." : ""}</p>
                     ${event.is_exception && !readOnly ? `<button type="button" class="btn-secondary" data-restore-occurrence="${escapeHtml(occurrenceDate)}">Återställ till seriens mönster</button>` : ""}` : ""}
             ` : ""}
@@ -2133,17 +2160,16 @@
         `, readOnly ? "event-view" : "event", seriesId);
         editingOccurrenceDate = singleOccurrence ? occurrenceDate : "";
         byId("copyYearWheelEventBtn").classList.toggle("hidden", readOnly || !event || Boolean(event.recurrence));
-        byId("deleteYearWheelItemBtn").textContent = singleOccurrence ? "Ställ in tillfället" : series?.recurrence ? "Ta bort hela serien" : "Ta bort";
+        const deleteButton = byId("deleteYearWheelItemBtn");
+        const deleteLabel = singleOccurrence ? "Ställ in tillfället" : series?.recurrence ? "Ta bort hela serien" : "Ta bort";
+        if (singleOccurrence) deleteButton.textContent = deleteLabel;
+        deleteButton.classList.toggle("year-wheel-delete-button--text", singleOccurrence);
+        deleteButton.setAttribute("aria-label", deleteLabel);
+        deleteButton.setAttribute("title", deleteLabel);
         if (!readOnly && singleOccurrence) {
-            byId("yearWheelFormFields").querySelector('[name="recurrence_scope"]').value = "occurrence";
             for (const name of ["ring_id", "color_variant", "color"]) {
                 byId("yearWheelFormFields").querySelector(`[name="${name}"]`).disabled = true;
             }
-        }
-        if (!readOnly && occurrenceDate && series?.recurrence) {
-            byId("yearWheelFormFields").querySelector('[name="recurrence_scope"]').addEventListener("change", change => {
-                openEventForm(seriesId, "", "", occurrenceDate, change.target.value === "series");
-            });
         }
         if (!readOnly) {
             byId("yearWheelFormFields").querySelectorAll("[data-restore-occurrence]").forEach(button => {
@@ -2757,6 +2783,7 @@
     }
 
     function initialize() {
+        closeEditScopeDialog();
         planningGroups = readLocalPlanningGroups();
         readViewPreferences();
         window.addEventListener("scroll", updateStickyYearWheelLock, { passive: true });
@@ -2845,6 +2872,19 @@
             if (modalMode === "event" && editingId) copyEventToNextYear(editingId);
         });
         byId("closeYearWheelModal").addEventListener("click", closeModal);
+        byId("yearWheelEditOccurrenceBtn").addEventListener("click", () => chooseEditScope(false));
+        byId("yearWheelEditSeriesBtn").addEventListener("click", () => chooseEditScope(true));
+        byId("closeYearWheelEditScopeModal").addEventListener("click", closeEditScopeDialog);
+        byId("cancelYearWheelEditScopeBtn").addEventListener("click", closeEditScopeDialog);
+        byId("yearWheelEditScopeModal").addEventListener("click", event => {
+            if (event.target === byId("yearWheelEditScopeModal")) closeEditScopeDialog();
+        });
+        byId("yearWheelEditScopeModal").addEventListener("keydown", event => {
+            if (event.key === "Escape") {
+                event.preventDefault();
+                closeEditScopeDialog();
+            }
+        });
         byId("yearWheelRecurrenceForm").addEventListener("submit", submitRecurrenceForm);
         byId("closeYearWheelRecurrenceModal").addEventListener("click", closeRecurrenceDialog);
         byId("cancelYearWheelRecurrenceBtn").addEventListener("click", closeRecurrenceDialog);
