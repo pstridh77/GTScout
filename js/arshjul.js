@@ -1935,8 +1935,11 @@
                 <label class="modal-field" data-recurrence-field="week"><span>Vecka</span><input name="recurrence_week" type="number" min="1" max="53" required value="${rule?.week || week}"></label>
                 <label class="modal-field" data-recurrence-field="until"><span>Sista tillfällets datum (valfritt)</span><input name="recurrence_until" type="date" value="${escapeHtml(rule?.until || "")}"></label>
             </div>
-            <p data-recurrence-summary></p>
-            <p>Startdatum är seriens tidigaste datum. Datumspannet bestämmer varje tillfälles längd. Datum som saknas använder månadens sista dag. Saknad femte veckodag eller vecka 53 hoppas över.</p>
+            <p class="year-wheel-recurrence-preview" data-recurrence-summary aria-live="polite"></p>
+            <aside class="year-wheel-dialog-help" aria-label="Hjälp om upprepning">
+                <strong>Så fungerar datumen</strong>
+                <p>Startdatum är seriens tidigaste datum. Datumspannet bestämmer varje tillfälles längd. Datum som saknas använder månadens sista dag. Saknad femte veckodag eller vecka 53 hoppas över.</p>
+            </aside>
         </fieldset>`;
     }
 

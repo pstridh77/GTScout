@@ -420,6 +420,7 @@ test("recurrence checkbox opens a separate dialog and cancelling restores the un
         assert.equal(page.elements.get("yearWheelRecurrenceModal").classList.contains("hidden"), false);
         assert.match(page.elements.get("yearWheelRecurrenceFields").innerHTML, /name="recurrence_type"/);
         assert.match(page.elements.get("yearWheelRecurrenceFields").innerHTML, /value="yearly_weekday" selected/);
+        assert.match(page.elements.get("yearWheelRecurrenceFields").innerHTML, /class="year-wheel-dialog-help" aria-label="Hjälp om upprepning"/);
         cancel();
         assert.equal(page.elements.get("yearWheelModal").classList.contains("hidden"), false);
         assert.equal(page.elements.get("yearWheelRecurrenceModal").classList.contains("hidden"), true);
