@@ -104,4 +104,30 @@ A3-bladet har en färgkodad aktivitetslista bredvid hjulet i stället för ringf
 
 Utskrift kräver inte redigeringsbehörighet och fungerar även i delade årshjul. Välj föreslaget pappersformat i utskriftsdialogen och stäng gärna av webbläsarens sidhuvud och sidfot. Förhandsvisningen kan stängas med Stäng eller Escape.
 
-Kör årshjulens regressionstester med `node --test tests/arshjul-sync.test.js tests/arshjul-print.test.js`. De använder simulerad databas och kräver ingen anslutning till Supabase.
+### Återkommande händelser
+
+I händelseformuläret kryssar du i **Återkommande** för att öppna en separat dialog med upprepningsregeln. Där väljer du **Upprepas**:
+
+- Varje vecka, på vald veckodag.
+- Varje månad, på ett datum eller den första–femte av en veckodag.
+- Varje år, på ett datum, den första–femte av en veckodag i en månad, eller en veckodag i en ISO-vecka.
+
+Välj **Använd regel** för att återgå till händelsen med en kort sammanfattning och knappen **Ändra regel**. Avbryt, krysset, Escape eller klick utanför regeldialogen behåller tidigare regel och alla inmatningar i händelsen. Om en ny upprepning avbryts förblir kryssrutan omarkerad. Avmarkera **Återkommande** för att ta bort upprepningen. Regeln sparas först när själva händelsen sparas.
+
+Exempelvis kan städdagen ligga på söndag vecka 46 varje år och ett annat möte på tredje torsdagen i september. Startdatum är seriens tidigaste datum; slutdatum i det vanliga datumspannet bestämmer tillfällenas längd. Upprepningen har ett separat valfritt sista datum för tillfällenas start. Om den 29:e–31:a saknas används månadens sista dag, utan att följande månaders grunddatum ändras. Årligen den 29 februari blir alltså den 28 februari vanliga år. En femte veckodag som saknas i månaden eller vecka 53 som saknas i ISO-året hoppas över.
+
+Klick på ett tillfälle öppnar **Bara detta tillfälle**. Datum, rubrik, ansvarig, plats och anteckningar kan avvika utan att seriens grundmönster ändras. Ring och färg ändras för hela serien. Välj **Hela serien** innan du börjar ändra om ändringen ska gälla grunduppgifterna. Byte av omfattning laddar om formuläret utan att spara inmatningarna. Ändrade grunduppgifter ärvs av tillfällen där just det fältet inte har ett undantag.
+
+**Ställ in tillfället** döljer bara det tillfället. **Återställ till seriens mönster** tar bort ett undantag. Under **Återkommande serier** i händelselistan finns alla serier i valda ringar, även när de saknar tillfällen i visningsperioden eller alla tillfällen har ställts in. Öppna serien där för att hantera och återställa även inställda tillfällen. Att ändra grundregeln eller seriens startdatum kräver bekräftelse om undantag finns: undantagen tas då bort, inklusive inställda tillfällen. Borttagning av hela serien tar även bort alla undantag. Redigering av ”detta och kommande tillfällen” ingår inte.
+
+Återkommande händelser behöver inte kopieras till nästa år och ingår inte i kopieringsfunktionen. Befintliga fristående årskopior konverteras inte automatiskt; ta bort överflödiga kopior om en sådan händelse görs återkommande.
+
+Serier och undantag följer med vid synkning från andra årshjul och redigeras i källhjulet. Händelser som hämtas från arrangemang eller avdelningsmöten får däremot inte ett separat återkomstmönster i årshjulet: deras datum styrs av respektive källa. Publik delning och båda utskriftslayouterna använder samma beräkning av tillfällen som skärmen, även för verksamhetsår, flerdagarshändelser och tillfällen som flyttats över en periodgräns.
+
+#### Lagring och driftsättning
+
+Inga nya tabeller behövs. En serie lagras som en händelse med `recurrence` och `exceptions` i årshjulets befintliga JSON-data. Regeln har en av sex stödda typer, inte ett fritt RRULE-uttryck. Den begränsade datummotorn ligger i [js/arshjul-recurrence.js](js/arshjul-recurrence.js); den implementerar bland annat den valda regeln att använda månadens sista dag, vilket skiljer sig från vanlig RRULE-hantering av ogiltiga månadsdatum. Undantag nycklas med det ursprungliga startdatumet; flyttade tillfällen behåller därför sin identitet. Genererade tillfällen sparas inte.
+
+**Kör den uppdaterade [db/arshjul.sql](db/arshjul.sql) i varje Supabase-miljö före driftsättning.** Skriptet är omkörbart och lägger till ett skrivskydd mot äldre klienter som tappar okända JSON-fält. Nya sparningar innehåller `recurrence_format: 1`; serier använder dataversion 6. En äldre klient får därefter ett fel vid omsparning i stället för att kunna radera upprepningarna. Ladda om sidan vid det felet. Detta databasskydd gäller inte lokal lagring utan databas: undvik äldre flikar och klientversioner även i lokalt läge. Nyare, ännu okända dataformat och ogiltiga regler rapporteras som fel och öppnas inte för redigering.
+
+Kör årshjulens regressionstester med `node --test tests/arshjul-recurrence.test.js tests/arshjul-sync.test.js tests/arshjul-print.test.js tests/auth-sync.test.js`. De använder simulerad databas och kräver ingen anslutning till Supabase.

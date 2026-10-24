@@ -43,6 +43,26 @@ grant execute on function public.get_shared_arshjul(uuid) to anon, authenticated
 
 create index if not exists arshjul_kar_name_idx on public.arshjul (kar_id, name);
 
+-- Older clients discard unknown JSON fields when saving a wheel.
+create or replace function public.guard_arshjul_recurrence_format()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+    if old.data ? 'recurrence_format'
+        and new.data -> 'recurrence_format' is distinct from old.data -> 'recurrence_format' then
+        raise exception 'Årshjulet kräver en nyare klient. Ladda om sidan innan du sparar.';
+    end if;
+    return new;
+end;
+$$;
+
+drop trigger if exists arshjul_guard_recurrence_format on public.arshjul;
+create trigger arshjul_guard_recurrence_format
+    before update on public.arshjul
+    for each row execute function public.guard_arshjul_recurrence_format();
+
 drop trigger if exists arshjul_touch_updated_at on public.arshjul;
 create trigger arshjul_touch_updated_at
     before update on public.arshjul

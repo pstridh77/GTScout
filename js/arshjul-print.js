@@ -423,7 +423,7 @@
         if (!["wheel", "list"].includes(mode)) throw new Error("Okänd utskriftslayout för årshjulet.");
         const isWheel = mode === "wheel";
         const selectedIds = new Set(rings.flatMap(ring => (ring.sourceRings || [ring]).map(source => source.id)));
-        const events = wheel.events.filter(event => (!isWheel || selectedIds.has(event.ring_id))
+        const events = window.GTScoutYearWheelRecurrence.expand(wheel.events, range).filter(event => (!isWheel || selectedIds.has(event.ring_id))
             && event.start_date <= dateKey(range.end) && event.end_date >= dateKey(range.start))
             .sort((left, right) => left.start_date.localeCompare(right.start_date)
                 || left.title.localeCompare(right.title, "sv") || left.id.localeCompare(right.id));

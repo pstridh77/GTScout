@@ -28,6 +28,7 @@
     const MONTHS = ["Januari", "Februari", "Mars", "April", "Maj", "Juni", "Juli", "Augusti", "September", "Oktober", "November", "December"];
     const byId = id => document.getElementById(id);
     const auth = () => window.GTScoutAuth;
+    const recurrence = () => window.GTScoutYearWheelRecurrence;
     let wheels = [];
     let planningGroups = [];
     let selectedWheelId = "";
@@ -39,6 +40,8 @@
     let startMonthOverridden = false;
     let modalMode = "";
     let editingId = "";
+    let editingOccurrenceDate = "";
+    let recurrenceDraft = null;
     let unlockedWheelId = "";
     let wheelDraft = null;
     let draggedRingId = "";
@@ -78,6 +81,9 @@
 
     function normalizeWheel(input) {
         const wheel = input && typeof input === "object" ? input : {};
+        if (Number(wheel.schema_version) > 6 || Number(wheel.recurrence_format) > 1) {
+            throw new Error("Årshjulet använder ett nyare dataformat. Uppdatera sidan innan du fortsätter.");
+        }
         const rings = Array.isArray(wheel.rings) ? wheel.rings.map(ring => ({
             id: String(ring?.id || id()),
             name: String(ring?.name || "").trim().slice(0, 60),
@@ -130,6 +136,8 @@
                 responsible: normalizeText(event.responsible, 100),
                 location: normalizeText(event.location, 120),
                 notes: normalizeText(event.notes, 2000),
+                recurrence: recurrence().normalizeRule(event.recurrence),
+                exceptions: recurrence().normalizeExceptions(event.exceptions),
                 copied_from_id: String(event.copied_from_id || ""),
                 needs_review: Boolean(event.needs_review),
                 source_arrangement_id: String(event.source_arrangement_id || ""),
@@ -159,7 +167,8 @@
             rings,
             events,
             share_token: String(wheel.share_token || "") || null,
-            schema_version: Math.max(5, Number(wheel.schema_version) || 0),
+            schema_version: Math.max(events.some(event => event.recurrence) ? 6 : 5, Number(wheel.schema_version) || 0),
+            recurrence_format: 1,
             created_by: wheel.created_by || null,
             local_kar_id: wheel.local_kar_id || null,
             updated_at: wheel.updated_at || null,
@@ -1178,7 +1187,7 @@
     function copyEventToNextYear(eventId) {
         const wheel = currentWheel();
         const event = wheel?.events.find(item => item.id === eventId);
-        if (!wheel || !event || !canEdit()) return;
+        if (!wheel || !event || event.recurrence || !canEdit()) return;
         const startDate = shiftDateToNextYear(event.start_date);
         const endDate = shiftDateToNextYear(event.end_date);
         if (!startDate || !endDate) {
@@ -1212,7 +1221,7 @@
         const range = period();
         const startKey = dateKey(range.start);
         const endKey = dateKey(range.end);
-        return wheel.events.filter(event => event.start_date <= endKey
+        return wheel.events.filter(event => !event.recurrence && event.start_date <= endKey
             && event.end_date >= startKey
             && !hasNextYearCopy(event, wheel.events));
     }
@@ -1312,12 +1321,12 @@
                 return `<article class="year-wheel-event-card${event.needs_review ? " year-wheel-event-card--needs-review" : ""}" style="--event-ring-color:${escapeHtml(ring.color)}">
                     <span class="year-wheel-event-card-date">${escapeHtml(shortDate)}</span>
                     <div class="year-wheel-event-card-main">
-                        <strong>${escapeHtml(event.title)}${event.needs_review ? ` <span class="year-wheel-review-badge">Kontrollera kopia</span>` : ""}</strong>
+                        <strong>${escapeHtml(event.title)}${event.recurrence ? ` <span class="year-wheel-review-badge">${event.is_exception ? "Ändrat tillfälle" : "Återkommande"}</span>` : ""}${event.needs_review ? ` <span class="year-wheel-review-badge">Kontrollera kopia</span>` : ""}</strong>
                         <span class="year-wheel-event-card-ring">${escapeHtml(ringLabel)}</span>
                         ${event.source_wheel_id ? `<span class="year-wheel-event-card-ring">Hämtad från ${escapeHtml(event.source_wheel_name)} · ${escapeHtml(event.source_wheel_ring_name)}</span>` : ""}
                         <span class="year-wheel-event-card-info">${event.responsible ? `<span>Ansvarig: ${escapeHtml(event.responsible)}</span>` : ""}${event.location ? `<span>Plats: ${escapeHtml(event.location)}</span>` : ""}${event.notes ? `<span class="year-wheel-event-notes">${escapeHtml(event.notes)}</span>` : ""}</span>
                     </div>
-                    <div class="year-wheel-event-actions">${canEdit() && event.needs_review ? `<button class="btn-secondary" type="button" data-mark-event-reviewed="${escapeHtml(event.id)}" title="Markera kopian som kontrollerad">Kontrollerad</button>` : ""}${canEdit() ? `<button class="btn-secondary" type="button" data-copy-event="${escapeHtml(event.id)}" aria-label="Kopiera ${escapeHtml(event.title)} till nästa år" title="Kopiera till nästa år"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"></rect><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path></svg></button>` : ""}<button class="btn-secondary" type="button" data-edit-event="${escapeHtml(event.id)}" aria-label="${eventAction} ${escapeHtml(event.title)}" title="${eventAction}"><svg viewBox="0 0 24 24" aria-hidden="true">${eventActionIcon}</svg></button></div>
+                    <div class="year-wheel-event-actions">${canEdit() && event.needs_review ? `<button class="btn-secondary" type="button" data-mark-event-reviewed="${escapeHtml(event.id)}" title="Markera kopian som kontrollerad">Kontrollerad</button>` : ""}${canEdit() && !event.recurrence ? `<button class="btn-secondary" type="button" data-copy-event="${escapeHtml(event.id)}" aria-label="Kopiera ${escapeHtml(event.title)} till nästa år" title="Kopiera till nästa år"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"></rect><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path></svg></button>` : ""}<button class="btn-secondary" type="button" data-edit-event="${escapeHtml(event.id)}" aria-label="${eventAction} ${escapeHtml(event.title)}" title="${eventAction}"><svg viewBox="0 0 24 24" aria-hidden="true">${eventActionIcon}</svg></button></div>
                 </article>`;
             }).join("");
             return `<details class="year-wheel-month-group" data-event-month="${month}" ${collapsedEventMonths.has(month) ? "" : "open"}>
@@ -1325,6 +1334,14 @@
                 <div class="year-wheel-events">${cards}</div>
             </details>`;
         }).join("") : `<p class="year-wheel-empty">Inga händelser för de valda ringarna i den här perioden.</p>`;
+        const series = wheel.events.filter(item => item.recurrence && selectedRingIds.has(item.ring_id));
+        if (series.length) {
+            list.innerHTML = `<details><summary>Återkommande serier (${series.length})</summary>
+                ${series.map(item => `<p><button class="btn-secondary" type="button" data-series-edit="${escapeHtml(item.id)}">${escapeHtml(item.title)}</button>
+                    ${escapeHtml(recurrence().describe(item.recurrence))}</p>`).join("")}</details>` + list.innerHTML;
+            list.querySelectorAll("[data-series-edit]").forEach(button =>
+                button.addEventListener("click", () => openEventForm(button.dataset.seriesEdit)));
+        }
         const monthGroups = [...list.querySelectorAll("[data-event-month]")];
         updateEventMonthToggle(monthGroups);
         monthGroups.forEach(group => group.addEventListener("toggle", () => {
@@ -1415,8 +1432,7 @@
         byId("yearWheelDateRange").textContent = `${formatDate(startKey, { day: "numeric", month: "long", year: "numeric" })} – ${formatDate(endKey, { day: "numeric", month: "long", year: "numeric" })}`;
         renderRingList(wheel);
         const shownRings = getDisplayedRings(wheel, selectedRingIds);
-        const visibleEvents = wheel.events.filter(event => selectedRingIds.has(event.ring_id)
-            && event.start_date <= endKey && event.end_date >= startKey);
+        const visibleEvents = recurrence().expand(wheel.events, range).filter(event => selectedRingIds.has(event.ring_id));
         renderWheelChart(wheel, shownRings, visibleEvents, range);
         renderEventList(wheel, visibleEvents);
         updateOverviewEventListHeight();
@@ -1455,6 +1471,7 @@
     }
 
     function closeModal() {
+        byId("yearWheelRecurrenceModal").classList.add("hidden");
         byId("yearWheelArrangementSyncModal").classList.add("hidden");
         syncChoiceHandlers = null;
         if (modalMode === "ring" && wheelDraft) {
@@ -1466,6 +1483,8 @@
         byId("yearWheelForm").classList.remove("year-wheel-form--bulk-copy");
         modalMode = "";
         editingId = "";
+        editingOccurrenceDate = "";
+        recurrenceDraft = null;
         wheelDraft = null;
     }
 
@@ -1887,10 +1906,157 @@
         colorVariant?.addEventListener("change", updateDepartmentColor);
     }
 
-    function openEventForm(eventId = "", initialDate = "", initialRingId = "") {
+    function recurrenceForm(rule, date) {
+        const anchor = new Date(`${date}T12:00:00Z`);
+        const day = rule?.day || anchor.getUTCDate();
+        const month = rule?.month || anchor.getUTCMonth() + 1;
+        const weekday = rule?.weekday || (anchor.getUTCDay() + 6) % 7 + 1;
+        const thursday = new Date(anchor);
+        thursday.setUTCDate(anchor.getUTCDate() + 4 - (anchor.getUTCDay() + 6) % 7 - 1);
+        const yearStart = new Date(`${thursday.getUTCFullYear()}-01-01T12:00:00Z`);
+        const week = Math.ceil(((thursday - yearStart) / 86400000 + 1) / 7);
+        const weekdays = ["Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag", "Lördag", "Söndag"];
+        const options = [
+            ["weekly", "Varje vecka"], ["monthly_date", "Varje månad – datum"],
+            ["monthly_weekday", "Varje månad – veckodag"], ["yearly_date", "Varje år – datum"],
+            ["yearly_weekday", "Varje år – veckodag i månad"], ["yearly_week", "Varje år – veckonummer"]
+        ];
+        return `<fieldset><legend>Upprepning</legend>
+            <label class="modal-field"><span>Upprepas</span><select name="recurrence_type">${options.map(([value, label]) =>
+                `<option value="${value}" ${value === (rule?.type || "") ? "selected" : ""}>${label}</option>`).join("")}</select></label>
+            <div class="year-wheel-form-grid">
+                <label class="modal-field" data-recurrence-field="month"><span>Månad</span><select name="recurrence_month">${MONTHS.map((label, index) =>
+                    `<option value="${index + 1}" ${index + 1 === month ? "selected" : ""}>${label}</option>`).join("")}</select></label>
+                <label class="modal-field" data-recurrence-field="day"><span>Dag i månaden</span><input name="recurrence_day" type="number" min="1" max="31" required value="${day}"></label>
+                <label class="modal-field" data-recurrence-field="ordinal"><span>Vilken i månaden?</span><select name="recurrence_ordinal">${["Första", "Andra", "Tredje", "Fjärde", "Femte"].map((label, index) =>
+                    `<option value="${index + 1}" ${index + 1 === (rule?.ordinal || 1) ? "selected" : ""}>${label}</option>`).join("")}</select></label>
+                <label class="modal-field" data-recurrence-field="weekday"><span>Veckodag</span><select name="recurrence_weekday">${weekdays.map((label, index) =>
+                    `<option value="${index + 1}" ${index + 1 === weekday ? "selected" : ""}>${label}</option>`).join("")}</select></label>
+                <label class="modal-field" data-recurrence-field="week"><span>ISO-vecka</span><input name="recurrence_week" type="number" min="1" max="53" required value="${rule?.week || week}"></label>
+                <label class="modal-field" data-recurrence-field="until"><span>Sista tillfällets datum (valfritt)</span><input name="recurrence_until" type="date" value="${escapeHtml(rule?.until || "")}"></label>
+            </div>
+            <p data-recurrence-summary></p>
+            <p>Startdatum är seriens tidigaste datum. Datumspannet bestämmer varje tillfälles längd. Datum som saknas använder månadens sista dag. Saknad femte veckodag eller vecka 53 hoppas över.</p>
+        </fieldset>`;
+    }
+
+    function recurrenceFromValues(value, startDate) {
+        if (!value.recurrence_type) return null;
+        const rule = recurrence().normalizeRule({
+            type: value.recurrence_type, day: Number(value.recurrence_day), month: Number(value.recurrence_month),
+            weekday: Number(value.recurrence_weekday), ordinal: Number(value.recurrence_ordinal),
+            week: Number(value.recurrence_week), until: value.recurrence_until || undefined
+        });
+        if (rule.until && rule.until < startDate) throw new Error("Upprepningens slutdatum får inte vara före seriens startdatum.");
+        return rule;
+    }
+
+    function bindRecurrenceForm(startDate) {
+        const fields = byId("yearWheelRecurrenceFields");
+        const typeInput = fields.querySelector('[name="recurrence_type"]');
+        const update = () => {
+            const type = typeInput.value;
+            const active = new Set(type ? ["until"] : []);
+            if (["monthly_date", "yearly_date"].includes(type)) active.add("day");
+            if (["yearly_date", "yearly_weekday"].includes(type)) active.add("month");
+            if (type.includes("weekday")) active.add("ordinal");
+            if (type.includes("weekday") || ["weekly", "yearly_week"].includes(type)) active.add("weekday");
+            if (type === "yearly_week") active.add("week");
+            fields.querySelectorAll("[data-recurrence-field]").forEach(label => {
+                const visible = active.has(label.dataset.recurrenceField);
+                label.classList.toggle("hidden", !visible);
+                label.querySelector("input,select").disabled = !visible;
+            });
+            const values = Object.fromEntries(["type", "day", "month", "weekday", "ordinal", "week", "until"]
+                .map(name => [`recurrence_${name}`, fields.querySelector(`[name="recurrence_${name}"]`).value]));
+            const summary = fields.querySelector("[data-recurrence-summary]");
+            try {
+                summary.textContent = recurrence().describe(recurrenceFromValues(values, startDate));
+            } catch (error) {
+                summary.textContent = error.message;
+            }
+        };
+        ["type", "day", "month", "weekday", "ordinal", "week", "until"].forEach(name => {
+            fields.querySelector(`[name="recurrence_${name}"]`).addEventListener("change", update);
+        });
+        update();
+    }
+
+    function updateRecurrenceChoice() {
+        const fields = byId("yearWheelFormFields");
+        fields.querySelector('[name="recurring"]').checked = Boolean(recurrenceDraft);
+        fields.querySelector("[data-recurrence-choice-summary]").textContent = recurrenceDraft
+            ? recurrence().describe(recurrenceDraft) : "";
+        fields.querySelector("[data-edit-recurrence]").classList.toggle("hidden", !recurrenceDraft);
+    }
+
+    function openRecurrenceDialog() {
+        if (modalMode !== "event" || !canEdit() || editingOccurrenceDate) return;
+        const startInput = byId("yearWheelFormFields").querySelector('[name="start_date"]');
+        if (!isDate(startInput.value)) {
+            byId("yearWheelFormMessage").textContent = "Ange ett giltigt startdatum innan du väljer upprepning.";
+            byId("yearWheelFormMessage").classList.remove("hidden");
+            updateRecurrenceChoice();
+            startInput.focus();
+            return;
+        }
+        const fields = byId("yearWheelRecurrenceFields");
+        fields.innerHTML = recurrenceForm(recurrenceDraft || { type: "weekly" }, startInput.value);
+        byId("yearWheelRecurrenceMessage").classList.add("hidden");
+        bindRecurrenceForm(startInput.value);
+        byId("yearWheelModal").classList.add("hidden");
+        byId("yearWheelRecurrenceModal").classList.remove("hidden");
+        fields.querySelector('[name="recurrence_type"]').focus();
+    }
+
+    function closeRecurrenceDialog() {
+        byId("yearWheelRecurrenceModal").classList.add("hidden");
+        byId("yearWheelModal").classList.remove("hidden");
+        updateRecurrenceChoice();
+        byId("yearWheelFormFields").querySelector(recurrenceDraft ? "[data-edit-recurrence]" : '[name="recurring"]').focus();
+    }
+
+    function submitRecurrenceForm(event) {
+        event.preventDefault();
+        const value = Object.fromEntries(new FormData(event.currentTarget).entries());
+        const startDate = byId("yearWheelFormFields").querySelector('[name="start_date"]').value;
+        try {
+            const rule = recurrenceFromValues(value, startDate);
+            if (!rule) throw new Error("Välj en upprepningsregel.");
+            recurrenceDraft = rule;
+        } catch (error) {
+            byId("yearWheelRecurrenceMessage").textContent = error.message;
+            byId("yearWheelRecurrenceMessage").classList.remove("hidden");
+            return;
+        }
+        closeRecurrenceDialog();
+    }
+
+    function restoreOccurrence(seriesId, date) {
+        const wheel = currentWheel();
+        const series = wheel?.events.find(item => item.id === seriesId);
+        if (!canEdit() || !series?.recurrence || series.source_wheel_id) return;
+        if (!window.confirm("Återställ tillfället till seriens mönster?")) return;
+        const exceptions = { ...series.exceptions };
+        delete exceptions[date];
+        const updated = normalizeWheel({ ...wheel, events: wheel.events.map(item =>
+            item.id === seriesId ? { ...item, exceptions } : item) });
+        wheels = wheels.map(item => item.id === wheel.id ? updated : item);
+        render();
+        saveWheel(updated);
+        openEventForm(seriesId);
+    }
+
+    function openEventForm(eventId = "", initialDate = "", initialRingId = "", originalDate = "", wholeSeries = false) {
         const wheel = currentWheel();
         if (!wheel) return;
-        const event = wheel.events.find(item => item.id === eventId);
+        const separator = eventId.lastIndexOf("@");
+        const seriesId = separator >= 0 ? eventId.slice(0, separator) : eventId;
+        const series = wheel.events.find(item => item.id === seriesId);
+        const occurrenceDate = originalDate || (separator >= 0 ? eventId.slice(separator + 1) : "");
+        const singleOccurrence = Boolean(series?.recurrence && occurrenceDate && !wholeSeries);
+        const event = singleOccurrence ? recurrence().occurrence(series, occurrenceDate, true) : series;
+        if (series && !event) return;
         const readOnly = !canEdit() || Boolean(event?.source_wheel_id);
         if ((!readOnly && !wheel.rings.length) || (readOnly && !event)) return;
         const linkedArrangement = Boolean(event?.source_arrangement_id);
@@ -1906,7 +2072,17 @@
             : "";
         const chosenRing = event?.ring_id || wheel.rings.find(ring => ring.id === initialRingId)?.id || wheel.rings.find(ring => selectedRingIds.has(ring.id))?.id || wheel.rings[0].id;
         const date = initialDate || dateKey(period().start);
+        const linkedSource = linkedArrangement || Boolean(event?.source_planning_id || event?.source_wheel_id);
+        recurrenceDraft = event?.recurrence || null;
         openModal(readOnly ? "Visa händelse" : event ? "Redigera händelse" : "Lägg till händelse", `
+            ${series?.recurrence ? `<p>${escapeHtml(recurrence().describe(series.recurrence))}. Gäller från ${escapeHtml(series.start_date)}.</p>
+                ${!readOnly && occurrenceDate ? `<label class="modal-field"><span>Redigera</span><select name="recurrence_scope">
+                    <option value="occurrence" ${singleOccurrence ? "selected" : ""}>Bara detta tillfälle</option>
+                    <option value="series" ${!singleOccurrence ? "selected" : ""}>Hela serien</option>
+                </select></label><p>Välj omfattning innan du ändrar fälten. Byte av omfattning laddar om formuläret.</p>` : ""}
+                ${singleOccurrence ? `<p>Ursprungligt tillfälle: ${escapeHtml(occurrenceDate)}.${event.cancelled ? " Tillfället är inställt." : event.is_exception ? " Tillfället har ett undantag." : ""}</p>
+                    ${event.is_exception && !readOnly ? `<button type="button" class="btn-secondary" data-restore-occurrence="${escapeHtml(occurrenceDate)}">Återställ till seriens mönster</button>` : ""}` : ""}
+            ` : ""}
             ${event?.source_wheel_id ? `<p class="year-wheel-linked-arrangement-note">Hämtad från ${escapeHtml(event.source_wheel_name)} → ${escapeHtml(event.source_wheel_ring_name)}. Händelsen ändras i källårshjulet.${!isSharedWheelView() ? ` <a href="arshjul.html?wheel=${encodeURIComponent(event.source_wheel_id)}">Öppna i källårshjulet</a>` : ""}</p>` : ""}
             ${linkedArrangement ? `<p id="yearWheelLinkedArrangementNote" class="year-wheel-linked-arrangement-note">${escapeHtml(linkedArrangementNote)}</p>` : ""}
             <label class="modal-field"><span>Rubrik</span><input name="title" required maxlength="120" value="${escapeHtml(event?.title || "")}" placeholder="Till exempel Kårstämma" ${linkedArrangementAttributes}></label>
@@ -1938,7 +2114,49 @@
                 <label class="modal-field"><span>Plats (valfritt)</span><input name="location" maxlength="120" value="${escapeHtml(event?.location || "")}" ${sourceFieldAttributes("location")}></label>
             </div>
             <label class="modal-field"><span>Anteckningar</span><textarea name="notes" rows="3" maxlength="2000" ${sourceFieldAttributes("notes")}>${escapeHtml(event?.notes || "")}</textarea></label>
-        `, readOnly ? "event-view" : "event", eventId);
+            ${!singleOccurrence && !linkedSource && !readOnly ? `
+                <label class="year-wheel-recurrence-choice"><input name="recurring" type="checkbox" ${recurrenceDraft ? "checked" : ""}> Återkommande</label>
+                <div class="year-wheel-recurrence-summary">
+                    <span data-recurrence-choice-summary></span>
+                    <button class="btn-secondary" type="button" data-edit-recurrence>Ändra regel</button>
+                </div>` : ""}
+            ${series?.recurrence && !singleOccurrence ? `<details><summary>Undantag (${Object.keys(series.exceptions || {}).length})</summary>
+                ${Object.entries(series.exceptions || {}).sort(([left], [right]) => left.localeCompare(right)).map(([original, override]) =>
+                    `<p>${escapeHtml(original)}: ${override.cancelled ? "Inställt" : `Ändrat tillfälle${override.start_date ? ` → ${escapeHtml(override.start_date)}` : ""}`}
+                        ${!readOnly ? `<button class="btn-secondary" type="button" data-restore-occurrence="${escapeHtml(original)}">Återställ</button>` : ""}</p>`).join("")}
+                </details>` : ""}
+        `, readOnly ? "event-view" : "event", seriesId);
+        editingOccurrenceDate = singleOccurrence ? occurrenceDate : "";
+        byId("copyYearWheelEventBtn").classList.toggle("hidden", readOnly || !event || Boolean(event.recurrence));
+        byId("deleteYearWheelItemBtn").textContent = singleOccurrence ? "Ställ in tillfället" : series?.recurrence ? "Ta bort hela serien" : "Ta bort";
+        if (!readOnly && singleOccurrence) {
+            byId("yearWheelFormFields").querySelector('[name="recurrence_scope"]').value = "occurrence";
+            for (const name of ["ring_id", "color_variant", "color"]) {
+                byId("yearWheelFormFields").querySelector(`[name="${name}"]`).disabled = true;
+            }
+        }
+        if (!readOnly && occurrenceDate && series?.recurrence) {
+            byId("yearWheelFormFields").querySelector('[name="recurrence_scope"]').addEventListener("change", change => {
+                openEventForm(seriesId, "", "", occurrenceDate, change.target.value === "series");
+            });
+        }
+        if (!readOnly) {
+            byId("yearWheelFormFields").querySelectorAll("[data-restore-occurrence]").forEach(button => {
+                button.addEventListener("click", () => restoreOccurrence(seriesId, button.dataset.restoreOccurrence));
+            });
+            if (!singleOccurrence && !linkedSource) {
+                const fields = byId("yearWheelFormFields");
+                updateRecurrenceChoice();
+                fields.querySelector('[name="recurring"]').addEventListener("change", change => {
+                    if (change.target.checked) openRecurrenceDialog();
+                    else {
+                        recurrenceDraft = null;
+                        updateRecurrenceChoice();
+                    }
+                });
+                fields.querySelector("[data-edit-recurrence]").addEventListener("click", openRecurrenceDialog);
+            }
+        }
         if (readOnly) {
             byId("yearWheelFormFields").querySelectorAll("input, select, textarea").forEach(control => {
                 if ((control.tagName === "INPUT" && control.type !== "color") || control.tagName === "TEXTAREA") {
@@ -1963,7 +2181,7 @@
             }, ring);
         };
         const updateCustomColor = () => {
-            colorInput.disabled = colorVariantInput.value !== "custom";
+            colorInput.disabled = readOnly || singleOccurrence || colorVariantInput.value !== "custom";
             if (!event && colorInput && colorVariantInput.value === "custom") {
                 colorInput.value = wheel.rings.find(ring => ring.id === ringInput.value)?.color || COLORS[0];
             }
@@ -2058,7 +2276,7 @@
             const wheel = currentWheel();
             if (!wheel) return;
             const rings = getDisplayedRings(wheel, selectedRingIds);
-            const eventColors = Object.fromEntries(wheel.events.map(item => [
+            const eventColors = Object.fromEntries(recurrence().expand(wheel.events, period()).map(item => [
                 item.id, getEventColor(item, wheel.rings.find(ring => ring.id === item.ring_id))
             ]));
             const eventTextColors = Object.fromEntries(Object.entries(eventColors).map(([eventId, color]) => [eventId, getRingTextColor(color)]));
@@ -2380,6 +2598,56 @@
                 byId("yearWheelFormMessage").classList.remove("hidden");
                 return;
             }
+            const previousEvent = wheel.events.find(item => item.id === editingId);
+            if (editingOccurrenceDate && previousEvent?.recurrence) {
+                const base = recurrence().occurrence({ ...previousEvent, exceptions: {} }, editingOccurrenceDate);
+                if (!base) {
+                    byId("yearWheelFormMessage").textContent = "Tillfället finns inte längre i serien. Öppna händelsen igen.";
+                    byId("yearWheelFormMessage").classList.remove("hidden");
+                    return;
+                }
+                const override = {};
+                if (startDate !== base.start_date || endDate !== base.end_date) {
+                    override.start_date = startDate;
+                    override.end_date = endDate;
+                }
+                for (const name of ["title", "responsible", "location", "notes"]) {
+                    const text = normalizeText(value[name], { title: 120, responsible: 100, location: 120, notes: 2000 }[name]);
+                    if (name === "title" && !text) {
+                        byId("yearWheelFormMessage").textContent = "Ange en rubrik.";
+                        byId("yearWheelFormMessage").classList.remove("hidden");
+                        return;
+                    }
+                    if (text !== base[name]) override[name] = text;
+                }
+                const exceptions = { ...previousEvent.exceptions };
+                if (Object.keys(override).length) exceptions[editingOccurrenceDate] = override;
+                else delete exceptions[editingOccurrenceDate];
+                const updated = normalizeWheel({ ...wheel, events: wheel.events.map(item =>
+                    item.id === editingId ? { ...item, exceptions } : item) });
+                showEventInCurrentPeriod({ start_date: startDate, end_date: endDate });
+                wheels = wheels.map(item => item.id === wheel.id ? updated : item);
+                closeModal();
+                render();
+                saveWheel(updated);
+                return;
+            }
+            let rule;
+            try {
+                rule = previousEvent?.source_arrangement_id || previousEvent?.source_planning_id
+                    ? null : recurrence().normalizeRule(recurrenceDraft);
+                if (rule?.until && rule.until < startDate) throw new Error("Upprepningens slutdatum får inte vara före seriens startdatum.");
+            } catch (error) {
+                byId("yearWheelFormMessage").textContent = error.message;
+                byId("yearWheelFormMessage").classList.remove("hidden");
+                return;
+            }
+            let exceptions = previousEvent?.exceptions || {};
+            if (Object.keys(exceptions).length && (JSON.stringify(rule) !== JSON.stringify(previousEvent.recurrence)
+                || startDate !== previousEvent.start_date)) {
+                if (!window.confirm("Ändringen av seriens mönster eller startdatum tar bort alla undantag, även inställda tillfällen. Fortsätta?")) return;
+                exceptions = {};
+            }
             const eventData = {
                 id: editingId || id(),
                 ring_id: String(value.ring_id),
@@ -2391,6 +2659,8 @@
                 responsible: String(value.responsible || "").trim(),
                 location: String(value.location || "").trim(),
                 notes: String(value.notes || "").trim(),
+                recurrence: rule,
+                exceptions: rule ? exceptions : {},
                 copied_from_id: wheel.events.find(item => item.id === editingId)?.copied_from_id || "",
                 needs_review: false,
                 source_arrangement_id: wheel.events.find(item => item.id === editingId)?.source_arrangement_id || "",
@@ -2399,7 +2669,6 @@
                 source_meeting_id: wheel.events.find(item => item.id === editingId)?.source_meeting_id || "",
                 source_planning_fields: wheel.events.find(item => item.id === editingId)?.source_planning_fields || {}
             };
-            const previousEvent = wheel.events.find(item => item.id === editingId);
             if (previousEvent?.source_planning_id && previousEvent.ring_id !== eventData.ring_id) {
                 eventData.source_planning_id = "";
                 eventData.source_meeting_id = "";
@@ -2462,7 +2731,18 @@
         }
         if (modalMode === "event") {
             if (!canEdit() || wheel.events.find(item => item.id === editingId)?.source_wheel_id) return;
-            if (!window.confirm("Ta bort den här händelsen?")) return;
+            if (editingOccurrenceDate) {
+                if (!window.confirm("Ställ in bara detta tillfälle? Serien fortsätter som vanligt.")) return;
+                const updated = normalizeWheel({ ...wheel, events: wheel.events.map(item => item.id === editingId
+                    ? { ...item, exceptions: { ...item.exceptions, [editingOccurrenceDate]: { cancelled: true } } } : item) });
+                wheels = wheels.map(item => item.id === wheel.id ? updated : item);
+                closeModal();
+                render();
+                saveWheel(updated);
+                return;
+            }
+            const series = wheel.events.find(item => item.id === editingId);
+            if (!window.confirm(series?.recurrence ? "Ta bort hela serien och alla dess undantag?" : "Ta bort den här händelsen?")) return;
             const updated = normalizeWheel({ ...wheel, events: wheel.events.filter(item => item.id !== editingId) });
             wheels = wheels.map(item => item.id === wheel.id ? updated : item);
             closeModal();
@@ -2560,6 +2840,18 @@
             if (modalMode === "event" && editingId) copyEventToNextYear(editingId);
         });
         byId("closeYearWheelModal").addEventListener("click", closeModal);
+        byId("yearWheelRecurrenceForm").addEventListener("submit", submitRecurrenceForm);
+        byId("closeYearWheelRecurrenceModal").addEventListener("click", closeRecurrenceDialog);
+        byId("cancelYearWheelRecurrenceBtn").addEventListener("click", closeRecurrenceDialog);
+        byId("yearWheelRecurrenceModal").addEventListener("click", event => {
+            if (event.target === byId("yearWheelRecurrenceModal")) closeRecurrenceDialog();
+        });
+        byId("yearWheelRecurrenceModal").addEventListener("keydown", event => {
+            if (event.key === "Escape") {
+                event.preventDefault();
+                closeRecurrenceDialog();
+            }
+        });
         byId("yearWheelModal").addEventListener("click", event => {
             if (event.target === byId("yearWheelModal")) closeModal();
         });
@@ -2636,31 +2928,41 @@
             render();
         });
         window.GTScoutYearWheelSync?.init({ onChange: (incoming, source) => {
-            const migrated = (incoming || []).map(input => {
-                let candidate = input;
-                let changed = false;
-                if (Number(candidate?.schema_version) < 3) {
-                    const existingRings = Array.isArray(candidate?.rings) ? candidate.rings : [];
-                    const migratedRings = existingRings.map(ring => {
-                        const name = String(ring?.name || "").trim();
-                        const palette = DEPARTMENT_RING_COLORS[name];
-                        const isLegacyDefault = LEGACY_DEFAULT_RING_COLORS[name]?.toLocaleLowerCase() === String(ring?.color || "").toLocaleLowerCase();
-                        if (!palette || !isLegacyDefault) return ring;
-                        return { ...ring, color: palette.standard, color_variant: "standard" };
-                    });
-                    candidate = {
-                        ...candidate,
-                        schema_version: 3,
-                        rings: migratedRings
-                    };
-                    changed = true;
-                }
-                if (Number(candidate?.schema_version) < 5) {
-                    candidate = { ...candidate, schema_version: 5 };
-                    changed = true;
-                }
-                return { wheel: normalizeWheel(candidate), changed };
-            }).filter(entry => entry.wheel.name);
+            let migrated;
+            try {
+                migrated = (incoming || []).map(input => {
+                    let candidate = input;
+                    let changed = false;
+                    if (Number(candidate?.schema_version) < 3) {
+                        const existingRings = Array.isArray(candidate?.rings) ? candidate.rings : [];
+                        const migratedRings = existingRings.map(ring => {
+                            const name = String(ring?.name || "").trim();
+                            const palette = DEPARTMENT_RING_COLORS[name];
+                            const isLegacyDefault = LEGACY_DEFAULT_RING_COLORS[name]?.toLocaleLowerCase() === String(ring?.color || "").toLocaleLowerCase();
+                            if (!palette || !isLegacyDefault) return ring;
+                            return { ...ring, color: palette.standard, color_variant: "standard" };
+                        });
+                        candidate = {
+                            ...candidate,
+                            schema_version: 3,
+                            rings: migratedRings
+                        };
+                        changed = true;
+                    }
+                    if (Number(candidate?.schema_version) < 5) {
+                        candidate = { ...candidate, schema_version: 5 };
+                        changed = true;
+                    }
+                    return { wheel: normalizeWheel(candidate), changed };
+                }).filter(entry => entry.wheel.name);
+            } catch (error) {
+                console.error("Kunde inte läsa årshjulets data", error);
+                wheels = [];
+                render();
+                byId("yearWheelSourceStatus").textContent = `Kunde inte läsa årshjulets data: ${error.message}`;
+                byId("yearWheelSourceStatus").classList.remove("hidden");
+                return;
+            }
             // Endast inläsning och ändrade källdata får starta automatisk synk, inte sparnotifieringar.
             if (source === "load") {
                 const arrangements = window.GTScoutArrangements?.getAll?.() || [];
