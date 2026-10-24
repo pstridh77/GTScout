@@ -13,7 +13,7 @@ function deferred() {
     return { promise, resolve };
 }
 
-function wheel(id = "wheel", schemaVersion = 4) {
+function wheel(id = "wheel", schemaVersion = 5) {
     return {
         id, name: id, schema_version: schemaVersion, local_kar_id: "kar-1",
         rings: [{ id: "arrangements", name: "Arrangemang", color: "#398a86" }],
@@ -317,6 +317,374 @@ function createHelpers() {
     return context;
 }
 
+function linkedWheels() {
+    const source = {
+        ...wheel("board"),
+        rings: [
+            { id: "chair", name: "Ordförande", color: "#123456" },
+            { id: "treasurer", name: "Kassör", color: "#abcdef", parent_id: "chair" },
+            { id: "other", name: "Övrigt", color: "#abcdef" }
+        ],
+        events: [
+            { id: "meeting", ring_id: "chair", title: "Styrelsemöte", start_date: "2026-10-20", end_date: "2026-10-21", responsible: "Anna", notes: "Underlag" },
+            { id: "budget", ring_id: "treasurer", title: "Budget", start_date: "2027-01-15", end_date: "2027-01-15" },
+            { id: "private", ring_id: "other", title: "Inte vald", start_date: "2026-10-21", end_date: "2026-10-21" }
+        ]
+    };
+    const target = {
+        ...wheel("troop"),
+        rings: [{
+            id: "board-summary", name: "Styrelse", color: "#398a86",
+            sync_from_wheel: { wheel_id: "board", ring_ids: ["chair"], include_children: true }
+        }],
+        events: [{ id: "own", ring_id: "board-summary", title: "Egen händelse", start_date: "2026-10-01", end_date: "2026-10-01" }]
+    };
+    return { source, target };
+}
+
+test("wheel sources merge selected rings and children across years and converge without duplicates", () => {
+    const helpers = createHelpers();
+    const { source, target } = linkedWheels();
+    const input = [target, source].map(item => helpers.normalizeWheel(item));
+    const original = JSON.stringify(input);
+    const updated = helpers.syncWheelSources(input);
+    const events = updated[0].events;
+    assert.equal(events.length, 3);
+    assert.equal(events[0].id, "own");
+    assert.deepEqual(Array.from(events.slice(1), item => item.source_wheel_event_id), ["meeting", "budget"]);
+    assert.equal(events[1].responsible, "Anna");
+    assert.equal(events[1].notes, "Underlag");
+    assert.equal(events[1].ring_id, "board-summary");
+    assert.equal(events[1].color_variant, "ring");
+    assert.equal(events[1].source_arrangement_id, "");
+    assert.equal(events[1].source_planning_id, "");
+    assert.equal(events[1].source_wheel_ring_name, "Ordförande");
+    assert.equal(JSON.stringify(input), original, "Sources must not be mutated");
+    assert.equal(helpers.syncWheelSources(updated)[0], updated[0], "Unchanged sync must preserve identity");
+    const changed = helpers.normalizeWheel({ ...updated[1], events: [{ ...source.events[0], title: "Flyttat", responsible: "", notes: "" }] });
+    const refreshed = helpers.syncWheelSources([updated[0], changed])[0];
+    assert.equal(refreshed.events.length, 2, "Deleted source events must disappear, but own events remain");
+    assert.equal(refreshed.events[1].id, events[1].id);
+    assert.equal(refreshed.events[1].title, "Flyttat");
+    assert.equal(refreshed.events[1].responsible, "");
+    assert.equal(refreshed.events[1].notes, "");
+});
+
+test("wheel sources support multiple explicit rings, exclude new rings and honor include-children", () => {
+    const helpers = createHelpers();
+    const { source, target } = linkedWheels();
+    target.rings[0].sync_from_wheel.include_children = false;
+    let result = helpers.syncWheelSources([target, source].map(item => helpers.normalizeWheel(item)));
+    assert.equal(result[0].events.length, 2);
+    target.rings[0].sync_from_wheel.ring_ids = ["chair", "treasurer"];
+    result = helpers.syncWheelSources([target, source].map(item => helpers.normalizeWheel(item)));
+    assert.equal(result[0].events.length, 3);
+    assert.equal(result[0].events.some(item => item.title === "Inte vald"), false);
+});
+
+test("child inclusion is independent per selected source root and legacy settings are preserved", () => {
+    const helpers = createHelpers();
+    const { source, target } = linkedWheels();
+    source.rings.push({ id: "other-child", name: "Annan underring", parent_id: "other", color: "#123456" });
+    source.events.push({ id: "other-event", ring_id: "other-child", title: "Annan aktivitet", start_date: "2026-10-20", end_date: "2026-10-20" });
+    const settings = target.rings[0].sync_from_wheel;
+    settings.ring_ids = ["chair", "other"];
+    settings.include_children_ring_ids = ["chair"];
+    let result = helpers.syncWheelSources([target, source].map(item => helpers.normalizeWheel(item)));
+    assert.equal(result[0].events.some(item => item.title === "Budget"), true);
+    assert.equal(result[0].events.some(item => item.title === "Annan aktivitet"), false);
+    settings.include_children_ring_ids = ["other"];
+    result = helpers.syncWheelSources([target, source].map(item => helpers.normalizeWheel(item)));
+    assert.equal(result[0].events.some(item => item.title === "Budget"), false);
+    assert.equal(result[0].events.some(item => item.title === "Annan aktivitet"), true);
+    delete settings.include_children_ring_ids;
+    const migrated = helpers.normalizeWheel(target);
+    assert.deepEqual(Array.from(migrated.rings[0].sync_from_wheel.include_children_ring_ids), ["chair", "other"]);
+    assert.equal(helpers.normalizeWheel(migrated).rings[0].sync_from_wheel.include_children_ring_ids.length, 2);
+});
+
+test("source selection only offers individual child controls for root rings", () => {
+    const helpers = createHelpers();
+    const { source } = linkedWheels();
+    source.rings = [source.rings[0], source.rings[2], source.rings[1]];
+    vm.runInContext(readScript("arshjul.js").slice(
+        readScript("arshjul.js").indexOf("    function renderWheelSourceSelection("),
+        readScript("arshjul.js").indexOf("    function openRingForm(")), helpers);
+    helpers.inputWheel = source;
+    vm.runInContext("wheels = [inputWheel]", helpers);
+    const markup = helpers.renderWheelSourceSelection("board", ["chair", "treasurer"], ["chair"]);
+    assert.match(markup, /data-source-children="chair"><label[^>]*><input[^>]*name="source_child_ring_ids" value="chair"[^>]* checked/);
+    assert.match(markup, /Ta med underringar till Ordförande/);
+    assert.doesNotMatch(markup, /data-source-children="treasurer"/);
+    assert.match(markup, /data-source-children="other" hidden/);
+    assert.doesNotMatch(markup, /name="source_include_children"/);
+    assert.match(markup, /class="year-wheel-source-row year-wheel-source-row--child"/);
+    assert.match(markup, /<span>Ta med underringar<\/span>/);
+    assert.doesNotMatch(markup, /<span>Ta med underringar till/);
+    assert.doesNotMatch(markup, /<span>Ordförande · Kassör<\/span>/);
+    assert.ok(markup.indexOf('value="treasurer"') < markup.indexOf('value="other"'),
+        "Children must be grouped directly after their parent regardless of storage order");
+    const inheritedOnly = helpers.renderWheelSourceSelection("board", ["chair"], ["chair"], "Styrelse");
+    assert.match(inheritedOnly, /name="source_ring_ids" value="treasurer" checked disabled/);
+    assert.doesNotMatch(inheritedOnly, /type="hidden" name="source_ring_ids" value="treasurer"/);
+    assert.match(inheritedOnly, /Händelserna samlas i målringen Styrelse/);
+    assert.match(helpers.renderWheelSourceSelection("board", [], []), /Inga ringar valda/);
+});
+
+test("wheel settings discreetly label sync sources on roots, children and empty rings", async () => {
+    const { source, target } = linkedWheels();
+    target.rings.push(
+        { id: "arrangements", name: "Arrangemang", color: "#123456", sync_arrangements: true },
+        { id: "meetings", name: "Möten", parent_id: "board-summary", color: "#123456", sync_meetings_from_department: true },
+        { id: "plain", name: "Vanlig ring", color: "#123456" },
+        { id: "missing", name: "Saknad källa", color: "#123456", sync_from_wheel: { wheel_id: "missing-source", ring_ids: ["ring"] } }
+    );
+    source.name = 'Styrelse <2026>';
+    const page = createPage({ wheels: [target, source] });
+    await settle();
+    page.unlockEditing();
+    page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
+    const markup = page.elements.get("yearWheelFormFields").innerHTML;
+    assert.match(markup, /Styrelse<span class="year-wheel-ring-sync-label">Synkar från årshjul: Styrelse &lt;2026&gt;<\/span>/);
+    assert.match(markup, /Arrangemang<span class="year-wheel-ring-sync-label">Synkar från arrangemang<\/span>/);
+    assert.match(markup, /Möten<span class="year-wheel-ring-sync-label">Synkar från avdelningsmöten<\/span>/);
+    assert.match(markup, /Saknad källa<span class="year-wheel-ring-sync-label">Synkar från annat årshjul<\/span>/);
+    assert.match(markup, /year-wheel-ring-option-name">Vanlig ring<\/span>/);
+});
+
+test("inherited source checks restore manual selections when child inclusion is disabled", async () => {
+    const { source, target } = linkedWheels();
+    const page = createPage({ wheels: [target, source] });
+    await settle();
+    page.unlockEditing();
+    page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
+    page.elements.get("yearWheelForm").values = { name: "troop", start_month: "8" };
+    clickRingAction(page, "edit", "board-summary");
+    const fields = page.elements.get("yearWheelFormFields");
+    fields.querySelector('[name="source_wheel_id"]').value = "board";
+    const list = fields.querySelector("[data-wheel-sync-rings]");
+    const change = (name, value, checked) => list.handlers.change({
+        target: { closest: () => ({ name, value, checked }) }
+    });
+    change("source_child_ring_ids", "chair", false);
+    assert.match(list.innerHTML, /name="source_ring_ids" value="treasurer"  >/);
+    change("source_ring_ids", "treasurer", true);
+    change("source_child_ring_ids", "chair", true);
+    assert.match(list.innerHTML, /name="source_ring_ids" value="treasurer" checked disabled/);
+    assert.match(list.innerHTML, /type="hidden" name="source_ring_ids" value="treasurer"/);
+    assert.match(list.innerHTML, /Ingår via Ordförande/);
+    assert.match(list.innerHTML, /<strong>Hämtas:<\/strong> Ordförande, Ordförande · Kassör/);
+    change("source_child_ring_ids", "chair", false);
+    assert.match(list.innerHTML, /name="source_ring_ids" value="treasurer" checked >/);
+    assert.doesNotMatch(list.innerHTML, /Ingår via Ordförande/);
+    change("source_ring_ids", "chair", false);
+    assert.match(list.innerHTML, /data-source-children="chair" hidden/);
+    assert.match(list.innerHTML, /name="source_ring_ids" value="treasurer" checked >/);
+    change("source_ring_ids", "chair", true);
+    assert.doesNotMatch(list.innerHTML, /Ingår via Ordförande/);
+});
+
+test("wheel source chains resolve in dependency order and cyclic or cross-troop links are rejected", () => {
+    const helpers = createHelpers();
+    const { source, target } = linkedWheels();
+    const top = {
+        ...wheel("overview"),
+        rings: [{ id: "all", name: "Samlat", sync_from_wheel: { wheel_id: "troop", ring_ids: ["board-summary"] } }]
+    };
+    const result = helpers.syncWheelSources([top, target, source].map(item => helpers.normalizeWheel(item)));
+    assert.equal(result[0].events.length, 3);
+    assert.equal(helpers.syncWheelSources(result)[0], result[0]);
+    const settings = { wheel_id: "overview", ring_ids: ["all"] };
+    assert.match(helpers.getWheelSourceError(result[2], settings, result), /cirkulär/);
+    assert.match(helpers.getWheelSourceError(result[1], { wheel_id: "troop", ring_ids: ["board-summary"] }, result), /cirkulär/);
+    const foreign = { ...result[2], local_kar_id: "kar-2" };
+    assert.match(helpers.getWheelSourceError(result[1], result[1].rings[0].sync_from_wheel, [foreign]), /samma kår/);
+    const cyclic = result.map(item => item.id === "board"
+        ? helpers.normalizeWheel({ ...item, rings: item.rings.map(ring => ({ ...ring, sync_from_wheel: settings })) }) : item);
+    assert.doesNotThrow(() => helpers.syncWheelSources(cyclic));
+});
+
+test("missing wheel sources or rings preserve existing copies rather than treating failure as deletion", () => {
+    const helpers = createHelpers();
+    const { source, target } = linkedWheels();
+    const result = helpers.syncWheelSources([target, source].map(item => helpers.normalizeWheel(item)));
+    assert.equal(helpers.syncWheelSources([result[0]])[0], result[0]);
+    const missingRing = helpers.normalizeWheel({ ...result[1], rings: [source.rings[2]], events: [] });
+    assert.equal(helpers.syncWheelSources([result[0], missingRing])[0], result[0]);
+    const emptySource = helpers.normalizeWheel({ ...result[1], events: [] });
+    assert.equal(helpers.syncWheelSources([result[0], emptySource])[0].events.length, 1);
+});
+
+test("wheel links persist on load, stay read-only, support deep links and shared snapshots", async () => {
+    const { source, target } = linkedWheels();
+    const page = createPage({ wheels: [target, source], defaultWheelId: "troop" });
+    await settle();
+    assert.equal(page.tables.arshjul[0].data.events.length, 3);
+    const writes = page.requests.filter(item => item.operation === "upsert");
+    assert.equal(writes.length, 1);
+    page.unlockEditing();
+    const mark = page.elements.get("yearWheelChart").querySelectorAll("[data-event-edit]")
+        .find(item => item.dataset.eventEdit !== "own");
+    mark.handlers.click();
+    assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Visa händelse");
+    assert.match(page.elements.get("yearWheelFormFields").innerHTML, /Hämtad från board → Ordförande/);
+    assert.match(page.elements.get("yearWheelFormFields").innerHTML, /arshjul.html\?wheel=board/);
+    assert.equal(page.elements.get("deleteYearWheelItemBtn").classList.contains("hidden"), true);
+    const deepLink = createPage({ wheels: [target, source], search: "?wheel=board" });
+    await settle();
+    assert.equal(deepLink.elements.get("yearWheelSelect").value, "board");
+    const snapshot = { ...page.tables.arshjul[0].data, share_token: "shared" };
+    const shared = createPage({ wheels: [snapshot], signedIn: false, search: "?share=shared" });
+    await settle();
+    assert.match(shared.elements.get("yearWheelEvents").innerHTML, /Styrelsemöte/);
+    assert.equal(shared.requests.filter(item => item.operation === "upsert").length, 0);
+    assert.equal(shared.elements.get("yearWheelSourceStatus").classList.contains("hidden"), true);
+    const reader = createPage({ wheels: [target, source], leader: false });
+    await settle();
+    assert.match(reader.elements.get("yearWheelEvents").innerHTML, /Styrelsemöte/);
+    assert.equal(reader.requests.filter(item => item.operation === "upsert").length, 0);
+    assert.deepEqual(page.errors, []);
+});
+
+test("ring settings select a wheel source and preserve the existing draft workflow", async () => {
+    const { source, target } = linkedWheels();
+    target.rings[0].sync_from_wheel = null;
+    const page = createPage({ wheels: [target, source] });
+    await settle();
+    page.unlockEditing();
+    page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
+    const form = page.elements.get("yearWheelForm");
+    form.values = { name: "troop", start_month: "8" };
+    clickRingAction(page, "edit", "board-summary");
+    assert.match(page.elements.get("yearWheelFormFields").innerHTML, /Synka från annat årshjul/);
+    form.values = {
+        name: "Styrelse", color: "#398a86",
+        sync_from_wheel_enabled: "on", source_wheel_id: "board",
+        source_ring_ids: ["chair", "treasurer"],
+        source_child_ring_ids: ["chair", "treasurer", "other"]
+    };
+    await form.handlers.submit({ preventDefault() {}, currentTarget: form });
+    assert.equal(page.tables.arshjul[0].data.rings[0].sync_from_wheel, null, "Draft must not save early");
+    form.values = { name: "troop", start_month: "8" };
+    await form.handlers.submit({ preventDefault() {}, currentTarget: form });
+    await settle();
+    const saved = page.tables.arshjul[0].data;
+    assert.deepEqual(saved.rings[0].sync_from_wheel.ring_ids, ["chair", "treasurer"]);
+    assert.deepEqual(saved.rings[0].sync_from_wheel.include_children_ring_ids, ["chair"]);
+    assert.equal(saved.events.length, 3);
+});
+
+test("editing and deleting a source event updates dependent wheels in the same page", async () => {
+    const { source, target } = linkedWheels();
+    const page = createPage({ wheels: [source, target], defaultWheelId: "board" });
+    await settle();
+    page.unlockEditing();
+    const mark = page.elements.get("yearWheelChart").querySelectorAll("[data-event-edit]")
+        .find(item => item.dataset.eventEdit === "meeting");
+    mark.handlers.click();
+    const form = page.elements.get("yearWheelForm");
+    form.values = {
+        title: "Ändrat styrelsemöte", ring_id: "chair", start_date: "2026-10-22", end_date: "2026-10-23",
+        responsible: "", location: "", notes: "", color_variant: "ring"
+    };
+    await form.handlers.submit({ preventDefault() {}, currentTarget: form });
+    await settle();
+    let copy = page.tables.arshjul[1].data.events.find(item => item.source_wheel_event_id === "meeting");
+    assert.equal(copy.title, "Ändrat styrelsemöte");
+    assert.equal(copy.start_date, "2026-10-22");
+    assert.equal(copy.responsible, "");
+    const updatedMark = page.elements.get("yearWheelChart").querySelectorAll("[data-event-edit]")
+        .find(item => item.dataset.eventEdit === "meeting");
+    updatedMark.handlers.click();
+    page.elements.get("deleteYearWheelItemBtn").handlers.click();
+    await settle();
+    copy = page.tables.arshjul[1].data.events.find(item => item.source_wheel_event_id === "meeting");
+    assert.equal(copy, undefined);
+    assert.equal(page.tables.arshjul[1].data.events.some(item => item.id === "own"), true);
+    assert.deepEqual(page.errors, []);
+});
+
+test("missing source warnings are visible and cyclic settings cannot be saved", async () => {
+    const { source, target } = linkedWheels();
+    const missing = createPage({ wheels: [target] });
+    await settle();
+    assert.match(missing.elements.get("yearWheelSourceStatus").textContent, /Källårshjulet saknas/);
+    assert.equal(missing.elements.get("yearWheelSourceStatus").classList.contains("hidden"), false);
+    const page = createPage({ wheels: [source, target] });
+    await settle();
+    page.unlockEditing();
+    page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
+    const form = page.elements.get("yearWheelForm");
+    form.values = { name: "board", start_month: "8" };
+    clickRingAction(page, "edit", "chair");
+    form.values = {
+        name: "Ordförande", color: "#123456", sync_from_wheel_enabled: "on",
+        source_wheel_id: "troop", source_ring_ids: ["board-summary"]
+    };
+    await form.handlers.submit({ preventDefault() {}, currentTarget: form });
+    assert.match(page.elements.get("yearWheelFormMessage").textContent, /cirkulär/);
+    assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Redigera ring");
+});
+
+test("narrowing a source selection only detaches excluded copies", async () => {
+    const { source, target } = linkedWheels();
+    const page = createPage({ wheels: [target, source] });
+    await settle();
+    page.unlockEditing();
+    page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
+    const form = page.elements.get("yearWheelForm");
+    form.values = { name: "troop", start_month: "8" };
+    clickRingAction(page, "edit", "board-summary");
+    form.values = {
+        name: "Styrelse", color: "#398a86", sync_from_wheel_enabled: "on",
+        source_wheel_id: "board", source_ring_ids: ["chair"]
+    };
+    await form.handlers.submit({ preventDefault() {}, currentTarget: form });
+    assert.match(page.elements.get("yearWheelArrangementSyncMessage").textContent, /1 hämtad händelse/);
+    form.values.wheel_sync_action = "keep";
+    await form.handlers.submit({ preventDefault() {}, currentTarget: form });
+    form.values = { name: "troop", start_month: "8" };
+    await form.handlers.submit({ preventDefault() {}, currentTarget: form });
+    await settle();
+    const events = page.tables.arshjul[0].data.events;
+    assert.equal(events.length, 3);
+    assert.equal(events.find(item => item.title === "Budget").source_wheel_id, "");
+    assert.equal(events.find(item => item.title === "Styrelsemöte").source_wheel_id, "board");
+});
+
+for (const action of ["keep", "delete"]) {
+    test(`disconnecting a wheel source requires an explicit ${action} choice`, async () => {
+        const { source, target } = linkedWheels();
+        const page = createPage({ wheels: [target, source] });
+        await settle();
+        page.unlockEditing();
+        page.elements.get("yearWheelMenuSettingsBtn").handlers.click();
+        const form = page.elements.get("yearWheelForm");
+        form.values = { name: "troop", start_month: "8" };
+        clickRingAction(page, "edit", "board-summary");
+        form.values = { name: "Styrelse", color: "#398a86" };
+        await form.handlers.submit({ preventDefault() {}, currentTarget: form });
+        assert.equal(page.elements.get("yearWheelArrangementSyncModal").classList.contains("hidden"), false);
+        assert.match(page.elements.get("yearWheelArrangementSyncMessage").textContent, /2 hämtade händelser/);
+        page.elements.get("cancelYearWheelArrangementSyncBtn").handlers.click();
+        assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Redigera ring");
+        await form.handlers.submit({ preventDefault() {}, currentTarget: form });
+        form.requestSubmit = () => {
+            form.values.wheel_sync_action = page.elements.get('yearWheelFormFields [name="wheel_sync_action"]').value;
+            form.handlers.submit({ preventDefault() {}, currentTarget: form });
+        };
+        page.elements.get(action === "keep" ? "keepYearWheelArrangementEventsBtn" : "deleteYearWheelArrangementEventsBtn").handlers.click();
+        form.values = { name: "troop", start_month: "8" };
+        await form.handlers.submit({ preventDefault() {}, currentTarget: form });
+        await settle();
+        const saved = page.tables.arshjul[0].data;
+        assert.equal(saved.rings[0].sync_from_wheel, null);
+        assert.equal(saved.events.length, action === "keep" ? 3 : 1);
+        assert.equal(saved.events.every(item => !item.source_wheel_id), true);
+        assert.deepEqual(page.errors, []);
+    });
+}
+
 for (const [field, limit] of [["title", 120], ["responsible", 100], ["location", 120], ["notes", 2000]]) {
     for (const offset of [-1, 0, 1]) {
         test(`arrangement ${field} at ${limit + offset} characters converges after normalization`, () => {
@@ -355,7 +723,7 @@ test("automatic sync batches migration and long arrangement texts once per wheel
     const writes = page.requests.filter(request => request.operation === "upsert");
     assert.equal(writes.length, 2);
     for (const { row } of writes) {
-        assert.equal(row.data.schema_version, 4);
+        assert.equal(row.data.schema_version, 5);
         assert.equal(row.data.events[0].title.length, 120);
         assert.equal(row.data.events[0].notes.length, 1999);
         assert.equal(row.data.events[0].location.length, 119);
@@ -1774,7 +2142,7 @@ test("local wheels migrate and sync long texts without a database login", async 
     });
     await settle();
     assert.equal(page.requests.length, 0);
-    assert.equal(page.stored()[0].schema_version, 4);
+    assert.equal(page.stored()[0].schema_version, 5);
     assert.equal(page.stored()[0].events[0].title.length, 120);
     assert.equal(page.stored()[0].events[0].notes.length, 2000);
     assert.deepEqual(page.errors, []);
@@ -1847,7 +2215,7 @@ test("local migration is uploaded with current arrangement data, not the old pen
     const page = createPage({ localWheels: [pending], arrangements: [arrangement()] });
     await settle();
     const writes = page.requests.filter(request => request.table === "arshjul" && request.operation === "upsert");
-    assert.equal(page.tables.arshjul[0].data.schema_version, 4);
+    assert.equal(page.tables.arshjul[0].data.schema_version, 5);
     assert.equal(page.tables.arshjul[0].data.events[0].title, "Hajk");
     assert.equal(writes.length, 1);
     assert.deepEqual(page.errors, []);
