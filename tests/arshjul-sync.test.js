@@ -220,7 +220,7 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
 }
 
 test("read-only users can open both print layouts without saving data", async () => {
-    const page = createPage({ wheels: [wheel()], leader: false });
+    const page = createPage({ wheels: [{ ...wheel(), share_token: "public-token" }], leader: false });
     await settle();
     const printButton = page.elements.get("yearWheelMenuPrintBtn");
     assert.equal(printButton.disabled, false);
@@ -233,6 +233,7 @@ test("read-only users can open both print layouts without saving data", async ()
         form.handlers.submit({ preventDefault() {}, currentTarget: form });
         assert.equal(page.printCalls.at(-1).mode, mode);
         assert.equal(page.printCalls.at(-1).wheel.id, "wheel");
+        assert.equal(page.printCalls.at(-1).qrUrl, "https://example.test/arshjul.html?share=public-token");
         assert.equal(page.printCalls.at(-1).range.start.toISOString(), "2026-01-01T00:00:00.000Z");
     }
     assert.equal(page.printCalls.length, 2);

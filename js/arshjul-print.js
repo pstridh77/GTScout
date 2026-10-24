@@ -10,6 +10,131 @@
         + (event.end_date !== event.start_date ? ` – ${formatDate(event.end_date, options)}` : "");
     const eventCount = count => `${count} ${count === 1 ? "händelse" : "händelser"}`;
 
+    function qrCodeSvg(value) {
+        const bytes = Array.from(new TextEncoder().encode(value));
+        const version = 6;
+        const size = version * 4 + 17;
+        const dataCodewords = 136;
+        const errorCodewordsPerBlock = 18;
+        const blockCount = 2;
+        const blockDataLength = dataCodewords / blockCount;
+        if (bytes.length > 134) throw new Error("Delningslänken är för lång för QR-koden.");
+
+        const bits = [];
+        const appendBits = (number, count) => {
+            for (let index = count - 1; index >= 0; index--) bits.push((number >>> index) & 1);
+        };
+        appendBits(0b0100, 4);
+        appendBits(bytes.length, 8);
+        bytes.forEach(byte => appendBits(byte, 8));
+        appendBits(0, Math.min(4, dataCodewords * 8 - bits.length));
+        while (bits.length % 8) bits.push(0);
+        const data = [];
+        for (let index = 0; index < bits.length; index += 8) {
+            data.push(bits.slice(index, index + 8).reduce((byte, bit) => (byte << 1) | bit, 0));
+        }
+        for (let pad = 0; data.length < dataCodewords; pad++) data.push(pad % 2 ? 0x11 : 0xec);
+
+        const multiply = (left, right) => {
+            let product = 0;
+            for (let index = 7; index >= 0; index--) {
+                product = (product << 1) ^ ((product >>> 7) * 0x11d);
+                product ^= ((right >>> index) & 1) * left;
+            }
+            return product;
+        };
+        const generator = [1];
+        let root = 1;
+        for (let index = 0; index < errorCodewordsPerBlock; index++) {
+            const next = Array(generator.length + 1).fill(0);
+            generator.forEach((coefficient, position) => {
+                next[position] ^= coefficient;
+                next[position + 1] ^= multiply(coefficient, root);
+            });
+            generator.splice(0, generator.length, ...next);
+            root = multiply(root, 2);
+        }
+        const blocks = Array.from({ length: blockCount }, (_, index) => {
+            const block = data.slice(index * blockDataLength, (index + 1) * blockDataLength);
+            const remainder = [...block, ...Array(errorCodewordsPerBlock).fill(0)];
+            for (let position = 0; position < block.length; position++) {
+                const factor = remainder[position];
+                generator.forEach((coefficient, offset) => {
+                    remainder[position + offset] ^= multiply(coefficient, factor);
+                });
+            }
+            return { data: block, error: remainder.slice(-errorCodewordsPerBlock) };
+        });
+        const codewords = [];
+        for (let index = 0; index < blockDataLength; index++) blocks.forEach(block => codewords.push(block.data[index]));
+        for (let index = 0; index < errorCodewordsPerBlock; index++) blocks.forEach(block => codewords.push(block.error[index]));
+
+        const modules = Array.from({ length: size }, () => Array(size).fill(null));
+        const set = (x, y, dark) => {
+            if (x >= 0 && x < size && y >= 0 && y < size) modules[y][x] = Boolean(dark);
+        };
+        const finder = (left, top) => {
+            for (let y = -1; y <= 7; y++) {
+                for (let x = -1; x <= 7; x++) {
+                    const distance = Math.max(Math.abs(x - 3), Math.abs(y - 3));
+                    set(left + x, top + y, distance !== 2 && distance !== 4);
+                }
+            }
+        };
+        finder(0, 0);
+        finder(size - 7, 0);
+        finder(0, size - 7);
+        for (let y = -2; y <= 2; y++) {
+            for (let x = -2; x <= 2; x++) {
+                set(34 + x, 34 + y, Math.max(Math.abs(x), Math.abs(y)) !== 1);
+            }
+        }
+        for (let index = 8; index < size - 8; index++) {
+            if (modules[6][index] === null) set(index, 6, index % 2 === 0);
+            if (modules[index][6] === null) set(6, index, index % 2 === 0);
+        }
+
+        let format = 0b01 << 3;
+        let remainder = format << 10;
+        for (let bit = 14; bit >= 10; bit--) {
+            if ((remainder >>> bit) & 1) remainder ^= 0x537 << (bit - 10);
+        }
+        format = ((format << 10) | remainder) ^ 0x5412;
+        for (let bit = 0; bit <= 5; bit++) set(8, bit, ((format >>> bit) & 1) !== 0);
+        set(8, 7, ((format >>> 6) & 1) !== 0);
+        set(8, 8, ((format >>> 7) & 1) !== 0);
+        set(7, 8, ((format >>> 8) & 1) !== 0);
+        for (let bit = 9; bit < 15; bit++) set(14 - bit, 8, ((format >>> bit) & 1) !== 0);
+        for (let bit = 0; bit < 8; bit++) set(size - 1 - bit, 8, ((format >>> bit) & 1) !== 0);
+        for (let bit = 8; bit < 15; bit++) set(8, size - 15 + bit, ((format >>> bit) & 1) !== 0);
+        set(8, size - 8, true);
+
+        let bitIndex = 0;
+        for (let right = size - 1; right >= 1; right -= 2) {
+            if (right === 6) right--;
+            for (let vertical = 0; vertical < size; vertical++) {
+                const y = ((right + 1) & 2) === 0 ? size - 1 - vertical : vertical;
+                for (let offset = 0; offset < 2; offset++) {
+                    const x = right - offset;
+                    if (modules[y][x] !== null) continue;
+                    const dark = bitIndex < codewords.length * 8
+                        ? ((codewords[bitIndex >>> 3] >>> (7 - (bitIndex & 7))) & 1) !== 0
+                        : false;
+                    set(x, y, dark !== ((x + y) % 2 === 0));
+                    bitIndex++;
+                }
+            }
+        }
+
+        const path = [];
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                if (modules[y][x]) path.push(`M${x + 4} ${y + 4}h1v1h-1z`);
+            }
+        }
+        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size + 8} ${size + 8}" role="img" aria-label="QR-kod till årshjulets delningslänk" shape-rendering="crispEdges"><path fill="#fff" d="M0 0h${size + 8}v${size + 8}H0z"/><path fill="#000" d="${path.join("")}"/></svg>`;
+    }
+
     function getMonths(range) {
         return Array.from({ length: 12 }, (_, index) => {
             const start = new Date(Date.UTC(range.start.getUTCFullYear(), range.start.getUTCMonth() + index, 1));
@@ -294,7 +419,7 @@
         }
     }
 
-    function buildDocument({ wheel, rings, range, mode, eventColors = {}, eventTextColors = {}, ringBackgroundColors = {} }) {
+    function buildDocument({ wheel, rings, range, mode, eventColors = {}, eventTextColors = {}, ringBackgroundColors = {}, qrUrl = "" }) {
         if (!["wheel", "list"].includes(mode)) throw new Error("Okänd utskriftslayout för årshjulet.");
         const isWheel = mode === "wheel";
         const selectedIds = new Set(rings.flatMap(ring => (ring.sourceRings || [ring]).map(source => source.id)));
@@ -308,6 +433,11 @@
         const content = isWheel
             ? `<div class="wheel-layout"><div class="wheel">${renderWheel(rings, events, months, range, eventColors, eventTextColors, ringBackgroundColors)}</div>${renderActivitySummary(wheel, events, eventColors, range)}</div>`
             : renderList(wheel, events, months);
+        const qrMarkup = isWheel
+            ? qrUrl
+                ? `<footer class="print-footer"><div class="print-qr">${qrCodeSvg(qrUrl)}</div><p>Skanna för att öppna årshjulet</p></footer>`
+                : `<footer class="print-footer print-footer--no-qr"><p>Skapa en delningslänk för att lägga till en QR-kod till årshjulet.</p></footer>`
+            : "";
         const styles = `
             @page{size:${isWheel ? "A3 landscape" : "A4 portrait"};margin:${isWheel ? "10mm" : "13mm"}}
             *{box-sizing:border-box}body{margin:0;background:#fff;color:#142c34;font:10pt/1.4 Arial,sans-serif}
@@ -315,9 +445,12 @@
             h1{font-size:22pt;line-height:1.15;overflow-wrap:anywhere}header p{color:#52686d;margin-top:1mm}
             .eyebrow{font-size:8pt;font-weight:bold;text-transform:uppercase;color:#286d60}
             h2{font-size:13pt;color:#164a4d;margin:4mm 0 2mm}h3{font-size:11pt;margin-bottom:1mm;overflow-wrap:anywhere}
-            .sheet{${isWheel ? "height:276mm;display:flex;flex-direction:column" : ""}}
+            .sheet{${isWheel ? "position:relative;height:276mm;display:flex;flex-direction:column" : ""}}
             .wheel-layout{display:flex;gap:6mm;flex:1;min-height:0}.wheel{flex:1;min-width:0;display:flex;align-items:center}
             .wheel svg{display:block;width:100%;height:100%;font-family:Arial,sans-serif}
+            .print-footer{display:flex;align-items:center;gap:3mm;flex:none;min-height:22mm;color:#52686d;font-size:7pt}
+            .print-qr{width:22mm;height:22mm;flex:none}.print-qr svg{display:block;width:100%;height:100%}
+            .print-footer--no-qr{font-size:7pt}
             .activity-summary{flex:0 0 105mm;min-height:0;display:flex;flex-direction:column;font-size:var(--summary-font-size,12pt);line-height:1.25;border-left:1px solid #d9e2df;padding-left:4mm}
             .activity-summary-heading{flex:none;padding-bottom:2mm;margin-bottom:1mm;border-bottom:1px solid #9cafad}
             .activity-summary-heading h2{margin:0;font-size:13pt}
@@ -367,7 +500,7 @@
             window.addEventListener("beforeprint", fitActivitySummary);
             window.addEventListener("afterprint", fitActivitySummary);
         </script>` : "";
-        return `<!DOCTYPE html><html lang="sv"><head><meta charset="UTF-8"><title>${escapeHtml(wheel.name)} – ${isWheel ? "Årshjul" : "Händelselista"}</title><style>${styles}</style></head><body><main class="sheet">${header}${content}</main>${fitLabels}</body></html>`;
+        return `<!DOCTYPE html><html lang="sv"><head><meta charset="UTF-8"><title>${escapeHtml(wheel.name)} – ${isWheel ? "Årshjul" : "Händelselista"}</title><style>${styles}</style></head><body><main class="sheet">${header}${content}${qrMarkup}</main>${fitLabels}</body></html>`;
     }
 
     function openDocument(options) {
@@ -440,5 +573,5 @@
         preview.querySelector("[data-close-print-preview]").focus();
     }
 
-    window.GTScoutYearWheelPrint = { openDocument, buildDocument };
+    window.GTScoutYearWheelPrint = { openDocument, buildDocument, qrCodeSvg };
 })();

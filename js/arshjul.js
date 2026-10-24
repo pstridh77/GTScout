@@ -974,11 +974,16 @@
         button.style.left = sticky ? `${anchor.left}px` : "";
     }
 
-    function showYearWheelShareModal(wheel, message = "") {
+    function getYearWheelShareUrl(wheel) {
         const url = new URL("arshjul.html", window.location.href);
         if (wheel.share_token) url.searchParams.set("share", wheel.share_token);
+        return wheel.share_token ? url.href : "";
+    }
+
+    function showYearWheelShareModal(wheel, message = "") {
+        const shareUrl = getYearWheelShareUrl(wheel);
         const urlInput = byId("yearWheelShareUrl");
-        urlInput.value = wheel.share_token ? url.href : "";
+        urlInput.value = shareUrl;
         byId("yearWheelShareStatus").textContent = message;
         byId("rotateYearWheelShareBtn").classList.toggle("hidden", !wheel.share_token || !auth()?.isAdmin?.());
         byId("yearWheelShareModal").classList.remove("hidden");
@@ -986,7 +991,7 @@
         urlInput.select?.();
         const clipboard = window.navigator?.clipboard;
         if (clipboard?.writeText) {
-            clipboard.writeText(url.href).then(() => {
+            clipboard.writeText(shareUrl).then(() => {
                 byId("yearWheelShareStatus").textContent = message
                     ? `${message} Länken har kopierats.`
                     : "Länken har kopierats. Du kan också markera den och kopiera manuellt.";
@@ -1341,7 +1346,7 @@
                 <option value="wheel">Årshjul – A3 liggande</option>
                 <option value="list">Alla händelser – A4 stående</option>
             </select></label>
-            <p>Hjulet följer dina ringfilter och hur ringarna har grupperats. Listan innehåller alla händelser i perioden, även i dolda ringar.</p>
+            <p>A3-utskriften får en QR-kod nere till vänster om årshjulet har en publik delningslänk. Hjulet följer dina ringfilter och hur ringarna har grupperats. Listan innehåller alla händelser i perioden, även i dolda ringar.</p>
             <p>Du får en förhandsvisning innan webbläsarens utskriftsdialog öppnas. Välj det föreslagna pappersformatet och stäng gärna av webbläsarens sidhuvud och sidfot.</p>
         `, "print");
         byId("yearWheelForm").querySelector('[type="submit"]').textContent = "Förhandsvisa";
@@ -1818,7 +1823,8 @@
             const eventTextColors = Object.fromEntries(Object.entries(eventColors).map(([eventId, color]) => [eventId, getRingTextColor(color)]));
             const ringBackgroundColors = Object.fromEntries(rings.map(ring => [ring.id, getRingBackgroundColor(ring)]));
             window.GTScoutYearWheelPrint.openDocument({
-                wheel, rings, range: period(), mode: value.print_layout, eventColors, eventTextColors, ringBackgroundColors
+                wheel, rings, range: period(), mode: value.print_layout, eventColors, eventTextColors,
+                ringBackgroundColors, qrUrl: getYearWheelShareUrl(wheel)
             });
             closeModal();
             return;

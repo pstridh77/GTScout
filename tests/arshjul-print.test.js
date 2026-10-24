@@ -4,9 +4,9 @@ const path = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
 
-const context = vm.createContext({ window: {} });
+const context = vm.createContext({ window: {}, TextEncoder });
 vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "js", "arshjul-print.js"), "utf8"), context);
-const { buildDocument } = context.window.GTScoutYearWheelPrint;
+const { buildDocument, qrCodeSvg } = context.window.GTScoutYearWheelPrint;
 
 const rings = [
     { id: "board", name: "Styrelse", color: "#398a86" },
@@ -40,6 +40,24 @@ test("wheel fits an A3 landscape sheet and includes twelve months and an activit
     assert.match(html, /Spårare/);
 });
 
+test("A3 print embeds a local QR code for a public share link at the lower-left", () => {
+    const url = "https://example.test/arshjul.html?share=123e4567-e89b-12d3-a456-426614174000";
+    const html = buildDocument(options([], { qrUrl: url }));
+    assert.match(html, /class="print-footer"[^]*?aria-label="QR-kod till årshjulets delningslänk"/);
+    assert.match(html, /Skanna för att öppna årshjulet/);
+    assert.match(html, /\.print-footer\{[^}]*min-height:22mm/);
+    assert.match(html, /\.print-qr\{width:22mm;height:22mm/);
+    assert.doesNotMatch(html, /<img[^>]+src="https?:/);
+    assert.match(qrCodeSvg(url), /viewBox="0 0 49 49"/);
+    assert.throws(() => qrCodeSvg("x".repeat(135)), /för lång/);
+});
+
+test("A3 without an existing share link explains why it has no QR code", () => {
+    const html = buildDocument(options());
+    assert.match(html, /Skapa en delningslänk för att lägga till en QR-kod/);
+    assert.doesNotMatch(html, /aria-label="QR-kod till årshjulets delningslänk"/);
+});
+
 test("list includes full details in hidden rings and lists spanning events once", () => {
     const html = buildDocument(options([
         event("Flerdagarshajk", "2026-01-31", "2026-02-02", {
@@ -48,6 +66,7 @@ test("list includes full details in hidden rings and lists spanning events once"
         })
     ], { rings: [rings[0]], mode: "list" }));
     assert.match(html, /@page\{size:A4 portrait;margin:13mm\}/);
+    assert.doesNotMatch(html, /class="print-footer"/);
     assert.equal((html.match(/<h3>Flerdagarshajk<\/h3>/g) || []).length, 1);
     for (const text of ["Spårare", "Anna", "Skogen", "Första raden\nAndra raden", "behöver kontrolleras"]) {
         assert.ok(html.includes(text), text);
