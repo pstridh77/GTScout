@@ -6589,6 +6589,16 @@ button.year-wheel-overflow-event:hover { border-color: #9eb7c9; background: #f2f
 .year-wheel-ring-option-name { min-width: 0; overflow-wrap: anywhere; }
 .year-wheel-ring-option small { grid-column: 3; justify-self: start; color: #8a5a00; font-size: .72rem; text-align: left; white-space: nowrap; }
 .year-wheel-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.year-wheel-checklist { margin: 16px 0; }
+.year-wheel-checklist[open] > .arrangement-section-summary::before { transform: rotate(45deg); }
+.year-wheel-checklist .arrangement-checklist-item .year-wheel-checklist-check { flex: 0 0 16px; }
+.year-wheel-checklist .arrangement-checklist-item .year-wheel-checklist-text { width: 100%; height: auto; flex: 1; margin: 0; padding: 3px 4px; border: 1px solid transparent; background: transparent; color: inherit; font: inherit; }
+.year-wheel-checklist .year-wheel-checklist-responsible { width: 130px; min-width: 0; height: auto; flex: 0 1 130px; margin: 0; padding: 3px 4px; border: 1px solid transparent; background: transparent; color: #65767b; font: inherit; font-size: .84rem; overflow-wrap: anywhere; }
+.year-wheel-checklist input.year-wheel-checklist-text:hover, .year-wheel-checklist input.year-wheel-checklist-responsible:hover { border-color: #cbd7dc; }
+.year-wheel-checklist input.year-wheel-checklist-text:focus, .year-wheel-checklist input.year-wheel-checklist-responsible:focus { border-color: #4d8275; outline: 2px solid #4d8275; outline-offset: 1px; }
+.year-wheel-checklist .arrangement-checklist-item--done .year-wheel-checklist-text { color: #65767b; text-decoration: line-through; }
+.year-wheel-checklist-settings { color: #65767b; font-size: .8rem; }
+.year-wheel-checklist-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .year-wheel-ring-color-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 12px; }
 .year-wheel-arrangement-sync { display: flex; align-items: flex-start; gap: 9px; color: #34495e; font-size: .9rem; }
 .year-wheel-arrangement-sync input { flex: 0 0 auto; margin: 3px 0 0; accent-color: #176b72; }

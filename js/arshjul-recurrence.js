@@ -68,6 +68,36 @@
         }));
     }
 
+    function normalizeChecklist(input, template = false) {
+        if (input == null) return null;
+        if (!Array.isArray(input)) throw new Error("Ogiltig att göra-lista.");
+        const ids = new Set();
+        return input.map(task => {
+            if (!task || typeof task !== "object" || Array.isArray(task)
+                || typeof task.id !== "string" || !task.id || ids.has(task.id)
+                || typeof task.text !== "string" || !task.text.trim()
+                || (task.done !== undefined && typeof task.done !== "boolean")) {
+                throw new Error("Ogiltig uppgift i att göra-listan.");
+            }
+            ids.add(task.id);
+            return {
+                id: task.id,
+                text: task.text.trim().slice(0, 160).trimEnd(),
+                responsible: String(task.responsible || "").trim().slice(0, 100).trimEnd(),
+                done: template ? false : Boolean(task.done)
+            };
+        });
+    }
+
+    function normalizeOccurrenceChecklists(input) {
+        if (input == null) return {};
+        if (typeof input !== "object" || Array.isArray(input)) throw new Error("Ogiltiga tillfälleslistor.");
+        return Object.fromEntries(Object.entries(input).map(([date, checklist]) => {
+            if (!isDate(date)) throw new Error("Ogiltigt datum för en att göra-lista.");
+            return [date, normalizeChecklist(checklist)];
+        }));
+    }
+
     function monthDate(year, month, day) {
         const first = parse(`${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-01`);
         const next = new Date(first);
@@ -131,8 +161,13 @@
         const duration = Math.round((parse(event.end_date) - parse(event.start_date)) / DAY);
         const endDate = addDays(originalDate, duration);
         if (!isDate(endDate)) throw new Error("Händelsens slutdatum ligger utanför kalenderintervallet.");
+        const checklists = normalizeOccurrenceChecklists(event.occurrence_checklists);
+        const checklist = Object.hasOwn(checklists, originalDate)
+            ? checklists[originalDate] : normalizeChecklist(event.checklist, true);
         return {
             ...event, start_date: originalDate, end_date: endDate, ...override,
+            ...(checklist !== null || event.checklist !== undefined || event.occurrence_checklists !== undefined
+                ? { checklist } : {}),
             id: `${event.id}@${originalDate}`, series_id: event.id, recurrence_id: originalDate,
             is_exception: Boolean(override), cancelled: Boolean(override?.cancelled)
         };
@@ -169,5 +204,7 @@
         return labels[rule.type] + (rule.until ? `, till och med ${rule.until}` : "");
     }
 
-    window.GTScoutYearWheelRecurrence = { normalizeRule, normalizeExceptions, expand, occurrence, describe };
+    window.GTScoutYearWheelRecurrence = {
+        normalizeRule, normalizeExceptions, normalizeChecklist, normalizeOccurrenceChecklists, expand, occurrence, describe
+    };
 })();
