@@ -51,7 +51,9 @@ set search_path = public
 as $$
 begin
     if old.data ? 'recurrence_format'
-        and new.data -> 'recurrence_format' is distinct from old.data -> 'recurrence_format' then
+        and (not (new.data ? 'recurrence_format')
+            or new.data -> 'recurrence_format' = 'null'::jsonb
+            or (new.data ->> 'recurrence_format')::integer < (old.data ->> 'recurrence_format')::integer) then
         raise exception 'Årshjulet kräver en nyare klient. Ladda om sidan innan du sparar.';
     end if;
     return new;

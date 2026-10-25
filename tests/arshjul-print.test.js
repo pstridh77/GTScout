@@ -32,6 +32,7 @@ test("both print layouts expand series and apply moved and cancelled exceptions"
         recurrence: { type: "yearly_week", week: 46, weekday: 7 },
         exceptions: { "2027-11-21": { start_date: "2027-11-13", end_date: "2027-11-13", location: "Annan plats" } }
     });
+
     for (const mode of ["wheel", "list"]) {
         const html = buildDocument(options([series], { range: range("2027-01-01", "2028-01-01"), mode }));
         assert.match(html, /Städdag/);
@@ -43,6 +44,24 @@ test("both print layouts expand series and apply moved and cancelled exceptions"
         assert.match(empty, /0 händelser/);
         assert.doesNotMatch(empty, /Städdag/);
     }
+});
+
+test("A4 checklist printing uses occurrence completion, escapes text and leaves A3 uncluttered", () => {
+    const series = event("Årsmöte", "2026-01-01", "2026-01-01", {
+        recurrence: { type: "yearly_date", month: 3, day: 15 },
+        checklist: [{ id: "a", text: "Kallelse", responsible: "Anna", done: false }],
+        occurrence_checklists: {
+            "2026-03-15": [{ id: "b", text: "<Boka lokal>", responsible: "Bo & Co", done: true }]
+        }
+    });
+    const html = buildDocument(options([series], { mode: "list" }));
+    assert.match(html, /Att göra/);
+    assert.match(html, /\[x\] &lt;Boka lokal&gt; – Bo &amp; Co/);
+    assert.doesNotMatch(html, /Kallelse/);
+    const nextYear = buildDocument(options([series], { mode: "list", range: range("2027-01-01", "2028-01-01") }));
+    assert.match(nextYear, /\[ \] Kallelse – Anna/);
+    assert.doesNotMatch(nextYear, /\[x\]|Boka lokal/);
+    assert.doesNotMatch(buildDocument(options([series])), /Boka lokal|Att göra/);
 });
 
 test("print includes moved-in exceptions and weekly occurrences over an operational year", () => {

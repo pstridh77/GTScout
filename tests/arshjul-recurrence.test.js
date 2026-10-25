@@ -127,3 +127,50 @@ test("expansion never mutates stored series and leaves one-off events unchanged"
     const once = { ...series, recurrence: null };
     assert.deepEqual(expand(once), [once]);
 });
+
+const task = (id, fields = {}) => ({ id, text: "Skicka kallelse", responsible: "Anna", done: false, ...fields });
+
+test("checklists inherit templates independently, without carrying completion to another year or mutating storage", () => {
+    const series = event({ type: "yearly_date", month: 3, day: 15 }, { checklist: [task("invite", { done: true })] });
+    const before = structuredClone(series);
+    const occurrences = expand(series, "2026-01-01", "2027-12-31");
+    assert.equal(occurrences[0].checklist[0].done, false);
+    occurrences[0].checklist[0].done = true;
+    occurrences[0].checklist[0].responsible = "Bo";
+    assert.deepEqual(occurrences[1].checklist, [task("invite")]);
+    assert.deepEqual(series, before);
+});
+
+test("saved full lists, empty lists and removed lists override only their original occurrence", () => {
+    const series = event({ type: "yearly_date", month: 3, day: 15 }, {
+        checklist: [task("new-template")],
+        exceptions: { "2026-03-15": { start_date: "2026-04-01", end_date: "2026-04-01" } },
+        occurrence_checklists: {
+            "2026-03-15": [task("old", { text: "Ordna projektor", responsible: "Bo", done: true })],
+            "2027-03-15": [],
+            "2028-03-15": null
+        }
+    });
+    const occurrences = expand(series, "2026-01-01", "2029-12-31");
+    assert.equal(occurrences[0].start_date, "2026-04-01");
+    assert.deepEqual(occurrences[0].checklist, series.occurrence_checklists["2026-03-15"]);
+    assert.deepEqual(occurrences[1].checklist, []);
+    assert.equal(occurrences[2].checklist, null);
+    assert.deepEqual(occurrences[3].checklist, series.checklist);
+    delete series.exceptions["2026-03-15"];
+    assert.equal(expand(series)[0].checklist[0].done, true);
+});
+
+test("checklist normalization validates identities, bounds text and preserves explicit absence", () => {
+    assert.equal(recurrence.normalizeChecklist(undefined), null);
+    assert.deepEqual(plain(recurrence.normalizeChecklist([])), []);
+    const bounded = plain(recurrence.normalizeChecklist([task("a", { text: "x".repeat(161), responsible: "A".repeat(101) })]));
+    assert.equal(bounded[0].text.length, 160);
+    assert.equal(bounded[0].responsible.length, 100);
+    for (const invalid of [{}, [null], [task("")], [task("a"), task("a")], [task("a", { text: " " })], [task("a", { done: "true" })]]) {
+        assert.throws(() => recurrence.normalizeChecklist(invalid), /Ogiltig/);
+    }
+    for (const invalid of [[], { bad: [] }, { "2026-02-30": [] }, { "2026-01-01": {} }]) {
+        assert.throws(() => recurrence.normalizeOccurrenceChecklists(invalid), /Ogiltig/);
+    }
+});

@@ -319,6 +319,311 @@ test("shared wheels allow printing without edit permissions", async () => {
     assert.equal(page.elements.get("yearWheelModalTitle").textContent, "Skriv ut årshjul");
 });
 
+const checklistTask = (fields = {}) => ({ id: "task-1", text: "Skicka kallelse", responsible: "Anna", done: false, ...fields });
+const checklistValues = (fields = {}) => ({
+    title: "Städdag", ring_id: "arrangements", start_date: "2026-01-01", end_date: "2026-01-01",
+    responsible: "Anna", location: "Stugan", notes: "", ...fields
+});
+const checklistContainer = page => page.elements.get("yearWheelFormFields").querySelector("[data-event-checklist]");
+const checklistRow = (page, index = 0) => checklistContainer(page).querySelector(`[data-checklist-row="${index}"]`);
+
+function addChecklistTask(page, text, enter = false) {
+    const container = checklistContainer(page);
+    const input = container.querySelector("[data-new-checklist-task]");
+    input.value = text;
+    if (enter) input.handlers.keydown({ key: "Enter", preventDefault() {} });
+    else container.querySelector("[data-add-checklist-task]").handlers.click();
+}
+
+function changeChecklistField(page, field, value, index = 0) {
+    const input = checklistRow(page, index).querySelector(`[data-checklist-${field}]`);
+    input.handlers[field === "done" ? "change" : "input"]({ target: field === "done" ? { checked: value } : { value } });
+}
+
+function openSingleEvent(page) {
+    page.elements.get("yearWheelChart").querySelectorAll("[data-event-edit]")[0].handlers.click();
+}
+
+test("checklists are opt-in, remain drafts until saving and support empty enabled lists", async () => {
+    const page = createPage({ wheels: [wheel()] });
+    await settle();
+    page.unlockEditing();
+    page.elements.get("addYearWheelEventBtn").handlers.click();
+    assert.match(checklistContainer(page).innerHTML, /Lägg till att göra-lista/);
+    assert.doesNotMatch(checklistContainer(page).innerHTML, /data-checklist-row|<h3>/);
+    checklistContainer(page).querySelector("[data-add-event-checklist]").handlers.click();
+    assert.match(checklistContainer(page).innerHTML, /Inga uppgifter/);
+    page.elements.get("closeYearWheelModal").handlers.click();
+    assert.equal(page.tables.arshjul[0].data.events.length, 0);
+    page.elements.get("addYearWheelEventBtn").handlers.click();
+    assert.match(checklistContainer(page).innerHTML, /Lägg till att göra-lista/);
+    checklistContainer(page).querySelector("[data-add-event-checklist]").handlers.click();
+    await saveEvent(page, checklistValues());
+    const saved = page.tables.arshjul[0].data;
+    assert.deepEqual(saved.events[0].checklist, []);
+    assert.equal(saved.schema_version, 7);
+    assert.equal(saved.recurrence_format, 2);
+    const reload = createPage({ wheels: [saved] });
+    await settle();
+    openSingleEvent(reload);
+    assert.match(checklistContainer(reload).innerHTML, /Inga uppgifter/);
+    assert.deepEqual(reload.errors, []);
+});
+
+test("one-off checklist tasks can be added, edited, checked and removed without changing event responsibility", async () => {
+    const page = createPage({ wheels: [wheel()] });
+    await settle();
+    page.unlockEditing();
+    page.elements.get("addYearWheelEventBtn").handlers.click();
+    const container = checklistContainer(page);
+    container.querySelector("[data-add-event-checklist]").handlers.click();
+    addChecklistTask(page, " ");
+    assert.match(page.elements.get("yearWheelFormMessage").textContent, /Ange en uppgiftstext/);
+    assert.equal(page.tables.arshjul[0].data.events.length, 0);
+    addChecklistTask(page, "Boka stuga", true);
+    assert.match(container.innerHTML, /<details class="arrangement-checklist-overview year-wheel-checklist"/);
+    assert.match(container.innerHTML, /class="arrangement-section-summary"/);
+    assert.match(container.innerHTML, /<span>1<\/span>/);
+    assert.match(container.innerHTML, /class="arrangement-checklist-remove"/);
+    assert.match(container.innerHTML, /placeholder="Ny uppgift"/);
+    assert.doesNotMatch(container.innerHTML, /modal-field|year-wheel-checklist-row/);
+    changeChecklistField(page, "text", "Boka lokal");
+    changeChecklistField(page, "responsible", "Bo");
+    changeChecklistField(page, "done", true);
+    await saveEvent(page, checklistValues());
+    let saved = page.tables.arshjul[0].data.events[0];
+    assert.equal(saved.checklist[0].text, "Boka lokal");
+    assert.equal(saved.checklist[0].responsible, "Bo");
+    assert.equal(saved.checklist[0].done, true);
+    assert.equal(saved.responsible, "Anna");
+    openSingleEvent(page);
+    checklistRow(page).querySelector("[data-remove-checklist-task]").handlers.click();
+    await saveEvent(page, checklistValues());
+    assert.deepEqual(page.tables.arshjul[0].data.events[0].checklist, []);
+    openSingleEvent(page);
+    container.querySelector("[data-remove-event-checklist]").handlers.click();
+    await saveEvent(page, checklistValues());
+    saved = page.tables.arshjul[0].data.events[0];
+    assert.equal(saved.checklist, null);
+    assert.equal(page.tables.arshjul[0].data.recurrence_format, 2, "Format cannot downgrade after removing the last checklist");
+    assert.deepEqual(page.errors, []);
+});
+
+test("occurrence checklists persist by original date and survive reload, date restoration and template edits", async () => {
+    const page = createPage({ wheels: [recurringWheel({ checklist: [checklistTask()] })] });
+    await settle();
+    page.unlockEditing();
+    openOccurrence(page, "2026-11-15");
+    changeChecklistField(page, "done", true);
+    changeChecklistField(page, "responsible", "Bo");
+    addChecklistTask(page, "Ordna projektor");
+    await saveEvent(page, checklistValues({ start_date: "2026-11-14", end_date: "2026-11-14" }));
+    let series = page.tables.arshjul[0].data.events[0];
+    assert.equal(series.checklist[0].done, false);
+    assert.equal(series.occurrence_checklists["2026-11-15"][0].done, true);
+    assert.equal(series.occurrence_checklists["2026-11-15"].length, 2);
+    openOccurrence(page, "2026-11-15", "series");
+    changeChecklistField(page, "text", "Ny grunduppgift");
+    await saveEvent(page, checklistValues());
+    openOccurrence(page, "2026-11-15");
+    assert.match(checklistContainer(page).innerHTML, /Skicka kallelse|Ordna projektor/);
+    page.elements.get("yearWheelFormFields").querySelectorAll("[data-restore-occurrence]")[0].handlers.click();
+    await settle();
+    series = page.tables.arshjul[0].data.events[0];
+    assert.deepEqual(series.exceptions, {});
+    assert.equal(series.occurrence_checklists["2026-11-15"][0].done, true);
+    const reload = createPage({ wheels: [page.tables.arshjul[0].data] });
+    await settle();
+    reload.unlockEditing();
+    openOccurrence(reload, "2026-11-15");
+    assert.match(checklistContainer(reload).innerHTML, /data-checklist-done[^>]* checked/);
+    assert.match(checklistContainer(reload).innerHTML, /value="Bo"/);
+    reload.elements.get("closeYearWheelModal").handlers.click();
+    selectYear(reload, 2027);
+    openOccurrence(reload, "2027-11-21");
+    assert.match(checklistContainer(reload).innerHTML, /Ny grunduppgift/);
+    assert.doesNotMatch(checklistContainer(reload).innerHTML, / checked|Ordna projektor/);
+    assert.deepEqual(reload.errors, []);
+});
+
+test("removing an occurrence list does not restore the template, and fetching the template resets only that occurrence", async () => {
+    const page = createPage({ wheels: [recurringWheel({ checklist: [checklistTask()] })] });
+    await settle();
+    page.unlockEditing();
+    openOccurrence(page, "2026-11-15");
+    checklistContainer(page).querySelector("[data-remove-event-checklist]").handlers.click();
+    await saveEvent(page, checklistValues({ start_date: "2026-11-15", end_date: "2026-11-15" }));
+    assert.equal(page.tables.arshjul[0].data.events[0].occurrence_checklists["2026-11-15"], null);
+    openOccurrence(page, "2026-11-15");
+    assert.doesNotMatch(checklistContainer(page).innerHTML, /Skicka kallelse/);
+    checklistContainer(page).querySelector("[data-add-event-checklist]").handlers.click();
+    checklistContainer(page).querySelector("[data-reset-checklist]").handlers.click();
+    await saveEvent(page, checklistValues({ start_date: "2026-11-15", end_date: "2026-11-15" }));
+    assert.deepEqual(page.tables.arshjul[0].data.events[0].occurrence_checklists["2026-11-15"], [checklistTask()]);
+    openOccurrence(page, "2026-11-15");
+    changeChecklistField(page, "done", true);
+    await saveEvent(page, checklistValues({ start_date: "2026-11-15", end_date: "2026-11-15" }));
+    openOccurrence(page, "2026-11-15");
+    page.elements.get("deleteYearWheelItemBtn").handlers.click();
+    await settle();
+    assert.equal(page.tables.arshjul[0].data.events[0].occurrence_checklists["2026-11-15"][0].done, true);
+    page.elements.get("yearWheelEvents").querySelectorAll("[data-series-edit]")[0].handlers.click();
+    page.elements.get("yearWheelFormFields").querySelectorAll("[data-restore-occurrence]")[0].handlers.click();
+    await settle();
+    assert.equal(page.tables.arshjul[0].data.events[0].occurrence_checklists["2026-11-15"][0].done, true);
+});
+
+test("series rule changes cannot orphan saved occurrence checklists", async () => {
+    const original = recurringWheel({
+        checklist: [checklistTask()],
+        occurrence_checklists: { "2026-11-15": [checklistTask({ done: true })] }
+    });
+    const page = createPage({ wheels: [original] });
+    await settle();
+    page.unlockEditing();
+    openOccurrence(page, "2026-11-15", "series");
+    await saveEvent(page, checklistValues({ recurrence_type: "yearly_week", recurrence_week: "45", recurrence_weekday: "7" }));
+    assert.match(page.elements.get("yearWheelFormMessage").textContent, /sparade att göra-listor/);
+    assert.equal(page.tables.arshjul[0].data.events[0].recurrence.week, 46);
+    assert.equal(page.tables.arshjul[0].data.events[0].occurrence_checklists["2026-11-15"][0].done, true);
+});
+
+test("a list added only to one occurrence stays optional for the series and other years", async () => {
+    const page = createPage({ wheels: [recurringWheel()] });
+    await settle();
+    page.unlockEditing();
+    openOccurrence(page, "2026-11-15");
+    checklistContainer(page).querySelector("[data-add-event-checklist]").handlers.click();
+    addChecklistTask(page, "Ordna projektor");
+    await saveEvent(page, checklistValues({ start_date: "2026-11-15", end_date: "2026-11-15" }));
+    const series = page.tables.arshjul[0].data.events[0];
+    assert.equal(series.checklist, null);
+    assert.equal(series.occurrence_checklists["2026-11-15"][0].text, "Ordna projektor");
+    selectYear(page, 2027);
+    openOccurrence(page, "2027-11-21");
+    assert.match(checklistContainer(page).innerHTML, /Lägg till att göra-lista/);
+    assert.doesNotMatch(checklistContainer(page).innerHTML, /Ordna projektor/);
+    assert.deepEqual(page.errors, []);
+});
+
+test("removing a series template retains saved occurrence lists", async () => {
+    const page = createPage({ wheels: [recurringWheel({
+        checklist: [checklistTask()],
+        occurrence_checklists: { "2026-11-15": [checklistTask({ done: true })] }
+    })] });
+    await settle();
+    page.unlockEditing();
+    openOccurrence(page, "2026-11-15", "series");
+    checklistContainer(page).querySelector("[data-remove-event-checklist]").handlers.click();
+    await saveEvent(page, checklistValues());
+    assert.equal(page.tables.arshjul[0].data.events[0].checklist, null);
+    openOccurrence(page, "2026-11-15");
+    assert.match(checklistContainer(page).innerHTML, /data-checklist-done[^>]* checked/);
+    assert.doesNotMatch(checklistContainer(page).innerHTML, /data-reset-checklist/);
+    assert.deepEqual(page.errors, []);
+});
+
+for (const bulk of [false, true]) {
+    test(`copying ${bulk ? "selected events" : "one event"} to next year resets checklist completion and task identities`, async () => {
+        const page = createPage({ wheels: [recurringWheel({ recurrence: null, checklist: [checklistTask({ done: true })] })] });
+        await settle();
+        page.unlockEditing();
+        if (bulk) {
+            page.elements.get("yearWheelMenuCopyEventsBtn").handlers.click();
+            await saveEvent(page, { copy_event_ids: ["cleanup"] });
+        } else {
+            openSingleEvent(page);
+            page.elements.get("copyYearWheelEventBtn").handlers.click();
+            await settle();
+        }
+        const events = page.tables.arshjul[0].data.events;
+        assert.equal(events.length, 2);
+        assert.equal(events[0].checklist[0].done, true);
+        assert.equal(events[1].checklist[0].done, false);
+        assert.equal(events[1].checklist[0].responsible, "Anna");
+        assert.notEqual(events[1].checklist[0].id, events[0].checklist[0].id);
+        assert.deepEqual(page.errors, []);
+    });
+}
+
+test("arrangement checklists are source-owned, synchronized and never replaced by local lists", async () => {
+    const page = createPage({ wheels: [wheel()], arrangements: [arrangement({ checklist: [checklistTask({ done: true })] })] });
+    await settle();
+    page.unlockEditing();
+    openSingleEvent(page);
+    const container = checklistContainer(page);
+    assert.match(container.innerHTML, /Skicka kallelse/);
+    assert.match(container.innerHTML, /data-checklist-done[^>]* checked disabled/);
+    assert.doesNotMatch(container.innerHTML, /data-add-event-checklist|data-add-checklist-task|data-remove-checklist-task/);
+    await saveEvent(page, checklistValues({ title: "Hajk", start_date: "2026-10-20", end_date: "2026-10-21" }));
+    assert.equal(page.tables.arshjul[0].data.events[0].checklist[0].done, true);
+    await page.arrangements.save(arrangement({ checklist: [checklistTask({ text: "Packa tält", done: false })] }));
+    await settle();
+    openSingleEvent(page);
+    assert.match(container.innerHTML, /Packa tält/);
+    assert.doesNotMatch(container.innerHTML, /Skicka kallelse/);
+    await page.arrangements.save(arrangement({ checklist: [] }));
+    await settle();
+    openSingleEvent(page);
+    assert.equal(container.innerHTML, "");
+    assert.deepEqual(page.errors, []);
+});
+
+test("planning events without a source checklist never offer a local checklist", async () => {
+    const page = createPage({ wheels: [recurringWheel({ recurrence: null, source_planning_id: "plan", source_meeting_id: "meeting" })] });
+    await settle();
+    page.unlockEditing();
+    openSingleEvent(page);
+    assert.equal(checklistContainer(page).innerHTML, "");
+    assert.deepEqual(page.errors, []);
+});
+
+test("wheel-source chains carry templates and occurrence lists without editable copies", async () => {
+    const source = recurringWheel({
+        checklist: [checklistTask()],
+        occurrence_checklists: { "2026-11-15": [checklistTask({ done: true })] }
+    });
+    const target = {
+        ...wheel("target"), rings: [{
+            id: "arrangements", name: "Styrelse", color: "#123456",
+            sync_from_wheel: { wheel_id: source.id, ring_ids: ["arrangements"] }
+        }]
+    };
+    const page = createPage({ wheels: [source, target], defaultWheelId: "target" });
+    await settle();
+    page.unlockEditing();
+    openSingleEvent(page);
+    assert.match(checklistContainer(page).innerHTML, /data-checklist-done[^>]* checked disabled/);
+    assert.doesNotMatch(checklistContainer(page).innerHTML, /data-add-checklist-task/);
+    const copy = page.tables.arshjul.find(row => row.id === "target").data.events[0];
+    assert.equal(copy.occurrence_checklists["2026-11-15"][0].done, true);
+    assert.equal(copy.source_wheel_event_id, "cleanup");
+    assert.deepEqual(page.errors, []);
+});
+
+test("public checklist views are read-only and never create snapshots or writes", async () => {
+    const original = { ...recurringWheel({ checklist: [checklistTask()] }), share_token: "public-list" };
+    const page = createPage({ wheels: [original], signedIn: false, search: "?share=public-list" });
+    await settle();
+    openSingleEvent(page);
+    assert.match(checklistContainer(page).innerHTML, /Skicka kallelse/);
+    assert.match(checklistContainer(page).innerHTML, /data-checklist-done[^>]* disabled/);
+    assert.doesNotMatch(checklistContainer(page).innerHTML, /data-add-checklist-task|data-add-event-checklist/);
+    assert.equal(page.requests.filter(request => request.operation === "upsert").length, 0);
+    assert.deepEqual(page.errors, []);
+});
+
+test("invalid saved checklist data is surfaced instead of silently discarded or saved", async () => {
+    for (const fields of [{ checklist: {} }, { checklist: [checklistTask({ text: "" })] }, { occurrence_checklists: { bad: [] } }]) {
+        const page = createPage({ wheels: [recurringWheel(fields)] });
+        await settle();
+        assert.match(page.elements.get("yearWheelSourceStatus").textContent, /Kunde inte läsa årshjulets data/);
+        assert.equal(page.elements.get("addYearWheelEventBtn").disabled, true);
+        assert.equal(page.requests.filter(request => request.operation === "upsert").length, 0);
+        assert.equal(page.errors.length, 1);
+    }
+});
+
 function createHelpers() {
     const source = readScript("arshjul.js");
     const context = vm.createContext({ crypto: globalThis.crypto, window: {} });
@@ -658,7 +963,10 @@ test("invalid recurrence input is shown as a form error, not saved as an ordinar
 });
 
 test("invalid or unsupported saved recurrence data is reported and cannot be overwritten", async () => {
-    for (const original of [recurringWheel({ recurrence: { type: "unknown" } }), { ...recurringWheel(), schema_version: 7 }]) {
+    for (const original of [
+        recurringWheel({ recurrence: { type: "unknown" } }), { ...recurringWheel(), schema_version: 8 },
+        { ...recurringWheel(), recurrence_format: 3 }
+    ]) {
         const page = createPage({ wheels: [original] });
         await settle();
         assert.match(page.elements.get("yearWheelSourceStatus").textContent, /Kunde inte läsa årshjulets data/);

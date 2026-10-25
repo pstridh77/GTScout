@@ -368,7 +368,9 @@
             if (!items.length) return "";
             return `<section class="month"><h2>${escapeHtml(formatDate(month.start, { month: "long", year: "numeric" }))}</h2>${items.map(event => {
                 const ring = ringById.get(event.ring_id);
-                return `<article class="event" style="--ring-color:${ring.color}"><div class="event-date">${escapeHtml(dateSpan(event))}<small>${escapeHtml(ring.name)}</small></div><div><h3>${escapeHtml(event.title)}</h3>${event.responsible ? `<p><strong>Ansvarig:</strong> ${escapeHtml(event.responsible)}</p>` : ""}${event.location ? `<p><strong>Plats:</strong> ${escapeHtml(event.location)}</p>` : ""}${event.notes ? `<p class="notes">${escapeHtml(event.notes)}</p>` : ""}${event.needs_review ? '<p class="review">Kopierad händelse – behöver kontrolleras</p>' : ""}</div></article>`;
+                const checklist = Array.isArray(event.checklist)
+                    ? `<h4>Att göra</h4><ul>${event.checklist.map(task => `<li>${task.done ? "[x]" : "[ ]"} ${escapeHtml(task.text)}${task.responsible ? ` – ${escapeHtml(task.responsible)}` : ""}</li>`).join("")}</ul>` : "";
+                return `<article class="event" style="--ring-color:${ring.color}"><div class="event-date">${escapeHtml(dateSpan(event))}<small>${escapeHtml(ring.name)}</small></div><div><h3>${escapeHtml(event.title)}</h3>${event.responsible ? `<p><strong>Ansvarig:</strong> ${escapeHtml(event.responsible)}</p>` : ""}${event.location ? `<p><strong>Plats:</strong> ${escapeHtml(event.location)}</p>` : ""}${event.notes ? `<p class="notes">${escapeHtml(event.notes)}</p>` : ""}${checklist}${event.needs_review ? '<p class="review">Kopierad händelse – behöver kontrolleras</p>' : ""}</div></article>`;
             }).join("")}</section>`;
         }).join("") || '<p class="empty">Inga händelser i den valda perioden.</p>';
     }

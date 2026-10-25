@@ -42,6 +42,7 @@
     let editingId = "";
     let editingOccurrenceDate = "";
     let recurrenceDraft = null;
+    let checklistDraft = null;
     let pendingEditScope = null;
     let unlockedWheelId = "";
     let wheelDraft = null;
@@ -82,7 +83,7 @@
 
     function normalizeWheel(input) {
         const wheel = input && typeof input === "object" ? input : {};
-        if (Number(wheel.schema_version) > 6 || Number(wheel.recurrence_format) > 1) {
+        if (Number(wheel.schema_version) > 7 || Number(wheel.recurrence_format) > 2) {
             throw new Error("Årshjulet använder ett nyare dataformat. Uppdatera sidan innan du fortsätter.");
         }
         const rings = Array.isArray(wheel.rings) ? wheel.rings.map(ring => ({
@@ -139,6 +140,8 @@
                 notes: normalizeText(event.notes, 2000),
                 recurrence: recurrence().normalizeRule(event.recurrence),
                 exceptions: recurrence().normalizeExceptions(event.exceptions),
+                checklist: recurrence().normalizeChecklist(event.checklist, Boolean(event.recurrence)),
+                occurrence_checklists: recurrence().normalizeOccurrenceChecklists(event.occurrence_checklists),
                 copied_from_id: String(event.copied_from_id || ""),
                 needs_review: Boolean(event.needs_review),
                 source_arrangement_id: String(event.source_arrangement_id || ""),
@@ -161,6 +164,7 @@
                 }
             };
         }).filter(event => event?.title) : [];
+        const hasChecklists = events.some(event => event.checklist !== null || Object.keys(event.occurrence_checklists).length);
         return {
             id: String(wheel.id || id()),
             name: String(wheel.name || "").trim().slice(0, 100),
@@ -168,8 +172,8 @@
             rings,
             events,
             share_token: String(wheel.share_token || "") || null,
-            schema_version: Math.max(events.some(event => event.recurrence) ? 6 : 5, Number(wheel.schema_version) || 0),
-            recurrence_format: 1,
+            schema_version: Math.max(hasChecklists ? 7 : events.some(event => event.recurrence) ? 6 : 5, Number(wheel.schema_version) || 0),
+            recurrence_format: Math.max(hasChecklists ? 2 : 1, Number(wheel.recurrence_format) || 1),
             created_by: wheel.created_by || null,
             local_kar_id: wheel.local_kar_id || null,
             updated_at: wheel.updated_at || null,
@@ -442,6 +446,8 @@
                 .join(", "), 100);
             const location = normalizeText(arrangement.location, 120);
             const notes = normalizeText(arrangement.notes, 2000);
+            const sourceChecklist = recurrence().normalizeChecklist(arrangement.checklist);
+            const checklist = sourceChecklist?.length ? sourceChecklist : null;
             const sourceFields = {
                 responsible: Boolean(responsible),
                 location: Boolean(location),
@@ -460,6 +466,7 @@
                     responsible,
                     location,
                     notes,
+                    checklist,
                     source_arrangement_fields: sourceFields,
                     source_arrangement_id: arrangementId
                 });
@@ -480,12 +487,14 @@
                 responsible: syncedValue("responsible", responsible),
                 location: syncedValue("location", location),
                 notes: syncedValue("notes", notes),
+                checklist,
                 source_arrangement_fields: sourceFields
             };
             if (existing.ring_id === updated.ring_id && existing.title === updated.title
                 && existing.start_date === updated.start_date && existing.end_date === updated.end_date
                 && existing.responsible === updated.responsible && existing.location === updated.location
                 && existing.notes === updated.notes
+                && JSON.stringify(existing.checklist) === JSON.stringify(updated.checklist)
                 && Boolean(previousSources.responsible) === sourceFields.responsible
                 && Boolean(previousSources.location) === sourceFields.location
                 && Boolean(previousSources.notes) === sourceFields.notes) return;
@@ -560,6 +569,8 @@
                 const responsible = normalizeText(meeting.responsible, 100);
                 const location = normalizeText(meeting.location, 120);
                 const notes = normalizeText(meeting.notes, 2000);
+                const sourceChecklist = recurrence().normalizeChecklist(meeting.checklist);
+                const checklist = sourceChecklist?.length ? sourceChecklist : null;
                 const sourceFields = {
                     responsible: Boolean(responsible),
                     location: Boolean(location),
@@ -579,6 +590,7 @@
                         responsible,
                         location,
                         notes,
+                        checklist,
                         source_planning_id: planId,
                         source_meeting_id: meetingId,
                         source_planning_fields: sourceFields
@@ -599,11 +611,13 @@
                     responsible: syncedValue("responsible", responsible),
                     location: syncedValue("location", location),
                     notes: syncedValue("notes", notes),
+                    checklist,
                     source_planning_fields: sourceFields
                 };
                 if (existing.title === updated.title && existing.start_date === updated.start_date
                     && existing.end_date === updated.end_date && existing.responsible === updated.responsible
                     && existing.location === updated.location && existing.notes === updated.notes
+                    && JSON.stringify(existing.checklist) === JSON.stringify(updated.checklist)
                     && Boolean(previousSources.responsible) === sourceFields.responsible
                     && Boolean(previousSources.location) === sourceFields.location
                     && Boolean(previousSources.notes) === sourceFields.notes) return;
@@ -1208,6 +1222,8 @@
             source_arrangement_id: "",
             source_arrangement_fields: {}
         };
+        copiedEvent.checklist = copyChecklist(event.checklist);
+        copiedEvent.occurrence_checklists = {};
         const updated = normalizeWheel({ ...wheel, events: [...wheel.events, copiedEvent] });
         wheels = wheels.map(item => item.id === wheel.id ? updated : item);
         selectedRingIds.add(copiedEvent.ring_id);
@@ -1490,6 +1506,7 @@
         editingId = "";
         editingOccurrenceDate = "";
         recurrenceDraft = null;
+        checklistDraft = null;
         wheelDraft = null;
     }
 
@@ -2023,6 +2040,7 @@
         byId("yearWheelRecurrenceModal").classList.add("hidden");
         byId("yearWheelModal").classList.remove("hidden");
         updateRecurrenceChoice();
+        renderEventChecklist(false, Boolean(recurrenceDraft));
         byId("yearWheelFormFields").querySelector(recurrenceDraft ? "[data-edit-recurrence]" : '[name="recurring"]').focus();
     }
 
@@ -2042,11 +2060,105 @@
         closeRecurrenceDialog();
     }
 
+    function copyChecklist(checklist) {
+        return recurrence().normalizeChecklist(checklist, true)?.map(task => ({ ...task, id: id() })) ?? null;
+    }
+
+    function renderEventChecklist(readOnly, template) {
+        const container = byId("yearWheelFormFields").querySelector("[data-event-checklist]");
+        if (checklistDraft === null) {
+            container.innerHTML = readOnly ? "" : '<button type="button" class="btn-secondary" data-add-event-checklist>Lägg till att göra-lista</button>';
+            if (!readOnly) container.querySelector("[data-add-event-checklist]").addEventListener("click", () => {
+                checklistDraft = [];
+                renderEventChecklist(false, template);
+            });
+            return;
+        }
+        const series = currentWheel()?.events.find(item => item.id === editingId);
+        const help = readOnly ? "Listan är skrivskyddad. Synkade listor ändras i källan."
+            : template ? "Grundlista för serien. Varje tillfälle börjar utan avprickningar. Sparade tillfälleslistor påverkas inte av ändringar här."
+                : editingOccurrenceDate ? "Listan och avprickningarna gäller bara detta tillfälle."
+                    : "Listan sparas med händelsen.";
+        container.innerHTML = `<details class="arrangement-checklist-overview year-wheel-checklist" aria-label="Att göra" open>
+            <summary class="arrangement-section-summary"><strong>${template ? "Att göra – grundlista" : "Att göra"}</strong><span>${checklistDraft.length}</span></summary>
+            <div class="arrangement-checklist-content">
+            ${checklistDraft.length ? `<ul class="arrangement-checklist-list">${checklistDraft.map((task, index) => `<li class="arrangement-checklist-item${task.done && !template ? " arrangement-checklist-item--done" : ""}" data-checklist-row="${index}">
+                <label${readOnly ? "" : ' class="year-wheel-checklist-check"'}><input type="checkbox" data-checklist-done aria-label="Klar: ${escapeHtml(task.text)}"${task.done && !template ? " checked" : ""}${readOnly || template ? " disabled" : ""}>
+                ${readOnly ? `<span>${escapeHtml(task.text)}</span>` : ""}</label>
+                ${!readOnly ? `<input class="year-wheel-checklist-text" data-checklist-text aria-label="Uppgift" maxlength="160" required value="${escapeHtml(task.text)}">` : ""}
+                ${readOnly ? task.responsible ? `<span class="year-wheel-checklist-responsible">${escapeHtml(task.responsible)}</span>` : "" : `<input class="year-wheel-checklist-responsible" data-checklist-responsible aria-label="Ansvarig (valfritt)" placeholder="Ansvarig" maxlength="100" value="${escapeHtml(task.responsible)}">`}
+                ${!readOnly ? '<button type="button" class="arrangement-checklist-remove" data-remove-checklist-task aria-label="Ta bort uppgift" title="Ta bort uppgift">&times;</button>' : ""}
+            </li>`).join("")}</ul>` : '<p class="arrangement-checklist-empty">Inga uppgifter tillagda.</p>'}
+            ${!readOnly ? `<div class="arrangement-checklist-add">
+                <input type="text" data-new-checklist-task maxlength="160" placeholder="Ny uppgift" aria-label="Ny uppgift">
+                <button type="button" class="btn-secondary" data-add-checklist-task>Lägg till</button>
+            </div>
+            <details class="year-wheel-checklist-settings"><summary>Inställningar för listan</summary>
+                <p class="year-wheel-dialog-help">${help}</p>
+                <div class="year-wheel-checklist-actions">
+                ${editingOccurrenceDate && series?.checklist !== null ? '<button type="button" class="btn-secondary" data-reset-checklist>Hämta senaste grundlistan</button>' : ""}
+                <button type="button" class="btn-secondary" data-remove-event-checklist>Ta bort att göra-listan</button>
+                </div>
+            </details>` : ""}
+            </div>
+        </details>`;
+        if (readOnly) return;
+        checklistDraft.forEach((task, index) => {
+            const row = container.querySelector(`[data-checklist-row="${index}"]`);
+            row.querySelector("[data-checklist-done]").addEventListener("change", event => {
+                task.done = !template && event.target.checked;
+                row.classList.toggle("arrangement-checklist-item--done", task.done);
+            });
+            row.querySelector("[data-checklist-text]").addEventListener("input", event => {
+                task.text = event.target.value;
+            });
+            row.querySelector("[data-checklist-responsible]").addEventListener("input", event => {
+                task.responsible = event.target.value;
+            });
+            row.querySelector("[data-remove-checklist-task]").addEventListener("click", () => {
+                checklistDraft.splice(index, 1);
+                renderEventChecklist(false, template);
+            });
+        });
+        const newTaskInput = container.querySelector("[data-new-checklist-task]");
+        const addTask = () => {
+            const text = newTaskInput.value.trim();
+            if (!text) {
+                byId("yearWheelFormMessage").textContent = "Ange en uppgiftstext.";
+                byId("yearWheelFormMessage").classList.remove("hidden");
+                newTaskInput.focus();
+                return;
+            }
+            byId("yearWheelFormMessage").classList.add("hidden");
+            checklistDraft.push({ id: id(), text, responsible: "", done: false });
+            renderEventChecklist(false, template);
+            container.querySelector("[data-new-checklist-task]").focus();
+        };
+        container.querySelector("[data-add-checklist-task]").addEventListener("click", addTask);
+        newTaskInput.addEventListener("keydown", event => {
+            if (event.key !== "Enter") return;
+            event.preventDefault();
+            addTask();
+        });
+        container.querySelector("[data-remove-event-checklist]").addEventListener("click", () => {
+            if (!window.confirm("Ta bort att göra-listan här? Sparade listor för andra tillfällen behålls.")) return;
+            checklistDraft = null;
+            renderEventChecklist(false, template);
+        });
+        if (editingOccurrenceDate && series?.checklist !== null) {
+            container.querySelector("[data-reset-checklist]").addEventListener("click", () => {
+                if (!window.confirm("Ersätt tillfällets lista med senaste grundlistan? Egna ändringar och avprickningar tas bort när du sparar.")) return;
+                checklistDraft = recurrence().normalizeChecklist(series.checklist, true);
+                renderEventChecklist(false, false);
+            });
+        }
+    }
+
     function restoreOccurrence(seriesId, date) {
         const wheel = currentWheel();
         const series = wheel?.events.find(item => item.id === seriesId);
         if (!canEdit() || !series?.recurrence || series.source_wheel_id) return;
-        if (!window.confirm("Återställ tillfället till seriens mönster?")) return;
+        if (!window.confirm("Återställ tillfället till seriens mönster? Att göra-listan behålls.")) return;
         const exceptions = { ...series.exceptions };
         delete exceptions[date];
         const updated = normalizeWheel({ ...wheel, events: wheel.events.map(item =>
@@ -2109,6 +2221,7 @@
         const date = initialDate || dateKey(period().start);
         const linkedSource = linkedArrangement || Boolean(event?.source_planning_id || event?.source_wheel_id);
         recurrenceDraft = event?.recurrence || null;
+        checklistDraft = recurrence().normalizeChecklist(event?.checklist);
         openModal(readOnly ? "Visa händelse" : series?.recurrence
             ? singleOccurrence ? "Redigera tillfälle" : "Redigera serie"
             : event ? "Redigera händelse" : "Lägg till händelse", `
@@ -2148,6 +2261,7 @@
                 <label class="modal-field"><span>Plats (valfritt)</span><input name="location" maxlength="120" value="${escapeHtml(event?.location || "")}" ${sourceFieldAttributes("location")}></label>
             </div>
             <label class="modal-field"><span>Anteckningar</span><textarea name="notes" rows="3" maxlength="2000" ${sourceFieldAttributes("notes")}>${escapeHtml(event?.notes || "")}</textarea></label>
+            <div data-event-checklist></div>
             ${!singleOccurrence && !linkedSource && !readOnly ? `
                 <label class="year-wheel-recurrence-choice"><input name="recurring" type="checkbox" ${recurrenceDraft ? "checked" : ""}> Återkommande</label>
                 <div class="year-wheel-recurrence-summary">
@@ -2161,6 +2275,7 @@
                 </details>` : ""}
         `, readOnly ? "event-view" : "event", seriesId);
         editingOccurrenceDate = singleOccurrence ? occurrenceDate : "";
+        renderEventChecklist(readOnly || linkedSource, Boolean(series?.recurrence && !singleOccurrence));
         byId("copyYearWheelEventBtn").classList.toggle("hidden", readOnly || !event || Boolean(event.recurrence));
         const deleteButton = byId("deleteYearWheelItemBtn");
         const deleteLabel = singleOccurrence ? "Ställ in tillfället" : series?.recurrence ? "Ta bort hela serien" : "Ta bort";
@@ -2185,6 +2300,7 @@
                     else {
                         recurrenceDraft = null;
                         updateRecurrenceChoice();
+                        renderEventChecklist(false, false);
                     }
                 });
                 fields.querySelector("[data-edit-recurrence]").addEventListener("click", openRecurrenceDialog);
@@ -2355,7 +2471,9 @@
                     copied_from_id: item.id,
                     needs_review: true,
                     source_arrangement_id: "",
-                    source_arrangement_fields: {}
+                    source_arrangement_fields: {},
+                    checklist: copyChecklist(item.checklist),
+                    occurrence_checklists: {}
                 } : null;
             });
             if (copies.some(item => !item)) {
@@ -2624,6 +2742,14 @@
                 byId("yearWheelFormMessage").classList.remove("hidden");
                 return;
             }
+            let checklist;
+            try {
+                checklist = recurrence().normalizeChecklist(checklistDraft, Boolean(recurrenceDraft && !editingOccurrenceDate));
+            } catch (error) {
+                byId("yearWheelFormMessage").textContent = `${error.message} Ange en uppgiftstext eller ta bort den tomma uppgiften.`;
+                byId("yearWheelFormMessage").classList.remove("hidden");
+                return;
+            }
             const startDate = String(value.start_date || "");
             const endDate = String(value.end_date || "");
             if (!isDate(startDate) || !isDate(endDate) || endDate < startDate) {
@@ -2657,7 +2783,15 @@
                 if (Object.keys(override).length) exceptions[editingOccurrenceDate] = override;
                 else delete exceptions[editingOccurrenceDate];
                 const updated = normalizeWheel({ ...wheel, events: wheel.events.map(item =>
-                    item.id === editingId ? { ...item, exceptions } : item) });
+                    item.id === editingId ? {
+                        ...item, exceptions,
+                        occurrence_checklists: {
+                            ...item.occurrence_checklists,
+                            ...(checklistDraft !== null || item.checklist !== null
+                                || Object.hasOwn(item.occurrence_checklists, editingOccurrenceDate)
+                                ? { [editingOccurrenceDate]: checklist } : {})
+                        }
+                    } : item) });
                 showEventInCurrentPeriod({ start_date: startDate, end_date: endDate });
                 wheels = wheels.map(item => item.id === wheel.id ? updated : item);
                 closeModal();
@@ -2676,6 +2810,13 @@
                 return;
             }
             let exceptions = previousEvent?.exceptions || {};
+            const occurrenceChecklists = previousEvent?.occurrence_checklists || {};
+            const candidate = { ...previousEvent, recurrence: rule, start_date: startDate, end_date: endDate, exceptions: {} };
+            if (Object.keys(occurrenceChecklists).some(date => !rule || !recurrence().occurrence(candidate, date))) {
+                byId("yearWheelFormMessage").textContent = "Ändringen skulle ta bort tillfällen med sparade att göra-listor. Behåll seriens datum och regel, eller skapa en ny serie.";
+                byId("yearWheelFormMessage").classList.remove("hidden");
+                return;
+            }
             if (Object.keys(exceptions).length && (JSON.stringify(rule) !== JSON.stringify(previousEvent.recurrence)
                 || startDate !== previousEvent.start_date)) {
                 if (!window.confirm("Ändringen av seriens mönster eller startdatum tar bort alla undantag, även inställda tillfällen. Fortsätta?")) return;
@@ -2694,6 +2835,9 @@
                 notes: String(value.notes || "").trim(),
                 recurrence: rule,
                 exceptions: rule ? exceptions : {},
+                checklist: previousEvent?.source_arrangement_id || previousEvent?.source_planning_id
+                    ? previousEvent.checklist : checklist,
+                occurrence_checklists: occurrenceChecklists,
                 copied_from_id: wheel.events.find(item => item.id === editingId)?.copied_from_id || "",
                 needs_review: false,
                 source_arrangement_id: wheel.events.find(item => item.id === editingId)?.source_arrangement_id || "",
