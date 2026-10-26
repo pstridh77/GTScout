@@ -239,12 +239,14 @@
                     const index = retained.findIndex(item => item.ring_id === ring.id
                         && item.source_wheel_id === source.id && item.source_wheel_event_id === event.id);
                     const existing = index < 0 ? null : retained[index];
+                    const hasCustomColor = event.color_variant === "custom"
+                        && /^#[0-9a-f]{6}$/i.test(event.color || "");
                     const copy = {
                         ...event,
                         id: existing?.id || id(),
                         ring_id: ring.id,
-                        color_variant: existing?.color_variant || "ring",
-                        color: existing?.color || "",
+                        color_variant: hasCustomColor ? "custom" : "ring",
+                        color: hasCustomColor ? event.color : "",
                         copied_from_id: "",
                         needs_review: false,
                         source_arrangement_id: "",

@@ -1417,6 +1417,34 @@ test("wheel source chains resolve in dependency order and cyclic or cross-troop 
     assert.doesNotThrow(() => helpers.syncWheelSources(cyclic));
 });
 
+test("wheel source events retain their own custom color when synced", async () => {
+    const helpers = createHelpers();
+    const { source, target } = linkedWheels();
+    source.events[0].color_variant = "custom";
+    source.events[0].color = "#d65b65";
+    const synced = helpers.syncWheelSources([target, source].map(item => helpers.normalizeWheel(item)));
+    const copy = synced[0].events.find(item => item.source_wheel_event_id === "meeting");
+    const uncoloredCopy = synced[0].events.find(item => item.source_wheel_event_id === "budget");
+
+    assert.equal(copy.color_variant, "custom");
+    assert.equal(copy.color, "#d65b65");
+    assert.equal(uncoloredCopy.color_variant, "ring");
+    assert.equal(uncoloredCopy.color, "");
+
+    const page = createPage({ wheels: [target, source] });
+    await settle();
+    assert.match(page.elements.get("yearWheelChart").innerHTML, /fill="#d65b65" class="year-wheel-event-arc"/);
+
+    const changedSource = helpers.normalizeWheel({
+        ...synced[1],
+        events: synced[1].events.map(event => event.id === "meeting" ? { ...event, color: "#654321" } : event)
+    });
+    const refreshed = helpers.syncWheelSources([synced[0], changedSource]);
+    const refreshedCopy = refreshed[0].events.find(item => item.source_wheel_event_id === "meeting");
+    assert.equal(refreshedCopy.color_variant, "custom");
+    assert.equal(refreshedCopy.color, "#654321");
+});
+
 test("missing wheel sources or rings preserve existing copies rather than treating failure as deletion", () => {
     const helpers = createHelpers();
     const { source, target } = linkedWheels();
