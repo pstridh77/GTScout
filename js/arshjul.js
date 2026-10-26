@@ -43,6 +43,7 @@
     let editingOccurrenceDate = "";
     let recurrenceDraft = null;
     let checklistDraft = null;
+    let checklistSortingEnabled = false;
     let pendingEditScope = null;
     let unlockedWheelId = "";
     let wheelDraft = null;
@@ -2082,11 +2083,16 @@
         container.innerHTML = `<details class="arrangement-checklist-overview year-wheel-checklist" aria-label="Att göra" open>
             <summary class="arrangement-section-summary"><strong>${template ? "Att göra – grundlista" : "Att göra"}</strong><span>${checklistDraft.length}</span></summary>
             <div class="arrangement-checklist-content">
-            ${checklistDraft.length ? `<ul class="arrangement-checklist-list">${checklistDraft.map((task, index) => `<li class="arrangement-checklist-item${task.done && !template ? " arrangement-checklist-item--done" : ""}" data-checklist-row="${index}">
+            ${checklistDraft.length ? `<ul class="arrangement-checklist-list">${checklistDraft.map((task, index) => `<li class="arrangement-checklist-item${!readOnly && checklistSortingEnabled ? " year-wheel-checklist-item--editable" : ""}${task.done && !template ? " arrangement-checklist-item--done" : ""}" data-checklist-row="${index}">
                 <label${readOnly ? "" : ' class="year-wheel-checklist-check"'}><input type="checkbox" data-checklist-done aria-label="Klar: ${escapeHtml(task.text)}"${task.done && !template ? " checked" : ""}${readOnly || template ? " disabled" : ""}>
                 ${readOnly ? `<span>${escapeHtml(task.text)}</span>` : ""}</label>
                 ${!readOnly ? `<input class="year-wheel-checklist-text" data-checklist-text aria-label="Uppgift" maxlength="160" required value="${escapeHtml(task.text)}">` : ""}
                 ${readOnly ? task.responsible ? `<span class="year-wheel-checklist-responsible">${escapeHtml(task.responsible)}</span>` : "" : `<input class="year-wheel-checklist-responsible" data-checklist-responsible aria-label="Ansvarig (valfritt)" placeholder="Ansvarig" maxlength="100" value="${escapeHtml(task.responsible)}">`}
+                ${!readOnly && checklistSortingEnabled ? `<span class="year-wheel-ring-order">
+                    <button class="year-wheel-ring-order-button" type="button" data-checklist-move-up aria-label="Flytta ${escapeHtml(task.text)} uppåt" title="Flytta uppåt"${index === 0 ? " disabled" : ""}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 14 6-6 6 6"/></svg></button>
+                    <button class="year-wheel-ring-order-button" type="button" data-checklist-move-down aria-label="Flytta ${escapeHtml(task.text)} nedåt" title="Flytta nedåt"${index === checklistDraft.length - 1 ? " disabled" : ""}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 10 6 6 6-6"/></svg></button>
+                </span>
+                <span class="year-wheel-ring-drag-handle" draggable="true" data-checklist-drag-handle aria-hidden="true" title="Dra för att ändra ordning"><svg viewBox="0 0 24 24"><path d="M9 5h.01M15 5h.01M9 12h.01M15 12h.01M9 19h.01M15 19h.01"/></svg></span>` : ""}
                 ${!readOnly ? '<button type="button" class="arrangement-checklist-remove" data-remove-checklist-task aria-label="Ta bort uppgift" title="Ta bort uppgift">&times;</button>' : ""}
             </li>`).join("")}</ul>` : '<p class="arrangement-checklist-empty">Inga uppgifter tillagda.</p>'}
             ${!readOnly ? `<div class="arrangement-checklist-add">
@@ -2095,6 +2101,7 @@
             </div>
             <details class="year-wheel-checklist-settings"><summary>Inställningar för listan</summary>
                 <p class="year-wheel-dialog-help">${help}</p>
+                <label class="year-wheel-arrangement-sync"><input type="checkbox" data-checklist-enable-sorting${checklistSortingEnabled ? " checked" : ""}> Aktivera sortering</label>
                 <div class="year-wheel-checklist-actions">
                 ${editingOccurrenceDate && series?.checklist !== null ? '<button type="button" class="btn-secondary" data-reset-checklist>Hämta senaste grundlistan</button>' : ""}
                 <button type="button" class="btn-secondary" data-remove-event-checklist>Ta bort att göra-listan</button>
@@ -2103,8 +2110,56 @@
             </div>
         </details>`;
         if (readOnly) return;
+        container.querySelector("[data-checklist-enable-sorting]").addEventListener("change", event => {
+            const newTaskText = container.querySelector("[data-new-checklist-task]").value;
+            checklistSortingEnabled = event.target.checked;
+            renderEventChecklist(false, template);
+            container.querySelector("[data-new-checklist-task]").value = newTaskText;
+            container.querySelector(".year-wheel-checklist-settings").open = true;
+            container.querySelector("[data-checklist-enable-sorting]").focus();
+        });
+        let draggedIndex = null;
+        const moveTask = (from, to, focusSelector) => {
+            if (!checklistSortingEnabled || from === to || to < 0 || to >= checklistDraft.length) return;
+            const newTaskText = container.querySelector("[data-new-checklist-task]").value;
+            const [task] = checklistDraft.splice(from, 1);
+            checklistDraft.splice(to, 0, task);
+            renderEventChecklist(false, template);
+            container.querySelector("[data-new-checklist-task]").value = newTaskText;
+            const row = container.querySelector(`[data-checklist-row="${to}"]`);
+            row.querySelector(focusSelector).focus();
+        };
         checklistDraft.forEach((task, index) => {
             const row = container.querySelector(`[data-checklist-row="${index}"]`);
+            if (checklistSortingEnabled) {
+                row.querySelector("[data-checklist-move-up]").addEventListener("click", () => {
+                    moveTask(index, index - 1, index === 1 ? "[data-checklist-move-down]" : "[data-checklist-move-up]");
+                });
+                row.querySelector("[data-checklist-move-down]").addEventListener("click", () => {
+                    moveTask(index, index + 1, index === checklistDraft.length - 2 ? "[data-checklist-move-up]" : "[data-checklist-move-down]");
+                });
+                const handle = row.querySelector("[data-checklist-drag-handle]");
+                handle.addEventListener("dragstart", event => {
+                    draggedIndex = index;
+                    if (event.dataTransfer) {
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData("text/plain", task.id);
+                    }
+                });
+                handle.addEventListener("dragend", () => { draggedIndex = null; });
+                row.addEventListener("dragover", event => {
+                    if (draggedIndex === null) return;
+                    event.preventDefault();
+                    if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+                });
+                row.addEventListener("drop", event => {
+                    if (draggedIndex === null) return;
+                    event.preventDefault();
+                    const from = draggedIndex;
+                    draggedIndex = null;
+                    moveTask(from, index, "[data-checklist-text]");
+                });
+            }
             row.querySelector("[data-checklist-done]").addEventListener("change", event => {
                 task.done = !template && event.target.checked;
                 row.classList.toggle("arrangement-checklist-item--done", task.done);
@@ -2222,6 +2277,7 @@
         const linkedSource = linkedArrangement || Boolean(event?.source_planning_id || event?.source_wheel_id);
         recurrenceDraft = event?.recurrence || null;
         checklistDraft = recurrence().normalizeChecklist(event?.checklist);
+        checklistSortingEnabled = false;
         openModal(readOnly ? "Visa händelse" : series?.recurrence
             ? singleOccurrence ? "Redigera tillfälle" : "Redigera serie"
             : event ? "Redigera händelse" : "Lägg till händelse", `

@@ -344,6 +344,155 @@ function openSingleEvent(page) {
     page.elements.get("yearWheelChart").querySelectorAll("[data-event-edit]")[0].handlers.click();
 }
 
+function setChecklistSorting(page, enabled = true) {
+    checklistContainer(page).querySelector("[data-checklist-enable-sorting]").handlers.change({ target: { checked: enabled } });
+}
+
+function dragChecklistTask(page, from, to) {
+    const handle = checklistRow(page, from).querySelector("[data-checklist-drag-handle]");
+    const dataTransfer = { setData(type, value) { this[type] = value; } };
+    let prevented = 0;
+    const event = { dataTransfer, preventDefault() { prevented++; } };
+    handle.handlers.dragstart(event);
+    assert.equal(dataTransfer.effectAllowed, "move");
+    checklistRow(page, to).handlers.dragover(event);
+    assert.equal(dataTransfer.dropEffect, "move");
+    checklistRow(page, to).handlers.drop(event);
+    handle.handlers.dragend();
+    assert.equal(prevented, 2);
+}
+
+test("one-off checklist arrows and dragging preserve task data, save order and allow cancelling", async () => {
+    const tasks = [
+        checklistTask(),
+        checklistTask({ id: "task-2", text: "Boka stuga", responsible: "Bo", done: true }),
+        checklistTask({ id: "task-3", text: "Packa tält", responsible: "" })
+    ];
+    const original = recurringWheel({ recurrence: null, checklist: tasks });
+    const page = createPage({ wheels: [original] });
+    await settle();
+    page.unlockEditing();
+    openSingleEvent(page);
+    const container = checklistContainer(page);
+    assert.doesNotMatch(container.innerHTML, /data-checklist-move-up|data-checklist-drag-handle/);
+    setChecklistSorting(page);
+    assert.match(container.innerHTML, /data-checklist-move-up[^>]* disabled/);
+    assert.match(container.innerHTML, /data-checklist-drag-handle/);
+    const newTask = container.querySelector("[data-new-checklist-task]");
+    newTask.value = "Inte tillagd ännu";
+    changeChecklistField(page, "text", "Boka ny lokal", 1);
+    checklistRow(page, 0).querySelector("[data-checklist-move-down]").handlers.click();
+    assert.equal(newTask.value, "Inte tillagd ännu");
+    checklistRow(page, 2).querySelector("[data-checklist-move-up]").handlers.click();
+    dragChecklistTask(page, 0, 2);
+    dragChecklistTask(page, 2, 0);
+    assert.deepEqual(page.tables.arshjul[0].data.events[0].checklist, tasks, "Sorting remains a draft");
+    await saveEvent(page, checklistValues());
+    const expected = [{ ...tasks[1], text: "Boka ny lokal" }, tasks[2], tasks[0]];
+    assert.deepEqual(page.tables.arshjul[0].data.events[0].checklist, expected);
+    const reload = createPage({ wheels: [page.tables.arshjul[0].data] });
+    await settle();
+    reload.unlockEditing();
+    openSingleEvent(reload);
+    assert.ok(checklistContainer(reload).innerHTML.indexOf('value="Boka ny lokal"') < checklistContainer(reload).innerHTML.indexOf('value="Packa tält"'));
+    setChecklistSorting(reload);
+    dragChecklistTask(reload, 0, 2);
+    reload.elements.get("closeYearWheelModal").handlers.click();
+    openSingleEvent(reload);
+    await saveEvent(reload, checklistValues());
+    assert.deepEqual(reload.tables.arshjul[0].data.events[0].checklist, expected, "Closing discards the reordered draft");
+    assert.deepEqual([...page.errors, ...reload.errors], []);
+});
+
+test("series and occurrence checklist orders are independent and survive reload", async () => {
+    const tasks = [
+        checklistTask(),
+        checklistTask({ id: "task-2", text: "Boka stuga", responsible: "Bo" }),
+        checklistTask({ id: "task-3", text: "Packa tält", responsible: "" })
+    ];
+    const page = createPage({ wheels: [recurringWheel({ checklist: tasks })] });
+    await settle();
+    page.unlockEditing();
+    openOccurrence(page, "2026-11-15");
+    setChecklistSorting(page);
+    changeChecklistField(page, "done", true, 2);
+    dragChecklistTask(page, 2, 0);
+    await saveEvent(page, checklistValues({ start_date: "2026-11-15", end_date: "2026-11-15" }));
+    const occurrenceTasks = [{ ...tasks[2], done: true }, tasks[0], tasks[1]];
+    assert.deepEqual(page.tables.arshjul[0].data.events[0].checklist, tasks);
+    assert.deepEqual(page.tables.arshjul[0].data.events[0].occurrence_checklists["2026-11-15"], occurrenceTasks);
+    openOccurrence(page, "2026-11-15", "series");
+    setChecklistSorting(page);
+    checklistRow(page, 1).querySelector("[data-checklist-move-up]").handlers.click();
+    dragChecklistTask(page, 2, 1);
+    await saveEvent(page, checklistValues());
+    const saved = page.tables.arshjul[0].data;
+    assert.deepEqual(saved.events[0].checklist, [tasks[1], tasks[2], tasks[0]]);
+    assert.deepEqual(saved.events[0].occurrence_checklists["2026-11-15"], occurrenceTasks);
+    const reload = createPage({ wheels: [saved] });
+    await settle();
+    reload.unlockEditing();
+    openOccurrence(reload, "2026-11-15");
+    assert.ok(checklistContainer(reload).innerHTML.indexOf('value="Packa tält"') < checklistContainer(reload).innerHTML.indexOf('value="Skicka kallelse"'));
+    reload.elements.get("closeYearWheelModal").handlers.click();
+    selectYear(reload, 2027);
+    openOccurrence(reload, "2027-11-21");
+    await saveEvent(reload, checklistValues({ start_date: "2027-11-21", end_date: "2027-11-21" }));
+    assert.deepEqual(reload.tables.arshjul[0].data.events[0].occurrence_checklists["2027-11-21"], [tasks[1], tasks[2], tasks[0]]);
+    assert.deepEqual([...page.errors, ...reload.errors], []);
+});
+
+test("checklist sorting controls are absent when locked, for readers and on synced events", async () => {
+    for (const options of [
+        {},
+        { leader: false },
+        { arrangements: [arrangement({ checklist: [checklistTask()] })] },
+        { signedIn: false, search: "?share=public-sort" }
+    ]) {
+        const page = createPage({ wheels: [{ ...recurringWheel({ checklist: [checklistTask()] }), share_token: "public-sort" }], ...options });
+        await settle();
+        if (options.arrangements) page.unlockEditing();
+        openSingleEvent(page);
+        assert.doesNotMatch(checklistContainer(page).innerHTML, /data-checklist-move-up|data-checklist-move-down|data-checklist-drag-handle|data-checklist-enable-sorting/);
+        assert.deepEqual(page.errors, []);
+    }
+});
+
+test("sorting is opt-in per dialog and toggling preserves task edits and unadded text", async () => {
+    const page = createPage({ wheels: [recurringWheel({ recurrence: null, checklist: [
+        checklistTask(), checklistTask({ id: "task-2", text: "Boka stuga" })
+    ] })] });
+    await settle();
+    page.unlockEditing();
+    openSingleEvent(page);
+    const container = checklistContainer(page);
+    assert.match(container.innerHTML, /data-checklist-enable-sorting>/);
+    assert.doesNotMatch(container.innerHTML, /draggable="true"|data-checklist-move-/);
+    changeChecklistField(page, "text", "Ny uppgiftstext");
+    changeChecklistField(page, "responsible", "Bo");
+    changeChecklistField(page, "done", true);
+    container.querySelector("[data-new-checklist-task]").value = "Inte tillagd";
+    setChecklistSorting(page);
+    assert.match(container.innerHTML, /data-checklist-enable-sorting checked/);
+    assert.equal(container.querySelector(".year-wheel-checklist-settings").open, true);
+    checklistRow(page, 0).querySelector("[data-checklist-move-down]").handlers.click();
+    setChecklistSorting(page, false);
+    assert.doesNotMatch(container.innerHTML, /draggable="true"|data-checklist-move-/);
+    assert.equal(container.querySelector("[data-new-checklist-task]").value, "Inte tillagd");
+    assert.match(container.innerHTML, /value="Ny uppgiftstext"/);
+    assert.match(container.innerHTML, /data-checklist-done[^>]* checked/);
+    setChecklistSorting(page);
+    await saveEvent(page, checklistValues());
+    const tasks = page.tables.arshjul[0].data.events[0].checklist;
+    assert.deepEqual(tasks.map(task => task.id), ["task-2", "task-1"]);
+    assert.equal(tasks[1].text, "Ny uppgiftstext");
+    assert.equal(tasks[1].responsible, "Bo");
+    assert.equal(tasks[1].done, true);
+    openSingleEvent(page);
+    assert.doesNotMatch(container.innerHTML, /draggable="true"|data-checklist-move-|data-checklist-enable-sorting checked/);
+    assert.deepEqual(page.errors, []);
+});
+
 test("checklists are opt-in, remain drafts until saving and support empty enabled lists", async () => {
     const page = createPage({ wheels: [wheel()] });
     await settle();
