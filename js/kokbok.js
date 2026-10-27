@@ -542,16 +542,21 @@ function closeRecipeModal() { recipeModal.classList.add("hidden"); editingRecipe
 
 async function saveRecipe(event) {
     event.preventDefault();
+    const submitButton = recipeForm.querySelector('[type="submit"]');
+    if (submitButton.disabled) return;
     const ingredienser_skalningar = readIngredientRows();
     const ingredienser = ingredienser_skalningar.map(row => `${row.mangder?.["4"] || ""} ${row.namn}`.trim());
     const recipe = { id: editingRecipeId || crypto.randomUUID(), namn: document.getElementById("recipeName").value.trim(), kategori: document.getElementById("recipeCategory").value.trim() || "Övrigt", portioner: 4, tid: document.getElementById("recipeTime").value.trim(), svarighet: document.getElementById("recipeDifficulty").value, beskrivning: document.getElementById("recipeDescription").value.trim(), ingredienser, ingredienser_skalningar, instruktioner: document.getElementById("recipeInstructions").value.trim() };
     if (!ingredienser_skalningar.length || !recipe.instruktioner) { recipeFormStatus.textContent = "Lägg till minst en ingrediens och fyll i instruktioner."; return; }
+    submitButton.disabled = true;
+    recipeFormStatus.textContent = "Sparar recept…";
     try {
         const result = await window.GTScoutCookbook.save(recipe);
         recipes = window.GTScoutCookbook.getAll();
         populateRecipeFilters(); renderRecipes(); closeRecipeModal();
         setRecipeStatus(result.localOnly ? "Sparat lokalt i den här webbläsaren." : "Receptet sparades i databasen.");
     } catch (error) { recipeFormStatus.textContent = error.message || "Receptet kunde inte sparas."; }
+    finally { submitButton.disabled = false; }
 }
 
 async function deleteRecipe() {

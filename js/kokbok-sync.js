@@ -69,15 +69,25 @@
     }
 
     async function save(recipe) {
-        const next = normalize({ ...recipe, kar_id: karId(), created_by: recipe.created_by || auth().getUser()?.id || null });
+        const userId = auth()?.getUser()?.id || null;
+        const next = normalize({ ...recipe, kar_id: karId(), created_by: recipe.created_by || userId });
         const index = recipes.findIndex(item => item.id === next.id);
         if (index === -1) recipes.push(next); else recipes[index] = next;
         writeLocal();
         if (!canSync()) return { localOnly: true, recipe: next };
         const row = { id: next.id, kar_id: karId(), created_by: next.created_by, namn: next.namn, kategori: next.kategori || null, beskrivning: next.beskrivning || null, ingredienser: next.ingredienser, ingredienser_skalningar: next.ingredienser_skalningar, instruktioner: next.instruktioner, portioner: next.portioner, tid: next.tid || null, svarighet: next.svarighet };
-        const { error } = await client().from("kokbok_recept").upsert(row, { onConflict: "id" });
-        if (error) throw error;
-        return { recipe: next };
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                const { error } = await client().from("kokbok_recept").upsert(row, { onConflict: "id" });
+                if (error) throw error;
+                return { recipe: next };
+            } catch (error) {
+                const networkError = !error?.code && /^(TypeError:\s*)?(Load failed|Failed to fetch|NetworkError when attempting to fetch resource\.?)$/i.test(error?.message || "");
+                if (attempt > 0 || !networkError) throw error;
+                await new Promise(resolve => setTimeout(resolve, 500));
+                if (!canSync() || karId() !== row.kar_id || auth()?.getUser()?.id !== userId) throw error;
+            }
+        }
     }
 
     async function remove(id) {
