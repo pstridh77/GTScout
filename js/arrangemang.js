@@ -1033,7 +1033,7 @@ function renderArrangementMealSummary(item, canEdit = false) {
         .sort((left, right) => left.date.localeCompare(right.date) || (left.time || "99:99").localeCompare(right.time || "99:99"))
         .forEach(entry => {
             const mealRecipes = [...new Set(getMealRecipeIds(entry)
-                .map(id => recipes.find(recipe => String(recipe.id) === id)?.namn)
+                .map(id => getMealRecipeName(entry, id))
                 .filter(Boolean))];
             const mealType = entry.meal_type || entry.title || "Måltid";
             const mealContents = mealRecipes.length
@@ -1054,7 +1054,8 @@ function renderArrangementMealSummary(item, canEdit = false) {
                 : "receptets grundantal";
             const recipeLinks = [...new Set(getMealRecipeIds(entry))].map(id => {
                 const recipe = recipes.find(recipe => String(recipe.id) === id);
-                return recipe ? `<a class="arrangement-meal-recipe-link" href="${escapeArrangementHtml(getArrangementRecipeUrl(item, id, entry))}" title="Visa ${escapeArrangementHtml(recipe.namn)} för ${escapeArrangementHtml(servingLabel)}">${escapeArrangementHtml(recipe.namn)}</a>` : "";
+                const recipeName = getMealRecipeName(entry, id);
+                return recipe ? `<a class="arrangement-meal-recipe-link" href="${escapeArrangementHtml(getArrangementRecipeUrl(item, id, entry))}" title="Visa ${escapeArrangementHtml(recipe.namn)} för ${escapeArrangementHtml(servingLabel)}">${escapeArrangementHtml(recipeName)}</a>` : "";
             }).filter(Boolean);
             const editRecipeMeal = canEdit && recipeLinks.length
                 ? `<button class="btn-secondary arrangement-edit-details-icon arrangement-meal-edit" type="button" data-edit-agenda="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}" aria-label="Redigera måltid: ${mealLabel}" title="Redigera eller ta bort måltid"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/></svg></button>`
@@ -1088,7 +1089,7 @@ function renderScheduleEntry(entry, departmentIndex = null, arrangementId = "", 
     const leadersOnly = entry.kind !== "meal" && Boolean(entry.leaders_only);
     const formattedTime = /^\d{2}:\d{2}$/.test(entry.time || "") ? `${Number(entry.time.slice(0, 2))}:${entry.time.slice(3)}` : "";
     const mealRecipes = entry.kind === "meal"
-        ? [...new Set(getMealRecipeIds(entry).map(id => recipes.find(recipe => String(recipe.id) === id)?.namn).filter(Boolean))]
+        ? [...new Set(getMealRecipeIds(entry).map(id => getMealRecipeName(entry, id)).filter(Boolean))]
         : [];
     const mealType = mealRecipes.length
         ? ` (${mealRecipes.map(escapeArrangementHtml).join(", ")})`
@@ -1121,9 +1122,10 @@ function showReadonlyAgendaEntryDetail(item, entry, trigger) {
     const mealDetails = entry.kind === "meal"
         ? `${mealRecipeIds.length ? `<h3>Recept</h3><ul>${mealRecipeIds.map(id => {
             const recipe = recipes.find(candidate => String(candidate.id) === id);
+            const recipeName = getMealRecipeName(entry, id);
             return recipe
-                ? `<li><button type="button" class="arrangement-entry-detail-recipe" data-agenda-detail-recipe="${escapeArrangementHtml(id)}">${escapeArrangementHtml(recipe.namn)}</button></li>`
-                : `<li>${escapeArrangementHtml(id)} (receptet finns inte längre i biblioteket)</li>`;
+                ? `<li><button type="button" class="arrangement-entry-detail-recipe" data-agenda-detail-recipe="${escapeArrangementHtml(id)}">${escapeArrangementHtml(recipeName)}</button></li>`
+                : `<li>${escapeArrangementHtml(recipeName || id)} (receptet finns inte längre i biblioteket)</li>`;
         }).join("")}</ul>` : "<p>Inget recept är kopplat till måltiden.</p>"}`
         : "";
     const title = entry.kind === "activity" ? activity?.namn || entry.title || "Aktivitet" : entry.title || mealLabel;
@@ -1339,6 +1341,18 @@ function getMealRecipeIds(entry) {
     return entry.source_type === "recipe" && entry.source_id ? [String(entry.source_id)] : [];
 }
 
+function getMealRecipeName(entry, id) {
+    const alias = String(entry.recipe_aliases?.[id] || "").trim();
+    return alias || recipes.find(recipe => String(recipe.id) === id)?.namn || "";
+}
+
+function renderMealRecipeAliasFields(recipeIds, aliases = {}) {
+    return recipeIds.map(id => {
+        const recipeName = recipes.find(recipe => String(recipe.id) === id)?.namn || "Tidigare recept";
+        return `<label class="agenda-entry-field agenda-entry-recipe-alias"><span>Alternativt namn för ${escapeArrangementHtml(recipeName)}</span><input type="text" data-recipe-alias="${escapeArrangementHtml(id)}" maxlength="160" value="${escapeArrangementHtml(aliases[id] || "")}" placeholder="${escapeArrangementHtml(recipeName)}"></label>`;
+    }).join("");
+}
+
 function renderMealRecipePicker(entry) {
     const selectedIds = getMealRecipeIds(entry);
     const groups = new Map();
@@ -1371,7 +1385,7 @@ function renderMealRecipePicker(entry) {
         return `<details class="agenda-recipe-category"${hasSelectedRecipes ? " open" : ""}><summary>${escapeArrangementHtml(category)}</summary>${recipeChoices}</details>`;
     }).join("");
     const emptyMessage = groups.size ? "" : "<small>Inga recept i kokboken ännu. Du kan ändå skriva ett eget namn.</small>";
-    return `<div class="agenda-recipe-picker"><span>Recept</span><label class="agenda-recipe-search-field"><span>Sök recept</span><input class="agenda-recipe-search" type="search" placeholder="Börja skriva ett receptnamn" autocomplete="off"></label><div class="agenda-recipe-selection"><span class="agenda-recipe-summary" role="status" aria-live="polite"></span><button class="agenda-recipe-clear" type="button" data-clear-agenda-recipes>Rensa val</button></div><div class="agenda-recipe-options" role="group" aria-label="Recept">${groupMarkup}</div><small class="agenda-recipe-no-results hidden" role="status">Inga recept matchar sökningen.</small>${emptyMessage}</div>`;
+    return `<div class="agenda-recipe-picker"><span>Recept</span><label class="agenda-recipe-search-field"><span>Sök recept</span><input class="agenda-recipe-search" type="search" placeholder="Börja skriva ett receptnamn" autocomplete="off"></label><div class="agenda-recipe-selection"><span class="agenda-recipe-summary" role="status" aria-live="polite"></span><button class="agenda-recipe-clear" type="button" data-clear-agenda-recipes>Rensa val</button></div><div class="agenda-recipe-options" role="group" aria-label="Recept">${groupMarkup}</div><div class="agenda-recipe-aliases">${renderMealRecipeAliasFields(selectedIds, entry.recipe_aliases)}</div><small class="agenda-recipe-no-results hidden" role="status">Inga recept matchar sökningen.</small>${emptyMessage}</div>`;
 }
 
 function updateMealRecipePicker(picker) {
@@ -1381,6 +1395,10 @@ function updateMealRecipePicker(picker) {
     options.forEach(option => { option.hidden = !option.textContent.toLocaleLowerCase("sv").includes(query); });
     const selectedOptions = options.filter(option => option.querySelector(".agenda-recipe-target")?.checked);
     const selectedNames = selectedOptions.map(option => option.querySelector("span")?.textContent.trim()).filter(Boolean);
+    const aliases = Object.fromEntries([...picker.querySelectorAll("[data-recipe-alias]")].map(input => [input.dataset.recipeAlias, input.value]));
+    const selectedIds = selectedOptions.map(option => option.querySelector(".agenda-recipe-target").value);
+    const aliasFields = picker.querySelector(".agenda-recipe-aliases");
+    if (aliasFields) aliasFields.innerHTML = renderMealRecipeAliasFields(selectedIds, aliases);
     const summary = picker.querySelector(".agenda-recipe-summary");
     if (summary) {
         const previewNames = selectedNames.slice(0, 3).join(", ");
@@ -1400,6 +1418,14 @@ function updateMealRecipePicker(picker) {
         group.hidden = !hasVisibleRecipes;
         group.open = query ? hasVisibleRecipes : hasSelectedRecipes;
     });
+}
+
+function readMealRecipeAliases(picker, recipeIds) {
+    if (!picker) return {};
+    const selectedIds = new Set(recipeIds);
+    return Object.fromEntries([...picker.querySelectorAll("[data-recipe-alias]")]
+        .map(input => [input.dataset.recipeAlias, input.value.trim()])
+        .filter(([id, name]) => selectedIds.has(id) && name));
 }
 
 function appendAgendaLeadersOnlyField(container, entry) {
@@ -1571,6 +1597,7 @@ function readAgendaEntryDialog() {
         source_type: kind === "meal" ? recipeIds.length ? "recipe" : "" : sourceParts.length ? sourceType : "",
         source_id: kind === "meal" ? recipeIds[0] || "" : sourceParts.join(":"),
         recipe_ids: recipeIds,
+        recipe_aliases: readMealRecipeAliases(agendaEntryDialogFields.querySelector(".agenda-recipe-picker"), recipeIds),
         participants_override: kind === "meal" && agendaEntryDialogFields.querySelector('[name="mealParticipantMode"]:checked')?.value === "own"
             ? readParticipantInputs(agendaEntryDialogFields.querySelector("[data-meal-participant-fields]")) : null,
         shared,
@@ -1606,6 +1633,7 @@ function readAgendaFromDom() {
             source_type: kind === "meal" ? recipeIds.length ? "recipe" : "" : sourceParts.length ? sourceType : "",
             source_id: kind === "meal" ? recipeIds[0] || "" : sourceParts.join(":"),
             recipe_ids: recipeIds,
+            recipe_aliases: readMealRecipeAliases(row.querySelector(".agenda-recipe-picker"), recipeIds),
             participants_override: kind === "meal" ? existingEntry?.participants_override || null : null,
             shared,
             departments: shared ? [] : selectedScopeDepartments,
