@@ -625,21 +625,25 @@ test("arrangement overview hides unknown participant totals when locked", () => 
 test("arrangement meals link each recipe to the combined participant count", () => {
     const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
     const totals = source.slice(source.indexOf("function getParticipantTotals("), source.indexOf("function getParticipantSummary("));
-    const render = source.slice(source.indexOf("function getArrangementRecipeUrl("), source.indexOf("function renderScheduleEntry("));
+    const recipeNames = source.slice(source.indexOf("function getMealRecipeName("), source.indexOf("function renderMealRecipeAliasFields("));
+    const render = source.slice(source.indexOf("function getArrangementRecipeUrl("), source.indexOf("function showReadonlyAgendaEntryDetail("));
     const context = vm.createContext({
         URLSearchParams, window: { location: { search: "" } }, recipes: [{ id: "soup&bread", namn: "Soup" }, { id: "bread", namn: "Bread" }],
         collapsedArrangementMeals: new Set(), getMealRecipeIds: entry => entry.recipe_ids || [],
         formatArrangementDate: date => date, escapeArrangementHtml: value => String(value ?? "")
     });
     loadParticipantHelpers(context);
-    vm.runInContext(totals + render, context);
+    vm.runInContext(totals + recipeNames + render, context);
     const item = { id: "meal-test", departments: ["Spårare", "Ledare"], participants: { departments: {
         "Spårare": { scouts: 41, leaders: 4, parents: 10 }, "Ledare": { leaders: 4 }
-    }, officials: 2 }, agenda: [{ id: "meal", kind: "meal", date: "2026-10-09", meal_type: "Lunch", recipe_ids: ["soup&bread", "bread"] }] };
+    }, officials: 2 }, agenda: [{ id: "meal", kind: "meal", date: "2026-10-09", title: "Lunch", meal_type: "Lunch", recipe_ids: ["soup&bread", "bread"], recipe_aliases: { "soup&bread": "Kapten Carbonara" } }] };
     const url = new URL(context.getArrangementRecipeUrl(item, "soup&bread"), "https://example.test/");
     assert.equal(url.searchParams.get("recipe"), "soup&bread");
     assert.equal(url.searchParams.get("servings"), "61");
     const html = context.renderArrangementMealSummary(item);
+    assert.match(html, /Kapten Carbonara/);
+    assert.match(html, />Bread</);
+    assert.match(context.renderScheduleEntry(item.agenda[0], null, item.id), /Lunch \(Kapten Carbonara, Bread\)/);
     assert.doesNotMatch(html, /class="arrangement-meal-recipe-link"[^>]*target=/);
     assert.match(html, /shopping=meal-test&servings=61/);
     context.window.location.search = "?share=token%26value";

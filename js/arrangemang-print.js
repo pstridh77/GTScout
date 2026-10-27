@@ -80,7 +80,7 @@
         const ids = Array.isArray(entry.recipe_ids)
             ? [...new Set(entry.recipe_ids.map(String))]
             : entry.source_type === "recipe" && entry.source_id ? [String(entry.source_id)] : [];
-        return ids.map(id => recipes.find(recipe => String(recipe.id) === id)?.namn).filter(Boolean);
+        return ids.map(id => String(entry.recipe_aliases?.[id] || "").trim() || recipes.find(recipe => String(recipe.id) === id)?.namn).filter(Boolean);
     }
 
     function renderAgendaEntry(entry, arrangement, recipes) {
