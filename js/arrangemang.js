@@ -440,9 +440,24 @@ function closeArrangementNotesDialog() {
 
 function openArrangementCoordinatesDialog(trigger, message = "") {
     coordinatesDialogTrigger = trigger;
+    const location = document.getElementById("arrangementLocation").value.trim();
+    document.getElementById("arrangementCoordinatesDialogTitle").textContent = location ? `Koordinater · ${location}` : "Koordinater";
     document.getElementById("arrangementCoordinatesDialogStatus").textContent = message;
+    updateArrangementCoordinatesMapLink();
     arrangementCoordinatesModal.classList.remove("hidden");
     document.getElementById("arrangementCoordinates").focus();
+}
+
+function updateArrangementCoordinatesMapLink() {
+    const input = document.getElementById("arrangementCoordinates");
+    const link = document.getElementById("arrangementCoordinatesMapLink");
+    const coordinates = window.GTScoutSunTimes?.parseCoordinates(input.value);
+    if (coordinates) {
+        link.querySelector("a").href = `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lon}`;
+        link.classList.remove("hidden");
+    } else {
+        link.classList.add("hidden");
+    }
 }
 
 function closeArrangementCoordinatesDialog() {
@@ -2572,6 +2587,7 @@ arrangementNotesModal.addEventListener("click", event => {
 document.getElementById("arrangementCoordinatesBtn").addEventListener("click", event => openArrangementCoordinatesDialog(event.currentTarget));
 document.getElementById("closeArrangementCoordinatesModal").addEventListener("click", closeArrangementCoordinatesDialog);
 document.getElementById("cancelArrangementCoordinatesBtn").addEventListener("click", closeArrangementCoordinatesDialog);
+document.getElementById("arrangementCoordinates").addEventListener("input", updateArrangementCoordinatesMapLink);
 arrangementCoordinatesModal.addEventListener("click", event => {
     if (event.target === arrangementCoordinatesModal) closeArrangementCoordinatesDialog();
 });

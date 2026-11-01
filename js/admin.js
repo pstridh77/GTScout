@@ -51,6 +51,7 @@
             event.preventDefault();
             saveCoordinates();
         });
+        document.getElementById("adminCoordinates").addEventListener("input", updateAdminCoordinatesMapLink);
         document.addEventListener("keydown", event => {
             if (event.key === "Escape" && !document.getElementById("adminCoordinatesModal").classList.contains("hidden")) {
                 event.preventDefault();
@@ -137,10 +138,23 @@
             : "";
         const status = document.getElementById("adminCoordinatesDialogStatus");
         if (status) status.textContent = "";
+        updateAdminCoordinatesMapLink();
         const modal = document.getElementById("adminCoordinatesModal");
         if (modal) {
             modal.classList.remove("hidden");
             input?.focus();
+        }
+    }
+
+    function updateAdminCoordinatesMapLink() {
+        const input = document.getElementById("adminCoordinates");
+        const link = document.getElementById("adminCoordinatesMapLink");
+        const coordinates = window.GTScoutSunTimes?.parseCoordinates(input.value);
+        if (coordinates) {
+            link.querySelector("a").href = `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lon}`;
+            link.classList.remove("hidden");
+        } else {
+            link.classList.add("hidden");
         }
     }
 
