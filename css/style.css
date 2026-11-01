@@ -153,6 +153,8 @@ body {
 .arrangement-card-summary .arrangement-card-location { display: flex; grid-area: location; align-items: center; gap: 7px; min-width: 0; margin: 0; color: #52636a; }
 .arrangement-card-location svg { width: 16px; height: 16px; flex: 0 0 16px; color: #4d8275; }
 .arrangement-card-location span { overflow-wrap: anywhere; }
+.arrangement-card-location a { color: inherit; text-decoration: none; overflow-wrap: anywhere; }
+.arrangement-card-location a:hover { text-decoration: underline; color: #286d60; }
 .arrangement-card-summary .arrangement-participant-tags { grid-area: tags; justify-content: flex-end; margin: 0; }
 .arrangement-card-details { padding: 0 18px 18px; border-top: 1px solid #e2e8e8; }
 .arrangement-sticky-lock { position: fixed; z-index: 9; }
