@@ -164,14 +164,13 @@
                     <span>Sluttid</span>
                     <input id="arrangementEndTime" type="time">
                 </label>
-                <label class="modal-field arrangement-field-wide">
-                    <span>Plats</span>
-                    <input id="arrangementLocation" type="text" maxlength="160" placeholder="Valfri plats">
-                </label>
-                <label class="modal-field arrangement-field-wide">
-                    <span>Koordinater <small class="modal-field-hint modal-field-hint--inline">Valfritt – styr soluppgång och solnedgång, annars används kårens hemmaplats</small></span>
-                    <input id="arrangementCoordinates" type="text" maxlength="60" placeholder="T.ex. 56.6994, 12.7439">
-                </label>
+                <div class="arrangement-field-wide arrangement-location-row">
+                    <label class="modal-field arrangement-location-field">
+                        <span>Plats</span>
+                        <input id="arrangementLocation" type="text" maxlength="160" placeholder="Valfri plats">
+                    </label>
+                    <button id="arrangementCoordinatesBtn" class="btn-secondary arrangement-coordinates-btn" type="button" title="Koordinater för soluppgång och solnedgång – annars används kårens hemmaplats">Koordinater…</button>
+                </div>
             </div>
 
             <section class="arrangement-responsibilities-editor hidden" aria-labelledby="arrangementResponsibilitiesTitle">
@@ -217,6 +216,22 @@
                 <span class="modal-actions-spacer"></span>
                 <button id="cancelArrangementBtn" class="btn-secondary" type="button">Avbryt</button>
                 <button id="saveArrangementBtn" class="btn-primary" type="submit">Spara arrangemang</button>
+            </div>
+        </form>
+    </div>
+
+    <div id="arrangementCoordinatesModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="arrangementCoordinatesDialogTitle">
+        <form id="arrangementCoordinatesForm" class="modal-content">
+            <button id="closeArrangementCoordinatesModal" class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2 id="arrangementCoordinatesDialogTitle">Koordinater</h2>
+            <label class="modal-field">
+                <span>Koordinater <small class="modal-field-hint modal-field-hint--inline">Valfritt – styr soluppgång och solnedgång, annars används kårens hemmaplats</small></span>
+                <input id="arrangementCoordinates" type="text" maxlength="60" placeholder="T.ex. 56.6994, 12.7439">
+            </label>
+            <p id="arrangementCoordinatesDialogStatus" class="detail-planning-status" role="status" aria-live="polite"></p>
+            <div class="modal-actions">
+                <button id="cancelArrangementCoordinatesBtn" class="btn-secondary" type="button">Avbryt</button>
+                <button id="saveArrangementCoordinatesBtn" class="btn-primary" type="submit">Klar</button>
             </div>
         </form>
     </div>

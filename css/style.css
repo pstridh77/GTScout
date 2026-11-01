@@ -395,6 +395,7 @@ body {
 .arrangement-equipment[open] > .arrangement-section-summary::before { transform: rotate(45deg); }
 @media (max-width: 760px) { .arrangement-equipment-add { grid-template-columns: repeat(2, minmax(0, 1fr)); } .arrangement-equipment-add label:first-child, .arrangement-equipment-add [data-equipment-status] { grid-column: 1 / -1; } }
 #arrangementNotesModal { z-index: 3100; }
+#arrangementCoordinatesModal { z-index: 3100; }
 .arrangement-notes-dialog-content { box-sizing: border-box; max-height: calc(100vh - 24px); overflow-y: auto; }
 .arrangement-notes-dialog-content .modal-field textarea { min-height: 160px; resize: vertical; }
 .arrangement-notes-dialog-actions { gap: 10px; }
@@ -432,6 +433,9 @@ body {
 .arrangement-form h2 { margin: 0; color: #153c4a; }
 .arrangement-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .arrangement-field-wide { grid-column: 1 / -1; }
+.arrangement-location-row { display: flex; flex-direction: row; align-items: flex-end; gap: 8px; }
+.arrangement-location-field { flex: 1 1 auto; min-width: 0; }
+.arrangement-coordinates-btn { flex: 0 0 auto; padding: 9px 12px; white-space: nowrap; }
 .arrangement-form input, .arrangement-form select, .arrangement-form textarea { max-width: 100%; box-sizing: border-box; }
 .arrangement-departments-field { min-width: 0; margin: 0; padding: 12px; border: 1px solid #d1dbdc; border-radius: 5px; }
 .arrangement-departments-field legend { padding: 0 5px; color: #153c4a; font-size: .88rem; font-weight: 700; }
@@ -1622,7 +1626,7 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
 
 .admin-row {
     display: grid;
-    grid-template-columns: minmax(0, max-content) minmax(0, max-content) minmax(0, max-content) 1fr;
+    grid-template-columns: minmax(0, max-content) minmax(0, max-content) 1fr;
     align-items: center;
     gap: 8px;
     padding: 10px;

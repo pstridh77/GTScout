@@ -10,6 +10,8 @@ const responsibilityModal = document.getElementById("responsibilityModal");
 const responsibilityForm = document.getElementById("responsibilityForm");
 const arrangementNotesModal = document.getElementById("arrangementNotesModal");
 const arrangementNotesForm = document.getElementById("arrangementNotesForm");
+const arrangementCoordinatesModal = document.getElementById("arrangementCoordinatesModal");
+const arrangementCoordinatesForm = document.getElementById("arrangementCoordinatesForm");
 const shareArrangementModal = document.getElementById("shareArrangementModal");
 const arrangementActionToast = document.getElementById("arrangementActionToast");
 const scheduleGesturePreview = document.createElement("div");
@@ -42,6 +44,7 @@ let activeResponsibilityId = "";
 let responsibilityDialogTrigger = null;
 let activeNotesArrangementId = "";
 let notesDialogTrigger = null;
+let coordinatesDialogTrigger = null;
 let activeParticipantsArrangementId = "";
 let participantsDialogTrigger = null;
 let mealRecipeDialogTrigger = null;
@@ -433,6 +436,20 @@ function closeArrangementNotesDialog() {
     const fallbackTrigger = [...arrangementsGrid.querySelectorAll("[data-edit-arrangement-notes]")]
         .find(button => button.dataset.editArrangementNotes === arrangementId);
     (trigger?.isConnected ? trigger : fallbackTrigger)?.focus();
+}
+
+function openArrangementCoordinatesDialog(trigger) {
+    coordinatesDialogTrigger = trigger;
+    document.getElementById("arrangementCoordinatesDialogStatus").textContent = "";
+    arrangementCoordinatesModal.classList.remove("hidden");
+    document.getElementById("arrangementCoordinates").focus();
+}
+
+function closeArrangementCoordinatesDialog() {
+    const trigger = coordinatesDialogTrigger;
+    arrangementCoordinatesModal.classList.add("hidden");
+    coordinatesDialogTrigger = null;
+    (trigger?.isConnected ? trigger : document.getElementById("arrangementCoordinatesBtn"))?.focus();
 }
 
 function arrangementDates(startDate, endDate) {
@@ -1714,10 +1731,8 @@ async function openArrangementEditor(item = null, focusAgendaId = "", isCopy = f
         : "";
     const arrangementSunInfo = document.getElementById("arrangementSunInfo");
     const arrangementStartDateInput = document.getElementById("arrangementStartDate");
-    const arrangementCoordinatesInput = document.getElementById("arrangementCoordinates");
     const updateArrangementSunInfo = () => {
-        const sun = window.GTScoutSunTimes;
-        const coordinates = sun?.parseCoordinates(arrangementCoordinatesInput.value);
+        const coordinates = window.GTScoutSunTimes?.parseCoordinates(document.getElementById("arrangementCoordinates").value);
         const info = getArrangementSunInfo(arrangementStartDateInput.value, { latitude: coordinates?.lat ?? null, longitude: coordinates?.lon ?? null });
         arrangementSunInfo.innerHTML = info ? formatSunInfoHtml(info) : "";
         arrangementSunInfo.title = info
@@ -1726,7 +1741,6 @@ async function openArrangementEditor(item = null, focusAgendaId = "", isCopy = f
         arrangementSunInfo.classList.toggle("hidden", !info);
     };
     arrangementStartDateInput.oninput = updateArrangementSunInfo;
-    arrangementCoordinatesInput.oninput = updateArrangementSunInfo;
     updateArrangementSunInfo();
     document.getElementById("arrangementExperience").value = isCopy ? "" : item?.experience || item?.after_notes || "";
     document.getElementById("arrangementFormStatus").textContent = "";
@@ -2491,6 +2505,24 @@ document.getElementById("cancelArrangementNotesBtn").addEventListener("click", c
 arrangementNotesModal.addEventListener("click", event => {
     if (event.target === arrangementNotesModal) closeArrangementNotesDialog();
 });
+
+document.getElementById("arrangementCoordinatesBtn").addEventListener("click", event => openArrangementCoordinatesDialog(event.currentTarget));
+document.getElementById("closeArrangementCoordinatesModal").addEventListener("click", closeArrangementCoordinatesDialog);
+document.getElementById("cancelArrangementCoordinatesBtn").addEventListener("click", closeArrangementCoordinatesDialog);
+arrangementCoordinatesModal.addEventListener("click", event => {
+    if (event.target === arrangementCoordinatesModal) closeArrangementCoordinatesDialog();
+});
+arrangementCoordinatesForm.addEventListener("submit", event => {
+    event.preventDefault();
+    const input = document.getElementById("arrangementCoordinates");
+    const status = document.getElementById("arrangementCoordinatesDialogStatus");
+    if (input.value.trim() && !window.GTScoutSunTimes?.parseCoordinates(input.value)) {
+        status.textContent = "Koordinaterna har fel format. Ange till exempel 56.6994, 12.7439.";
+        return;
+    }
+    closeArrangementCoordinatesDialog();
+    document.getElementById("arrangementStartDate").oninput?.();
+});
 document.getElementById("closeShareArrangementModal").addEventListener("click", () => shareArrangementModal.classList.add("hidden"));
 document.getElementById("closeShareArrangementBtn").addEventListener("click", () => shareArrangementModal.classList.add("hidden"));
 shareArrangementModal.addEventListener("click", event => {
@@ -2608,6 +2640,9 @@ document.addEventListener("keydown", event => {
     } else if (!arrangementNotesModal.classList.contains("hidden")) {
         event.preventDefault();
         closeArrangementNotesDialog();
+    } else if (!arrangementCoordinatesModal.classList.contains("hidden")) {
+        event.preventDefault();
+        closeArrangementCoordinatesDialog();
     } else if (!responsibilityModal.classList.contains("hidden")) {
         event.preventDefault();
         closeResponsibilityDialog();
