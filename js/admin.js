@@ -12,6 +12,9 @@
     let karer = [];
     let profiles = [];
     let pageInitialized = false;
+    let karHasCoordinates = true;
+    let coordinatesKarId = "";
+    let coordinatesDialogTrigger = null;
 
     const auth = () => window.GTScoutAuth;
     const client = () => auth()?.getClient() || null;
@@ -39,6 +42,22 @@
         document.getElementById("adminUserList").addEventListener("click", onUserListClick);
         document.getElementById("adminUserList").addEventListener("change", onUserListChange);
         document.getElementById("openAdminLoginBtn")?.addEventListener("click", () => auth()?.openLogin?.());
+        document.getElementById("closeAdminCoordinatesModal").addEventListener("click", closeCoordinatesDialog);
+        document.getElementById("cancelAdminCoordinatesBtn").addEventListener("click", closeCoordinatesDialog);
+        document.getElementById("adminCoordinatesModal").addEventListener("click", event => {
+            if (event.target === event.currentTarget) closeCoordinatesDialog();
+        });
+        document.getElementById("adminCoordinatesForm").addEventListener("submit", event => {
+            event.preventDefault();
+            saveCoordinates();
+        });
+        document.getElementById("adminCoordinates").addEventListener("input", updateAdminCoordinatesMapLink);
+        document.addEventListener("keydown", event => {
+            if (event.key === "Escape" && !document.getElementById("adminCoordinatesModal").classList.contains("hidden")) {
+                event.preventDefault();
+                closeCoordinatesDialog();
+            }
+        });
     }
 
     /* ── Data ────────────────────────────────────────────────────────────── */
@@ -48,7 +67,7 @@
         if (!db) return;
 
         const [karResult, profileResult] = await Promise.all([
-            db.from("kar").select("id, namn, ort").order("namn"),
+            selectKarer(db),
             db.from("profiles").select("id, email, full_name, role, scout_read, scout_write, kar_id, requested_kar_id").order("email")
         ]);
 
@@ -57,6 +76,18 @@
 
         karer = karResult.data || [];
         profiles = profileResult.data || [];
+    }
+
+    async function selectKarer(db) {
+        let result = await db.from("kar").select("id, namn, ort, latitude, longitude").order("namn");
+        if (result.error) {
+            // Äldre databas utan koordinatkolumner – kör db/schema.sql för att slå på hemmaplats.
+            karHasCoordinates = false;
+            result = await db.from("kar").select("id, namn, ort").order("namn");
+        } else {
+            karHasCoordinates = true;
+        }
+        return result;
     }
 
     async function addKar() {
@@ -92,6 +123,67 @@
             return;
         }
         await refresh("Kåren sparades.");
+    }
+
+    function openCoordinatesDialog(id, trigger) {
+        const kar = karer.find(item => item.id === id);
+        if (!kar) return;
+        coordinatesKarId = id;
+        coordinatesDialogTrigger = trigger;
+        const nameEl = document.getElementById("adminCoordinatesDialogName");
+        if (nameEl) nameEl.textContent = `Koordinater för ${kar.namn}`;
+        const input = document.getElementById("adminCoordinates");
+        if (input) input.value = kar.latitude !== null && kar.latitude !== undefined && kar.longitude !== null && kar.longitude !== undefined
+            ? `${kar.latitude}, ${kar.longitude}`
+            : "";
+        const status = document.getElementById("adminCoordinatesDialogStatus");
+        if (status) status.textContent = "";
+        updateAdminCoordinatesMapLink();
+        const modal = document.getElementById("adminCoordinatesModal");
+        if (modal) {
+            modal.classList.remove("hidden");
+            input?.focus();
+        }
+    }
+
+    function updateAdminCoordinatesMapLink() {
+        const input = document.getElementById("adminCoordinates");
+        const link = document.getElementById("adminCoordinatesMapLink");
+        const coordinates = window.GTScoutSunTimes?.parseCoordinates(input.value);
+        if (coordinates) {
+            link.querySelector("a").href = `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lon}`;
+            link.classList.remove("hidden");
+        } else {
+            link.classList.add("hidden");
+        }
+    }
+
+    function closeCoordinatesDialog() {
+        const trigger = coordinatesDialogTrigger;
+        document.getElementById("adminCoordinatesModal").classList.add("hidden");
+        coordinatesKarId = "";
+        coordinatesDialogTrigger = null;
+        trigger?.focus();
+    }
+
+    async function saveCoordinates() {
+        const input = document.getElementById("adminCoordinates");
+        const status = document.getElementById("adminCoordinatesDialogStatus");
+        const coordinates = window.GTScoutSunTimes?.parseCoordinates(input.value) || null;
+        if (input.value.trim() && !coordinates) {
+            status.textContent = "Koordinaterna har fel format. Ange till exempel 56.6994, 12.7439.";
+            return;
+        }
+        const { error } = await client().from("kar").update({
+            latitude: coordinates?.lat ?? null,
+            longitude: coordinates?.lon ?? null
+        }).eq("id", coordinatesKarId);
+        if (error) {
+            status.textContent = error.message;
+            return;
+        }
+        closeCoordinatesDialog();
+        await refresh("Koordinaterna sparades.");
     }
 
     async function deleteKar(id) {
@@ -175,6 +267,7 @@
                 <input type="text" data-field="namn" value="${escapeHtml(kar.namn)}" aria-label="Kårens namn">
                 <input type="text" data-field="ort" value="${escapeHtml(kar.ort || "")}" placeholder="Ort" aria-label="Ort">
                 <span class="admin-row-actions">
+                    ${karHasCoordinates ? `<button class="btn-secondary" type="button" data-action="edit-coordinates" data-id="${escapeHtml(kar.id)}" title="Koordinater för soluppgång och solnedgång">Koordinater…</button>` : ""}
                     <button class="btn-secondary" type="button" data-action="save-kar" data-id="${escapeHtml(kar.id)}" disabled>Spara</button>
                     ${canManageAll ? `<button class="arrangement-delete-icon" type="button" data-action="delete-kar" data-id="${escapeHtml(kar.id)}" aria-label="Ta bort ${escapeHtml(kar.namn)}" title="Ta bort kår"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button>` : ""}
                 </span>
@@ -257,6 +350,7 @@
         if (!button) return;
         if (button.dataset.action === "save-kar") saveKar(button.dataset.id);
         if (button.dataset.action === "delete-kar") deleteKar(button.dataset.id);
+        if (button.dataset.action === "edit-coordinates") openCoordinatesDialog(button.dataset.id, button);
     }
 
     function onKarListChange(event) {

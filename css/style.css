@@ -153,6 +153,8 @@ body {
 .arrangement-card-summary .arrangement-card-location { display: flex; grid-area: location; align-items: center; gap: 7px; min-width: 0; margin: 0; color: #52636a; }
 .arrangement-card-location svg { width: 16px; height: 16px; flex: 0 0 16px; color: #4d8275; }
 .arrangement-card-location span { overflow-wrap: anywhere; }
+.arrangement-card-location a { color: inherit; text-decoration: none; overflow-wrap: anywhere; }
+.arrangement-card-location a:hover { text-decoration: underline; color: #286d60; }
 .arrangement-card-summary .arrangement-participant-tags { grid-area: tags; justify-content: flex-end; margin: 0; }
 .arrangement-card-details { padding: 0 18px 18px; border-top: 1px solid #e2e8e8; }
 .arrangement-sticky-lock { position: fixed; z-index: 9; }
@@ -395,6 +397,7 @@ body {
 .arrangement-equipment[open] > .arrangement-section-summary::before { transform: rotate(45deg); }
 @media (max-width: 760px) { .arrangement-equipment-add { grid-template-columns: repeat(2, minmax(0, 1fr)); } .arrangement-equipment-add label:first-child, .arrangement-equipment-add [data-equipment-status] { grid-column: 1 / -1; } }
 #arrangementNotesModal { z-index: 3100; }
+#arrangementCoordinatesModal { z-index: 3100; }
 .arrangement-notes-dialog-content { box-sizing: border-box; max-height: calc(100vh - 24px); overflow-y: auto; }
 .arrangement-notes-dialog-content .modal-field textarea { min-height: 160px; resize: vertical; }
 .arrangement-notes-dialog-actions { gap: 10px; }
@@ -432,6 +435,10 @@ body {
 .arrangement-form h2 { margin: 0; color: #153c4a; }
 .arrangement-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .arrangement-field-wide { grid-column: 1 / -1; }
+.arrangement-location-row { display: flex; flex-direction: row; align-items: flex-end; gap: 8px; }
+.arrangement-location-field { flex: 1 1 auto; min-width: 0; }
+.arrangement-coordinates-btn { flex: 0 0 auto; padding: 9px 12px; white-space: nowrap; }
+.btn-secondary.arrangement-coordinates-btn--missing { border: 1px solid #c84c08; color: #c84c08; background: #fff7ed; }
 .arrangement-form input, .arrangement-form select, .arrangement-form textarea { max-width: 100%; box-sizing: border-box; }
 .arrangement-departments-field { min-width: 0; margin: 0; padding: 12px; border: 1px solid #d1dbdc; border-radius: 5px; }
 .arrangement-departments-field legend { padding: 0 5px; color: #153c4a; font-size: .88rem; font-weight: 700; }
@@ -642,8 +649,8 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
 .responsibility-field--person { grid-column: 1 / -1; }
 .responsibility-field--description { grid-column: 1 / -1; }
 .arrangement-responsibilities-empty { margin: 12px 0; color: #65767b; font-size: .86rem; }
-.arrangement-form-actions { margin-top: 0; }
-.arrangement-form-actions .btn-danger { margin-right: auto; }
+.arrangement-form-actions { margin-top: 0; align-items: center; }
+.arrangement-form-actions .arrangement-delete-icon { margin-right: auto; }
 .modal-actions.agenda-entry-dialog-actions { align-items: center; justify-content: space-between; gap: 16px; margin-top: 4px; }
 .agenda-entry-dialog-action-group { display: flex; align-items: center; gap: 8px; }
 .agenda-entry-dialog-action-group button { min-height: 40px; white-space: nowrap; }
@@ -5042,6 +5049,46 @@ select:focus {
     top: -1px;
 }
 
+.arrangement-sun-times {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: #65767b;
+    font-size: 0.72rem;
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+.arrangement-sun-times svg {
+    flex: 0 0 auto;
+}
+
+.arrangement-day-summary > span.arrangement-sun-times {
+    margin-left: 0;
+}
+
+.arrangement-overview-day .arrangement-sun-times {
+    justify-content: center;
+    font-size: 0.62rem;
+}
+
+.arrangement-card-sun {
+    color: #52636a;
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+.arrangement-card-sun svg {
+    width: 13px;
+    height: 13px;
+    vertical-align: -2px;
+}
+
+.arrangement-card-sun-separator {
+    margin: 0 3px;
+    color: #93a7a7;
+}
+
 .group-card-actions {
     display: flex;
     gap: 8px;
@@ -6001,7 +6048,7 @@ select:focus {
     gap: 8px;
 }
 
-.modal-actions { display: flex; justify-content: flex-end; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
 
 .scout-detail-delete-btn {
     margin-right: auto;

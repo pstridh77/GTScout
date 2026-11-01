@@ -10,6 +10,8 @@ const responsibilityModal = document.getElementById("responsibilityModal");
 const responsibilityForm = document.getElementById("responsibilityForm");
 const arrangementNotesModal = document.getElementById("arrangementNotesModal");
 const arrangementNotesForm = document.getElementById("arrangementNotesForm");
+const arrangementCoordinatesModal = document.getElementById("arrangementCoordinatesModal");
+const arrangementCoordinatesForm = document.getElementById("arrangementCoordinatesForm");
 const shareArrangementModal = document.getElementById("shareArrangementModal");
 const arrangementActionToast = document.getElementById("arrangementActionToast");
 const scheduleGesturePreview = document.createElement("div");
@@ -42,6 +44,7 @@ let activeResponsibilityId = "";
 let responsibilityDialogTrigger = null;
 let activeNotesArrangementId = "";
 let notesDialogTrigger = null;
+let coordinatesDialogTrigger = null;
 let activeParticipantsArrangementId = "";
 let participantsDialogTrigger = null;
 let mealRecipeDialogTrigger = null;
@@ -156,6 +159,35 @@ function formatDateSpan(item) {
     const start = formatArrangementDate(item.start_date, false);
     const end = formatArrangementDate(item.end_date, false);
     return start === end ? start : `${start}–${end}`;
+}
+
+function getArrangementSunInfo(date, item) {
+    const sun = window.GTScoutSunTimes;
+    if (!sun || !date) return null;
+    const location = sun.resolveLocation(item?.latitude, item?.longitude);
+    const times = sun.calculate(date, location.lat, location.lon);
+    return times ? { ...times, source: location.source } : null;
+}
+
+function formatSunInfoHtml(info) {
+    const sun = window.GTScoutSunTimes;
+    return `${sun.SUNRISE_ICON_SVG}${escapeArrangementHtml(info.sunrise)} ${sun.SUNSET_ICON_SVG}${escapeArrangementHtml(info.sunset)}`;
+}
+
+function renderSunTimesHtml(date, item) {
+    const info = getArrangementSunInfo(date, item);
+    if (!info) return "";
+    return `<span class="arrangement-sun-times" title="Soluppgång och solnedgång">${formatSunInfoHtml(info)}</span>`;
+}
+
+function renderArrangementCardSun(item) {
+    const first = getArrangementSunInfo(item.start_date, item);
+    if (!first) return "";
+    const last = item.end_date && item.end_date !== item.start_date ? getArrangementSunInfo(item.end_date, item) : null;
+    const title = last
+        ? "Soluppgång och solnedgång första och sista dagen"
+        : "Soluppgång och solnedgång";
+    return `<span class="arrangement-card-sun" title="${title}"> · ${formatSunInfoHtml(first)}${last ? `<span class="arrangement-card-sun-separator" aria-hidden="true">→</span>${formatSunInfoHtml(last)}` : ""}</span>`;
 }
 
 function parseScheduleTime(value) {
@@ -404,6 +436,35 @@ function closeArrangementNotesDialog() {
     const fallbackTrigger = [...arrangementsGrid.querySelectorAll("[data-edit-arrangement-notes]")]
         .find(button => button.dataset.editArrangementNotes === arrangementId);
     (trigger?.isConnected ? trigger : fallbackTrigger)?.focus();
+}
+
+function openArrangementCoordinatesDialog(trigger, message = "") {
+    coordinatesDialogTrigger = trigger;
+    const location = document.getElementById("arrangementLocation").value.trim();
+    document.getElementById("arrangementCoordinatesDialogTitle").textContent = location ? `Koordinater · ${location}` : "Koordinater";
+    document.getElementById("arrangementCoordinatesDialogStatus").textContent = message;
+    updateArrangementCoordinatesMapLink();
+    arrangementCoordinatesModal.classList.remove("hidden");
+    document.getElementById("arrangementCoordinates").focus();
+}
+
+function updateArrangementCoordinatesMapLink() {
+    const input = document.getElementById("arrangementCoordinates");
+    const link = document.getElementById("arrangementCoordinatesMapLink");
+    const coordinates = window.GTScoutSunTimes?.parseCoordinates(input.value);
+    if (coordinates) {
+        link.querySelector("a").href = `https://www.google.com/maps?q=${coordinates.lat},${coordinates.lon}`;
+        link.classList.remove("hidden");
+    } else {
+        link.classList.add("hidden");
+    }
+}
+
+function closeArrangementCoordinatesDialog() {
+    const trigger = coordinatesDialogTrigger;
+    arrangementCoordinatesModal.classList.add("hidden");
+    coordinatesDialogTrigger = null;
+    (trigger?.isConnected ? trigger : document.getElementById("arrangementCoordinatesBtn"))?.focus();
 }
 
 function arrangementDates(startDate, endDate) {
@@ -777,7 +838,7 @@ function renderArrangementScheduleOverview(item, selectedDepartments, canEditAge
         const row = index + 3;
         return `<span class="${label ? "arrangement-schedule-time" : "arrangement-schedule-time-marker"}" style="grid-column:1;grid-row:${row}"${label ? "" : " aria-hidden=\"true\""}>${escapeArrangementHtml(label)}</span>`;
     }).join("");
-    const dayHeaders = dates.map((date, index) => `<strong class="arrangement-overview-day" style="grid-column:${index + 2};grid-row:1"><span>${escapeArrangementHtml(new Intl.DateTimeFormat("sv-SE", { weekday: "short" }).format(new Date(`${date}T12:00:00`)))}</span><time datetime="${escapeArrangementHtml(date)}">${escapeArrangementHtml(new Intl.DateTimeFormat("sv-SE", { day: "numeric", month: "short" }).format(new Date(`${date}T12:00:00`)))}</time></strong>`).join("");
+    const dayHeaders = dates.map((date, index) => `<strong class="arrangement-overview-day" style="grid-column:${index + 2};grid-row:1"><span>${escapeArrangementHtml(new Intl.DateTimeFormat("sv-SE", { weekday: "short" }).format(new Date(`${date}T12:00:00`)))}</span><time datetime="${escapeArrangementHtml(date)}">${escapeArrangementHtml(new Intl.DateTimeFormat("sv-SE", { day: "numeric", month: "short" }).format(new Date(`${date}T12:00:00`)))}</time>${renderSunTimesHtml(date, item)}</strong>`).join("");
     const dayAllDayRows = dates.map((date, index) => {
         const { allDayEntries } = overviewEvents[index];
         const emptyLabel = !allDayEntries && !canEditAgenda ? '<span class="arrangement-overview-all-day-empty">Heldag</span>' : "";
@@ -1000,7 +1061,7 @@ function renderArrangementSchedule(item) {
         const headers = selectedDepartments.map(department => `<span class="arrangement-schedule-department department-tone-${departments.indexOf(department)}">${escapeArrangementHtml(department)}</span>`).join("");
         const showScheduleGrid = scheduleEvents.length > 0 || entries.length === 0;
         const grid = showScheduleGrid ? `<div class="arrangement-schedule-grid" style="--department-count:${departmentCount};--schedule-rows:${timeRowHeights.join(" ")}">${timeLabels}${emptyCells}${eventMarkup}</div>` : `<p class="arrangement-day-empty">Inga programpunkter den här dagen.</p>`;
-        return `<details class="arrangement-day" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-arrangement-date="${escapeArrangementHtml(date)}"${dayIsOpen ? " open" : ""}><summary class="arrangement-day-summary"><h3>${escapeArrangementHtml(formatArrangementDate(date))}</h3><span>${countLabel}</span></summary><div class="arrangement-day-content"><div class="arrangement-schedule-header"><span>Tid</span><div class="arrangement-schedule-columns" style="--department-count:${departmentCount}">${headers}</div></div>${grid}</div></details>`;
+        return `<details class="arrangement-day" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-arrangement-date="${escapeArrangementHtml(date)}"${dayIsOpen ? " open" : ""}><summary class="arrangement-day-summary"><h3>${escapeArrangementHtml(formatArrangementDate(date))}</h3>${renderSunTimesHtml(date, item)}<span>${countLabel}</span></summary><div class="arrangement-day-content"><div class="arrangement-schedule-header"><span>Tid</span><div class="arrangement-schedule-columns" style="--department-count:${departmentCount}">${headers}</div></div>${grid}</div></details>`;
     }).join("");
     const isSchemaExpanded = arrangementSchemaExpansion.has(item.id);
     const viewControls = `<div class="arrangement-schedule-view-toggle" role="group" aria-label="Schemalayout"><button type="button" data-toggle-schedule-overview="${escapeArrangementHtml(item.id)}" data-schedule-view="days" aria-pressed="${!showOverview}">Dag för dag</button><button type="button" data-toggle-schedule-overview="${escapeArrangementHtml(item.id)}" data-schedule-view="overview" aria-pressed="${showOverview}">Helhetsschema</button></div>`;
@@ -1222,7 +1283,7 @@ function renderArrangements() {
         const experienceButton = item.status === "completed" && experience
             ? `<button class="arrangement-experience-button" type="button" data-show-experience="${escapeArrangementHtml(item.id)}" aria-label="Visa erfarenheter för ${escapeArrangementHtml(item.title)}" title="Visa erfarenheter"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 15h-2v-6h2v6Zm0-8h-2V7h2v2Z"/></svg></button>`
             : "";
-        return `<details class="arrangement-card arrangement-card--${escapeArrangementHtml(item.status)}${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${statusIcon}${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span>${experienceButton}</div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><span>${escapeArrangementHtml(item.location)}</span></p>` : ""}<div class="arrangement-participant-tags">${participantTags}${participantSummary}</div></summary><div class="arrangement-card-details">${detailEditControl}${printActions}${link}<div class="arrangement-card-sections">${participantsHtml}${notesHtml}${checklistHtml}${equipmentHtml}${mealSummaryHtml}${responsibilityHtml}${agendaHtml}</div>${actions}</div></details>`;
+        return `<details class="arrangement-card arrangement-card--${escapeArrangementHtml(item.status)}${cardWidth}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${statusIcon}${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span>${experienceButton}</div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}${renderArrangementCardSun(item)}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><a href="${item.latitude !== null && item.latitude !== undefined && item.longitude !== null && item.longitude !== undefined ? `https://www.google.com/maps?q=${item.latitude},${item.longitude}` : `https://www.google.com/maps/search/${encodeURIComponent(item.location)}`}" target="_blank" rel="noreferrer" title="Visa på Google Maps">${escapeArrangementHtml(item.location)}</a></p>` : ""}<div class="arrangement-participant-tags">${participantTags}${participantSummary}</div></summary><div class="arrangement-card-details">${detailEditControl}${printActions}${link}<div class="arrangement-card-sections">${participantsHtml}${notesHtml}${checklistHtml}${equipmentHtml}${mealSummaryHtml}${responsibilityHtml}${agendaHtml}</div>${actions}</div></details>`;
     });
     const cardsByYear = new Map();
     orderedVisible.forEach((item, index) => {
@@ -1680,6 +1741,85 @@ async function openArrangementEditor(item = null, focusAgendaId = "", isCopy = f
     document.getElementById("arrangementStartTime").value = item?.start_time || "";
     document.getElementById("arrangementEndTime").value = item?.end_time || "";
     document.getElementById("arrangementLocation").value = item?.location || "";
+    document.getElementById("arrangementCoordinates").value = item?.latitude !== null && item?.latitude !== undefined && item?.longitude !== null && item?.longitude !== undefined
+        ? `${item.latitude}, ${item.longitude}`
+        : "";
+    const arrangementSunInfo = document.getElementById("arrangementSunInfo");
+    const arrangementStartDateInput = document.getElementById("arrangementStartDate");
+    const updateArrangementSunInfo = () => {
+        const coordinates = window.GTScoutSunTimes?.parseCoordinates(document.getElementById("arrangementCoordinates").value);
+        const info = getArrangementSunInfo(arrangementStartDateInput.value, { latitude: coordinates?.lat ?? null, longitude: coordinates?.lon ?? null });
+        arrangementSunInfo.innerHTML = info ? formatSunInfoHtml(info) : "";
+        arrangementSunInfo.title = info
+            ? `Soluppgång och solnedgång ${info.source === "arrangement" ? "på arrangemangets plats" : info.source === "kar" ? "på kårens hemmaplats" : "på standardplatsen (Gullbrandstorp)"}`
+            : "";
+        arrangementSunInfo.classList.toggle("hidden", !info);
+    };
+    arrangementStartDateInput.oninput = updateArrangementSunInfo;
+    // Tidigare platser – alla namn i dropdownen, koordinater autofylls när de finns.
+    // Vid konflikt (samma namn, olika koordinater) används den senaste och användaren varnas.
+    const knownLocations = new Map();
+    arrangements.forEach(entry => {
+        const name = String(entry.location || "").trim();
+        if (!name) return;
+        const hasCoordinates = entry.latitude !== null && entry.latitude !== undefined && entry.longitude !== null && entry.longitude !== undefined;
+        const existing = knownLocations.get(name);
+        if (!existing) {
+            knownLocations.set(name, {
+                coordinates: hasCoordinates ? { lat: entry.latitude, lon: entry.longitude } : null,
+                hasConflict: false,
+                latestDate: entry.start_date || ""
+            });
+        } else {
+            if (hasCoordinates) {
+                const newCoords = { lat: entry.latitude, lon: entry.longitude };
+                if (existing.coordinates && (existing.coordinates.lat !== newCoords.lat || existing.coordinates.lon !== newCoords.lon)) {
+                    existing.hasConflict = true;
+                }
+                if ((entry.start_date || "") >= existing.latestDate) {
+                    existing.coordinates = newCoords;
+                    existing.latestDate = entry.start_date || "";
+                }
+            }
+        }
+    });
+    document.getElementById("arrangementLocationOptions").innerHTML = [...knownLocations.keys()]
+        .sort((left, right) => left.localeCompare(right, "sv"))
+        .map(name => `<option value="${escapeArrangementHtml(name)}"></option>`)
+        .join("");
+    const arrangementLocationInput = document.getElementById("arrangementLocation");
+    const arrangementCoordinatesBtn = document.getElementById("arrangementCoordinatesBtn");
+    const updateLocationState = (isInitial = false) => {
+        const name = arrangementLocationInput.value.trim();
+        const entry = knownLocations.get(name);
+        if (entry?.coordinates) {
+            if (!isInitial) {
+                document.getElementById("arrangementCoordinates").value = `${entry.coordinates.lat}, ${entry.coordinates.lon}`;
+            }
+            arrangementCoordinatesBtn.classList.remove("arrangement-coordinates-btn--missing");
+            arrangementCoordinatesBtn.title = "Koordinater för soluppgång och solnedgång – annars används kårens hemmaplats";
+            if (!isInitial && entry.hasConflict) {
+                openArrangementCoordinatesDialog(arrangementCoordinatesBtn, `Platsen "${name}" har använts med olika koordinater. Den senaste används – kontrollera att den stämmer.`);
+            }
+        } else if (entry) {
+            if (!isInitial) {
+                document.getElementById("arrangementCoordinates").value = "";
+            }
+            arrangementCoordinatesBtn.classList.add("arrangement-coordinates-btn--missing");
+            arrangementCoordinatesBtn.title = "Koordinater saknas för den här platsen – klicka för att lägga till";
+        } else {
+            if (!isInitial) {
+                document.getElementById("arrangementCoordinates").value = "";
+            }
+            arrangementCoordinatesBtn.classList.remove("arrangement-coordinates-btn--missing");
+            arrangementCoordinatesBtn.title = "Koordinater för soluppgång och solnedgång – annars används kårens hemmaplats";
+        }
+        updateArrangementSunInfo();
+    };
+    arrangementLocationInput.oninput = () => updateLocationState(false);
+    arrangementLocationInput.onchange = () => updateLocationState(false);
+    updateLocationState(true);
+    updateArrangementSunInfo();
     document.getElementById("arrangementExperience").value = isCopy ? "" : item?.experience || item?.after_notes || "";
     document.getElementById("arrangementFormStatus").textContent = "";
     document.getElementById("deleteArrangementBtn").classList.toggle("hidden", !item || isCopy || !isArrangementDetailEditable(item));
@@ -1755,6 +1895,8 @@ function updateSyncStatus() {
 }
 
 function readFormPayload() {
+    const sunTimes = typeof window !== "undefined" ? window.GTScoutSunTimes : null;
+    const coordinates = sunTimes?.parseCoordinates(document.getElementById("arrangementCoordinates")?.value) || null;
     return {
         id: arrangementForm.dataset.arrangementId || crypto.randomUUID(),
         title: document.getElementById("arrangementTitle").value.trim(),
@@ -1766,6 +1908,8 @@ function readFormPayload() {
         start_time: document.getElementById("arrangementStartTime").value,
         end_time: document.getElementById("arrangementEndTime").value,
         location: document.getElementById("arrangementLocation").value.trim(),
+        latitude: coordinates?.lat ?? null,
+        longitude: coordinates?.lon ?? null,
         departments: getSelectedArrangementDepartments(),
         participants: draftParticipants,
         participant_days: draftParticipantDays,
@@ -2439,6 +2583,30 @@ document.getElementById("cancelArrangementNotesBtn").addEventListener("click", c
 arrangementNotesModal.addEventListener("click", event => {
     if (event.target === arrangementNotesModal) closeArrangementNotesDialog();
 });
+
+document.getElementById("arrangementCoordinatesBtn").addEventListener("click", event => openArrangementCoordinatesDialog(event.currentTarget));
+document.getElementById("closeArrangementCoordinatesModal").addEventListener("click", closeArrangementCoordinatesDialog);
+document.getElementById("cancelArrangementCoordinatesBtn").addEventListener("click", closeArrangementCoordinatesDialog);
+document.getElementById("arrangementCoordinates").addEventListener("input", updateArrangementCoordinatesMapLink);
+arrangementCoordinatesModal.addEventListener("click", event => {
+    if (event.target === arrangementCoordinatesModal) closeArrangementCoordinatesDialog();
+});
+arrangementCoordinatesForm.addEventListener("submit", event => {
+    event.preventDefault();
+    const input = document.getElementById("arrangementCoordinates");
+    const status = document.getElementById("arrangementCoordinatesDialogStatus");
+    if (input.value.trim() && !window.GTScoutSunTimes?.parseCoordinates(input.value)) {
+        status.textContent = "Koordinaterna har fel format. Ange till exempel 56.6994, 12.7439.";
+        return;
+    }
+    closeArrangementCoordinatesDialog();
+    const coordinatesBtn = document.getElementById("arrangementCoordinatesBtn");
+    if (input.value.trim()) {
+        coordinatesBtn.classList.remove("arrangement-coordinates-btn--missing");
+        coordinatesBtn.title = "Koordinater för soluppgång och solnedgång – annars används kårens hemmaplats";
+    }
+    document.getElementById("arrangementStartDate").oninput?.();
+});
 document.getElementById("closeShareArrangementModal").addEventListener("click", () => shareArrangementModal.classList.add("hidden"));
 document.getElementById("closeShareArrangementBtn").addEventListener("click", () => shareArrangementModal.classList.add("hidden"));
 shareArrangementModal.addEventListener("click", event => {
@@ -2556,6 +2724,9 @@ document.addEventListener("keydown", event => {
     } else if (!arrangementNotesModal.classList.contains("hidden")) {
         event.preventDefault();
         closeArrangementNotesDialog();
+    } else if (!arrangementCoordinatesModal.classList.contains("hidden")) {
+        event.preventDefault();
+        closeArrangementCoordinatesDialog();
     } else if (!responsibilityModal.classList.contains("hidden")) {
         event.preventDefault();
         closeResponsibilityDialog();

@@ -1418,58 +1418,12 @@ function updatePrintAvailability() {
     document.getElementById("generatePdfBtn").disabled = unavailable;
 }
 
-// Ungefärlig position för Styrdal/Gullbrandstorp, Halmstads kommun.
-const SUN_LOCATION_LAT = 56.6994;
-const SUN_LOCATION_LON = 12.7439;
-const SUNSET_ICON_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M3,12H7A5,5 0 0,1 12,7A5,5 0 0,1 17,12H21A1,1 0 0,1 22,13A1,1 0 0,1 21,14H3A1,1 0 0,1 2,13A1,1 0 0,1 3,12M15,12A3,3 0 0,0 12,9A3,3 0 0,0 9,12H15M12,2L14.39,5.42C13.65,5.15 12.84,5 12,5C11.16,5 10.35,5.15 9.61,5.42L12,2M3.34,7L7.5,6.65C6.9,7.16 6.36,7.78 5.94,8.5C5.5,9.24 5.25,10 5.11,10.79L3.34,7M20.65,7L18.88,10.79C18.74,10 18.47,9.23 18.05,8.5C17.63,7.78 17.1,7.15 16.5,6.64L20.65,7M12.71,20.71L15.82,17.6C16.21,17.21 16.21,16.57 15.82,16.18C15.43,15.79 14.8,15.79 14.41,16.18L12,18.59L9.59,16.18C9.2,15.79 8.57,15.79 8.18,16.18C7.79,16.57 7.79,17.21 8.18,17.6L11.29,20.71C11.5,20.9 11.74,21 12,21C12.26,21 12.5,20.9 12.71,20.71Z" /></svg>';
+// Soltider beräknas i den delade modulen js/sun-times.js. Kårens hemmaplats
+// (admin → kår) används som standard, med Gullbrandstorp som reserv.
+const SUNSET_ICON_SVG = window.GTScoutSunTimes?.SUNSET_ICON_SVG || "";
 
-function calculateSunsetTime(dateStr, lat = SUN_LOCATION_LAT, lon = SUN_LOCATION_LON) {
-    if (!dateStr) return "";
-    const [year, month, day] = String(dateStr).split("-").map(Number);
-    if (!year || !month || !day) return "";
-
-    const toRad = value => value * Math.PI / 180;
-    const toDeg = value => value * 180 / Math.PI;
-
-    const a = Math.floor((14 - month) / 12);
-    const y = year + 4800 - a;
-    const m = month + 12 * a - 3;
-    const julianDay = day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045 + 0.5;
-
-    const t = (julianDay - 2451545.0) / 36525.0;
-    const meanLong = (280.46646 + t * (36000.76983 + t * 0.0003032)) % 360;
-    const meanAnomaly = 357.52911 + t * (35999.05029 - 0.0001537 * t);
-    const eccent = 0.016708634 - t * (0.000042037 + 0.0000001267 * t);
-    const eqOfCenter = Math.sin(toRad(meanAnomaly)) * (1.914602 - t * (0.004817 + 0.000014 * t))
-        + Math.sin(toRad(2 * meanAnomaly)) * (0.019993 - 0.000101 * t)
-        + Math.sin(toRad(3 * meanAnomaly)) * 0.000289;
-    const trueLong = meanLong + eqOfCenter;
-    const omega = 125.04 - 1934.136 * t;
-    const appLong = trueLong - 0.00569 - 0.00478 * Math.sin(toRad(omega));
-    const meanObliq = 23 + (26 + (21.448 - t * (46.815 + t * (0.00059 - t * 0.001813))) / 60) / 60;
-    const obliqCorr = meanObliq + 0.00256 * Math.cos(toRad(omega));
-    const solarDec = toDeg(Math.asin(Math.sin(toRad(obliqCorr)) * Math.sin(toRad(appLong))));
-
-    const varY = Math.tan(toRad(obliqCorr / 2)) * Math.tan(toRad(obliqCorr / 2));
-    const eqTime = 4 * toDeg(
-        varY * Math.sin(2 * toRad(meanLong))
-        - 2 * eccent * Math.sin(toRad(meanAnomaly))
-        + 4 * eccent * varY * Math.sin(toRad(meanAnomaly)) * Math.cos(2 * toRad(meanLong))
-        - 0.5 * varY * varY * Math.sin(4 * toRad(meanLong))
-        - 1.25 * eccent * eccent * Math.sin(2 * toRad(meanAnomaly))
-    );
-
-    const cosHourAngle = Math.cos(toRad(90.833)) / (Math.cos(toRad(lat)) * Math.cos(toRad(solarDec))) - Math.tan(toRad(lat)) * Math.tan(toRad(solarDec));
-    if (cosHourAngle < -1 || cosHourAngle > 1) return ""; // midnattssol eller polarnatt
-    const hourAngle = toDeg(Math.acos(cosHourAngle));
-
-    const solarNoonMinutesUTC = 720 - 4 * lon - eqTime;
-    const sunsetMinutesUTC = solarNoonMinutesUTC + hourAngle * 4;
-
-    const sunsetDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
-    sunsetDate.setUTCMinutes(sunsetDate.getUTCMinutes() + Math.round(sunsetMinutesUTC));
-
-    return sunsetDate.toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Stockholm" });
+function calculateSunsetTime(dateStr, lat, lon) {
+    return window.GTScoutSunTimes?.sunsetTime(dateStr, lat, lon) || "";
 }
 
 function formatShortDateSv(dateStr) {

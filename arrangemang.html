@@ -149,7 +149,7 @@
                     </select>
                 </label>
                 <label class="modal-field">
-                    <span>Från</span>
+                    <span>Från <small id="arrangementSunInfo" class="modal-field-hint modal-field-hint--inline meeting-sunset-hint hidden"></small></span>
                     <input id="arrangementStartDate" type="date" required>
                 </label>
                 <label class="modal-field">
@@ -164,10 +164,14 @@
                     <span>Sluttid</span>
                     <input id="arrangementEndTime" type="time">
                 </label>
-                <label class="modal-field arrangement-field-wide">
-                    <span>Plats</span>
-                    <input id="arrangementLocation" type="text" maxlength="160" placeholder="Valfri plats">
-                </label>
+                <div class="arrangement-field-wide arrangement-location-row">
+                    <label class="modal-field arrangement-location-field">
+                        <span>Plats</span>
+                        <input id="arrangementLocation" type="text" maxlength="160" placeholder="Valfri plats" list="arrangementLocationOptions" autocomplete="off">
+                        <datalist id="arrangementLocationOptions"></datalist>
+                    </label>
+                    <button id="arrangementCoordinatesBtn" class="btn-secondary arrangement-coordinates-btn" type="button" title="Koordinater för soluppgång och solnedgång – annars används kårens hemmaplats">Koordinater…</button>
+                </div>
             </div>
 
             <section class="arrangement-responsibilities-editor hidden" aria-labelledby="arrangementResponsibilitiesTitle">
@@ -209,10 +213,29 @@
             </label>
             <p id="arrangementFormStatus" class="detail-planning-status" role="status" aria-live="polite"></p>
             <div class="modal-actions arrangement-form-actions">
-                <button id="deleteArrangementBtn" class="btn-danger hidden" type="button">Ta bort</button>
+                <button id="deleteArrangementBtn" class="arrangement-delete-icon hidden" type="button" aria-label="Ta bort arrangemang" title="Ta bort arrangemang">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg>
+                </button>
                 <span class="modal-actions-spacer"></span>
                 <button id="cancelArrangementBtn" class="btn-secondary" type="button">Avbryt</button>
                 <button id="saveArrangementBtn" class="btn-primary" type="submit">Spara arrangemang</button>
+            </div>
+        </form>
+    </div>
+
+    <div id="arrangementCoordinatesModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="arrangementCoordinatesDialogTitle">
+        <form id="arrangementCoordinatesForm" class="modal-content">
+            <button id="closeArrangementCoordinatesModal" class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2 id="arrangementCoordinatesDialogTitle">Koordinater</h2>
+            <label class="modal-field">
+                <span>Koordinater <small class="modal-field-hint modal-field-hint--inline">Valfritt – styr soluppgång och solnedgång, annars används kårens hemmaplats</small></span>
+                <input id="arrangementCoordinates" type="text" maxlength="60" placeholder="T.ex. 56.6994, 12.7439">
+            </label>
+            <p id="arrangementCoordinatesMapLink" class="modal-field-hint hidden"><a href="#" target="_blank" rel="noreferrer">Visa på Google Maps</a></p>
+            <p id="arrangementCoordinatesDialogStatus" class="detail-planning-status" role="status" aria-live="polite"></p>
+            <div class="modal-actions">
+                <button id="cancelArrangementCoordinatesBtn" class="btn-secondary" type="button">Avbryt</button>
+                <button id="saveArrangementCoordinatesBtn" class="btn-primary" type="submit">Klar</button>
             </div>
         </form>
     </div>
@@ -359,6 +382,7 @@
     <script src="js/participants.js"></script>
     <script src="js/arrangemang-sync.js"></script>
     <script src="js/version.js"></script>
+    <script src="js/sun-times.js"></script>
     <script src="js/arrangemang-print.js"></script>
     <script src="js/arrangemang.js?v=agenda-material-textarea-1"></script>
     <script src="js/header-controls.js"></script>

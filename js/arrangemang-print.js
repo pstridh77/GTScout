@@ -8,6 +8,22 @@
         return new Intl.DateTimeFormat("sv-SE", options).format(new Date(`${value}T12:00:00`));
     }
 
+    function sunTimesForDate(arrangement, date) {
+        const sun = window.GTScoutSunTimes;
+        if (!sun || !date) return null;
+        const location = sun.resolveLocation(arrangement?.latitude, arrangement?.longitude);
+        return sun.calculate(date, location.lat, location.lon);
+    }
+
+    function formatSunText(times) {
+        return times ? `↑ ${times.sunrise} ↓ ${times.sunset}` : "";
+    }
+
+    function renderSunLabel(arrangement, date) {
+        const text = formatSunText(sunTimesForDate(arrangement, date));
+        return text ? `<span class="sun-times">${escapeHtml(text)}</span>` : "";
+    }
+
     function getTargetDepartments(entry, arrangement) {
         const activeDepartments = arrangement.departments || [];
         return entry.shared === false
@@ -28,7 +44,12 @@
             : "Deltagarantal saknas";
         const dates = [formatDate(arrangement.start_date, { day: "numeric", month: "long", year: "numeric" }), formatDate(arrangement.end_date, { day: "numeric", month: "long", year: "numeric" })].filter(Boolean);
         const dateText = dates.length > 1 && arrangement.start_date !== arrangement.end_date ? `${dates[0]}–${dates[1]}` : dates[0] || "Datum saknas";
-        return `<header class="document-header"><p class="eyebrow">GTScout · Arrangemang</p><h1>${escapeHtml(arrangement.title)}</h1><p>${escapeHtml(dateText)}${arrangement.location ? ` · ${escapeHtml(arrangement.location)}` : ""}</p><p>${escapeHtml(arrangement.type || "")}${arrangement.type ? " · " : ""}${escapeHtml(participantText)}</p>${arrangement.description ? `<p class="description">${escapeHtml(arrangement.description)}</p>` : ""}</header>`;
+        const firstSun = sunTimesForDate(arrangement, arrangement.start_date);
+        const lastSun = arrangement.end_date && arrangement.end_date !== arrangement.start_date ? sunTimesForDate(arrangement, arrangement.end_date) : null;
+        const sunText = firstSun
+            ? `Sol: ${formatSunText(firstSun)}${lastSun ? ` → ${formatSunText(lastSun)}` : ""}`
+            : "";
+        return `<header class="document-header"><p class="eyebrow">GTScout · Arrangemang</p><h1>${escapeHtml(arrangement.title)}</h1><p>${escapeHtml(dateText)}${arrangement.location ? ` · ${escapeHtml(arrangement.location)}` : ""}${sunText ? ` · ${escapeHtml(sunText)}` : ""}</p><p>${escapeHtml(arrangement.type || "")}${arrangement.type ? " · " : ""}${escapeHtml(participantText)}</p>${arrangement.description ? `<p class="description">${escapeHtml(arrangement.description)}</p>` : ""}</header>`;
     }
 
     function renderOverviewHeader(arrangement, includeDescription) {
@@ -104,7 +125,7 @@
                 byDate.get(date).push(entry);
             });
         if (!byDate.size) return `<p class="empty">Inga programpunkter planerade.</p>`;
-        return [...byDate].map(([date, entries], index) => `<section class="day-section${index ? " page-break" : ""}"><h2>${escapeHtml(formatDate(date) || "Datum saknas")}</h2>${entries.map(entry => renderAgendaEntry(entry, arrangement, recipes)).join("")}</section>`).join("");
+        return [...byDate].map(([date, entries], index) => `<section class="day-section${index ? " page-break" : ""}"><h2>${escapeHtml(formatDate(date) || "Datum saknas")}${renderSunLabel(arrangement, date)}</h2>${entries.map(entry => renderAgendaEntry(entry, arrangement, recipes)).join("")}</section>`).join("");
     }
 
     function renderPacking(arrangement, activities) {
@@ -251,7 +272,7 @@
                     });
                 }).join("") || `<span class="overview-empty-slot" aria-hidden="true"></span>`}</div>`;
             }).join("");
-            const dayHeaders = pageDates.map((date, index) => `<div class="overview-day-heading" style="grid-column:${index + 2};grid-row:1"><span>${escapeHtml(formatDate(date, { weekday: "long" }) || "")}</span><strong>${escapeHtml(formatDate(date, { day: "numeric", month: "short" }) || "Datum saknas")}</strong></div>`).join("");
+            const dayHeaders = pageDates.map((date, index) => `<div class="overview-day-heading" style="grid-column:${index + 2};grid-row:1"><span>${escapeHtml(formatDate(date, { weekday: "long" }) || "")}</span><strong>${escapeHtml(formatDate(date, { day: "numeric", month: "short" }) || "Datum saknas")}</strong>${renderSunLabel(arrangement, date)}</div>`).join("");
             const eventMarkup = pageDates.flatMap((date, dateIndex) => {
                 const events = timedEntries.filter(event => event.entry.date === date && !recurringMealEntries.has(event.entry)).sort((left, right) => left.startMinutes - right.startMinutes || left.endMinutes - right.endMinutes);
                 let cluster = [];
@@ -318,7 +339,7 @@
 
     function documentStyles(mode) {
         const isOverview = mode === "overview";
-        return `@page{size:${isOverview ? "A3 landscape" : "A4 portrait"};margin:${isOverview ? "9mm" : "13mm"}}*{box-sizing:border-box}body{margin:0;color:#142c34;background:#fff;font:10pt/1.4 Arial,sans-serif}h1,h2,h3,p{margin-top:0}h1{margin-bottom:3mm;font-size:${isOverview ? "24pt" : "21pt"}}h2{margin:0 0 4mm;font-size:14pt;color:#164a4d}h3{margin:0 0 2mm;font-size:11pt}p{margin-bottom:2mm}.print-toolbar{display:flex;justify-content:flex-end;margin:0 0 5mm}.print-toolbar button{padding:8px 14px;border:1px solid #a9bcb8;border-radius:4px;background:#f3f7f6;color:#153c4a;font:inherit;font-weight:700;cursor:pointer}.document-header{padding-bottom:4mm;margin-bottom:5mm;border-bottom:1px solid #9cafad}.document-header p{margin:1mm 0;color:#465d62}.document-header .eyebrow{font-size:8pt;font-weight:bold;text-transform:uppercase;color:#286d60}.document-header .description{margin-top:3mm}.intro-grid{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-bottom:6mm}.intro-grid section,.packing-section section{break-inside:avoid}.schedule-section>h2{margin-bottom:2mm}.day-section{break-inside:auto}.day-section.page-break{break-before:page}.day-section h2{padding-bottom:2mm;border-bottom:1px solid #a9bcb8}.agenda-entry{display:grid;grid-template-columns:24mm 1fr;gap:4mm;padding:3mm 1mm;border-bottom:1px solid #d9e2df;break-inside:avoid}.agenda-time{font-size:11pt;font-weight:700;color:#286d60}.agenda-entry h3{margin-bottom:1mm}.agenda-entry p{margin:1mm 0}.agenda-meta,.agenda-entry small{color:#52686d}.agenda-meta{font-size:8.5pt}.packing-section{margin-top:5mm}.packing-section.page-break{break-before:page}.packing-grid{display:grid;grid-template-columns:1fr 1fr;gap:2mm 8mm}.packing-grid section{break-inside:avoid}.packing-section h3{margin-top:4mm;color:#286d60}.packing-section ul{margin:0;padding-left:5mm}.packing-section li{padding:1mm 0;break-inside:avoid}.packing-section li small{color:#64777b}.checklist-item{display:flex;align-items:center;gap:2mm;list-style:none}.checkbox{width:4mm;height:4mm;border:1px solid #53686b;flex:0 0 4mm}.notes{white-space:pre-wrap}.empty{color:#64777b;font-style:italic}.overview-page{min-height:255mm}.overview-page.page-break{break-before:page}.overview-page .document-header{margin-bottom:7mm}.overview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7mm}.overview-day{min-width:0;padding:4mm;border:1px solid #cbd9d6;border-top:3px solid #286d60;border-radius:2mm}.overview-day h2{padding-bottom:3mm;border-bottom:1px solid #d9e2df}.overview-entry{display:grid;grid-template-columns:22mm 1fr;gap:1mm 3mm;padding:3mm 1mm;border-bottom:1px solid #d9e2df;break-inside:avoid}.overview-entry>strong{grid-row:span 2;color:#286d60;font-size:11pt}.overview-entry>span{font-weight:700}.overview-entry small{grid-column:2;color:#52686d}.overview-page footer{margin-top:6mm;padding-top:3mm;border-top:1px solid #cbd9d6;color:#52686d;font-size:8pt}.page-break{break-before:page}@media print{.print-toolbar{display:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}`;
+        return `@page{size:${isOverview ? "A3 landscape" : "A4 portrait"};margin:${isOverview ? "9mm" : "13mm"}}*{box-sizing:border-box}body{margin:0;color:#142c34;background:#fff;font:10pt/1.4 Arial,sans-serif}h1,h2,h3,p{margin-top:0}h1{margin-bottom:3mm;font-size:${isOverview ? "24pt" : "21pt"}}h2{margin:0 0 4mm;font-size:14pt;color:#164a4d}h3{margin:0 0 2mm;font-size:11pt}p{margin-bottom:2mm}.print-toolbar{display:flex;justify-content:flex-end;margin:0 0 5mm}.print-toolbar button{padding:8px 14px;border:1px solid #a9bcb8;border-radius:4px;background:#f3f7f6;color:#153c4a;font:inherit;font-weight:700;cursor:pointer}.document-header{padding-bottom:4mm;margin-bottom:5mm;border-bottom:1px solid #9cafad}.document-header p{margin:1mm 0;color:#465d62}.document-header .eyebrow{font-size:8pt;font-weight:bold;text-transform:uppercase;color:#286d60}.document-header .description{margin-top:3mm}.intro-grid{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-bottom:6mm}.intro-grid section,.packing-section section{break-inside:avoid}.schedule-section>h2{margin-bottom:2mm}.day-section{break-inside:auto}.day-section.page-break{break-before:page}.day-section h2{padding-bottom:2mm;border-bottom:1px solid #a9bcb8}.day-section h2 .sun-times{margin-left:3mm;color:#52686d;font-size:9pt;font-weight:400}.overview-day-heading .sun-times{color:#52686d;font-size:7pt;font-weight:400}.agenda-entry{display:grid;grid-template-columns:24mm 1fr;gap:4mm;padding:3mm 1mm;border-bottom:1px solid #d9e2df;break-inside:avoid}.agenda-time{font-size:11pt;font-weight:700;color:#286d60}.agenda-entry h3{margin-bottom:1mm}.agenda-entry p{margin:1mm 0}.agenda-meta,.agenda-entry small{color:#52686d}.agenda-meta{font-size:8.5pt}.packing-section{margin-top:5mm}.packing-section.page-break{break-before:page}.packing-grid{display:grid;grid-template-columns:1fr 1fr;gap:2mm 8mm}.packing-grid section{break-inside:avoid}.packing-section h3{margin-top:4mm;color:#286d60}.packing-section ul{margin:0;padding-left:5mm}.packing-section li{padding:1mm 0;break-inside:avoid}.packing-section li small{color:#64777b}.checklist-item{display:flex;align-items:center;gap:2mm;list-style:none}.checkbox{width:4mm;height:4mm;border:1px solid #53686b;flex:0 0 4mm}.notes{white-space:pre-wrap}.empty{color:#64777b;font-style:italic}.overview-page{min-height:255mm}.overview-page.page-break{break-before:page}.overview-page .document-header{margin-bottom:7mm}.overview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7mm}.overview-day{min-width:0;padding:4mm;border:1px solid #cbd9d6;border-top:3px solid #286d60;border-radius:2mm}.overview-day h2{padding-bottom:3mm;border-bottom:1px solid #d9e2df}.overview-entry{display:grid;grid-template-columns:22mm 1fr;gap:1mm 3mm;padding:3mm 1mm;border-bottom:1px solid #d9e2df;break-inside:avoid}.overview-entry>strong{grid-row:span 2;color:#286d60;font-size:11pt}.overview-entry>span{font-weight:700}.overview-entry small{grid-column:2;color:#52686d}.overview-page footer{margin-top:6mm;padding-top:3mm;border-top:1px solid #cbd9d6;color:#52686d;font-size:8pt}.page-break{break-before:page}@media print{.print-toolbar{display:none}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}`;
     }
 
     function overviewStyles() {

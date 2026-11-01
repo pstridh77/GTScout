@@ -55,6 +55,7 @@
         <section class="admin-section">
             <h3>Kårer</h3>
             <p class="auth-note">En admin utan egen kårtillhörighet är systemadmin och hanterar alla kårer. Övriga admins hanterar bara sin egen kår.</p>
+            <p class="auth-note">Kårens koordinater (latitud, longitud) styr soluppgång och solnedgång i planeringar och arrangemang. Utan koordinater används standardplatsen (Gullbrandstorp).</p>
             <div id="adminKarList" class="admin-list"></div>
             <div class="admin-add-row" id="adminAddKarRow">
                 <input id="adminNewKarNamn" type="text" placeholder="Kårens namn">
@@ -69,7 +70,24 @@
             <div id="adminUserList" class="admin-list"></div>
         </section>
     </main>
+    <div id="adminCoordinatesModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminCoordinatesDialogTitle">
+        <form id="adminCoordinatesForm" class="modal-content">
+            <button id="closeAdminCoordinatesModal" class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2 id="adminCoordinatesDialogTitle">Koordinater för kåren</h2>
+            <label class="modal-field">
+                <span id="adminCoordinatesDialogLabel"><span id="adminCoordinatesDialogName">Koordinater</span> <small class="modal-field-hint modal-field-hint--inline">Valfritt – styr soluppgång och solnedgång, annars används standardplatsen (Gullbrandstorp)</small></span>
+                <input id="adminCoordinates" type="text" maxlength="60" placeholder="T.ex. 56.6994, 12.7439">
+            </label>
+            <p id="adminCoordinatesMapLink" class="modal-field-hint hidden"><a href="#" target="_blank" rel="noreferrer">Visa på Google Maps</a></p>
+            <p id="adminCoordinatesDialogStatus" class="detail-planning-status" role="status" aria-live="polite"></p>
+            <div class="modal-actions">
+                <button id="cancelAdminCoordinatesBtn" class="btn-secondary" type="button">Avbryt</button>
+                <button id="saveAdminCoordinatesBtn" class="btn-primary" type="submit">Spara</button>
+            </div>
+        </form>
+    </div>
     <footer class="site-footer" aria-label="Sidfot och version"><div class="site-footer-content"><span class="site-footer-title">GTScout</span><span class="site-footer-dot" aria-hidden="true">•</span><span class="site-footer-version"></span><span class="site-footer-dot" aria-hidden="true">•</span><span class="site-footer-build"></span><span class="site-footer-dot" aria-hidden="true">•</span><span class="database-environment"></span></div></footer>
+    <script src="js/sun-times.js"></script>
     <script src="js/admin.js"></script>
     <script src="js/version.js"></script>
     <script src="js/header-controls.js"></script>
