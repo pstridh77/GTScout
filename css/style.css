@@ -19,7 +19,7 @@ body {
     color:#003660;
 }
 
-.cookbook-page, .arrangements-page, .activities-page { margin: 34px 20px 54px; }
+.cookbook-page, .arrangements-page, .activities-page, .admin-page { margin: 34px 20px 54px; }
 .page-hero { display: flex; align-items: end; justify-content: space-between; gap: 24px; box-sizing: border-box; min-height: 172px; margin-bottom: 26px; padding: 30px 34px; border-radius: 10px; background: linear-gradient(120deg, #003660 0%, #176b72 68%, #e0a83a 160%); color: #fff; }
 .page-hero > div:first-child { min-width: 0; }
 .page-kicker { margin: 0 0 8px; color: #b8e0d6; font-size: .78rem; font-weight: 700; letter-spacing: 0; text-transform: uppercase; }
@@ -121,7 +121,7 @@ body {
 @media (max-width: 1100px) { .page-hero { align-items: flex-start; flex-direction: column; } }
 @media (max-width: 800px) { .page-hero h1 { font-size: 2.5rem; } .cookbook-toolbar { grid-template-columns: 1fr 1fr; } .activities-page .cookbook-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); } .recipe-form-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 680px) { .recipe-ingredient-row { grid-template-columns: 1fr 34px; } .recipe-ingredient-row .recipe-ingredient-name { grid-column: 1 / -1; } .recipe-ingredient-amounts { grid-column: 1 / -1; } }
-@media (max-width: 520px) { .cookbook-page, .arrangements-page, .activities-page, .planning-hero, .badges-hero { margin-top: 20px; } .page-hero { padding: 24px; } .page-hero h1 { font-size: 2rem; } .cookbook-toolbar, .recipe-form-grid { grid-template-columns: 1fr; } .activities-page .cookbook-toolbar { grid-template-columns: minmax(0, 1fr); } .recipe-card { padding: 18px; } .recipe-ingredient-amounts { grid-template-columns: repeat(5, minmax(42px, 1fr)); gap: 3px; } }
+@media (max-width: 520px) { .cookbook-page, .arrangements-page, .activities-page, .admin-page, .planning-hero, .badges-hero { margin-top: 20px; } .page-hero { padding: 24px; } .page-hero h1 { font-size: 2rem; } .cookbook-toolbar, .recipe-form-grid { grid-template-columns: 1fr; } .activities-page .cookbook-toolbar { grid-template-columns: minmax(0, 1fr); } .recipe-card { padding: 18px; } .recipe-ingredient-amounts { grid-template-columns: repeat(5, minmax(42px, 1fr)); gap: 3px; } }
 .arrangements-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(170px, 240px); align-items: end; gap: 14px; margin-bottom: 22px; }
 .arrangements-toolbar .filter-field { min-width: 0; }
 .arrangements-grid { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 14px; }
@@ -1599,14 +1599,18 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
 .admin-section {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding-top: 12px;
-    border-top: 1px solid #e5e7eb;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding: 20px 24px 24px;
+    border: 1px solid #d7e1eb;
+    border-radius: 10px;
+    background: white;
+    box-shadow: 0 8px 24px rgba(0, 54, 96, 0.08);
 }
 
 .admin-section h3 {
     margin: 0;
-    font-size: 1rem;
+    font-size: 1.1rem;
     color: #003660;
 }
 
@@ -1618,16 +1622,26 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
 
 .admin-row {
     display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, max-content) minmax(0, max-content) 1fr;
     align-items: center;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+}
+
+.admin-row-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
     gap: 8px;
 }
 
 .admin-row--user {
-    grid-template-columns: minmax(110px, 1fr) minmax(110px, 1fr) auto auto auto;
+    grid-template-columns: minmax(110px, max-content) minmax(110px, max-content) auto 1fr;
     grid-template-areas:
-        "name name name name delete"
-        "role kar permissions permissions save";
+        "name name name actions"
+        "role kar permissions actions";
     padding: 10px;
     border: 1px solid #d0d7de;
     border-radius: 8px;
@@ -1650,11 +1664,8 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
 }
 
 .admin-row--user > :nth-child(5) {
-    grid-area: save;
-}
-
-.admin-row--user > :nth-child(6) {
-    grid-area: delete;
+    grid-area: actions;
+    align-self: start;
 }
 
 .admin-permissions {
@@ -1691,6 +1702,11 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
     min-width: 0;
 }
 
+.admin-row--user select {
+    width: auto;
+    max-width: 100%;
+}
+
 .admin-user-name {
     display: flex;
     flex-direction: column;
@@ -1710,8 +1726,12 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
 
 .admin-add-row {
     display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, max-content) minmax(0, max-content) auto;
+    justify-content: start;
     gap: 8px;
+    padding: 10px;
+    border: 1px dashed #d0d7de;
+    border-radius: 8px;
 }
 
 .admin-add-row.hidden {
@@ -1746,8 +1766,11 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
             "role"
             "kar"
             "permissions"
-            "save"
-            "delete";
+            "actions";
+    }
+
+    .admin-row--user > :nth-child(5) {
+        justify-content: flex-start;
     }
 }
 
