@@ -150,6 +150,13 @@ if (siteMenuBtn && siteMenuDropdown) {
         siteMenuDropdown.classList.toggle("hidden", isOpen);
         siteMenuBtn.setAttribute("aria-expanded", String(!isOpen));
     });
+    siteMenuDropdown.addEventListener("click", event => {
+        const item = event.target.closest("a, button");
+        if (!item) return;
+        if (item.hasAttribute("data-nav-preferences")) {
+            window.GTScoutNavPreferences?.openPreferencesDialog();
+        }
+    });
     document.addEventListener("click", event => {
         if (!siteMenuDropdown.contains(event.target) && event.target !== siteMenuBtn) {
             siteMenuDropdown.classList.add("hidden");

@@ -85,6 +85,9 @@
         if (item.dataset.headerAction) {
             document.getElementById(item.dataset.headerAction)?.click();
         }
+        if (item.hasAttribute("data-nav-preferences")) {
+            window.GTScoutNavPreferences?.openPreferencesDialog();
+        }
     });
 
     const sections = [...menu.querySelectorAll(".site-menu-section")];

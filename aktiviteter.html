@@ -25,14 +25,14 @@
         <div class="header-main">
             <a class="site-brand" href="index.html" aria-label="Gullbrandstorps scoutkår"><img src="images/icons/GTorp_banner.png" alt="Gullbrandstorps Scoutkår" class="site-brand-banner"></a>
             <nav class="main-nav" aria-label="Huvudnavigation">
-                <a href="index.html" class="nav-link">Märken</a>
-                <a href="aktiviteter.html" class="nav-link active" aria-current="page">Aktiviteter</a>
-                <a href="kokbok.html" class="nav-link">Recept</a>
-                <a href="planering.html" class="nav-link">Planeringar</a>
-                <a href="arrangemang.html" class="nav-link">Arrangemang</a>
-                <a href="arshjul.html" class="nav-link">Årshjul</a>
-                <a href="scouter.html" class="nav-link hidden" data-scout-navigation>Scouter</a>
-                <a href="admin.html" class="nav-link hidden" data-admin-panel>Administration</a>
+                <a href="index.html" class="nav-link" data-nav-page="index">Märken</a>
+                <a href="aktiviteter.html" class="nav-link" data-nav-page="aktiviteter" aria-current="page">Aktiviteter</a>
+                <a href="kokbok.html" class="nav-link" data-nav-page="kokbok">Recept</a>
+                <a href="planering.html" class="nav-link" data-nav-page="planering">Planeringar</a>
+                <a href="arrangemang.html" class="nav-link" data-nav-page="arrangemang">Arrangemang</a>
+                <a href="arshjul.html" class="nav-link" data-nav-page="arshjul">Årshjul</a>
+                <a href="scouter.html" class="nav-link" data-nav-page="scouter" data-scout-navigation>Scouter</a>
+                <a href="admin.html" class="nav-link" data-nav-page="admin" data-admin-panel>Administration</a>
             </nav>
             <div class="library-header-actions">
                 <button id="filtersVisibilityToggle" class="filters-visibility-toggle" type="button" aria-label="Visa sökfält och filter" aria-pressed="false" aria-expanded="false" aria-controls="activityFilters" title="Visa sökfält och filter">
@@ -43,14 +43,14 @@
                     <div id="planningActionsDropdown" class="planning-actions-dropdown hidden" role="menu">
                         <details class="site-menu-section" open>
                             <summary class="planning-menu-section-label">Navigering</summary>
-                            <a href="index.html" class="site-menu-item" role="menuitem">Märken</a>
-                            <a href="aktiviteter.html" class="site-menu-item" role="menuitem" aria-current="page">Aktiviteter</a>
-                            <a href="kokbok.html" class="site-menu-item" role="menuitem">Recept</a>
-                            <a href="planering.html" class="site-menu-item" role="menuitem">Planeringar</a>
-                            <a href="arrangemang.html" class="site-menu-item" role="menuitem">Arrangemang</a>
-                            <a href="arshjul.html" class="site-menu-item" role="menuitem">Årshjul</a>
-                            <a href="scouter.html" class="site-menu-item hidden" role="menuitem" data-scout-navigation>Scouter</a>
-                            <a href="admin.html" class="site-menu-item hidden" role="menuitem" data-admin-panel>Administration</a>
+                            <a href="index.html" class="site-menu-item" data-nav-page="index" role="menuitem">Märken</a>
+                            <a href="aktiviteter.html" class="site-menu-item" data-nav-page="aktiviteter" role="menuitem" aria-current="page">Aktiviteter</a>
+                            <a href="kokbok.html" class="site-menu-item" data-nav-page="kokbok" role="menuitem">Recept</a>
+                            <a href="planering.html" class="site-menu-item" data-nav-page="planering" role="menuitem">Planeringar</a>
+                            <a href="arrangemang.html" class="site-menu-item" data-nav-page="arrangemang" role="menuitem">Arrangemang</a>
+                            <a href="arshjul.html" class="site-menu-item" data-nav-page="arshjul" role="menuitem">Årshjul</a>
+                            <a href="scouter.html" class="site-menu-item" data-nav-page="scouter" role="menuitem" data-scout-navigation>Scouter</a>
+                            <a href="admin.html" class="site-menu-item" data-nav-page="admin" role="menuitem" data-admin-panel>Administration</a>
                         </details>
                         <div class="planning-menu-divider" role="separator"></div>
                         <details class="site-menu-section" open>
@@ -61,7 +61,7 @@
                         <details class="site-menu-section">
                             <summary class="planning-menu-section-label">Visa</summary>
                             <button class="planning-menu-item section-collapse-menu-item" type="button" role="menuitem" data-collapse-all="activities" aria-expanded="true">Fäll ihop alla kategorier</button>
-                        </details>
+                        <button class="planning-menu-item" type="button" role="menuitem" data-nav-preferences>Anpassa meny...</button></details>
                         <div class="planning-menu-divider" role="separator"></div>
                         <div class="site-menu-environment-note database-environment"></div>
                         <div class="site-menu-version-note"></div>
@@ -117,8 +117,8 @@
     <script src="js/sync-retry.js"></script>
     <script src="js/activities-sync.js"></script>
     <script src="js/badges-sync.js"></script>
-    <script src="js/version.js"></script>
+    <script src="js/nav-preferences.js"></script><script src="js/version.js"></script>
     <script src="js/aktiviteter.js?v=activity-target-groups-5"></script>
-    <script src="js/header-controls.js"></script>
+    <script src="js/nav-preferences.js"></script><script src="js/header-controls.js"></script>
 </body>
 </html>

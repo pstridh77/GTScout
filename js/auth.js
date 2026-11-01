@@ -427,6 +427,7 @@
         document.querySelectorAll("[data-admin-panel]").forEach(link => {
             link.classList.toggle("hidden", getRole() !== ROLES.ADMIN);
         });
+        window.GTScoutNavPreferences?.applyNavVisibility(getRole());
         if (!status || !button) return;
 
         if (current.loading) {
