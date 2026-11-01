@@ -212,7 +212,9 @@
             </label>
             <p id="arrangementFormStatus" class="detail-planning-status" role="status" aria-live="polite"></p>
             <div class="modal-actions arrangement-form-actions">
-                <button id="deleteArrangementBtn" class="btn-danger hidden" type="button">Ta bort</button>
+                <button id="deleteArrangementBtn" class="arrangement-delete-icon hidden" type="button" aria-label="Ta bort arrangemang" title="Ta bort arrangemang">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg>
+                </button>
                 <span class="modal-actions-spacer"></span>
                 <button id="cancelArrangementBtn" class="btn-secondary" type="button">Avbryt</button>
                 <button id="saveArrangementBtn" class="btn-primary" type="submit">Spara arrangemang</button>

@@ -646,8 +646,8 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
 .responsibility-field--person { grid-column: 1 / -1; }
 .responsibility-field--description { grid-column: 1 / -1; }
 .arrangement-responsibilities-empty { margin: 12px 0; color: #65767b; font-size: .86rem; }
-.arrangement-form-actions { margin-top: 0; }
-.arrangement-form-actions .btn-danger { margin-right: auto; }
+.arrangement-form-actions { margin-top: 0; align-items: center; }
+.arrangement-form-actions .arrangement-delete-icon { margin-right: auto; }
 .modal-actions.agenda-entry-dialog-actions { align-items: center; justify-content: space-between; gap: 16px; margin-top: 4px; }
 .agenda-entry-dialog-action-group { display: flex; align-items: center; gap: 8px; }
 .agenda-entry-dialog-action-group button { min-height: 40px; white-space: nowrap; }
@@ -6045,7 +6045,7 @@ select:focus {
     gap: 8px;
 }
 
-.modal-actions { display: flex; justify-content: flex-end; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
 
 .scout-detail-delete-btn {
     margin-right: auto;
