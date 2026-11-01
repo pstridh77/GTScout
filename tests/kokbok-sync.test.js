@@ -39,6 +39,7 @@ function createCookbook(responses = [], signedIn = true, onRetry = () => {}) {
         crypto: globalThis.crypto,
         setTimeout(callback, delay) { delays.push(delay); onRetry(context.window.GTScoutAuth); callback(); }
     });
+    vm.runInContext(readScript("sync-retry.js"), context);
     vm.runInContext(readScript("kokbok-sync.js"), context);
     return { cookbook: context.window.GTScoutCookbook, requests, delays, storage };
 }

@@ -82,16 +82,18 @@
             if (!isCurrentContext(currentRevision, currentKarId, currentUserId)
                 || wheels.find(item => item.id === payload.id) !== payload) return { saved: false, stale: true };
             try {
-                const { error } = await client().from("arshjul").upsert({
-                    id: payload.id,
-                    kar_id: currentKarId,
-                    created_by: payload.created_by || currentUserId,
-                    name: payload.name,
-                    share_token: payload.share_token || null,
-                    data: payload
-                }, { onConflict: "id" });
+                await window.GTScoutSyncRetry.withRetry(async () => {
+                    const { error } = await client().from("arshjul").upsert({
+                        id: payload.id,
+                        kar_id: currentKarId,
+                        created_by: payload.created_by || currentUserId,
+                        name: payload.name,
+                        share_token: payload.share_token || null,
+                        data: payload
+                    }, { onConflict: "id" });
+                    if (error) throw error;
+                }, () => isCurrentContext(currentRevision, currentKarId, currentUserId));
                 if (!isCurrentContext(currentRevision, currentKarId, currentUserId)) return { saved: false, stale: true };
-                if (error) throw error;
                 if (wheels.find(item => item.id === payload.id) !== payload) return { saved: false, stale: true };
                 wheels = wheels.map(item => item.id === payload.id ? { ...payload, local_only: false } : item);
                 writeLocal();
@@ -121,9 +123,11 @@
         await enqueueWrite(id, async () => {
             if (!isCurrentContext(currentRevision, currentKarId, currentUserId)) return;
             try {
-                const { error } = await client().from("arshjul").delete().eq("id", id).eq("kar_id", currentKarId);
+                await window.GTScoutSyncRetry.withRetry(async () => {
+                    const { error } = await client().from("arshjul").delete().eq("id", id).eq("kar_id", currentKarId);
+                    if (error) throw error;
+                }, () => isCurrentContext(currentRevision, currentKarId, currentUserId));
                 if (!isCurrentContext(currentRevision, currentKarId, currentUserId)) return;
-                if (error) throw error;
                 setStatus("Årshjulet har tagits bort.");
             } catch (error) {
                 if (!isCurrentContext(currentRevision, currentKarId, currentUserId)) return;
@@ -163,11 +167,14 @@
             return { saved: false, error: new Error("Välj ett sparat årshjul från kåren.") };
         }
         try {
-            const { error } = await client().from("kar_arshjul_settings").upsert({
-                kar_id: currentKarId,
-                default_wheel_id: id || null
-            }, { onConflict: "kar_id" });
-            if (error) throw error;
+            await window.GTScoutSyncRetry.withRetry(async () => {
+                const { error } = await client().from("kar_arshjul_settings").upsert({
+                    kar_id: currentKarId,
+                    default_wheel_id: id || null
+                }, { onConflict: "kar_id" });
+                if (error) throw error;
+            }, () => currentRevision === revision && currentKarId === karId()
+                && currentUserId === (auth()?.getUser?.()?.id || null) && canWrite());
             if (currentRevision !== revision || currentKarId !== karId()
                 || currentUserId !== (auth()?.getUser?.()?.id || null)) {
                 return { saved: false, stale: true };

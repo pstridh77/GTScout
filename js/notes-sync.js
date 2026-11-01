@@ -55,20 +55,25 @@
             .map(([badgeId, note]) => ({ kar_id: kar, badge_id: badgeId, note, updated_by: updatedBy }));
         const removals = entries.filter(([, note]) => !note.trim()).map(([badgeId]) => badgeId);
 
+        const writeGuard = () => canWrite() && karId() === kar && (auth().getUser()?.id || null) === updatedBy;
         try {
             if (upserts.length) {
-                const { error } = await client()
-                    .from("badge_notes")
-                    .upsert(upserts, { onConflict: "kar_id,badge_id" });
-                if (error) throw error;
+                await window.GTScoutSyncRetry.withRetry(async () => {
+                    const { error } = await client()
+                        .from("badge_notes")
+                        .upsert(upserts, { onConflict: "kar_id,badge_id" });
+                    if (error) throw error;
+                }, writeGuard);
             }
             if (removals.length) {
-                const { error } = await client()
-                    .from("badge_notes")
-                    .delete()
-                    .eq("kar_id", kar)
-                    .in("badge_id", removals);
-                if (error) throw error;
+                await window.GTScoutSyncRetry.withRetry(async () => {
+                    const { error } = await client()
+                        .from("badge_notes")
+                        .delete()
+                        .eq("kar_id", kar)
+                        .in("badge_id", removals);
+                    if (error) throw error;
+                }, writeGuard);
             }
         } catch (error) {
             console.error("Kunde inte spara anteckningar till databasen", error);

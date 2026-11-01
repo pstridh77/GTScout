@@ -1520,6 +1520,7 @@ function createPage(backend, storage = new Map(), displayStorage = new Map()) {
             await callback();
         }
     };
+    load("sync-retry.js");
     load("participants.js");
     load("auth.js");
     return { window: context.window, localStorage, storage, displayStorage, elements, load, emit, runTimers, auth: context.window.GTScoutAuth };

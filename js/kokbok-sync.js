@@ -76,18 +76,11 @@
         writeLocal();
         if (!canSync()) return { localOnly: true, recipe: next };
         const row = { id: next.id, kar_id: karId(), created_by: next.created_by, namn: next.namn, kategori: next.kategori || null, beskrivning: next.beskrivning || null, ingredienser: next.ingredienser, ingredienser_skalningar: next.ingredienser_skalningar, instruktioner: next.instruktioner, portioner: next.portioner, tid: next.tid || null, svarighet: next.svarighet };
-        for (let attempt = 0; attempt < 2; attempt++) {
-            try {
-                const { error } = await client().from("kokbok_recept").upsert(row, { onConflict: "id" });
-                if (error) throw error;
-                return { recipe: next };
-            } catch (error) {
-                const networkError = !error?.code && /^(TypeError:\s*)?(Load failed|Failed to fetch|NetworkError when attempting to fetch resource\.?)$/i.test(error?.message || "");
-                if (attempt > 0 || !networkError) throw error;
-                await new Promise(resolve => setTimeout(resolve, 500));
-                if (!canSync() || karId() !== row.kar_id || auth()?.getUser()?.id !== userId) throw error;
-            }
-        }
+        await window.GTScoutSyncRetry.withRetry(async () => {
+            const { error } = await client().from("kokbok_recept").upsert(row, { onConflict: "id" });
+            if (error) throw error;
+        }, () => canSync() && karId() === row.kar_id && auth()?.getUser()?.id === userId);
+        return { recipe: next };
     }
 
     async function remove(id) {
@@ -95,8 +88,12 @@
         recipes = recipes.filter(recipe => recipe.id !== id);
         writeLocal();
         if (!canSync() || !existing) return { localOnly: true };
-        const { error } = await client().from("kokbok_recept").delete().eq("id", id).eq("kar_id", karId());
-        if (error) throw error;
+        const currentKarId = karId();
+        const currentUserId = auth()?.getUser()?.id || null;
+        await window.GTScoutSyncRetry.withRetry(async () => {
+            const { error } = await client().from("kokbok_recept").delete().eq("id", id).eq("kar_id", currentKarId);
+            if (error) throw error;
+        }, () => canSync() && karId() === currentKarId && auth()?.getUser()?.id === currentUserId);
         return {};
     }
 

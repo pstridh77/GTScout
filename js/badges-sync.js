@@ -116,14 +116,18 @@
 
     async function uploadBadgeImage(file, badgeId) {
         await validateBadgeImage(file);
-        const path = `${getKarId()}/${badgeId}/${crypto.randomUUID()}.png`;
+        const currentKarId = getKarId();
+        const currentUserId = auth()?.getUser()?.id || null;
+        const path = `${currentKarId}/${badgeId}/${crypto.randomUUID()}.png`;
         const storage = client().storage.from(BADGE_IMAGE_BUCKET);
-        const { error } = await storage.upload(path, file, {
-            cacheControl: "3600",
-            contentType: "image/png",
-            upsert: false
-        });
-        if (error) throw new Error(error.message || "Bilden kunde inte laddas upp.");
+        await window.GTScoutSyncRetry.withRetry(async () => {
+            const { error } = await storage.upload(path, file, {
+                cacheControl: "3600",
+                contentType: "image/png",
+                upsert: false
+            });
+            if (error) throw new Error(error.message || "Bilden kunde inte laddas upp.");
+        }, () => canWrite() && getKarId() === currentKarId && (auth()?.getUser()?.id || null) === currentUserId);
 
         const { data } = storage.getPublicUrl(path);
         if (!data?.publicUrl) throw new Error("Bildens publika adress kunde inte skapas.");
@@ -132,8 +136,16 @@
 
     async function removeUploadedImage(path) {
         if (!path) return;
-        const { error } = await client().storage.from(BADGE_IMAGE_BUCKET).remove([path]);
-        if (error) console.error("Kunde inte rensa uppladdad märkesbild", error);
+        const currentKarId = getKarId();
+        const currentUserId = auth()?.getUser()?.id || null;
+        try {
+            await window.GTScoutSyncRetry.withRetry(async () => {
+                const { error } = await client().storage.from(BADGE_IMAGE_BUCKET).remove([path]);
+                if (error) throw error;
+            }, () => canWrite() && getKarId() === currentKarId && (auth()?.getUser()?.id || null) === currentUserId);
+        } catch (error) {
+            console.error("Kunde inte rensa uppladdad märkesbild", error);
+        }
     }
 
     function getUploadedImagePath(imageUrl) {
@@ -234,21 +246,25 @@
         if (normalized.malgrupp.length === 0) throw new Error("Välj minst en målgrupp.");
         if (normalized.kriterier.length === 0) throw new Error("Ange minst ett kriterium.");
 
-        const { error } = await client().from("custom_badges").insert({
-            id: normalized.id,
-            kar_id: normalized.kar_id,
-            created_by: auth()?.getUser()?.id || null,
-            namn: normalized.namn,
-            kategori: normalized.kategori,
-            malgrupp: normalized.malgrupp,
-            inledning: normalized.inledning || null,
-            kriterier: normalized.kriterier,
-            program: normalized.program,
-            typ: normalized.Typ,
-            bild: normalized.bild
-        });
-
-        if (error) {
+        const currentUserId = auth()?.getUser()?.id || null;
+        try {
+            await window.GTScoutSyncRetry.withRetry(async () => {
+                const { error } = await client().from("custom_badges").insert({
+                    id: normalized.id,
+                    kar_id: normalized.kar_id,
+                    created_by: currentUserId,
+                    namn: normalized.namn,
+                    kategori: normalized.kategori,
+                    malgrupp: normalized.malgrupp,
+                    inledning: normalized.inledning || null,
+                    kriterier: normalized.kriterier,
+                    program: normalized.program,
+                    typ: normalized.Typ,
+                    bild: normalized.bild
+                });
+                if (error) throw error;
+            }, () => canWrite() && getKarId() === normalized.kar_id && (auth()?.getUser()?.id || null) === currentUserId);
+        } catch (error) {
             if (error.code === "23505") throw new Error("Det finns redan ett märke med det namnet i kåren.");
             console.error("Kunde inte spara kårens märke", error);
             throw new Error(error.message || "Märket kunde inte sparas.");
@@ -273,22 +289,26 @@
         if (normalized.malgrupp.length === 0) throw new Error("Välj minst en målgrupp.");
         if (normalized.kriterier.length === 0) throw new Error("Ange minst ett kriterium.");
 
-        const { error } = await client()
-            .from("custom_badges")
-            .update({
-                namn: normalized.namn,
-                kategori: normalized.kategori,
-                malgrupp: normalized.malgrupp,
-                inledning: normalized.inledning || null,
-                kriterier: normalized.kriterier,
-                program: normalized.program,
-                typ: normalized.Typ,
-                bild: normalized.bild
-            })
-            .eq("id", normalized.id)
-            .eq("kar_id", getKarId());
-
-        if (error) {
+        const currentUserId = auth()?.getUser()?.id || null;
+        try {
+            await window.GTScoutSyncRetry.withRetry(async () => {
+                const { error } = await client()
+                    .from("custom_badges")
+                    .update({
+                        namn: normalized.namn,
+                        kategori: normalized.kategori,
+                        malgrupp: normalized.malgrupp,
+                        inledning: normalized.inledning || null,
+                        kriterier: normalized.kriterier,
+                        program: normalized.program,
+                        typ: normalized.Typ,
+                        bild: normalized.bild
+                    })
+                    .eq("id", normalized.id)
+                    .eq("kar_id", normalized.kar_id);
+                if (error) throw error;
+            }, () => canWrite() && getKarId() === normalized.kar_id && (auth()?.getUser()?.id || null) === currentUserId);
+        } catch (error) {
             if (error.code === "23505") throw new Error("Det finns redan ett märke med det namnet i kåren.");
             console.error("Kunde inte uppdatera kårens märke", error);
             throw new Error(error.message || "Märket kunde inte uppdateras.");
@@ -301,13 +321,18 @@
     async function deleteBadge(badge) {
         if (!canDeleteBadge(badge)) throw new Error("Endast kårens administratör kan ta bort märket.");
 
-        const { error } = await client()
-            .from("custom_badges")
-            .update({ is_active: false })
-            .eq("id", badge.id)
-            .eq("kar_id", getKarId());
-
-        if (error) {
+        const currentKarId = getKarId();
+        const currentUserId = auth()?.getUser()?.id || null;
+        try {
+            await window.GTScoutSyncRetry.withRetry(async () => {
+                const { error } = await client()
+                    .from("custom_badges")
+                    .update({ is_active: false })
+                    .eq("id", badge.id)
+                    .eq("kar_id", currentKarId);
+                if (error) throw error;
+            }, () => canWrite() && getKarId() === currentKarId && (auth()?.getUser()?.id || null) === currentUserId);
+        } catch (error) {
             console.error("Kunde inte ta bort kårens märke", error);
             throw new Error(error.message || "Märket kunde inte tas bort.");
         }

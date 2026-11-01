@@ -1349,7 +1349,7 @@ function getMealRecipeName(entry, id) {
 function renderMealRecipeAliasFields(recipeIds, aliases = {}) {
     return recipeIds.map(id => {
         const recipeName = recipes.find(recipe => String(recipe.id) === id)?.namn || "Tidigare recept";
-        return `<label class="agenda-entry-field agenda-entry-recipe-alias"><span>Alternativt namn för ${escapeArrangementHtml(recipeName)}</span><input type="text" data-recipe-alias="${escapeArrangementHtml(id)}" maxlength="160" value="${escapeArrangementHtml(aliases[id] || "")}" placeholder="${escapeArrangementHtml(recipeName)}"></label>`;
+        return `<label class="agenda-entry-field agenda-entry-recipe-alias" title="Visas istället för receptnamnet i schemat och på utskrifter. Lämna tomt för att använda receptets namn."><span>Alternativt namn för ${escapeArrangementHtml(recipeName)}</span><input type="text" data-recipe-alias="${escapeArrangementHtml(id)}" maxlength="160" value="${escapeArrangementHtml(aliases[id] || "")}" placeholder="${escapeArrangementHtml(recipeName)}"></label>`;
     }).join("");
 }
 

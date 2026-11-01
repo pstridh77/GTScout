@@ -88,16 +88,25 @@
     async function flush() {
         saveTimer = null;
         if (!canWrite()) return;
+        const currentKarId = karId();
+        const currentUserId = auth().getUser()?.id || null;
+        const writeGuard = () => canWrite() && karId() === currentKarId && (auth().getUser()?.id || null) === currentUserId;
         const rows = scouts.map(scout => ({
             id: scout.id,
-            kar_id: karId(),
+            kar_id: currentKarId,
             namn: scout.namn,
             fodelsear: scout.fodelsear,
             aktiv: scout.aktiv !== false,
             arkiverad_at: scout.aktiv === false ? scout.arkiverad_at || new Date().toISOString() : null,
         }));
-        const { error } = await client().from("scouts").upsert(rows, { onConflict: "id" });
-        if (error) console.error("Kunde inte spara scouter", error);
+        try {
+            await window.GTScoutSyncRetry.withRetry(async () => {
+                const { error } = await client().from("scouts").upsert(rows, { onConflict: "id" });
+                if (error) throw error;
+            }, writeGuard);
+        } catch (error) {
+            console.error("Kunde inte spara scouter", error);
+        }
         const badgeRows = scouts.flatMap(scout => {
             const badgeIds = new Set([
                 ...Object.keys(scout.statuses || {}),
@@ -111,19 +120,28 @@
                 updated_by: scout.statusMeta?.[badge_id]?.updatedBy || auth().getUser()?.id || null
             }));
         });
-        const { error: badgeError } = await client().from("scout_badges").upsert(badgeRows, { onConflict: "scout_id,badge_id" });
-        if (badgeError) console.error("Kunde inte spara märkesstatus", badgeError);
+        try {
+            await window.GTScoutSyncRetry.withRetry(async () => {
+                const { error } = await client().from("scout_badges").upsert(badgeRows, { onConflict: "scout_id,badge_id" });
+                if (error) throw error;
+            }, writeGuard);
+        } catch (error) {
+            console.error("Kunde inte spara märkesstatus", error);
+        }
         if (pendingDeletions.size > 0) {
             const ids = [...pendingDeletions];
-            const { error: deleteError } = await client()
-                .from("scouts")
-                .delete()
-                .eq("kar_id", karId())
-                .in("id", ids);
-            if (deleteError) {
-                console.error("Kunde inte ta bort scouter", deleteError);
-            } else {
+            try {
+                await window.GTScoutSyncRetry.withRetry(async () => {
+                    const { error } = await client()
+                        .from("scouts")
+                        .delete()
+                        .eq("kar_id", currentKarId)
+                        .in("id", ids);
+                    if (error) throw error;
+                }, writeGuard);
                 ids.forEach(id => pendingDeletions.delete(id));
+            } catch (error) {
+                console.error("Kunde inte ta bort scouter", error);
             }
         }
     }

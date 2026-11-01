@@ -102,33 +102,37 @@
         // Rader som användaren inte får ändra (t.ex. andras privata/kar_view-planeringar)
         // utesluts så att upsert inte stöter på RLS-fel för dem.
         const rows = groups.filter(group => group?.id && canWriteRow(group)).map(toRow);
+        const currentKarId = karId();
+        const currentUserId = auth().getUser()?.id || null;
+        const writeGuard = () => canWrite() && karId() === currentKarId && (auth().getUser()?.id || null) === currentUserId;
         if (rows.length) {
-            let result;
             try {
-                result = await client().from("planeringar").upsert(rows, { onConflict: "id" });
+                await window.GTScoutSyncRetry.withRetry(async () => {
+                    const result = await client().from("planeringar").upsert(rows, { onConflict: "id" });
+                    if (result.error) throw result.error;
+                }, writeGuard);
             } catch (error) {
                 throw withDatabaseError("planeringar.upsert", error);
             }
-            if (result.error) throw withDatabaseError("planeringar.upsert", result.error);
         }
 
         const keepIds = rows.map(row => row.id);
-        let deleteQuery = client().from("planeringar").delete().eq("kar_id", karId());
-        if (!auth().isAdmin()) {
-            const userId = auth().getUser()?.id;
-            if (!userId) throw new Error("Kunde inte fastställa användarens identitet för borttagning.");
-            deleteQuery = deleteQuery.eq("created_by", userId);
-        }
-        if (keepIds.length) {
-            deleteQuery = deleteQuery.not("id", "in", `(${keepIds.join(",")})`);
-        }
-        let deleteResult;
+        if (!auth().isAdmin() && !currentUserId) throw new Error("Kunde inte fastställa användarens identitet för borttagning.");
         try {
-            deleteResult = await deleteQuery;
+            await window.GTScoutSyncRetry.withRetry(async () => {
+                let deleteQuery = client().from("planeringar").delete().eq("kar_id", currentKarId);
+                if (!auth().isAdmin()) {
+                    deleteQuery = deleteQuery.eq("created_by", currentUserId);
+                }
+                if (keepIds.length) {
+                    deleteQuery = deleteQuery.not("id", "in", `(${keepIds.join(",")})`);
+                }
+                const deleteResult = await deleteQuery;
+                if (deleteResult.error) throw deleteResult.error;
+            }, writeGuard);
         } catch (error) {
             throw withDatabaseError("planeringar.delete", error);
         }
-        if (deleteResult.error) throw withDatabaseError("planeringar.delete", deleteResult.error);
     }
 
     async function flush() {

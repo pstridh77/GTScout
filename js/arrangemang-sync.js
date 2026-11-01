@@ -281,9 +281,11 @@
             data: item
         };
         try {
-            const { error } = await client().from("arrangemang").upsert(row, { onConflict: "id" });
-            if (revision !== loadRevision) return { item, localOnly: false, error };
-            if (error) throw error;
+            await window.GTScoutSyncRetry.withRetry(async () => {
+                const { error } = await client().from("arrangemang").upsert(row, { onConflict: "id" });
+                if (error) throw error;
+            }, () => revision === loadRevision);
+            if (revision !== loadRevision) return { item, localOnly: false };
             item.local_only = false;
             const savedIndex = arrangements.findIndex(existing => existing.id === item.id);
             if (savedIndex >= 0) arrangements[savedIndex] = item;
@@ -304,8 +306,14 @@
         arrangements = arrangements.filter(item => item.id !== id);
         writeLocal();
         if (!existing || existing.local_only || !canWrite()) return { localOnly: true };
-        const { error } = await client().from("arrangemang").delete().eq("id", id).eq("kar_id", karId());
-        if (error) {
+        const currentKarId = karId();
+        const currentUserId = auth()?.getUser?.()?.id || null;
+        try {
+            await window.GTScoutSyncRetry.withRetry(async () => {
+                const { error } = await client().from("arrangemang").delete().eq("id", id).eq("kar_id", currentKarId);
+                if (error) throw error;
+            }, () => canWrite() && karId() === currentKarId && (auth()?.getUser?.()?.id || null) === currentUserId);
+        } catch (error) {
             arrangements.push(existing);
             writeLocal();
             throw error;

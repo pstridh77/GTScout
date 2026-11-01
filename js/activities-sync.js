@@ -218,7 +218,10 @@
                         material: a.material || [],
                         genomforande: a.genomforande || null
                     }));
-                    await client().from("aktiviteter").upsert(rowsToUpsert, { onConflict: "id" });
+                    await window.GTScoutSyncRetry.withRetry(async () => {
+                        const { error } = await client().from("aktiviteter").upsert(rowsToUpsert, { onConflict: "id" });
+                        if (error) throw error;
+                    }, () => canWrite() && getKarId() === karId && (auth()?.getUser()?.id || null) === userId);
                 }
             }
 
@@ -340,28 +343,26 @@
         if (!canWrite()) return normalized;
         if (!client()) return normalized;
 
-        let result;
+        const currentUserId = auth()?.getUser()?.id || null;
         try {
-            result = await client().from("aktiviteter").upsert({
-                id: normalized.id,
-                kar_id: normalized.kar_id,
-                created_by: auth()?.getUser()?.id || null,
-                namn: normalized.namn,
-                kategori: normalized.kategori || null,
-                malgrupp: normalized.malgrupp,
-                beskrivning: normalized.beskrivning || null,
-                tid: normalized.tid || null,
-                material: normalized.material,
-                genomforande: normalized.genomforande || null
-            }, { onConflict: "id" });
+            await window.GTScoutSyncRetry.withRetry(async () => {
+                const result = await client().from("aktiviteter").upsert({
+                    id: normalized.id,
+                    kar_id: normalized.kar_id,
+                    created_by: currentUserId,
+                    namn: normalized.namn,
+                    kategori: normalized.kategori || null,
+                    malgrupp: normalized.malgrupp,
+                    beskrivning: normalized.beskrivning || null,
+                    tid: normalized.tid || null,
+                    material: normalized.material,
+                    genomforande: normalized.genomforande || null
+                }, { onConflict: "id" });
+                if (result.error) throw result.error;
+            }, () => canWrite() && getKarId() === karId && (auth()?.getUser()?.id || null) === currentUserId);
         } catch (error) {
             const diagnosed = withDatabaseError("aktiviteter.upsert", error);
             console.error("Kunde inte spara aktivitet i databasen", { diagnostic: diagnosed.message, error });
-            throw diagnosed;
-        }
-        if (result.error) {
-            const diagnosed = withDatabaseError("aktiviteter.upsert", result.error);
-            console.error("Kunde inte spara aktivitet i databasen", { diagnostic: diagnosed.message, error: result.error });
             throw diagnosed;
         }
 
@@ -382,10 +383,11 @@
         if (!client()) return;
 
         const karId = getKarId();
-        const [{ error: linksError }, { error: activityError }] = await Promise.all([
+        const currentUserId = auth()?.getUser()?.id || null;
+        const [{ error: linksError }, { error: activityError }] = await window.GTScoutSyncRetry.withRetry(() => Promise.all([
             client().from("badge_activities").delete().eq("activity_id", activityId).eq("kar_id", karId),
             client().from("aktiviteter").delete().eq("id", activityId).eq("kar_id", karId)
-        ]);
+        ]), () => canWrite() && getKarId() === karId && (auth()?.getUser()?.id || null) === currentUserId);
 
         if (linksError) {
             console.error("Kunde inte radera aktivitetskopplingar", linksError);
@@ -412,10 +414,15 @@
         if (!canWrite()) return true;
         if (!client()) return true;
 
-        const { error } = await client().from("badge_activities").upsert(row, {
-            onConflict: "kar_id,badge_id,activity_id"
-        });
-        if (error) {
+        const currentUserId = auth()?.getUser()?.id || null;
+        try {
+            await window.GTScoutSyncRetry.withRetry(async () => {
+                const { error } = await client().from("badge_activities").upsert(row, {
+                    onConflict: "kar_id,badge_id,activity_id"
+                });
+                if (error) throw error;
+            }, () => canWrite() && getKarId() === row.kar_id && (auth()?.getUser()?.id || null) === currentUserId);
+        } catch (error) {
             console.error("Kunde inte spara aktivitetskoppling", error);
             throw error;
         }
@@ -434,14 +441,18 @@
         if (!canWrite()) return true;
         if (!client()) return true;
 
-        const { error } = await client()
-            .from("badge_activities")
-            .delete()
-            .eq("kar_id", karId)
-            .eq("badge_id", badgeId)
-            .eq("activity_id", activityId);
-
-        if (error) {
+        const currentUserId = auth()?.getUser()?.id || null;
+        try {
+            await window.GTScoutSyncRetry.withRetry(async () => {
+                const { error } = await client()
+                    .from("badge_activities")
+                    .delete()
+                    .eq("kar_id", karId)
+                    .eq("badge_id", badgeId)
+                    .eq("activity_id", activityId);
+                if (error) throw error;
+            }, () => canWrite() && getKarId() === karId && (auth()?.getUser()?.id || null) === currentUserId);
+        } catch (error) {
             console.error("Kunde inte ta bort aktivitetskoppling", error);
             throw error;
         }

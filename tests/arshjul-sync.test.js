@@ -205,7 +205,7 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
         },
              console: { error: (...args) => errors.push(args) } 
     });
-    for (const name of ["participants.js", "arrangemang-sync.js", "arshjul-sync.js", "arshjul-recurrence.js", "arshjul.js"]) {
+    for (const name of ["participants.js", "sync-retry.js", "arrangemang-sync.js", "arshjul-sync.js", "arshjul-recurrence.js", "arshjul.js"]) {
          vm.runInContext(readScript(name), context); 
     }
     return {

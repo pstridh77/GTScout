@@ -65,6 +65,7 @@ test("meal recipe picker provides an optional alternative name for each selected
     });
     assert.match(html, /Alternativt namn för Pasta och köttfärssås/);
     assert.match(html, /data-recipe-alias="recipe-1" maxlength="160" value="Kapten Carbonara"/);
+    assert.match(html, /agenda-entry-recipe-alias" title="Visas istället för receptnamnet/);
 });
 
 test("arrangement schedule print uses aliases and falls back to cookbook names", () => {
