@@ -183,7 +183,7 @@
             return;
         }
         closeCoordinatesDialog();
-        await refresh("Hemmaplatsen sparades.");
+        await refresh("Koordinaterna sparades.");
     }
 
     async function deleteKar(id) {
@@ -267,7 +267,7 @@
                 <input type="text" data-field="namn" value="${escapeHtml(kar.namn)}" aria-label="Kårens namn">
                 <input type="text" data-field="ort" value="${escapeHtml(kar.ort || "")}" placeholder="Ort" aria-label="Ort">
                 <span class="admin-row-actions">
-                    ${karHasCoordinates ? `<button class="btn-secondary" type="button" data-action="edit-coordinates" data-id="${escapeHtml(kar.id)}" title="Hemmaplats för soluppgång och solnedgång">Hemmaplats…</button>` : ""}
+                    ${karHasCoordinates ? `<button class="btn-secondary" type="button" data-action="edit-coordinates" data-id="${escapeHtml(kar.id)}" title="Koordinater för soluppgång och solnedgång">Koordinater…</button>` : ""}
                     <button class="btn-secondary" type="button" data-action="save-kar" data-id="${escapeHtml(kar.id)}" disabled>Spara</button>
                     ${canManageAll ? `<button class="arrangement-delete-icon" type="button" data-action="delete-kar" data-id="${escapeHtml(kar.id)}" aria-label="Ta bort ${escapeHtml(kar.namn)}" title="Ta bort kår"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button>` : ""}
                 </span>
