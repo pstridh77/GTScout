@@ -1,6 +1,6 @@
 /**
  * Adminvy för att hantera kårer och användare.
- * Kräver inloggad admin – i övriga lägen är menyvalet dolt.
+ * Kräver inloggad admin – i övriga lägen är menyvalet dolt och sidan låst.
  */
 (function () {
     const ROLE_OPTIONS = [
@@ -11,7 +11,7 @@
 
     let karer = [];
     let profiles = [];
-    let modal = null;
+    let pageInitialized = false;
 
     const auth = () => window.GTScoutAuth;
     const client = () => auth()?.getClient() || null;
@@ -30,52 +30,15 @@
         el.classList.toggle("auth-message--error", Boolean(isError));
     }
 
-    function buildModal() {
-        if (modal) return modal;
-
-        modal = document.createElement("div");
-        modal.id = "adminModal";
-        modal.className = "modal hidden";
-        modal.innerHTML = `
-            <div class="modal-content modal-content--wide" role="dialog" aria-modal="true" aria-labelledby="adminModalTitle">
-                <h2 id="adminModalTitle">Administration</h2>
-                <p id="adminMessage" class="auth-message hidden"></p>
-
-                <section class="admin-section">
-                    <h3>Kårer</h3>
-                    <p class="auth-note">En admin utan egen kårtillhörighet är systemadmin och hanterar alla kårer. Övriga admins hanterar bara sin egen kår.</p>
-                    <div id="adminKarList" class="admin-list"></div>
-                    <div class="admin-add-row" id="adminAddKarRow">
-                        <input id="adminNewKarNamn" type="text" placeholder="Kårens namn">
-                        <input id="adminNewKarOrt" type="text" placeholder="Ort">
-                        <button id="adminAddKarBtn" class="btn-secondary" type="button">Lägg till kår</button>
-                    </div>
-                </section>
-
-                <section class="admin-section">
-                    <h3>Användare</h3>
-                    <p class="auth-note">Nya konton skapas i Supabase (Authentication &gt; Users). Här sätter du roll och kårtillhörighet.</p>
-                    <div id="adminUserList" class="admin-list"></div>
-                </section>
-
-                <div class="modal-actions">
-                    <button id="adminCloseBtn" class="btn-secondary" type="button">Stäng</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-
-        modal.addEventListener("click", event => {
-            if (event.target === modal) closeModal();
-        });
-        document.getElementById("adminCloseBtn").addEventListener("click", closeModal);
+    function initPage() {
+        if (pageInitialized) return;
+        pageInitialized = true;
         document.getElementById("adminAddKarBtn").addEventListener("click", addKar);
         document.getElementById("adminKarList").addEventListener("click", onKarListClick);
         document.getElementById("adminKarList").addEventListener("input", onKarListChange);
         document.getElementById("adminUserList").addEventListener("click", onUserListClick);
         document.getElementById("adminUserList").addEventListener("change", onUserListChange);
-
-        return modal;
+        document.getElementById("openAdminLoginBtn")?.addEventListener("click", () => auth()?.openLogin?.());
     }
 
     /* ── Data ────────────────────────────────────────────────────────────── */
@@ -211,8 +174,10 @@
             <div class="admin-row" data-kar-row="${escapeHtml(kar.id)}">
                 <input type="text" data-field="namn" value="${escapeHtml(kar.namn)}" aria-label="Kårens namn">
                 <input type="text" data-field="ort" value="${escapeHtml(kar.ort || "")}" placeholder="Ort" aria-label="Ort">
-                <button class="btn-secondary" type="button" data-action="save-kar" data-id="${escapeHtml(kar.id)}" disabled>Spara</button>
-                ${canManageAll ? `<button class="btn-danger" type="button" data-action="delete-kar" data-id="${escapeHtml(kar.id)}">Ta bort</button>` : ""}
+                <span class="admin-row-actions">
+                    <button class="btn-secondary" type="button" data-action="save-kar" data-id="${escapeHtml(kar.id)}" disabled>Spara</button>
+                    ${canManageAll ? `<button class="arrangement-delete-icon" type="button" data-action="delete-kar" data-id="${escapeHtml(kar.id)}" aria-label="Ta bort ${escapeHtml(kar.namn)}" title="Ta bort kår"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button>` : ""}
+                </span>
             </div>
         `).join("");
     }
@@ -276,10 +241,12 @@
                 <span class="admin-permissions" aria-label="Behörighet till scoutregister">
                     <label class="admin-permission"><input type="checkbox" data-field="scout-access" title="Ger läs- och skrivåtkomst till scoutregistret" ${profile.scout_read || profile.scout_write || profile.role === "admin" ? "checked" : ""} ${profile.role === "gast" ? "disabled" : ""}> Scouter</label>
                 </span>
-                <button class="btn-secondary" type="button" data-action="save-profile" data-id="${escapeHtml(profile.id)}" disabled>Spara</button>
-                ${viewerIsSystemAdmin || profile.kar_id === ownKarId
-                    ? `<button class="btn-danger" type="button" data-action="delete-profile" data-id="${escapeHtml(profile.id)}">Ta bort</button>`
-                    : ""}
+                <span class="admin-row-actions">
+                    <button class="btn-secondary" type="button" data-action="save-profile" data-id="${escapeHtml(profile.id)}" disabled>Spara</button>
+                    ${viewerIsSystemAdmin || profile.kar_id === ownKarId
+                        ? `<button class="arrangement-delete-icon" type="button" data-action="delete-profile" data-id="${escapeHtml(profile.id)}" aria-label="Ta bort ${escapeHtml(profile.email)}" title="Ta bort användare"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button>`
+                        : ""}
+                </span>
             </div>
         `;
         }).join("");
@@ -330,39 +297,24 @@
         }
     }
 
-    /* ── Öppna/stäng ─────────────────────────────────────────────────────── */
+    /* ── Sidvakt ─────────────────────────────────────────────────────────── */
 
-    async function openModal() {
-        if (!auth()?.isAdmin()) return;
-        buildModal().classList.remove("hidden");
+    async function syncVisibility(state) {
+        const content = document.getElementById("adminContent");
+        const denied = document.getElementById("adminAccessDenied");
+        if (!content || !denied) return;
+
+        const isAdmin = state.role === "admin";
+        content.classList.toggle("hidden", state.loading || !isAdmin);
+        denied.classList.toggle("hidden", state.loading || isAdmin);
+        if (state.loading || !isAdmin) return;
+
         setMessage("Hämtar data...", false);
         await refresh("");
     }
 
-    function closeModal() {
-        modal?.classList.add("hidden");
-    }
-
-    function initButtons() {
-        document.querySelectorAll("[data-admin-panel]").forEach(button => {
-            if (button.dataset.adminBound === "true") return;
-            button.dataset.adminBound = "true";
-            button.addEventListener("click", () => {
-                button.closest(".site-menu-dropdown, .planning-actions-dropdown")?.classList.add("hidden");
-                openModal();
-            });
-        });
-    }
-
-    function syncVisibility(state) {
-        document.querySelectorAll("[data-admin-panel]").forEach(button => {
-            button.classList.toggle("hidden", state.role !== "admin");
-        });
-        if (state.role !== "admin") closeModal();
-    }
-
     function init() {
-        initButtons();
+        if (document.getElementById("adminContent")) initPage();
         if (!auth()) return;
         auth().onChange(syncVisibility);
     }

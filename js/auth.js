@@ -404,6 +404,9 @@
         document.querySelectorAll("[data-scout-navigation]").forEach(link => {
             link.classList.toggle("hidden", !canAccessScouts);
         });
+        document.querySelectorAll("[data-admin-panel]").forEach(link => {
+            link.classList.toggle("hidden", getRole() !== ROLES.ADMIN);
+        });
         if (!status || !button) return;
 
         if (current.loading) {
