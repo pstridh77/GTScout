@@ -72,14 +72,6 @@
         return result;
     }
 
-    // Returnerar null för tomt fält, undefined för ogiltigt värde.
-    function parseCoordinateField(value) {
-        const text = String(value || "").trim();
-        if (!text) return null;
-        const number = Number(text.replace(",", "."));
-        return Number.isFinite(number) ? number : undefined;
-    }
-
     async function addKar() {
         const namnInput = document.getElementById("adminNewKarNamn");
         const ortInput = document.getElementById("adminNewKarOrt");
@@ -109,22 +101,14 @@
         const ort = row.querySelector("[data-field='ort']").value.trim();
         const updates = { namn, ort: ort || null };
         if (karHasCoordinates) {
-            const latitude = parseCoordinateField(row.querySelector("[data-field='latitude']")?.value);
-            const longitude = parseCoordinateField(row.querySelector("[data-field='longitude']")?.value);
-            if (latitude === undefined || longitude === undefined) {
-                setMessage("Koordinaterna har fel format. Ange till exempel 56.6994.", true);
+            const coordinatesText = row.querySelector("[data-field='coordinates']")?.value || "";
+            const coordinates = window.GTScoutSunTimes?.parseCoordinates(coordinatesText) || null;
+            if (coordinatesText.trim() && !coordinates) {
+                setMessage("Koordinaterna har fel format. Ange till exempel 56.6994, 12.7439.", true);
                 return;
             }
-            if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
-                setMessage("Latitud ska ligga mellan -90 och 90, longitud mellan -180 och 180.", true);
-                return;
-            }
-            if ((latitude === null) !== (longitude === null)) {
-                setMessage("Ange både latitud och longitud, eller lämna båda tomma.", true);
-                return;
-            }
-            updates.latitude = latitude;
-            updates.longitude = longitude;
+            updates.latitude = coordinates?.lat ?? null;
+            updates.longitude = coordinates?.lon ?? null;
         }
         const { error } = await client().from("kar").update(updates).eq("id", id);
         if (error) {
@@ -215,8 +199,7 @@
                 <input type="text" data-field="namn" value="${escapeHtml(kar.namn)}" aria-label="Kårens namn">
                 <input type="text" data-field="ort" value="${escapeHtml(kar.ort || "")}" placeholder="Ort" aria-label="Ort">
                 ${karHasCoordinates ? `
-                <input type="text" inputmode="decimal" data-field="latitude" value="${kar.latitude ?? ""}" placeholder="Latitud" aria-label="Latitud för kårens hemmaplats" title="Hemmaplats för soluppgång och solnedgång, till exempel 56.6994">
-                <input type="text" inputmode="decimal" data-field="longitude" value="${kar.longitude ?? ""}" placeholder="Longitud" aria-label="Longitud för kårens hemmaplats" title="Hemmaplats för soluppgång och solnedgång, till exempel 12.7439">
+                <input type="text" data-field="coordinates" value="${kar.latitude !== null && kar.latitude !== undefined && kar.longitude !== null && kar.longitude !== undefined ? `${kar.latitude}, ${kar.longitude}` : ""}" placeholder="Latitud, longitud" aria-label="Koordinater för kårens hemmaplats" title="Hemmaplats för soluppgång och solnedgång, till exempel 56.6994, 12.7439">
                 ` : ""}
                 <span class="admin-row-actions">
                     <button class="btn-secondary" type="button" data-action="save-kar" data-id="${escapeHtml(kar.id)}" disabled>Spara</button>

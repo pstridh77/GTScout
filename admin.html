@@ -55,7 +55,7 @@
         <section class="admin-section">
             <h3>Kårer</h3>
             <p class="auth-note">En admin utan egen kårtillhörighet är systemadmin och hanterar alla kårer. Övriga admins hanterar bara sin egen kår.</p>
-            <p class="auth-note">Latitud och longitud är kårens hemmaplats och styr soluppgång och solnedgång i planeringar och arrangemang. Lämna tomma för att använda standardplatsen (Gullbrandstorp).</p>
+            <p class="auth-note">Koordinater (latitud, longitud) är kårens hemmaplats och styr soluppgång och solnedgång i planeringar och arrangemang. Lämna tomt för att använda standardplatsen (Gullbrandstorp).</p>
             <div id="adminKarList" class="admin-list"></div>
             <div class="admin-add-row" id="adminAddKarRow">
                 <input id="adminNewKarNamn" type="text" placeholder="Kårens namn">
@@ -71,6 +71,7 @@
         </section>
     </main>
     <footer class="site-footer" aria-label="Sidfot och version"><div class="site-footer-content"><span class="site-footer-title">GTScout</span><span class="site-footer-dot" aria-hidden="true">•</span><span class="site-footer-version"></span><span class="site-footer-dot" aria-hidden="true">•</span><span class="site-footer-build"></span><span class="site-footer-dot" aria-hidden="true">•</span><span class="database-environment"></span></div></footer>
+    <script src="js/sun-times.js"></script>
     <script src="js/admin.js"></script>
     <script src="js/version.js"></script>
     <script src="js/header-controls.js"></script>
