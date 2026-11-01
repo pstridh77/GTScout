@@ -15,6 +15,8 @@
     let session = null;
     let profile = null;
     let karName = "";
+    let karLatitude = null;
+    let karLongitude = null;
     let mode = "login";
     let authRevision = 0;
     let initializing = isConfigured();
@@ -48,6 +50,8 @@
             roleLabel: ROLE_LABELS[getRole()] || ROLE_LABELS.gast,
             karId: profile?.kar_id || null,
             karName,
+            karLatitude,
+            karLongitude,
             profile
         };
     }
@@ -129,22 +133,36 @@
         }
         const nextProfile = data || null;
         let nextKarName = "";
+        let nextKarLatitude = null;
+        let nextKarLongitude = null;
 
         if (nextProfile?.kar_id) {
-            const { data: kar, error: karError } = await client
+            let { data: kar, error: karError } = await client
                 .from("kar")
-                .select("namn")
+                .select("namn, latitude, longitude")
             .eq("id", nextProfile.kar_id)
                 .maybeSingle();
+            if (karError) {
+                // Äldre databas utan koordinatkolumner – hämta bara namnet.
+                ({ data: kar, error: karError } = await client
+                    .from("kar")
+                    .select("namn")
+                .eq("id", nextProfile.kar_id)
+                    .maybeSingle());
+            }
             if (karError) {
                 console.error("Kunde inte hämta kår", karError);
             } else {
                 nextKarName = kar?.namn || "";
+                nextKarLatitude = typeof kar?.latitude === "number" ? kar.latitude : null;
+                nextKarLongitude = typeof kar?.longitude === "number" ? kar.longitude : null;
             }
         }
         if (revision !== authRevision) return;
         profile = nextProfile;
         karName = nextKarName;
+        karLatitude = nextKarLatitude;
+        karLongitude = nextKarLongitude;
     }
 
     function clearLocalKarData() {
@@ -171,6 +189,8 @@
         session = null;
         profile = null;
         karName = "";
+        karLatitude = null;
+        karLongitude = null;
         clearLocalKarData();
         renderUi();
         notify();
@@ -483,6 +503,8 @@
                     if (userChanged || !session) {
                         profile = null;
                         karName = "";
+                        karLatitude = null;
+                        karLongitude = null;
                     }
                     if (!session) clearLocalKarData();
                     await loadProfile(revision);

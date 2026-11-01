@@ -127,6 +127,9 @@
                 ])
                 .filter(([, tents]) => Object.keys(tents).length)
         );
+        const latitude = normalizeCoordinate(item.latitude, 90);
+        const longitude = normalizeCoordinate(item.longitude, 180);
+        const hasCoordinates = latitude !== null && longitude !== null;
         return {
             id,
             title: String(item.title).trim(),
@@ -137,6 +140,8 @@
             start_time: String(item.start_time || ""),
             end_time: String(item.end_time || ""),
             location: String(item.location || "").trim(),
+            latitude: hasCoordinates ? latitude : null,
+            longitude: hasCoordinates ? longitude : null,
             status: ["planned", "completed", "cancelled"].includes(item.status) ? item.status : "planned",
             departments,
             participants,
@@ -152,6 +157,12 @@
             local_only: Boolean(item.local_only),
             updated_at: String(item.updated_at || new Date().toISOString())
         };
+    }
+
+    function normalizeCoordinate(value, maxAbs) {
+        if (value === null || value === undefined || value === "") return null;
+        const number = Number(value);
+        return Number.isFinite(number) && Math.abs(number) <= maxAbs ? number : null;
     }
 
     function readLocal() {

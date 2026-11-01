@@ -149,7 +149,7 @@
                     </select>
                 </label>
                 <label class="modal-field">
-                    <span>Från</span>
+                    <span>Från <small id="arrangementSunInfo" class="modal-field-hint modal-field-hint--inline meeting-sunset-hint hidden"></small></span>
                     <input id="arrangementStartDate" type="date" required>
                 </label>
                 <label class="modal-field">
@@ -167,6 +167,10 @@
                 <label class="modal-field arrangement-field-wide">
                     <span>Plats</span>
                     <input id="arrangementLocation" type="text" maxlength="160" placeholder="Valfri plats">
+                </label>
+                <label class="modal-field arrangement-field-wide">
+                    <span>Koordinater <small class="modal-field-hint modal-field-hint--inline">Valfritt – styr soluppgång och solnedgång, annars används kårens hemmaplats</small></span>
+                    <input id="arrangementCoordinates" type="text" maxlength="60" placeholder="T.ex. 56.6994, 12.7439">
                 </label>
             </div>
 
@@ -359,6 +363,7 @@
     <script src="js/participants.js"></script>
     <script src="js/arrangemang-sync.js"></script>
     <script src="js/version.js"></script>
+    <script src="js/sun-times.js"></script>
     <script src="js/arrangemang-print.js"></script>
     <script src="js/arrangemang.js?v=agenda-material-textarea-1"></script>
     <script src="js/header-controls.js"></script>

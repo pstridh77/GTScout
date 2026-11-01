@@ -12,6 +12,7 @@
     let karer = [];
     let profiles = [];
     let pageInitialized = false;
+    let karHasCoordinates = true;
 
     const auth = () => window.GTScoutAuth;
     const client = () => auth()?.getClient() || null;
@@ -48,7 +49,7 @@
         if (!db) return;
 
         const [karResult, profileResult] = await Promise.all([
-            db.from("kar").select("id, namn, ort").order("namn"),
+            selectKarer(db),
             db.from("profiles").select("id, email, full_name, role, scout_read, scout_write, kar_id, requested_kar_id").order("email")
         ]);
 
@@ -57,6 +58,26 @@
 
         karer = karResult.data || [];
         profiles = profileResult.data || [];
+    }
+
+    async function selectKarer(db) {
+        let result = await db.from("kar").select("id, namn, ort, latitude, longitude").order("namn");
+        if (result.error) {
+            // Äldre databas utan koordinatkolumner – kör db/schema.sql för att slå på hemmaplats.
+            karHasCoordinates = false;
+            result = await db.from("kar").select("id, namn, ort").order("namn");
+        } else {
+            karHasCoordinates = true;
+        }
+        return result;
+    }
+
+    // Returnerar null för tomt fält, undefined för ogiltigt värde.
+    function parseCoordinateField(value) {
+        const text = String(value || "").trim();
+        if (!text) return null;
+        const number = Number(text.replace(",", "."));
+        return Number.isFinite(number) ? number : undefined;
     }
 
     async function addKar() {
@@ -86,7 +107,26 @@
             return;
         }
         const ort = row.querySelector("[data-field='ort']").value.trim();
-        const { error } = await client().from("kar").update({ namn, ort: ort || null }).eq("id", id);
+        const updates = { namn, ort: ort || null };
+        if (karHasCoordinates) {
+            const latitude = parseCoordinateField(row.querySelector("[data-field='latitude']")?.value);
+            const longitude = parseCoordinateField(row.querySelector("[data-field='longitude']")?.value);
+            if (latitude === undefined || longitude === undefined) {
+                setMessage("Koordinaterna har fel format. Ange till exempel 56.6994.", true);
+                return;
+            }
+            if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+                setMessage("Latitud ska ligga mellan -90 och 90, longitud mellan -180 och 180.", true);
+                return;
+            }
+            if ((latitude === null) !== (longitude === null)) {
+                setMessage("Ange både latitud och longitud, eller lämna båda tomma.", true);
+                return;
+            }
+            updates.latitude = latitude;
+            updates.longitude = longitude;
+        }
+        const { error } = await client().from("kar").update(updates).eq("id", id);
         if (error) {
             setMessage(error.message, true);
             return;
@@ -174,6 +214,10 @@
             <div class="admin-row" data-kar-row="${escapeHtml(kar.id)}">
                 <input type="text" data-field="namn" value="${escapeHtml(kar.namn)}" aria-label="Kårens namn">
                 <input type="text" data-field="ort" value="${escapeHtml(kar.ort || "")}" placeholder="Ort" aria-label="Ort">
+                ${karHasCoordinates ? `
+                <input type="text" inputmode="decimal" data-field="latitude" value="${kar.latitude ?? ""}" placeholder="Latitud" aria-label="Latitud för kårens hemmaplats" title="Hemmaplats för soluppgång och solnedgång, till exempel 56.6994">
+                <input type="text" inputmode="decimal" data-field="longitude" value="${kar.longitude ?? ""}" placeholder="Longitud" aria-label="Longitud för kårens hemmaplats" title="Hemmaplats för soluppgång och solnedgång, till exempel 12.7439">
+                ` : ""}
                 <span class="admin-row-actions">
                     <button class="btn-secondary" type="button" data-action="save-kar" data-id="${escapeHtml(kar.id)}" disabled>Spara</button>
                     ${canManageAll ? `<button class="arrangement-delete-icon" type="button" data-action="delete-kar" data-id="${escapeHtml(kar.id)}" aria-label="Ta bort ${escapeHtml(kar.namn)}" title="Ta bort kår"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button>` : ""}

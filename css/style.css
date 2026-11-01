@@ -5042,6 +5042,46 @@ select:focus {
     top: -1px;
 }
 
+.arrangement-sun-times {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: #65767b;
+    font-size: 0.72rem;
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+.arrangement-sun-times svg {
+    flex: 0 0 auto;
+}
+
+.arrangement-day-summary > span.arrangement-sun-times {
+    margin-left: 0;
+}
+
+.arrangement-overview-day .arrangement-sun-times {
+    justify-content: center;
+    font-size: 0.62rem;
+}
+
+.arrangement-card-sun {
+    color: #52636a;
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+.arrangement-card-sun svg {
+    width: 13px;
+    height: 13px;
+    vertical-align: -2px;
+}
+
+.arrangement-card-sun-separator {
+    margin: 0 3px;
+    color: #93a7a7;
+}
+
 .group-card-actions {
     display: flex;
     gap: 8px;
