@@ -167,7 +167,8 @@
                 <div class="arrangement-field-wide arrangement-location-row">
                     <label class="modal-field arrangement-location-field">
                         <span>Plats</span>
-                        <input id="arrangementLocation" type="text" maxlength="160" placeholder="Valfri plats">
+                        <input id="arrangementLocation" type="text" maxlength="160" placeholder="Valfri plats" list="arrangementLocationOptions" autocomplete="off">
+                        <datalist id="arrangementLocationOptions"></datalist>
                     </label>
                     <button id="arrangementCoordinatesBtn" class="btn-secondary arrangement-coordinates-btn" type="button" title="Koordinater för soluppgång och solnedgång – annars används kårens hemmaplats">Koordinater…</button>
                 </div>

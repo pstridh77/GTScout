@@ -438,9 +438,9 @@ function closeArrangementNotesDialog() {
     (trigger?.isConnected ? trigger : fallbackTrigger)?.focus();
 }
 
-function openArrangementCoordinatesDialog(trigger) {
+function openArrangementCoordinatesDialog(trigger, message = "") {
     coordinatesDialogTrigger = trigger;
-    document.getElementById("arrangementCoordinatesDialogStatus").textContent = "";
+    document.getElementById("arrangementCoordinatesDialogStatus").textContent = message;
     arrangementCoordinatesModal.classList.remove("hidden");
     document.getElementById("arrangementCoordinates").focus();
 }
@@ -1741,6 +1741,69 @@ async function openArrangementEditor(item = null, focusAgendaId = "", isCopy = f
         arrangementSunInfo.classList.toggle("hidden", !info);
     };
     arrangementStartDateInput.oninput = updateArrangementSunInfo;
+    // Tidigare platser – alla namn i dropdownen, koordinater autofylls när de finns.
+    // Vid konflikt (samma namn, olika koordinater) används den senaste och användaren varnas.
+    const knownLocations = new Map();
+    arrangements.forEach(entry => {
+        const name = String(entry.location || "").trim();
+        if (!name) return;
+        const hasCoordinates = entry.latitude !== null && entry.latitude !== undefined && entry.longitude !== null && entry.longitude !== undefined;
+        const existing = knownLocations.get(name);
+        if (!existing) {
+            knownLocations.set(name, {
+                coordinates: hasCoordinates ? { lat: entry.latitude, lon: entry.longitude } : null,
+                hasConflict: false,
+                latestDate: entry.start_date || ""
+            });
+        } else {
+            if (hasCoordinates) {
+                const newCoords = { lat: entry.latitude, lon: entry.longitude };
+                if (existing.coordinates && (existing.coordinates.lat !== newCoords.lat || existing.coordinates.lon !== newCoords.lon)) {
+                    existing.hasConflict = true;
+                }
+                if ((entry.start_date || "") >= existing.latestDate) {
+                    existing.coordinates = newCoords;
+                    existing.latestDate = entry.start_date || "";
+                }
+            }
+        }
+    });
+    document.getElementById("arrangementLocationOptions").innerHTML = [...knownLocations.keys()]
+        .sort((left, right) => left.localeCompare(right, "sv"))
+        .map(name => `<option value="${escapeArrangementHtml(name)}"></option>`)
+        .join("");
+    const arrangementLocationInput = document.getElementById("arrangementLocation");
+    const arrangementCoordinatesBtn = document.getElementById("arrangementCoordinatesBtn");
+    const updateLocationState = (isInitial = false) => {
+        const name = arrangementLocationInput.value.trim();
+        const entry = knownLocations.get(name);
+        if (entry?.coordinates) {
+            if (!isInitial) {
+                document.getElementById("arrangementCoordinates").value = `${entry.coordinates.lat}, ${entry.coordinates.lon}`;
+            }
+            arrangementCoordinatesBtn.classList.remove("arrangement-coordinates-btn--missing");
+            arrangementCoordinatesBtn.title = "Koordinater för soluppgång och solnedgång – annars används kårens hemmaplats";
+            if (!isInitial && entry.hasConflict) {
+                openArrangementCoordinatesDialog(arrangementCoordinatesBtn, `Platsen "${name}" har använts med olika koordinater. Den senaste används – kontrollera att den stämmer.`);
+            }
+        } else if (entry) {
+            if (!isInitial) {
+                document.getElementById("arrangementCoordinates").value = "";
+            }
+            arrangementCoordinatesBtn.classList.add("arrangement-coordinates-btn--missing");
+            arrangementCoordinatesBtn.title = "Koordinater saknas för den här platsen – klicka för att lägga till";
+        } else {
+            if (!isInitial) {
+                document.getElementById("arrangementCoordinates").value = "";
+            }
+            arrangementCoordinatesBtn.classList.remove("arrangement-coordinates-btn--missing");
+            arrangementCoordinatesBtn.title = "Koordinater för soluppgång och solnedgång – annars används kårens hemmaplats";
+        }
+        updateArrangementSunInfo();
+    };
+    arrangementLocationInput.oninput = () => updateLocationState(false);
+    arrangementLocationInput.onchange = () => updateLocationState(false);
+    updateLocationState(true);
     updateArrangementSunInfo();
     document.getElementById("arrangementExperience").value = isCopy ? "" : item?.experience || item?.after_notes || "";
     document.getElementById("arrangementFormStatus").textContent = "";
@@ -2521,6 +2584,11 @@ arrangementCoordinatesForm.addEventListener("submit", event => {
         return;
     }
     closeArrangementCoordinatesDialog();
+    const coordinatesBtn = document.getElementById("arrangementCoordinatesBtn");
+    if (input.value.trim()) {
+        coordinatesBtn.classList.remove("arrangement-coordinates-btn--missing");
+        coordinatesBtn.title = "Koordinater för soluppgång och solnedgång – annars används kårens hemmaplats";
+    }
     document.getElementById("arrangementStartDate").oninput?.();
 });
 document.getElementById("closeShareArrangementModal").addEventListener("click", () => shareArrangementModal.classList.add("hidden"));
