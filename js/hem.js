@@ -159,8 +159,7 @@
             .flatMap(group => (Array.isArray(group.meetings) ? group.meetings : [])
                 .filter(meeting => /^\d{4}-\d{2}-\d{2}$/.test(meeting.date || "") && meeting.date >= now && isWithinNextYear(meeting.date))
                 .map(meeting => ({ type: "meeting", date: meeting.date, group, meeting })))
-            .sort((left, right) => left.date.localeCompare(right.date))
-            .slice(0, 3);
+            .sort((left, right) => left.date.localeCompare(right.date));
     }
 
     function getUpcomingArrangements() {
@@ -169,21 +168,37 @@
         return arrangements
             .filter(item => item.status !== "cancelled" && /^\d{4}-\d{2}-\d{2}$/.test(item.end_date || "") && item.end_date >= now && isWithinNextYear(item.start_date))
             .map(item => ({ type: "arrangement", date: item.start_date, item }))
-            .sort((left, right) => left.date.localeCompare(right.date))
-            .slice(0, 3);
+            .sort((left, right) => left.date.localeCompare(right.date));
     }
 
     function getUpcomingYearWheelEvents() {
         if (!getSelectedTypes().includes("yearwheel")) return [];
         const selectedWheels = new Set(getSelectedWheels());
         const now = today();
+        const rangeStart = new Date(`${now}T12:00:00Z`);
+        const rangeEnd = new Date(rangeStart);
+        rangeEnd.setUTCFullYear(rangeEnd.getUTCFullYear() + 1);
+        const expand = window.GTScoutYearWheelRecurrence?.expand;
         return yearWheels
             .filter(wheel => selectedWheels.has(wheel.id))
-            .flatMap(wheel => (Array.isArray(wheel.events) ? wheel.events : [])
-                .filter(event => /^\d{4}-\d{2}-\d{2}$/.test(event.start_date || "") && event.start_date >= now && isWithinNextYear(event.start_date))
-                .map(event => ({ type: "yearwheel", date: event.start_date, wheel, event })))
-            .sort((left, right) => left.date.localeCompare(right.date))
-            .slice(0, 3);
+            .flatMap(wheel => {
+                const events = Array.isArray(wheel.events) ? wheel.events : [];
+                if (!expand) {
+                    return events
+                        .filter(event => /^\d{4}-\d{2}-\d{2}$/.test(event.start_date || "") && event.start_date >= now && isWithinNextYear(event.start_date))
+                        .map(event => ({ type: "yearwheel", date: event.start_date, wheel, event }));
+                }
+                let occurrences = [];
+                try {
+                    occurrences = expand(
+                        events.filter(event => /^\d{4}-\d{2}-\d{2}$/.test(event.start_date || "") && /^\d{4}-\d{2}-\d{2}$/.test(event.end_date || "")),
+                        { start: rangeStart, end: rangeEnd });
+                } catch (error) {
+                    console.error("Kunde inte beräkna årshjulets kommande händelser", error);
+                }
+                return occurrences.map(event => ({ type: "yearwheel", date: event.start_date, wheel, event }));
+            })
+            .sort((left, right) => left.date.localeCompare(right.date));
     }
 
     function renderUpcoming() {
