@@ -61,8 +61,8 @@
         const available = getAvailableLevels();
         const stored = getStoredLevels();
         if (!stored) return available;
-        const selected = available.filter(level => stored.includes(level));
-        return selected.length ? selected : available;
+        // Returnera bara de som finns kvar – om användaren valt bort alla visas inga möten.
+        return available.filter(level => stored.includes(level));
     }
 
     function getUpcomingMeetings() {
