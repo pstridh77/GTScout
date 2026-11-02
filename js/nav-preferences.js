@@ -30,6 +30,12 @@
         return DEFAULTS[role] || DEFAULTS.gast;
     }
 
+    // Rollens tak – sidor som rollen maximalt får se. Scouter kräver dessutom scoutbehörighet.
+    function getAllowedPages(role) {
+        const canAccessScouts = Boolean(window.GTScoutAuth?.canReadScouts?.());
+        return getDefaultPages(role).filter(id => id !== "scouter" || canAccessScouts);
+    }
+
     function getStoredPages() {
         try {
             const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -49,8 +55,14 @@
         }
     }
 
+    // Sparade val gäller bara inom det som rollen får se – en utloggad admin
+    // blir gäst och ser bara gästsidor även om fler sidor sparats.
     function getVisiblePages(role) {
-        return getStoredPages() || getDefaultPages(role);
+        const allowed = getAllowedPages(role);
+        const stored = getStoredPages();
+        if (!stored) return allowed;
+        const visible = allowed.filter(id => stored.includes(id));
+        return visible.length ? visible : allowed;
     }
 
     function applyNavVisibility(role) {
@@ -72,6 +84,7 @@
         if (existing) existing.remove();
 
         const role = window.GTScoutAuth?.getState?.().role || "gast";
+        const allowed = getAllowedPages(role);
         const visible = new Set(getVisiblePages(role));
         const modal = document.createElement("div");
         modal.id = "navPreferencesModal";
@@ -85,7 +98,7 @@
                 <h2 id="navPreferencesTitle">Anpassa meny</h2>
                 <p class="modal-field-hint">Välj vilka sidor som ska synas i menyn. Ändringen sparas i den här webbläsaren.</p>
                 <div class="nav-preferences-list">
-                    ${PAGES.map(page => `
+                    ${PAGES.filter(page => allowed.includes(page.id)).map(page => `
                         <label class="nav-preferences-item">
                             <input type="checkbox" value="${page.id}" ${visible.has(page.id) ? "checked" : ""}>
                             <span>${page.label}</span>
@@ -114,9 +127,8 @@
             if (event.target === modal) close();
         });
         modal.querySelector("[data-nav-reset]").addEventListener("click", () => {
-            const defaults = getDefaultPages(role);
             modal.querySelectorAll("input[type='checkbox']").forEach(checkbox => {
-                checkbox.checked = defaults.includes(checkbox.value);
+                checkbox.checked = true;
             });
         });
         modal.querySelector("[data-nav-save]").addEventListener("click", () => {
@@ -130,6 +142,7 @@
     window.GTScoutNavPreferences = {
         PAGES,
         getDefaultPages,
+        getAllowedPages,
         getVisiblePages,
         applyNavVisibility,
         openPreferencesDialog

@@ -4,7 +4,7 @@ const path = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
 
-function loadNavPreferences(stored = null, role = "gast") {
+function loadNavPreferences(stored = null, role = "gast", canReadScouts = true) {
     const source = fs.readFileSync(path.join(__dirname, "..", "js", "nav-preferences.js"), "utf8");
     const localStorage = {
         getItem: key => key === "gtscout_nav_preferences" ? stored : null,
@@ -13,7 +13,7 @@ function loadNavPreferences(stored = null, role = "gast") {
     };
     const context = vm.createContext({
         window: {
-            GTScoutAuth: { getState: () => ({ role }) }
+            GTScoutAuth: { getState: () => ({ role }), canReadScouts: () => canReadScouts }
         },
         document: {
             querySelectorAll: () => [],
@@ -63,5 +63,26 @@ test("invalid stored pages fall back to defaults", () => {
 
 test("corrupt stored pages fall back to defaults", () => {
     const nav = loadNavPreferences("not json", "gast");
+    assert.deepEqual(roundTrip(nav.getVisiblePages("gast")), ["index", "aktiviteter", "kokbok"]);
+});
+
+test("stored pages are limited to what the role may see", () => {
+    const allPages = ["index", "aktiviteter", "kokbok", "planering", "arrangemang", "arshjul", "scouter", "admin", "utvecklingstrappa"];
+    const nav = loadNavPreferences(JSON.stringify(allPages), "gast");
+    assert.deepEqual(roundTrip(nav.getVisiblePages("gast")), ["index", "aktiviteter", "kokbok"]);
+});
+
+test("leader without scout access does not get scouter", () => {
+    const nav = loadNavPreferences(null, "ledare", false);
+    assert.deepEqual(roundTrip(nav.getVisiblePages("ledare")), ["index", "aktiviteter", "kokbok", "planering", "arrangemang", "arshjul", "utvecklingstrappa"]);
+});
+
+test("stored scouter is hidden for leader without scout access", () => {
+    const nav = loadNavPreferences(JSON.stringify(["index", "scouter"]), "ledare", false);
+    assert.deepEqual(roundTrip(nav.getVisiblePages("ledare")), ["index"]);
+});
+
+test("empty selection after role filter falls back to defaults", () => {
+    const nav = loadNavPreferences(JSON.stringify(["planering"]), "gast");
     assert.deepEqual(roundTrip(nav.getVisiblePages("gast")), ["index", "aktiviteter", "kokbok"]);
 });
