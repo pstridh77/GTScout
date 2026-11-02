@@ -80,10 +80,13 @@
             const pageId = link.dataset.navPage;
             const isVisible = visible.has(pageId);
             // Dölj bara om sidan inte är aktiv (användaren står på den)
+            // och ta aldrig bort hidden på sidor som är dolda av rollbaserade skäl
             if (!isVisible && !link.classList.contains("active")) {
                 link.classList.add("hidden");
-            } else {
+                link.dataset.navHiddenByPreferences = "true";
+            } else if (isVisible && link.dataset.navHiddenByPreferences === "true") {
                 link.classList.remove("hidden");
+                delete link.dataset.navHiddenByPreferences;
             }
         });
     }

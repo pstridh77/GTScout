@@ -3653,9 +3653,8 @@ select:focus {
     min-width: 0;
     justify-content: center;
     gap: 8px;
-    grid-column: 1;
-    grid-row: 1;
-    justify-content: flex-start;
+    grid-column: 1 / -1;
+    grid-row: 2;
 }
 
 .filters-visibility-toggle {

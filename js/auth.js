@@ -421,13 +421,16 @@
             getRole() === ROLES.ADMIN
             || (getRole() === ROLES.LEADER && (profile?.scout_read || profile?.scout_write))
         ));
-        document.querySelectorAll("[data-scout-navigation]").forEach(link => {
-            link.classList.toggle("hidden", !canAccessScouts);
-        });
-        document.querySelectorAll("[data-admin-panel]").forEach(link => {
-            link.classList.toggle("hidden", getRole() !== ROLES.ADMIN);
-        });
-        window.GTScoutNavPreferences?.applyNavVisibility(getRole());
+        // Kör bara när vi vet rollen – annars blinkar menyn vid varje laddning.
+        if (!current.loading) {
+            document.querySelectorAll("[data-scout-navigation]").forEach(link => {
+                link.classList.toggle("hidden", !canAccessScouts);
+            });
+            document.querySelectorAll("[data-admin-panel]").forEach(link => {
+                link.classList.toggle("hidden", getRole() !== ROLES.ADMIN);
+            });
+            window.GTScoutNavPreferences?.applyNavVisibility(getRole());
+        }
         if (!status || !button) return;
 
         if (current.loading) {
