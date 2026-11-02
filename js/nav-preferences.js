@@ -9,7 +9,8 @@
     const STORAGE_KEY = "gtscout_nav_preferences";
 
     const PAGES = [
-        { id: "index", label: "Märken" },
+        { id: "index", label: "Hem" },
+        { id: "marken", label: "Märken" },
         { id: "aktiviteter", label: "Aktiviteter" },
         { id: "kokbok", label: "Recept" },
         { id: "planering", label: "Planeringar" },
@@ -21,9 +22,9 @@
     ];
 
     const DEFAULTS = {
-        gast: ["index", "aktiviteter", "kokbok"],
-        ledare: ["index", "aktiviteter", "kokbok", "planering", "arrangemang", "arshjul", "scouter", "utvecklingstrappa"],
-        admin: ["index", "aktiviteter", "kokbok", "planering", "arrangemang", "arshjul", "scouter", "admin", "utvecklingstrappa"]
+        gast: ["index", "marken", "aktiviteter", "kokbok"],
+        ledare: ["index", "marken", "aktiviteter", "kokbok", "planering", "arrangemang", "arshjul", "scouter", "utvecklingstrappa"],
+        admin: ["index", "marken", "aktiviteter", "kokbok", "planering", "arrangemang", "arshjul", "scouter", "admin", "utvecklingstrappa"]
     };
 
     function getDefaultPages(role) {
@@ -39,12 +40,20 @@
     function getStoredPages() {
         try {
             const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
-            if (Array.isArray(stored) && stored.every(id => PAGES.some(page => page.id === id))) {
-                return stored;
+            if (!Array.isArray(stored)) return null;
+            // Migrera gamla val: "index" betydde Märken före namnbytet till marken.html.
+            // Om "marken" saknas men "index" finns, lägg till "marken" så att Märken inte försvinner.
+            const migrated = stored.includes("index") && !stored.includes("marken")
+                ? [...new Set(stored.flatMap(id => id === "index" ? ["index", "marken"] : [id]))]
+                : stored;
+            const valid = migrated.filter(id => PAGES.some(page => page.id === id));
+            if (valid.length && valid.length !== stored.length) {
+                savePages(valid);
             }
+            return valid.length ? valid : null;
         } catch {
+            return null;
         }
-        return null;
     }
 
     function savePages(pageIds) {

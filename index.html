@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hem – GTScout</title>
+    <link rel="icon" type="image/png" href="images/marken/koda.png">
+    <link rel="shortcut icon" href="images/marken/koda.png">
+    <link rel="apple-touch-icon" href="images/marken/koda.png">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/supabase-config.js"></script>
+    <script src="js/supabase-config.local.js"></script>
+    <script src="js/auth.js"></script>
+</head>
+<body>
+    <header class="site-header site-header--planning">
+        <div class="utility-bar"><span class="utility-spacer" aria-hidden="true"></span><nav class="utility-nav" aria-label="Externa länkar"><a href="https://www.scouterna.se/" target="_blank" rel="noreferrer">Scouterna</a><a href="https://www.scoutnet.se/" target="_blank" rel="noreferrer">Scoutnet</a><a href="https://www.scoutshop.se/" target="_blank" rel="noreferrer">Scoutshop</a></nav><div id="authArea" class="auth-area"></div><script>window.GTScoutAuth?.renderPreview();</script></div>
+        <div class="header-main">
+            <a class="site-brand" href="index.html" aria-label="Gullbrandstorps scoutkår"><img src="images/icons/GTorp_banner.png" alt="Gullbrandstorps Scoutkår" class="site-brand-banner"></a>
+            <nav class="main-nav" aria-label="Huvudnavigation"><a href="index.html" class="nav-link active" data-nav-page="index" aria-current="page">Hem</a><a href="marken.html" class="nav-link" data-nav-page="marken">Märken</a><a href="aktiviteter.html" class="nav-link" data-nav-page="aktiviteter">Aktiviteter</a><a href="kokbok.html" class="nav-link" data-nav-page="kokbok">Recept</a><a href="planering.html" class="nav-link" data-nav-page="planering">Planeringar</a><a href="arrangemang.html" class="nav-link" data-nav-page="arrangemang">Arrangemang</a><a href="arshjul.html" class="nav-link" data-nav-page="arshjul">Årshjul</a><a href="scouter.html" class="nav-link hidden" data-nav-page="scouter" data-scout-navigation>Scouter</a><a href="admin.html" class="nav-link hidden" data-nav-page="admin" data-admin-panel>Administration</a></nav>
+            <div class="library-header-actions">
+                <div class="planning-actions-menu">
+                    <button id="planningActionsBtn" class="header-menu-button" type="button" aria-label="Meny" aria-expanded="false" aria-controls="planningActionsDropdown" title="Meny"><span></span><span></span><span></span></button>
+                    <div id="planningActionsDropdown" class="planning-actions-dropdown hidden" role="menu">
+                        <details class="site-menu-section" open>
+                            <summary class="planning-menu-section-label">Navigering</summary>
+                            <a href="index.html" class="site-menu-item" data-nav-page="index" role="menuitem" aria-current="page">Hem</a>
+                            <a href="marken.html" class="site-menu-item" data-nav-page="marken" role="menuitem">Märken</a>
+                            <a href="aktiviteter.html" class="site-menu-item" data-nav-page="aktiviteter" role="menuitem">Aktiviteter</a>
+                            <a href="kokbok.html" class="site-menu-item" data-nav-page="kokbok" role="menuitem">Recept</a>
+                            <a href="planering.html" class="site-menu-item" data-nav-page="planering" role="menuitem">Planeringar</a>
+                            <a href="arrangemang.html" class="site-menu-item" data-nav-page="arrangemang" role="menuitem">Arrangemang</a>
+                            <a href="arshjul.html" class="site-menu-item" data-nav-page="arshjul" role="menuitem">Årshjul</a>
+                            <a href="scouter.html" class="site-menu-item hidden" data-nav-page="scouter" role="menuitem" data-scout-navigation>Scouter</a>
+                            <a href="admin.html" class="site-menu-item hidden" data-nav-page="admin" role="menuitem" data-admin-panel>Administration</a>
+                        </details>
+                        <div class="planning-menu-divider" role="separator"></div>
+                        <details class="site-menu-section">
+                            <summary class="planning-menu-section-label">Funktioner</summary>
+                            <a href="utvecklingstrappa.html" class="site-menu-item" data-nav-page="utvecklingstrappa" role="menuitem">Utvecklingstrappa</a>
+                        </details>
+                        <div class="planning-menu-divider" role="separator"></div>
+                        <details class="site-menu-section">
+                            <summary class="planning-menu-section-label">Visa</summary>
+                            <button class="planning-menu-item" type="button" role="menuitem" data-nav-preferences>Anpassa meny...</button>
+                        </details>
+                        <div class="planning-menu-divider" role="separator"></div>
+                        <div class="site-menu-environment-note database-environment"></div>
+                        <div class="site-menu-version-note"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <main class="home-page">
+        <section class="page-hero" aria-labelledby="homeTitle">
+            <div>
+                <p class="page-kicker" id="homeKarName">GTScout</p>
+                <h1 id="homeTitle">Översikt</h1>
+                <p id="homeSubtitle">Kom igång med kårens planering och aktiviteter.</p>
+            </div>
+        </section>
+
+        <section class="home-section" aria-labelledby="homeUpcomingTitle">
+            <div class="home-section-heading">
+                <h2 id="homeUpcomingTitle">Nästa kommande</h2>
+                <button id="homeUpcomingSettingsBtn" class="btn-secondary home-settings-btn" type="button" aria-label="Anpassa nästa kommande" title="Anpassa nästa kommande"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z" /></svg></button>
+            </div>
+            <div id="homeUpcoming" class="home-upcoming"></div>
+        </section>
+
+        <section class="home-section" aria-labelledby="homeModulesTitle">
+            <h2 id="homeModulesTitle">Gå vidare till</h2>
+            <div id="homeModules" class="home-modules"></div>
+        </section>
+    </main>
+
+    <div id="homeUpcomingModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="homeUpcomingModalTitle">
+        <div class="modal-content">
+            <button id="closeHomeUpcomingModal" class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2 id="homeUpcomingModalTitle">Nästa kommande</h2>
+            <p class="modal-field-hint">Välj vilka avdelningars möten som ska visas. Arrangemang visas alltid.</p>
+            <div id="homeUpcomingLevels" class="nav-preferences-list"></div>
+            <div class="modal-actions">
+                <button id="resetHomeUpcomingBtn" class="btn-secondary" type="button">Återställ</button>
+                <span class="modal-actions-spacer"></span>
+                <button id="saveHomeUpcomingBtn" class="btn-primary" type="button">Spara</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="site-footer" aria-label="Sidfot och version"><div class="site-footer-content"><span class="site-footer-title">GTScout</span><span class="site-footer-dot" aria-hidden="true">•</span><span class="site-footer-version"></span><span class="site-footer-dot" aria-hidden="true">•</span><span class="site-footer-build"></span><span class="site-footer-dot" aria-hidden="true">•</span><span class="database-environment"></span></div></footer>
+    <script src="js/sync-retry.js"></script>
+    <script src="js/participants.js"></script>
+    <script src="js/arrangemang-sync.js"></script>
+    <script src="js/planering-sync.js"></script>
+    <script src="js/sun-times.js"></script>
+    <script src="js/nav-preferences.js"></script>
+    <script src="js/version.js"></script>
+    <script src="js/hem.js"></script>
+    <script src="js/header-controls.js"></script>
+</body>
+</html>

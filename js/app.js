@@ -1081,7 +1081,7 @@ function createBadgeSharePopup() {
 const badgeSharePopup = createBadgeSharePopup();
 
 async function shareBadge(marke) {
-    const shareUrl = new URL("index.html", window.location.href);
+    const shareUrl = new URL("marken.html", window.location.href);
     shareUrl.searchParams.set("badge", marke.id);
     const input = badgeSharePopup.querySelector(".badge-share-url");
     const status = badgeSharePopup.querySelector(".badge-share-status");
