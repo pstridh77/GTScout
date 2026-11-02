@@ -686,8 +686,7 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
 }
 
 .scouts-page {
-    width: min(100% - 32px, 1400px);
-    margin: 32px auto 48px;
+    margin: 34px 20px 54px;
 }
 
 .scouts-access-denied {

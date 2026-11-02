@@ -16,13 +16,50 @@
     <header class="site-header site-header--planning">
         <div class="utility-bar"><span class="utility-spacer" aria-hidden="true"></span><nav class="utility-nav" aria-label="Externa länkar"><a href="https://www.scouterna.se/" target="_blank" rel="noreferrer">Scouterna</a><a href="https://www.scoutnet.se/" target="_blank" rel="noreferrer">Scoutnet</a><a href="https://www.scoutshop.se/" target="_blank" rel="noreferrer">Scoutshop</a></nav><div id="authArea" class="auth-area"></div><script>window.GTScoutAuth?.renderPreview();</script></div>
         <div class="header-main">
-            <a class="site-brand" href="marken.html" aria-label="Gullbrandstorps scoutkår"><img src="images/icons/GTorp_banner.png" alt="Gullbrandstorps Scoutkår" class="site-brand-banner"></a>
-            <nav class="main-nav" aria-label="Huvudnavigation"><a href="index.html" class="nav-link" data-nav-page="index">Hem</a><a href="marken.html" class="nav-link" data-nav-page="marken">Märken</a><a href="aktiviteter.html" class="nav-link" data-nav-page="aktiviteter">Aktiviteter</a><a href="kokbok.html" class="nav-link" data-nav-page="kokbok">Recept</a><a href="planering.html" class="nav-link" data-nav-page="planering">Planeringar</a><a href="arrangemang.html" class="nav-link" data-nav-page="arrangemang">Arrangemang</a><a href="arshjul.html" class="nav-link" data-nav-page="arshjul">Årshjul</a><a href="scouter.html" class="nav-link" data-nav-page="scouter" data-nav-page="scouter active hidden" data-scout-navigation>Scouter</a><a href="admin.html" class="nav-link" data-nav-page="admin" data-admin-panel>Administration</a></nav>
+            <a class="site-brand" href="index.html" aria-label="Gullbrandstorps scoutkår"><img src="images/icons/GTorp_banner.png" alt="Gullbrandstorps Scoutkår" class="site-brand-banner"></a>
+            <nav class="main-nav" aria-label="Huvudnavigation"><a href="index.html" class="nav-link" data-nav-page="index">Hem</a><a href="marken.html" class="nav-link" data-nav-page="marken">Märken</a><a href="aktiviteter.html" class="nav-link" data-nav-page="aktiviteter">Aktiviteter</a><a href="kokbok.html" class="nav-link" data-nav-page="kokbok">Recept</a><a href="planering.html" class="nav-link" data-nav-page="planering">Planeringar</a><a href="arrangemang.html" class="nav-link" data-nav-page="arrangemang">Arrangemang</a><a href="arshjul.html" class="nav-link" data-nav-page="arshjul">Årshjul</a><a href="scouter.html" class="nav-link active hidden" data-nav-page="scouter" data-scout-navigation aria-current="page">Scouter</a><a href="admin.html" class="nav-link" data-nav-page="admin" data-admin-panel>Administration</a></nav>
+            <div class="library-header-actions">
+                <div class="planning-actions-menu">
+                    <button id="planningActionsBtn" class="header-menu-button" type="button" aria-label="Meny" aria-expanded="false" aria-controls="planningActionsDropdown" title="Meny"><span></span><span></span><span></span></button>
+                    <div id="planningActionsDropdown" class="planning-actions-dropdown hidden" role="menu">
+                        <details class="site-menu-section" open>
+                            <summary class="planning-menu-section-label">Navigering</summary>
+                            <a href="index.html" class="site-menu-item" data-nav-page="index" role="menuitem">Hem</a>
+                            <a href="marken.html" class="site-menu-item" data-nav-page="marken" role="menuitem">Märken</a>
+                            <a href="aktiviteter.html" class="site-menu-item" data-nav-page="aktiviteter" role="menuitem">Aktiviteter</a>
+                            <a href="kokbok.html" class="site-menu-item" data-nav-page="kokbok" role="menuitem">Recept</a>
+                            <a href="planering.html" class="site-menu-item" data-nav-page="planering" role="menuitem">Planeringar</a>
+                            <a href="arrangemang.html" class="site-menu-item" data-nav-page="arrangemang" role="menuitem">Arrangemang</a>
+                            <a href="arshjul.html" class="site-menu-item" data-nav-page="arshjul" role="menuitem">Årshjul</a>
+                            <a href="scouter.html" class="site-menu-item hidden" data-nav-page="scouter" role="menuitem" data-scout-navigation aria-current="page">Scouter</a>
+                            <a href="admin.html" class="site-menu-item hidden" data-nav-page="admin" role="menuitem" data-admin-panel>Administration</a>
+                        </details>
+                        <div class="planning-menu-divider" role="separator"></div>
+                        <details class="site-menu-section">
+                            <summary class="planning-menu-section-label">Visa</summary>
+                            <button class="planning-menu-item" type="button" role="menuitem" data-nav-preferences>Anpassa meny...</button>
+                        </details>
+                        <div class="planning-menu-divider" role="separator"></div>
+                        <div class="site-menu-environment-note database-environment"></div>
+                        <div class="site-menu-version-note"></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </header>
     <div id="scoutsAccessDenied" class="scouts-access-denied hidden"><h1>Scoutregister</h1><p>Du måste vara inloggad som ledare med behörighet till scoutregistret. Kontakta en administratör för att få behörighet.</p><button id="openScoutLoginBtn" class="btn-primary" type="button">Logga in</button></div>
     <main id="scoutsContent" class="scouts-page hidden">
-        <header class="scouts-page-header"><div><p class="scouts-kicker">Kårens översikt</p><h1>Scouter</h1><p>Följ märkesstatus för varje scout. Klicka på en status för att växla mellan ej påbörjad, pågår och klar.</p></div><div class="scouts-page-actions"><button id="importScoutsBtn" class="btn-secondary" type="button">Importera CSV</button><button id="addScoutBtn" class="btn-primary" type="button">+ Lägg till scout</button></div></header>
+        <section class="page-hero" aria-labelledby="scoutsTitle">
+            <div>
+                <p class="page-kicker">Kårens översikt</p>
+                <h1 id="scoutsTitle">Scouter</h1>
+                <p>Följ märkesstatus för varje scout. Klicka på en status för att växla mellan ej påbörjad, pågår och klar.</p>
+            </div>
+            <div class="page-hero-actions">
+                <button id="importScoutsBtn" class="btn-secondary" type="button">Importera CSV</button>
+                <button id="addScoutBtn" class="btn-primary" type="button">+ Lägg till scout</button>
+            </div>
+        </section>
         <div class="scouts-toolbar"><label class="filter-field"><span>Sök scout</span><input id="scoutSearch" type="search" placeholder="Sök namn..."></label><label class="filter-field"><span>Födelseår</span><div id="scoutYearDropdown" class="multi-select-dropdown"><button id="scoutYearDropdownBtn" class="multi-select-trigger" type="button" aria-expanded="false" aria-haspopup="listbox">Alla år</button><div id="scoutYearDropdownMenu" class="multi-select-menu hidden" role="listbox" aria-label="Välj ett eller flera födelseår"></div></div></label><label class="filter-field"><span>Målgrupp</span><div id="scoutTargetDropdown" class="multi-select-dropdown"><button id="scoutTargetDropdownBtn" class="multi-select-trigger" type="button" aria-expanded="false" aria-haspopup="listbox">Alla målgrupper</button><div id="scoutTargetDropdownMenu" class="multi-select-menu hidden" role="listbox" aria-label="Välj målgrupper"></div></div></label><label class="filter-field"><span>Kategori</span><div id="scoutCategoryDropdown" class="multi-select-dropdown"><button id="scoutCategoryDropdownBtn" class="multi-select-trigger" type="button" aria-expanded="false" aria-haspopup="listbox">Alla kategorier</button><div id="scoutCategoryDropdownMenu" class="multi-select-menu hidden" role="listbox" aria-label="Välj kategorier"></div></div></label><label class="filter-field"><span>Sök märke</span><input id="scoutBadgeSearch" type="search" placeholder="Sök märkesnamn..."></label><label class="scout-active-filter"><input id="scoutActiveBadgeFilter" type="checkbox"><span>Visa bara märken med status</span></label><label id="inactiveScoutsFilter" class="scout-active-filter hidden"><input id="showInactiveScouts" type="checkbox"><span>Visa arkiverade</span></label><label id="scoutActivityFilterField" class="filter-field hidden"><span>Scoutstatus</span><select id="scoutActivityFilter"><option value="all">Alla</option><option value="active">Aktiva</option><option value="inactive">Arkiverade</option></select></label><button id="removeFilteredScoutsBtn" class="btn-danger" type="button" disabled>Ta bort filtrerade</button><span id="scoutsStatus" class="planning-sync-status" role="status"></span></div>
         <div id="scoutsEmpty" class="scouts-empty hidden">Inga scouter ännu. Lägg till den första scouten för att börja följa märken.</div>
         <div id="scoutTableTopScroll" class="scout-table-top-scroll" aria-label="Bläddra bland märkeskolumner"><div id="scoutTableTopScrollContent"></div></div>

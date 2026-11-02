@@ -32,6 +32,7 @@
                 <a href="planering.html" class="nav-link" data-nav-page="planering">Planeringar</a>
                 <a href="arrangemang.html" class="nav-link" data-nav-page="arrangemang">Arrangemang</a>
                 <a href="arshjul.html" class="nav-link" data-nav-page="arshjul">Årshjul</a>
+                <a href="utvecklingstrappa.html" class="nav-link active" data-nav-page="utvecklingstrappa" aria-current="page">Utvecklingstrappa</a>
             </nav>
             <div class="library-header-actions">
                 <button id="filtersVisibilityToggle" class="filters-visibility-toggle" type="button" aria-label="Dölj mallval" aria-pressed="true" aria-expanded="true" aria-controls="developmentLadderControls" title="Dölj mallval">
@@ -49,7 +50,16 @@
                             <a href="planering.html" class="site-menu-item" data-nav-page="planering" role="menuitem">Planeringar</a>
                             <a href="arrangemang.html" class="site-menu-item" data-nav-page="arrangemang" role="menuitem">Arrangemang</a>
                             <a href="arshjul.html" class="site-menu-item" data-nav-page="arshjul" role="menuitem">Årshjul</a>
+                            <a href="utvecklingstrappa.html" class="site-menu-item" data-nav-page="utvecklingstrappa" role="menuitem" aria-current="page">Utvecklingstrappa</a>
+                            <a href="scouter.html" class="site-menu-item hidden" data-nav-page="scouter" role="menuitem" data-scout-navigation>Scouter</a>
+                            <a href="admin.html" class="site-menu-item hidden" data-nav-page="admin" role="menuitem" data-admin-panel>Administration</a>
                         </details>
+                        <div class="planning-menu-divider" role="separator"></div>
+                        <details class="site-menu-section">
+                            <summary class="planning-menu-section-label">Visa</summary>
+                            <button class="planning-menu-item" type="button" role="menuitem" data-nav-preferences>Anpassa meny...</button>
+                        </details>
+                        <div class="planning-menu-divider" role="separator"></div>
                         <div class="site-menu-environment-note database-environment"></div>
                         <div class="site-menu-version-note"></div>
                     </div>
@@ -97,7 +107,7 @@
             <span id="databaseEnvironment" class="database-environment"></span>
         </div>
     </footer>
-    <script src="js/nav-preferences.js"></script><script src="js/version.js"></script>
+    <script src="js/nav-preferences.js"></script><script src="js/nav-preferences.js"></script><script src="js/version.js"></script>
     <script src="js/nav-preferences.js"></script><script src="js/header-controls.js"></script>
     <script src="js/development-ladder.js"></script>
 </body>
