@@ -6081,8 +6081,10 @@ select:focus {
 .home-modules { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
 .home-module-card { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 16px 14px; border: 1px solid #d7e1eb; border-radius: 10px; background: #fff; color: #153c4a; text-decoration: none; }
 .home-module-card:hover { border-color: #286d60; box-shadow: 0 2px 8px rgba(21, 60, 74, 0.12); }
-.home-module-icon { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px; background: #e8f0fe; color: #003660; }
-.home-module-icon svg { width: 22px; height: 22px; }
+.home-module-icon { display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; color: #003660; }
+.home-module-icon svg { width: 48px; height: 48px; }
+.home-module-icon img { width: 48px; height: 48px; object-fit: contain; }
+.home-module-content { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .home-module-description { color: #52636a; font-size: 0.8rem; line-height: 1.35; }
 .home-empty { margin: 0; padding: 16px; border: 1px dashed #c8d5d8; border-radius: 10px; color: #65767b; }
 

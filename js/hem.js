@@ -17,7 +17,7 @@
     const MODULES = [
         { id: "marken", label: "Märken", description: "Märkesbiblioteket med kårens egna märken.", href: "marken.html", icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12,2L15.09,8.26L22,9.27L17,14.14L18.18,21.02L12,17.77L5.82,21.02L7,14.14L2,9.27L8.91,8.26L12,2Z" /></svg>' },
         { id: "aktiviteter", label: "Aktiviteter", description: "Aktivitetsbank med genomföranden och material.", href: "aktiviteter.html", icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13.5,5.5C14.88,5.5 16,4.38 16,3C16,1.62 14.88,0.5 13.5,0.5C12.12,0.5 11,1.62 11,3C11,4.38 12.12,5.5 13.5,5.5M9.89,19.38L10.89,15L13,17V23H15V15.5L12.89,13.5L13.5,10.5C14.79,12 16.79,13 19,13V11C17.24,11 15.74,10.14 14.79,8.82L13.79,7.5C13.34,6.96 12.71,6.65 12.04,6.65C11.68,6.65 11.32,6.75 11,6.94L6,9.5V14H8V10.35L10.38,9.03L8.89,14.5L4.5,18.5L5.91,20L9.89,19.38Z" /></svg>' },
-        { id: "kokbok", label: "Recept", description: "Kårens kokbok med skalbara recept.", href: "kokbok.html", icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8.1,13.34L3.91,9.16C2.35,7.59 2.35,5.06 3.91,3.5L10.93,10.5L8.1,13.34M13.41,13L20.29,19.88L18.88,21.29L12,14.41L5.12,21.29L3.71,19.88L13.36,10.22L13.41,10.22C13.71,9.92 14.03,9.5 14.03,9.5C14.03,9.5 15.03,8.5 16.5,8.5C17.96,8.5 19.5,9.5 19.5,9.5L21.5,7.5L20.09,6.09L18.68,7.5C18.68,7.5 17.68,6 16.21,6C14.75,6 13.75,7 13.75,7C13.75,7 13.33,7.32 13.03,7.62L13.41,8L11,10.41L13.41,13Z" /></svg>' },
+        { id: "kokbok", label: "Recept", description: "Kårens kokbok med skalbara recept.", href: "kokbok.html", icon: '<img src="images/marken/matettan.png" alt="">' },
         { id: "planering", label: "Planeringar", description: "Terminsplaneringar med möten och märken.", href: "planering.html", icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z" /></svg>' },
         { id: "arrangemang", label: "Arrangemang", description: "Hajker, övernattningar och läger.", href: "arrangemang.html", icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12,2C8.13,2 5,5.13 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9C19,5.13 15.87,2 12,2M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5Z" /></svg>' },
         { id: "arshjul", label: "Årshjul", description: "Årshjulet med återkommande händelser.", href: "arshjul.html", icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z" /></svg>' },
@@ -241,8 +241,10 @@
         container.innerHTML = modules.length
             ? modules.map(module => `<a class="home-module-card" href="${module.href}">
                 <span class="home-module-icon">${module.icon}</span>
-                <strong>${escapeHtml(module.label)}</strong>
-                <span class="home-module-description">${escapeHtml(module.description)}</span>
+                <div class="home-module-content">
+                    <strong>${escapeHtml(module.label)}</strong>
+                    <span class="home-module-description">${escapeHtml(module.description)}</span>
+                </div>
             </a>`).join("")
             : `<p class="home-empty">Inga moduler valda. Anpassa menyn för att välja vilka sidor som ska synas.</p>`;
     }
