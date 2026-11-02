@@ -4,6 +4,15 @@
  */
 (function () {
     const UPCOMING_LEVELS_KEY = "gtscout_home_upcoming_levels";
+    const UPCOMING_TYPES_KEY = "gtscout_home_upcoming_types";
+    const UPCOMING_WHEELS_KEY = "gtscout_home_upcoming_wheels";
+    const UPCOMING_COUNT_KEY = "gtscout_home_upcoming_count";
+
+    const UPCOMING_TYPES = [
+        { id: "meetings", label: "Möten" },
+        { id: "arrangements", label: "Arrangemang" },
+        { id: "yearwheel", label: "Årshjul" }
+    ];
 
     const MODULES = [
         { id: "marken", label: "Märken", description: "Märkesbiblioteket med kårens egna märken.", href: "marken.html", icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12,2L15.09,8.26L22,9.27L17,14.14L18.18,21.02L12,17.77L5.82,21.02L7,14.14L2,9.27L8.91,8.26L12,2Z" /></svg>' },
@@ -19,6 +28,7 @@
 
     let groups = [];
     let arrangements = [];
+    let yearWheels = [];
 
     function escapeHtml(value) {
         return String(value ?? "").replace(/[&<>"']/g, char => ({
@@ -32,7 +42,14 @@
 
     function formatDateSv(dateStr) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr || "")) return "";
-        return new Intl.DateTimeFormat("sv-SE", { weekday: "short", day: "numeric", month: "short" }).format(new Date(`${dateStr}T12:00:00`));
+        return new Intl.DateTimeFormat("sv-SE", { weekday: "short", day: "numeric", month: "short", year: "numeric" }).format(new Date(`${dateStr}T12:00:00`));
+    }
+
+    function isWithinNextYear(dateStr) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr || "")) return false;
+        const now = new Date();
+        const oneYearFromNow = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
+        return new Date(`${dateStr}T12:00:00`) <= oneYearFromNow;
     }
 
     function getStoredLevels() {
@@ -52,6 +69,74 @@
         }
     }
 
+    function getStoredTypes() {
+        try {
+            const stored = JSON.parse(localStorage.getItem(UPCOMING_TYPES_KEY));
+            if (Array.isArray(stored) && stored.every(value => typeof value === "string")) return stored;
+        } catch {
+        }
+        return null;
+    }
+
+    function saveTypes(types) {
+        try {
+            localStorage.setItem(UPCOMING_TYPES_KEY, JSON.stringify(types));
+        } catch (error) {
+            console.error("Kunde inte spara typval", error);
+        }
+    }
+
+    function getSelectedTypes() {
+        const stored = getStoredTypes();
+        if (!stored) return UPCOMING_TYPES.map(type => type.id);
+        return UPCOMING_TYPES.map(type => type.id).filter(id => stored.includes(id));
+    }
+
+    function getStoredWheels() {
+        try {
+            const stored = JSON.parse(localStorage.getItem(UPCOMING_WHEELS_KEY));
+            if (Array.isArray(stored) && stored.every(value => typeof value === "string")) return stored;
+        } catch {
+        }
+        return null;
+    }
+
+    function saveWheels(wheels) {
+        try {
+            localStorage.setItem(UPCOMING_WHEELS_KEY, JSON.stringify(wheels));
+        } catch (error) {
+            console.error("Kunde inte spara årshjulsval", error);
+        }
+    }
+
+    function getSelectedWheels() {
+        const available = yearWheels.map(wheel => wheel.id);
+        const stored = getStoredWheels();
+        if (!stored) return available;
+        return available.filter(id => stored.includes(id));
+    }
+
+    function getStoredCount() {
+        try {
+            const stored = Number(localStorage.getItem(UPCOMING_COUNT_KEY));
+            return Number.isSafeInteger(stored) && stored >= 1 && stored <= 20 ? stored : null;
+        } catch {
+            return null;
+        }
+    }
+
+    function saveCount(count) {
+        try {
+            localStorage.setItem(UPCOMING_COUNT_KEY, String(count));
+        } catch (error) {
+            console.error("Kunde inte spara antal", error);
+        }
+    }
+
+    function getSelectedCount() {
+        return getStoredCount() || 4;
+    }
+
     function getAvailableLevels() {
         return [...new Set(groups.map(group => String(group.level || "").trim()).filter(Boolean))]
             .sort((left, right) => left.localeCompare(right, "sv"));
@@ -66,22 +151,37 @@
     }
 
     function getUpcomingMeetings() {
+        if (!getSelectedTypes().includes("meetings")) return [];
         const selectedLevels = new Set(getSelectedLevels());
         const now = today();
         return groups
             .filter(group => selectedLevels.has(String(group.level || "").trim()))
             .flatMap(group => (Array.isArray(group.meetings) ? group.meetings : [])
-                .filter(meeting => /^\d{4}-\d{2}-\d{2}$/.test(meeting.date || "") && meeting.date >= now)
+                .filter(meeting => /^\d{4}-\d{2}-\d{2}$/.test(meeting.date || "") && meeting.date >= now && isWithinNextYear(meeting.date))
                 .map(meeting => ({ type: "meeting", date: meeting.date, group, meeting })))
             .sort((left, right) => left.date.localeCompare(right.date))
             .slice(0, 3);
     }
 
     function getUpcomingArrangements() {
+        if (!getSelectedTypes().includes("arrangements")) return [];
         const now = today();
         return arrangements
-            .filter(item => item.status !== "cancelled" && /^\d{4}-\d{2}-\d{2}$/.test(item.end_date || "") && item.end_date >= now)
+            .filter(item => item.status !== "cancelled" && /^\d{4}-\d{2}-\d{2}$/.test(item.end_date || "") && item.end_date >= now && isWithinNextYear(item.start_date))
             .map(item => ({ type: "arrangement", date: item.start_date, item }))
+            .sort((left, right) => left.date.localeCompare(right.date))
+            .slice(0, 3);
+    }
+
+    function getUpcomingYearWheelEvents() {
+        if (!getSelectedTypes().includes("yearwheel")) return [];
+        const selectedWheels = new Set(getSelectedWheels());
+        const now = today();
+        return yearWheels
+            .filter(wheel => selectedWheels.has(wheel.id))
+            .flatMap(wheel => (Array.isArray(wheel.events) ? wheel.events : [])
+                .filter(event => /^\d{4}-\d{2}-\d{2}$/.test(event.start_date || "") && event.start_date >= now && isWithinNextYear(event.start_date))
+                .map(event => ({ type: "yearwheel", date: event.start_date, wheel, event })))
             .sort((left, right) => left.date.localeCompare(right.date))
             .slice(0, 3);
     }
@@ -90,12 +190,13 @@
         const container = document.getElementById("homeUpcoming");
         const meetings = getUpcomingMeetings();
         const upcomingArrangements = getUpcomingArrangements();
-        const entries = [...meetings, ...upcomingArrangements]
+        const yearWheelEvents = getUpcomingYearWheelEvents();
+        const entries = [...meetings, ...upcomingArrangements, ...yearWheelEvents]
             .sort((left, right) => left.date.localeCompare(right.date))
-            .slice(0, 4);
+            .slice(0, getSelectedCount());
 
         if (!entries.length) {
-            container.innerHTML = `<p class="home-empty">Inga kommande möten eller arrangemang.</p>`;
+            container.innerHTML = `<p class="home-empty">Inga kommande möten, arrangemang eller händelser.</p>`;
             return;
         }
 
@@ -109,14 +210,25 @@
                     <span class="home-upcoming-meta">${escapeHtml(formatDateSv(meeting.date))}${meeting.location ? ` · ${escapeHtml(meeting.location)}` : ""}${sunset ? ` · ↓ ${escapeHtml(sunset)}` : ""}</span>
                 </a>`;
             }
-            const { item } = entry;
-            const dateText = item.start_date === item.end_date
-                ? formatDateSv(item.start_date)
-                : `${formatDateSv(item.start_date)} – ${formatDateSv(item.end_date)}`;
-            return `<a class="home-upcoming-card home-upcoming-card--arrangement" href="arrangemang.html">
-                <span class="home-upcoming-kind">${escapeHtml(item.type || "Arrangemang")}</span>
-                <strong>${escapeHtml(item.title)}</strong>
-                <span class="home-upcoming-meta">${escapeHtml(dateText)}${item.location ? ` · ${escapeHtml(item.location)}` : ""}</span>
+            if (entry.type === "arrangement") {
+                const { item } = entry;
+                const dateText = item.start_date === item.end_date
+                    ? formatDateSv(item.start_date)
+                    : `${formatDateSv(item.start_date)} – ${formatDateSv(item.end_date)}`;
+                return `<a class="home-upcoming-card home-upcoming-card--arrangement" href="arrangemang.html">
+                    <span class="home-upcoming-kind">${escapeHtml(item.type || "Arrangemang")}</span>
+                    <strong>${escapeHtml(item.title)}</strong>
+                    <span class="home-upcoming-meta">${escapeHtml(dateText)}${item.location ? ` · ${escapeHtml(item.location)}` : ""}</span>
+                </a>`;
+            }
+            const { wheel, event } = entry;
+            const dateText = event.start_date === event.end_date
+                ? formatDateSv(event.start_date)
+                : `${formatDateSv(event.start_date)} – ${formatDateSv(event.end_date)}`;
+            return `<a class="home-upcoming-card home-upcoming-card--yearwheel" href="arshjul.html">
+                <span class="home-upcoming-kind">${escapeHtml(wheel.name || "Årshjul")}</span>
+                <strong>${escapeHtml(event.title)}</strong>
+                <span class="home-upcoming-meta">${escapeHtml(dateText)}${event.location ? ` · ${escapeHtml(event.location)}` : ""}</span>
             </a>`;
         }).join("");
     }
@@ -149,9 +261,46 @@
         const list = document.getElementById("homeUpcomingLevels");
         const available = getAvailableLevels();
         const selected = new Set(getSelectedLevels());
-        list.innerHTML = available.length
-            ? available.map(level => `<label class="nav-preferences-item"><input type="checkbox" value="${escapeHtml(level)}" ${selected.has(level) ? "checked" : ""}><span>${escapeHtml(level)}</span></label>`).join("")
-            : `<p class="home-empty">Inga planeringar med avdelningar ännu.</p>`;
+        const selectedTypes = new Set(getSelectedTypes());
+        const selectedWheels = new Set(getSelectedWheels());
+        list.innerHTML = `
+            <div class="home-upcoming-settings-section">
+                <label class="modal-field">
+                    <span>Antal händelser</span>
+                    <input id="homeUpcomingCount" type="number" min="1" max="20" value="${getSelectedCount()}">
+                </label>
+            </div>
+            <div class="home-upcoming-settings-section" data-section="meetings">
+                <label class="nav-preferences-item home-upcoming-settings-heading"><input type="checkbox" data-type="meetings" value="meetings" ${selectedTypes.has("meetings") ? "checked" : ""}><span><strong>Möten</strong></span></label>
+                <div class="home-upcoming-settings-children">
+                    ${available.length
+                        ? available.map(level => `<label class="nav-preferences-item"><input type="checkbox" data-level="${escapeHtml(level)}" value="${escapeHtml(level)}" ${selected.has(level) ? "checked" : ""}><span>${escapeHtml(level)}</span></label>`).join("")
+                        : `<p class="home-empty">Inga planeringar med avdelningar ännu.</p>`}
+                </div>
+            </div>
+            <div class="home-upcoming-settings-section" data-section="arrangements">
+                <label class="nav-preferences-item home-upcoming-settings-heading"><input type="checkbox" data-type="arrangements" value="arrangements" ${selectedTypes.has("arrangements") ? "checked" : ""}><span><strong>Arrangemang</strong></span></label>
+            </div>
+            <div class="home-upcoming-settings-section" data-section="yearwheel">
+                <label class="nav-preferences-item home-upcoming-settings-heading"><input type="checkbox" data-type="yearwheel" value="yearwheel" ${selectedTypes.has("yearwheel") ? "checked" : ""}><span><strong>Årshjul</strong></span></label>
+                <div class="home-upcoming-settings-children">
+                    ${yearWheels.length
+                        ? yearWheels.map(wheel => `<label class="nav-preferences-item"><input type="checkbox" data-wheel="${escapeHtml(wheel.id)}" value="${escapeHtml(wheel.id)}" ${selectedWheels.has(wheel.id) ? "checked" : ""}><span>${escapeHtml(wheel.name || "Namnlöst årshjul")}</span></label>`).join("")
+                        : `<p class="home-empty">Inga årshjul ännu.</p>`}
+                </div>
+            </div>
+        `;
+        // Gråa ut undersektioner när typen är bortvald
+        const updateSectionState = () => {
+            const meetingsChecked = list.querySelector('input[data-type="meetings"]')?.checked;
+            const yearwheelChecked = list.querySelector('input[data-type="yearwheel"]')?.checked;
+            list.querySelector('[data-section="meetings"] .home-upcoming-settings-children')?.classList.toggle("home-upcoming-settings-children--disabled", !meetingsChecked);
+            list.querySelector('[data-section="yearwheel"] .home-upcoming-settings-children')?.classList.toggle("home-upcoming-settings-children--disabled", !yearwheelChecked);
+        };
+        list.querySelectorAll('input[data-type]').forEach(checkbox => {
+            checkbox.addEventListener("change", updateSectionState);
+        });
+        updateSectionState();
         modal.classList.remove("hidden");
     }
 
@@ -176,8 +325,14 @@
         });
     });
     document.getElementById("saveHomeUpcomingBtn").addEventListener("click", () => {
-        const selected = [...document.querySelectorAll("#homeUpcomingLevels input[type='checkbox']:checked")].map(checkbox => checkbox.value);
-        saveLevels(selected);
+        const selectedLevels = [...document.querySelectorAll("#homeUpcomingLevels input[data-level]:checked")].map(checkbox => checkbox.value);
+        const selectedTypes = [...document.querySelectorAll("#homeUpcomingLevels input[data-type]:checked")].map(checkbox => checkbox.value);
+        const selectedWheels = [...document.querySelectorAll("#homeUpcomingLevels input[data-wheel]:checked")].map(checkbox => checkbox.value);
+        const count = Number(document.getElementById("homeUpcomingCount").value);
+        saveLevels(selectedLevels);
+        saveTypes(selectedTypes);
+        saveWheels(selectedWheels);
+        if (Number.isSafeInteger(count) && count >= 1 && count <= 20) saveCount(count);
         closeUpcomingSettings();
         renderUpcoming();
     });
@@ -199,6 +354,13 @@
     window.GTScoutArrangements?.init({
         onChange: nextArrangements => {
             arrangements = nextArrangements || [];
+            renderUpcoming();
+        }
+    });
+
+    window.GTScoutYearWheelSync?.init({
+        onChange: incoming => {
+            yearWheels = Array.isArray(incoming) ? incoming : [];
             renderUpcoming();
         }
     });

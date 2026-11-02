@@ -5851,6 +5851,12 @@ select:focus {
     gap: 16px;
 }
 
+#homeUpcomingModal .modal-content {
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
 #groupModal .modal-content {
     box-sizing: border-box;
     max-height: calc(100vh - 24px);
@@ -6063,6 +6069,13 @@ select:focus {
 .home-upcoming-card { display: flex; flex-direction: column; gap: 4px; padding: 14px; border: 1px solid #d7e1eb; border-left: 4px solid #286d60; border-radius: 10px; background: #fff; color: #153c4a; text-decoration: none; }
 .home-upcoming-card:hover { border-color: #286d60; box-shadow: 0 2px 8px rgba(21, 60, 74, 0.12); }
 .home-upcoming-card--arrangement { border-left-color: #c84c08; }
+.home-upcoming-card--yearwheel { border-left-color: #713f91; }
+.home-upcoming-settings-section { margin-bottom: 16px; padding: 12px; border: 1px solid #d0d7de; border-radius: 8px; }
+.home-upcoming-settings-section strong { display: block; margin-bottom: 8px; color: #153c4a; }
+.home-upcoming-settings-heading { margin-bottom: 8px; border: none; padding: 0; }
+.home-upcoming-settings-heading:hover { background: none; }
+.home-upcoming-settings-children { margin-left: 24px; display: flex; flex-direction: column; gap: 8px; }
+.home-upcoming-settings-children--disabled { opacity: 0.5; pointer-events: none; }
 .home-upcoming-kind { color: #65767b; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
 .home-upcoming-meta { color: #52636a; font-size: 0.82rem; }
 .home-modules { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
