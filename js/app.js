@@ -949,8 +949,10 @@ function renderMarken(marken) {
                     return;
                 }
                 const badgePlannings = getBadgePlannings(marke.id);
+                const hasLocalNote = Boolean(window.GTScoutNotes?.isLocalOnly?.(marke.id));
                 card.innerHTML = `
                     ${marke.isCustom ? '<span class="activity-owner-badge activity-owner-badge--mine badge-owner-badge">Min kår</span>' : ""}
+                    ${hasLocalNote ? '<span class="badge-note-local-badge badge-note-local-badge--card" title="Anteckningen sparas bara i den här webbläsaren – inte i kårens databas">Lokal</span>' : ""}
                     <img src="${marke.bild}" alt="${marke.namn}">
                     <h3>${marke.namn}</h3>
                     <p>${formatTargetGroups(marke)}</p>

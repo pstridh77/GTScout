@@ -47,7 +47,11 @@
 
     function isLocalOnly(badgeId) {
         if (localOnlyIds.has(badgeId)) return true;
-        return !canWrite();
+        if (!auth()?.isSignedIn?.() || !auth()?.isLeader?.()) {
+            const local = readLocal();
+            return Boolean(local[badgeId]?.trim());
+        }
+        return false;
     }
 
     async function flush() {
