@@ -2355,6 +2355,9 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                 const planningSource = getStandardPlanningSourceOverviewLabel(group.standard_planning_source);
                 const planningYear = getGroupYearValue(group);
                 const planningTerm = getGroupTermValue(group);
+                const localBadge = group.local_only
+                    ? ` · <span class="planning-local-badge" title="Sparas bara i den här webbläsaren – inte i kårens databas">Lokal</span>`
+                    : "";
                 const visibilityStatus = group.visibility === "private"
                     ? ` · <span class="planning-visibility-badge" title="Privat – endast synlig för ägare och admin">${getPlanningVisibilityIcon("private")}</span>`
                     : group.visibility === "kar_view"
@@ -2364,7 +2367,7 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                 <div class="group-card-header">
                     <div class="group-card-heading">
                         <h3 class="group-name" title="Planeringens namn">${group.name}</h3>
-                        <span class="group-planning-meta">År ${planningYear !== null ? planningYear : "-"} · ${planningTerm || "Termin -"}${visibilityStatus}${group.archived ? ' · <span class="planning-archived-badge">Arkiverad</span>' : ""}</span>
+                        <span class="group-planning-meta">År ${planningYear !== null ? planningYear : "-"} · ${planningTerm || "Termin -"}${localBadge}${visibilityStatus}${group.archived ? ' · <span class="planning-archived-badge">Arkiverad</span>' : ""}</span>
                     </div>
                     <div class="group-card-actions">
                         <button class="btn-secondary share-overview-group-btn" type="button" data-group-id="${group.id}" aria-label="Dela översikt" title="Dela översikt"${group.local_only || !window.GTScoutPlanningSync?.canWrite?.() ? " disabled" : ""}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17.27,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5M12,17C9.24,17 7,14.76 7,12C7,9.24 9.24,7 12,7C14.76,7 17,9.24 17,12C17,14.76 14.76,17 12,17M12,9C10.34,9 9,10.34 9,12C9,13.66 10.34,15 12,15C13.66,15 15,13.66 15,12C15,10.34 13.66,9 12,9Z" /></svg></button>
@@ -2380,6 +2383,7 @@ function renderPlanning(openActivityGroupIds = new Set(), openMeetingGroupIds = 
                 </div>
                 `;
                 card.classList.toggle("group-card--archived", group.archived);
+                card.classList.toggle("group-card--local", Boolean(group.local_only));
                 card.querySelector(".share-overview-group-btn")?.remove();
                 card.querySelector(".edit-group-btn").addEventListener("click", () => openGroupEditor(group.id));
                 card.querySelector(".share-group-btn").addEventListener("click", () => shareGroup(group.id));

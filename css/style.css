@@ -184,6 +184,10 @@ body {
 .arrangement-status--planned { border-color: #9ac9dc; background: #e4f3f8; color: #075b7b; }
 .arrangement-status--completed { border-color: #9bc7a7; background: #e6f3e9; color: #246038; }
 .arrangement-status--cancelled { border-color: #ddb0a6; background: #f9eae7; color: #8e352a; }
+
+.arrangement-local-badge { display: inline-flex; align-items: center; flex: 0 0 auto; padding: 4px 8px; border: 1px solid #d9a441; border-radius: 4px; background: #fdf3dd; color: #7c4a12; font-size: .72rem; font-weight: 750; line-height: 1; }
+
+.arrangement-card--local { border-left: 4px solid #d9a441; }
 .arrangement-experience-button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 26px; width: 26px; height: 26px; padding: 3px; border: 1px solid #9bc7a7; border-radius: 50%; background: #f4faf5; color: #246038; cursor: pointer; }
 .arrangement-experience-button svg { width: 18px; height: 18px; }
 .arrangement-experience-button:hover { background: #e6f3e9; }
@@ -4985,6 +4989,23 @@ select:focus {
 .planning-archived-badge {
     color: #7c4a12;
     font-weight: 700;
+}
+
+.planning-local-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border: 1px solid #d9a441;
+    border-radius: 999px;
+    background: #fdf3dd;
+    color: #7c4a12;
+    font-size: .72rem;
+    font-weight: 700;
+    line-height: 1.4;
+    vertical-align: middle;
+}
+
+.group-card--local {
+    border-left: 4px solid #d9a441;
 }
 
 .group-card--archived {
