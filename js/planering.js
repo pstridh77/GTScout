@@ -288,7 +288,11 @@ function getActivityOwnershipMeta(activity) {
 
 function renderActivityOwnershipBadge(activity) {
     const meta = getActivityOwnershipMeta(activity);
-    return `<span class="activity-owner-badge ${meta.className}">${meta.label}</span>`;
+    const isLocal = !activity?.kar_id && activity?.id?.startsWith("egen-");
+    const localBadge = isLocal
+        ? `<span class="activity-local-badge" title="Sparas bara i den här webbläsaren – inte i kårens databas">Lokal</span>`
+        : "";
+    return `<span class="activity-owner-badge ${meta.className}">${meta.label}</span>${localBadge}`;
 }
 
 function canEditActivity(activity) {
@@ -497,7 +501,9 @@ function populatePlanningActivityCategories() {
 function createStandaloneActivityPopup() {
     const modal = document.getElementById("createActivityModal");
     const updateWarning = () => {
-        document.getElementById("createActivityWarning").classList.toggle("hidden", Boolean(window.GTScoutActivities?.canWrite?.()));
+        const warning = document.getElementById("createActivityWarning");
+        warning.textContent = "Du är inte inloggad – aktiviteten sparas bara i den här webbläsaren.";
+        warning.classList.toggle("hidden", Boolean(window.GTScoutActivities?.canWrite?.()));
     };
     const reset = () => {
         editingStandaloneActivityId = null;
@@ -1011,6 +1017,12 @@ function openStandaloneActivityEditor(activity) {
     editingStandaloneActivityId = activity.id;
     document.getElementById("createActivityTitle").textContent = "Redigera aktivitet";
     document.getElementById("savePlanningActivityBtn").textContent = "Spara ändringar";
+    const isLocal = !activity.kar_id && activity.id?.startsWith("egen-");
+    const warning = document.getElementById("createActivityWarning");
+    warning.textContent = isLocal
+        ? "Aktiviteten sparas bara i den här webbläsaren – inte i kårens databas."
+        : "Du är inte inloggad – aktiviteten sparas bara i den här webbläsaren.";
+    warning.classList.toggle("hidden", !isLocal && Boolean(window.GTScoutActivities?.canWrite?.()));
     const currentGroups = groups.filter(group => Array.isArray(group.activities) && group.activities.includes(activity.id));
     document.getElementById("planningActivityMemberships").innerHTML = currentGroups.length > 0
         ? currentGroups.map(group => `<span>${group.name} (${group.level})</span>`).join("")

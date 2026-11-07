@@ -3068,6 +3068,25 @@ select:focus {
     border: 1px solid #cbd5e1;
 }
 
+.activity-local-badge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 2px 8px;
+    border: 1px solid #d9a441;
+    border-radius: 999px;
+    background: #fdf3dd;
+    color: #7c4a12;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.activity-card--local {
+    border-left: 4px solid #d9a441;
+}
+
 .activity-info-button {
     width: 26px;
     height: 26px;
