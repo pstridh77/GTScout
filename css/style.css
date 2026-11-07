@@ -3458,7 +3458,7 @@ select:focus {
 }
 
 #badgeNotePopup {
-    z-index: 1100;
+    z-index: 1500;
 }
 
 .badge-note-popup-content h2 {

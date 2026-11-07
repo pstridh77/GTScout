@@ -672,10 +672,14 @@ function createNotePopup() {
 
 const notePopup = createNotePopup();
 
-function getNoteSaveWarning() {
+function getNoteSaveWarning(badgeId) {
     const notes = window.GTScoutNotes;
     const auth = window.GTScoutAuth;
-    if (notes?.canWrite()) return "";
+    if (notes?.canWrite()) {
+        return badgeId && notes.isLocalOnly?.(badgeId)
+            ? "Anteckningen sparas bara i den här webbläsaren – inte i kårens databas."
+            : "";
+    }
     if (!auth?.isOnline()) {
         return "Anteckningen sparas bara i den här webbläsaren.";
     }
@@ -693,7 +697,7 @@ function openNotePopup(marke) {
     notePopup.querySelector("#badgeNoteInput").value = loadBadgeNotes()[marke.id] || "";
     notePopup.querySelector("#badgeNoteStatus").textContent = "";
     const warning = notePopup.querySelector("#badgeNoteWarning");
-    const warningText = getNoteSaveWarning();
+    const warningText = getNoteSaveWarning(marke.id);
     warning.textContent = warningText;
     warning.classList.toggle("hidden", !warningText);
     notePopup.classList.remove("hidden");

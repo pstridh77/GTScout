@@ -2858,6 +2858,7 @@ function openGroupEditor(groupId) {
     groupModal.dataset.editingGroupId = groupId;
     groupModal.querySelector(".group-modal-actions").classList.add("group-modal-actions--editing");
     document.getElementById("groupModalTitle").textContent = "Redigera planering";
+    document.getElementById("groupLocalNotice").classList.toggle("hidden", !group.local_only);
     document.getElementById("groupName").value = stripPlanningYearPrefix(group.name || "");
     const sourceInfo = document.getElementById("groupPlanningSource");
     const sourceLabel = getStandardPlanningSourceLabel(group.standard_planning_source);
@@ -2910,6 +2911,7 @@ function resetGroupModalState() {
     groupModal.dataset.editingGroupId = "";
     groupModal.querySelector(".group-modal-actions").classList.remove("group-modal-actions--editing");
     document.getElementById("groupModalTitle").textContent = "Ny plannering";
+    document.getElementById("groupLocalNotice").classList.add("hidden");
     document.getElementById("saveGroupBtn").textContent = "Spara";
     document.getElementById("saveGroupBtn").title = "Spara planering";
     document.getElementById("groupNote").value = "";
@@ -4368,6 +4370,8 @@ document.getElementById("addGroupBtn").addEventListener("click", () => {
     document.getElementById("groupYear").value = new Date().getFullYear();
     document.getElementById("groupTerm").value = "HT";
     document.getElementById("groupNote").value = "";
+    const willBeLocal = Boolean(window.GTScoutAuth?.isOnline?.() && !window.GTScoutPlanningSync?.canWrite?.());
+    document.getElementById("groupLocalNotice").classList.toggle("hidden", !willBeLocal);
     groupModal.classList.remove("hidden");
     document.getElementById("groupName").focus();
 });

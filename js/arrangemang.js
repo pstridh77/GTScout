@@ -1826,7 +1826,8 @@ async function openArrangementEditor(item = null, focusAgendaId = "", isCopy = f
     document.getElementById("arrangementExperience").value = isCopy ? "" : item?.experience || item?.after_notes || "";
     document.getElementById("arrangementFormStatus").textContent = "";
     document.getElementById("deleteArrangementBtn").classList.toggle("hidden", !item || isCopy || !isArrangementDetailEditable(item));
-    document.getElementById("arrangementLocalNotice").classList.toggle("hidden", window.GTScoutArrangements?.canWrite());
+    const isLocal = Boolean(item?.local_only) || !window.GTScoutArrangements?.canWrite();
+    document.getElementById("arrangementLocalNotice").classList.toggle("hidden", !isLocal);
     renderDepartmentOptions(item?.departments?.length ? item.departments : departments);
     draftParticipantDays = JSON.parse(JSON.stringify(item?.participant_days || {}));
     draftParticipants = {
