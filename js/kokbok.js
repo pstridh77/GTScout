@@ -528,7 +528,12 @@ function createRecipeCard(recipe) {
 function openRecipeModal(recipe = null) {
     editingRecipeId = recipe?.id || null;
     document.getElementById("recipeModalTitle").textContent = recipe ? "Redigera recept" : "Lägg till recept";
-    document.getElementById("recipeCreateWarning").classList.toggle("hidden", window.GTScoutCookbook.canEdit?.());
+    const isLocal = Boolean(recipe?.local_only) || !window.GTScoutCookbook.canEdit?.();
+    const warning = document.getElementById("recipeCreateWarning");
+    warning.textContent = recipe?.local_only
+        ? "Receptet sparas bara i den här webbläsaren – inte i kårens databas."
+        : "Du är inte inloggad – receptet sparas bara i den här webbläsaren.";
+    warning.classList.toggle("hidden", !isLocal);
     document.getElementById("recipeName").value = recipe?.namn || "";
     document.getElementById("recipeCategory").value = recipe?.kategori || "";
     document.getElementById("recipeTime").value = recipe?.tid || "";
