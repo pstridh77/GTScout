@@ -46,7 +46,8 @@
     const localOnlyIds = new Set();
 
     function isLocalOnly(badgeId) {
-        return localOnlyIds.has(badgeId);
+        if (localOnlyIds.has(badgeId)) return true;
+        return !canWrite();
     }
 
     async function flush() {

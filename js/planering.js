@@ -4818,6 +4818,7 @@ function showBadgeDetail(marke, planningId = null) {
             ${badgeNote ? `
                 <div class="detail-note">
                     <strong>Info:</strong>
+                    ${window.GTScoutNotes?.isLocalOnly?.(marke.id) ? '<span class="badge-note-local-badge" title="Sparas bara i den här webbläsaren – inte i kårens databas">Lokal</span>' : ""}
                     <p class="detail-note-display"></p>
                 </div>
             ` : ""}

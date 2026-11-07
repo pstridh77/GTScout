@@ -1869,6 +1869,7 @@ function showPopup(marke) {
             ${badgeNote ? `
                 <div class="detail-note">
                     <strong>Anteckning:</strong>
+                    ${window.GTScoutNotes?.isLocalOnly?.(marke.id) ? '<span class="badge-note-local-badge" title="Sparas bara i den här webbläsaren – inte i kårens databas">Lokal</span>' : ""}
                     <p id="badgeNoteDisplay" class="detail-note-display"></p>
                 </div>
             ` : ""}
