@@ -41,6 +41,99 @@
         return Boolean(isLocalActivity || (auth()?.isAdmin() && canEditActivity(activity)));
     }
 
+    let uploadDialog = null;
+
+    function createUploadDialog() {
+        const modal = document.createElement("div");
+        modal.id = "activitiesUploadModal";
+        modal.className = "modal hidden";
+        modal.setAttribute("role", "dialog");
+        modal.setAttribute("aria-modal", "true");
+        modal.setAttribute("aria-labelledby", "activitiesUploadDialogTitle");
+
+        const content = document.createElement("div");
+        content.className = "modal-content";
+
+        const closeBtn = document.createElement("button");
+        closeBtn.className = "close-popup";
+        closeBtn.type = "button";
+        closeBtn.setAttribute("aria-label", "Stäng");
+        closeBtn.textContent = "×";
+
+        const title = document.createElement("h2");
+        title.id = "activitiesUploadDialogTitle";
+        title.textContent = "Spara aktiviteter i kårens databas?";
+
+        const messageEl = document.createElement("p");
+        messageEl.className = "sync-upload-dialog-message";
+
+        const actions = document.createElement("div");
+        actions.className = "modal-actions";
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.className = "btn-secondary";
+        cancelBtn.type = "button";
+        cancelBtn.textContent = "Avbryt";
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "btn-danger";
+        deleteBtn.type = "button";
+        deleteBtn.textContent = "Ta bort lokala";
+
+        const confirmBtn = document.createElement("button");
+        confirmBtn.className = "btn-primary";
+        confirmBtn.type = "button";
+        confirmBtn.textContent = "Lägg till i databasen";
+
+        actions.appendChild(cancelBtn);
+        actions.appendChild(deleteBtn);
+        actions.appendChild(confirmBtn);
+        content.appendChild(closeBtn);
+        content.appendChild(title);
+        content.appendChild(messageEl);
+        content.appendChild(actions);
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+        return { modal, messageEl, confirmBtn, deleteBtn, cancelBtn, closeBtn, resolve: null };
+    }
+
+    function closeUploadDialog(result) {
+        if (!uploadDialog?.resolve) return;
+        const resolve = uploadDialog.resolve;
+        uploadDialog.resolve = null;
+        uploadDialog.modal.classList.add("hidden");
+        document.removeEventListener("keydown", onUploadDialogKeydown, true);
+        resolve(result);
+    }
+
+    function onUploadDialogKeydown(event) {
+        if (event.key !== "Escape") return;
+        event.stopPropagation();
+        closeUploadDialog("cancel");
+    }
+
+    function confirmUpload(message) {
+        if (typeof document.createElement !== "function" || typeof document.body?.appendChild !== "function") {
+            return Promise.resolve(window.confirm(message) ? "upload" : "cancel");
+        }
+        if (!uploadDialog) {
+            uploadDialog = createUploadDialog();
+            uploadDialog.confirmBtn.addEventListener("click", () => closeUploadDialog("upload"));
+            uploadDialog.deleteBtn.addEventListener("click", () => closeUploadDialog("delete"));
+            uploadDialog.cancelBtn.addEventListener("click", () => closeUploadDialog("cancel"));
+            uploadDialog.closeBtn.addEventListener("click", () => closeUploadDialog("cancel"));
+            uploadDialog.modal.addEventListener("click", event => {
+                if (event.target === uploadDialog.modal) closeUploadDialog("cancel");
+            });
+        }
+        closeUploadDialog("cancel");
+        uploadDialog.messageEl.textContent = message;
+        uploadDialog.modal.classList.remove("hidden");
+        document.addEventListener("keydown", onUploadDialogKeydown, true);
+        uploadDialog.confirmBtn.focus();
+        return new Promise(resolve => { uploadDialog.resolve = resolve; });
+    }
+
     function normalizeActivity(activity) {
         const selectedTargetGroups = new Set((Array.isArray(activity?.malgrupp) ? activity.malgrupp : []).map(String));
         return {
@@ -200,10 +293,10 @@
             const localBadgeLinks = readLocalBadgeLinks();
             const localCustom = readLocalActivities().filter(a => !a.kar_id && a.id && a.id.startsWith("egen-"));
             if (localCustom.length > 0 && canWrite()) {
-                const uploadActs = window.confirm(
+                const action = await confirmUpload(
                     `Du har skapat ${localCustom.length} aktivitet(er) när du arbetade oinloggad.\n\nVill du spara dem i kårens databas?`
                 );
-                if (uploadActs) {
+                if (action === "upload") {
                     const karId = getKarId();
                     const userId = auth()?.getUser()?.id || null;
                     const rowsToUpsert = localCustom.map(a => ({
@@ -222,6 +315,9 @@
                         const { error } = await client().from("aktiviteter").upsert(rowsToUpsert, { onConflict: "id" });
                         if (error) throw error;
                     }, () => canWrite() && getKarId() === karId && (auth()?.getUser()?.id || null) === userId);
+                } else if (action === "delete") {
+                    const localIds = new Set(localCustom.map(a => a.id));
+                    writeLocalActivities(readLocalActivities().filter(a => !localIds.has(a.id)));
                 }
             }
 
