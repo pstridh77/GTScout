@@ -1216,6 +1216,29 @@ test("failed agenda writes preserve new entries and a subsequent update syncs th
     assert.equal(sync.getAll()[0].agenda[0].title, "Opening");
 });
 
+test("local-only arrangements upload only after the user confirms", async () => {
+    const backend = createBackend();
+    const page = createPage(backend);
+    await page.auth.init();
+    await page.runTimers();
+    page.localStorage.setItem("gtscout_arrangemang", JSON.stringify([
+        { id: "offline-arrangement", title: "Offline camp", start_date: "2026-10-08", local_only: true }
+    ]));
+    page.load("arrangemang-sync.js");
+    const sync = page.window.GTScoutArrangements;
+    sync.init({ onChange() {} });
+    await new Promise(resolve => setImmediate(resolve));
+    await new Promise(resolve => setImmediate(resolve));
+
+    assert.equal(backend.requests.some(request => request.table === "arrangemang" && request.operation === "upsert"), false);
+    assert.equal(sync.getAll()[0].local_only, true);
+
+    page.window.confirm = () => true;
+    await sync.reload();
+    assert.equal(backend.requests.some(request => request.table === "arrangemang" && request.operation === "upsert"), true);
+    assert.equal(sync.getAll()[0].local_only, false);
+});
+
 test("agenda save feedback includes the database error and preserves local fallback", async () => {
     const source = fs.readFileSync(path.join(__dirname, "..", "js", "arrangemang.js"), "utf8");
     const start = source.indexOf("async function saveAgendaEntryChanges(");

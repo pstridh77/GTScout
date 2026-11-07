@@ -5802,7 +5802,7 @@ select:focus {
     gap: 10px;
 }
 
-.planning-upload-dialog-message {
+.sync-upload-dialog-message {
     margin: 0;
     white-space: pre-line;
 }

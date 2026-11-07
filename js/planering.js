@@ -1153,8 +1153,13 @@ function loadGroups() {
 }
 
 function saveGroups() {
+    // En aktiv ändring inloggad med skrivrättigheter lyfter lokala planeringar till databasen,
+    // samma som när ett lokalt arrangemang sparas.
+    const canWrite = Boolean(window.GTScoutPlanningSync?.canWrite?.());
+    if (canWrite) groups.forEach(group => { group.local_only = false; });
     const payload = groups.map(group => ({
         ...group,
+        local_only: canWrite ? false : group.local_only,
         badges: Array.isArray(group.badges) ? group.badges : [],
         activities: Array.isArray(group.activities) ? group.activities : [],
         arrangements: normalizePlanningArrangementLinks(group.arrangements),

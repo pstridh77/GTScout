@@ -101,7 +101,8 @@
     async function pushGroups(groups) {
         // Rader som användaren inte får ändra (t.ex. andras privata/kar_view-planeringar)
         // utesluts så att upsert inte stöter på RLS-fel för dem.
-        const rows = groups.filter(group => group?.id && canWriteRow(group)).map(toRow);
+        // local_only-rader (avböjd uppladdning) ska inte heller skrivas.
+        const rows = groups.filter(group => group?.id && !group.local_only && canWriteRow(group)).map(toRow);
         const currentKarId = karId();
         const currentUserId = auth().getUser()?.id || null;
         const writeGuard = () => canWrite() && karId() === currentKarId && (auth().getUser()?.id || null) === currentUserId;
@@ -183,7 +184,7 @@
         title.textContent = "Spara planeringar i kårens databas?";
 
         const messageEl = document.createElement("p");
-        messageEl.className = "planning-upload-dialog-message";
+        messageEl.className = "sync-upload-dialog-message";
 
         const actions = document.createElement("div");
         actions.className = "modal-actions";
@@ -266,6 +267,11 @@
             }
 
             const localNew = local.filter(l => !remote.some(r => r.id === l.id));
+            const keepLocalNew = () => {
+                localNew.forEach(g => { g.local_only = true; });
+                hooks.applyGroups([...remote, ...localNew]);
+                setStatus(`Synkad med databasen (${remote.length} planeringar) – ${localNew.length} planering(ar) sparas lokalt i den här webbläsaren.`, false);
+            };
 
             if (!remote.length && local.length) {
                 const upload = await confirmUpload(
@@ -286,8 +292,7 @@
                     setStatus(`Sparade ${local.length} planeringar i kårens databas`, false);
                     return;
                 }
-                hooks.applyGroups([]);
-                setStatus("Inga planeringar i databasen.", false);
+                keepLocalNew();
                 return;
             }
 
@@ -311,6 +316,8 @@
                     setStatus(`Synkad med databasen (${combined.length} planeringar)`, false);
                     return;
                 }
+                keepLocalNew();
+                return;
             }
 
             hooks.applyGroups(remote);

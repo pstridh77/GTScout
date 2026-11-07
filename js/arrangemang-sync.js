@@ -200,6 +200,92 @@
         }));
     }
 
+    let uploadDialog = null;
+
+    function createUploadDialog() {
+        const modal = document.createElement("div");
+        modal.id = "arrangementUploadModal";
+        modal.className = "modal hidden";
+        modal.setAttribute("role", "dialog");
+        modal.setAttribute("aria-modal", "true");
+        modal.setAttribute("aria-labelledby", "arrangementUploadDialogTitle");
+
+        const content = document.createElement("div");
+        content.className = "modal-content";
+
+        const closeBtn = document.createElement("button");
+        closeBtn.className = "close-popup";
+        closeBtn.type = "button";
+        closeBtn.setAttribute("aria-label", "Stäng");
+        closeBtn.textContent = "×";
+
+        const title = document.createElement("h2");
+        title.id = "arrangementUploadDialogTitle";
+        title.textContent = "Spara arrangemang i kårens databas?";
+
+        const messageEl = document.createElement("p");
+        messageEl.className = "sync-upload-dialog-message";
+
+        const actions = document.createElement("div");
+        actions.className = "modal-actions";
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.className = "btn-secondary";
+        cancelBtn.type = "button";
+        cancelBtn.textContent = "Avbryt";
+
+        const confirmBtn = document.createElement("button");
+        confirmBtn.className = "btn-primary";
+        confirmBtn.type = "button";
+        confirmBtn.textContent = "Lägg till i databasen";
+
+        actions.appendChild(cancelBtn);
+        actions.appendChild(confirmBtn);
+        content.appendChild(closeBtn);
+        content.appendChild(title);
+        content.appendChild(messageEl);
+        content.appendChild(actions);
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+        return { modal, messageEl, confirmBtn, cancelBtn, closeBtn, resolve: null };
+    }
+
+    function closeUploadDialog(result) {
+        if (!uploadDialog?.resolve) return;
+        const resolve = uploadDialog.resolve;
+        uploadDialog.resolve = null;
+        uploadDialog.modal.classList.add("hidden");
+        document.removeEventListener("keydown", onUploadDialogKeydown, true);
+        resolve(result);
+    }
+
+    function onUploadDialogKeydown(event) {
+        if (event.key !== "Escape") return;
+        event.stopPropagation();
+        closeUploadDialog(false);
+    }
+
+    function confirmUpload(message) {
+        if (typeof document.createElement !== "function" || typeof document.body?.appendChild !== "function") {
+            return Promise.resolve(window.confirm(message));
+        }
+        if (!uploadDialog) {
+            uploadDialog = createUploadDialog();
+            uploadDialog.confirmBtn.addEventListener("click", () => closeUploadDialog(true));
+            uploadDialog.cancelBtn.addEventListener("click", () => closeUploadDialog(false));
+            uploadDialog.closeBtn.addEventListener("click", () => closeUploadDialog(false));
+            uploadDialog.modal.addEventListener("click", event => {
+                if (event.target === uploadDialog.modal) closeUploadDialog(false);
+            });
+        }
+        closeUploadDialog(false);
+        uploadDialog.messageEl.textContent = message;
+        uploadDialog.modal.classList.remove("hidden");
+        document.addEventListener("keydown", onUploadDialogKeydown, true);
+        uploadDialog.confirmBtn.focus();
+        return new Promise(resolve => { uploadDialog.resolve = resolve; });
+    }
+
     async function reload() {
         const revision = ++loadRevision;
         loading = canRead();
@@ -228,7 +314,16 @@
             arrangements = remote.map(item => pendingById.get(item.id) || item);
             arrangements.push(...local.filter(item => item.local_only && !remoteIds.has(item.id)));
             if (canWrite()) {
+                const newLocal = [...pendingById.values()].filter(item => !remoteIds.has(item.id));
+                let upload = false;
+                if (newLocal.length) {
+                    upload = await confirmUpload(remote.length
+                        ? `Du har skapat ${newLocal.length} arrangemang när du arbetade oinloggad.\n\nVill du lägga till dem i kårens databas tillsammans med kårens befintliga arrangemang (${remote.length} st)?`
+                        : `Du har ${newLocal.length} arrangemang från när du arbetade oinloggad.\n\nVill du lägga till och spara dem i kårens databas?`);
+                    if (revision !== loadRevision || !canRead()) return getAll();
+                }
                 for (const pending of [...pendingById.values()]) {
+                    if (!upload && !remoteIds.has(pending.id)) continue;
                     await save(pending);
                     if (revision !== loadRevision || !canRead()) return getAll();
                 }
