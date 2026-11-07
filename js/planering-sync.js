@@ -194,12 +194,18 @@
         cancelBtn.type = "button";
         cancelBtn.textContent = "Avbryt";
 
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "btn-danger";
+        deleteBtn.type = "button";
+        deleteBtn.textContent = "Ta bort lokala";
+
         const confirmBtn = document.createElement("button");
         confirmBtn.className = "btn-primary";
         confirmBtn.type = "button";
         confirmBtn.textContent = "Lägg till i databasen";
 
         actions.appendChild(cancelBtn);
+        actions.appendChild(deleteBtn);
         actions.appendChild(confirmBtn);
         content.appendChild(closeBtn);
         content.appendChild(title);
@@ -207,7 +213,7 @@
         content.appendChild(actions);
         modal.appendChild(content);
         document.body.appendChild(modal);
-        return { modal, messageEl, confirmBtn, cancelBtn, closeBtn, resolve: null };
+        return { modal, messageEl, confirmBtn, deleteBtn, cancelBtn, closeBtn, resolve: null };
     }
 
     function closeUploadDialog(result) {
@@ -222,23 +228,24 @@
     function onUploadDialogKeydown(event) {
         if (event.key !== "Escape") return;
         event.stopPropagation();
-        closeUploadDialog(false);
+        closeUploadDialog("cancel");
     }
 
     function confirmUpload(message) {
         if (typeof document.createElement !== "function" || typeof document.body?.appendChild !== "function") {
-            return Promise.resolve(window.confirm(message));
+            return Promise.resolve(window.confirm(message) ? "upload" : "cancel");
         }
         if (!uploadDialog) {
             uploadDialog = createUploadDialog();
-            uploadDialog.confirmBtn.addEventListener("click", () => closeUploadDialog(true));
-            uploadDialog.cancelBtn.addEventListener("click", () => closeUploadDialog(false));
-            uploadDialog.closeBtn.addEventListener("click", () => closeUploadDialog(false));
+            uploadDialog.confirmBtn.addEventListener("click", () => closeUploadDialog("upload"));
+            uploadDialog.deleteBtn.addEventListener("click", () => closeUploadDialog("delete"));
+            uploadDialog.cancelBtn.addEventListener("click", () => closeUploadDialog("cancel"));
+            uploadDialog.closeBtn.addEventListener("click", () => closeUploadDialog("cancel"));
             uploadDialog.modal.addEventListener("click", event => {
-                if (event.target === uploadDialog.modal) closeUploadDialog(false);
+                if (event.target === uploadDialog.modal) closeUploadDialog("cancel");
             });
         }
-        closeUploadDialog(false);
+        closeUploadDialog("cancel");
         uploadDialog.messageEl.textContent = message;
         uploadDialog.modal.classList.remove("hidden");
         document.addEventListener("keydown", onUploadDialogKeydown, true);
@@ -274,10 +281,10 @@
             };
 
             if (!remote.length && local.length) {
-                const upload = await confirmUpload(
+                const action = await confirmUpload(
                     `Du har ${local.length} planering(ar) från när du arbetade oinloggad.\n\nVill du lägga till och spara dem i kårens databas?`
                 );
-                if (upload) {
+                if (action === "upload") {
                     const userId = auth().getUser()?.id || null;
                     const userName = auth().getProfile()?.full_name || auth().getProfile()?.email || "";
                     local.forEach(g => {
@@ -292,15 +299,20 @@
                     setStatus(`Sparade ${local.length} planeringar i kårens databas`, false);
                     return;
                 }
+                if (action === "delete") {
+                    hooks.applyGroups([]);
+                    setStatus("Lokala planeringar har tagits bort.", false);
+                    return;
+                }
                 keepLocalNew();
                 return;
             }
 
             if (remote.length && localNew.length) {
-                const upload = await confirmUpload(
+                const action = await confirmUpload(
                     `Du har skapat ${localNew.length} planering(ar) när du arbetade oinloggad.\n\nVill du lägga till dem i kårens databas tillsammans med kårens befintliga planeringar (${remote.length} st)?`
                 );
-                if (upload) {
+                if (action === "upload") {
                     const userId = auth().getUser()?.id || null;
                     const userName = auth().getProfile()?.full_name || auth().getProfile()?.email || "";
                     localNew.forEach(g => {
@@ -314,6 +326,11 @@
                     if (revision !== loadRevision || !canRead()) return;
                     hooks.applyGroups(combined);
                     setStatus(`Synkad med databasen (${combined.length} planeringar)`, false);
+                    return;
+                }
+                if (action === "delete") {
+                    hooks.applyGroups(remote);
+                    setStatus(`Synkad med databasen (${remote.length} planeringar) – lokala planeringar har tagits bort.`, false);
                     return;
                 }
                 keepLocalNew();
