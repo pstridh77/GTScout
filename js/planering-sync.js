@@ -159,6 +159,92 @@
         saveTimer = setTimeout(flush, SAVE_DELAY_MS);
     }
 
+    let uploadDialog = null;
+
+    function createUploadDialog() {
+        const modal = document.createElement("div");
+        modal.id = "planningUploadModal";
+        modal.className = "modal hidden";
+        modal.setAttribute("role", "dialog");
+        modal.setAttribute("aria-modal", "true");
+        modal.setAttribute("aria-labelledby", "planningUploadDialogTitle");
+
+        const content = document.createElement("div");
+        content.className = "modal-content";
+
+        const closeBtn = document.createElement("button");
+        closeBtn.className = "close-popup";
+        closeBtn.type = "button";
+        closeBtn.setAttribute("aria-label", "Stäng");
+        closeBtn.textContent = "×";
+
+        const title = document.createElement("h2");
+        title.id = "planningUploadDialogTitle";
+        title.textContent = "Spara planeringar i kårens databas?";
+
+        const messageEl = document.createElement("p");
+        messageEl.className = "planning-upload-dialog-message";
+
+        const actions = document.createElement("div");
+        actions.className = "modal-actions";
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.className = "btn-secondary";
+        cancelBtn.type = "button";
+        cancelBtn.textContent = "Avbryt";
+
+        const confirmBtn = document.createElement("button");
+        confirmBtn.className = "btn-primary";
+        confirmBtn.type = "button";
+        confirmBtn.textContent = "Lägg till i databasen";
+
+        actions.appendChild(cancelBtn);
+        actions.appendChild(confirmBtn);
+        content.appendChild(closeBtn);
+        content.appendChild(title);
+        content.appendChild(messageEl);
+        content.appendChild(actions);
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+        return { modal, messageEl, confirmBtn, cancelBtn, closeBtn, resolve: null };
+    }
+
+    function closeUploadDialog(result) {
+        if (!uploadDialog?.resolve) return;
+        const resolve = uploadDialog.resolve;
+        uploadDialog.resolve = null;
+        uploadDialog.modal.classList.add("hidden");
+        document.removeEventListener("keydown", onUploadDialogKeydown, true);
+        resolve(result);
+    }
+
+    function onUploadDialogKeydown(event) {
+        if (event.key !== "Escape") return;
+        event.stopPropagation();
+        closeUploadDialog(false);
+    }
+
+    function confirmUpload(message) {
+        if (typeof document.createElement !== "function" || typeof document.body?.appendChild !== "function") {
+            return Promise.resolve(window.confirm(message));
+        }
+        if (!uploadDialog) {
+            uploadDialog = createUploadDialog();
+            uploadDialog.confirmBtn.addEventListener("click", () => closeUploadDialog(true));
+            uploadDialog.cancelBtn.addEventListener("click", () => closeUploadDialog(false));
+            uploadDialog.closeBtn.addEventListener("click", () => closeUploadDialog(false));
+            uploadDialog.modal.addEventListener("click", event => {
+                if (event.target === uploadDialog.modal) closeUploadDialog(false);
+            });
+        }
+        closeUploadDialog(false);
+        uploadDialog.messageEl.textContent = message;
+        uploadDialog.modal.classList.remove("hidden");
+        document.addEventListener("keydown", onUploadDialogKeydown, true);
+        uploadDialog.confirmBtn.focus();
+        return new Promise(resolve => { uploadDialog.resolve = resolve; });
+    }
+
     async function load() {
         if (!hooks || !canRead()) return;
         const revision = ++loadRevision;
@@ -182,7 +268,7 @@
             const localNew = local.filter(l => !remote.some(r => r.id === l.id));
 
             if (!remote.length && local.length) {
-                const upload = window.confirm(
+                const upload = await confirmUpload(
                     `Du har ${local.length} planering(ar) från när du arbetade oinloggad.\n\nVill du lägga till och spara dem i kårens databas?`
                 );
                 if (upload) {
@@ -206,7 +292,7 @@
             }
 
             if (remote.length && localNew.length) {
-                const upload = window.confirm(
+                const upload = await confirmUpload(
                     `Du har skapat ${localNew.length} planering(ar) när du arbetade oinloggad.\n\nVill du lägga till dem i kårens databas tillsammans med kårens befintliga planeringar (${remote.length} st)?`
                 );
                 if (upload) {
