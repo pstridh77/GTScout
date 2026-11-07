@@ -79,6 +79,10 @@ body {
 .recipe-difficulty { padding: 4px 8px; border-radius: 4px; background: #eef5fb; color: #536477; font-size: .75rem; font-weight: 700; }
 .recipe-difficulty--enkel { background: #e4f3ed; color: #176b72; }
 .recipe-difficulty--avancerad { background: #fff0d1; color: #8a5a00; }
+
+.recipe-local-badge { display: inline-flex; align-items: center; flex: 0 0 auto; padding: 4px 8px; border: 1px solid #d9a441; border-radius: 4px; background: #fdf3dd; color: #7c4a12; font-size: .72rem; font-weight: 750; line-height: 1; }
+
+.recipe-card--local { border-left: 4px solid #d9a441; }
 .recipe-card h2 { margin: 18px 0 8px; color: #003660; font-size: 1.35rem; }
 .recipe-description { margin: 0; color: #536477; line-height: 1.5; }
 .recipe-meta { display: none; justify-content: flex-start; margin: 20px 0 12px; }
