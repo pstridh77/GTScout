@@ -1,5 +1,6 @@
 (function () {
     const STORAGE_KEY = "gtscout_scouts";
+    const UNSYNCED_STORAGE_KEY = "gtscout_scouts_unsynced";
     let scouts = [];
     let badges = {};
     let onChange = null;
@@ -88,6 +89,9 @@
     async function flush() {
         saveTimer = null;
         if (!canWrite()) return;
+        const revision = loadRevision;
+        const version = localStorage.getItem(UNSYNCED_STORAGE_KEY);
+        let saved = true;
         const currentKarId = karId();
         const currentUserId = auth().getUser()?.id || null;
         const writeGuard = () => canWrite() && karId() === currentKarId && (auth().getUser()?.id || null) === currentUserId;
@@ -105,6 +109,7 @@
                 if (error) throw error;
             }, writeGuard);
         } catch (error) {
+            saved = false;
             console.error("Kunde inte spara scouter", error);
         }
         const badgeRows = scouts.flatMap(scout => {
@@ -126,6 +131,7 @@
                 if (error) throw error;
             }, writeGuard);
         } catch (error) {
+            saved = false;
             console.error("Kunde inte spara märkesstatus", error);
         }
         if (pendingDeletions.size > 0) {
@@ -141,12 +147,19 @@
                 }, writeGuard);
                 ids.forEach(id => pendingDeletions.delete(id));
             } catch (error) {
+                saved = false;
                 console.error("Kunde inte ta bort scouter", error);
             }
+        }
+        if (saved && writeGuard() && revision === loadRevision && version === localStorage.getItem(UNSYNCED_STORAGE_KEY)) {
+            scouts = scouts.map(scout => ({ ...scout, kar_id: currentKarId }));
+            writeLocal();
+            localStorage.removeItem(UNSYNCED_STORAGE_KEY);
         }
     }
 
     function scheduleSave() {
+        localStorage.setItem(UNSYNCED_STORAGE_KEY, crypto.randomUUID());
         if (!canWrite()) return;
         if (saveTimer) clearTimeout(saveTimer);
         saveTimer = setTimeout(flush, 500);

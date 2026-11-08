@@ -5,6 +5,7 @@
  */
 (function () {
     const SAVE_DELAY_MS = 800;
+    const UNSYNCED_STORAGE_KEY = "gtscout_planering_unsynced";
 
     let hooks = null;
     let saveTimer = null;
@@ -142,10 +143,15 @@
         const groups = pendingGroups;
         pendingGroups = null;
         if (!groups || !canWrite()) return;
+        const revision = loadRevision;
+        const version = localStorage.getItem(UNSYNCED_STORAGE_KEY);
 
         try {
             setStatus("Sparar till databasen...", false);
             await pushGroups(groups);
+            if (revision === loadRevision && version === localStorage.getItem(UNSYNCED_STORAGE_KEY)) {
+                localStorage.removeItem(UNSYNCED_STORAGE_KEY);
+            }
             setStatus("Sparat i databasen", false);
         } catch (error) {
             const diagnosed = withDatabaseError("planeringar.save", error);
@@ -155,6 +161,7 @@
     }
 
     function scheduleSave(groups) {
+        localStorage.setItem(UNSYNCED_STORAGE_KEY, crypto.randomUUID());
         if (!canWrite()) return;
         pendingGroups = groups.map(group => JSON.parse(JSON.stringify(group)));
         if (saveTimer) clearTimeout(saveTimer);
@@ -216,11 +223,13 @@
                     await pushGroups(local, true);
                     if (revision !== loadRevision || !canRead()) return;
                     hooks.applyGroups(local);
+                    localStorage.removeItem(UNSYNCED_STORAGE_KEY);
                     setStatus(`Sparade ${local.length} planeringar i kårens databas`, false);
                     return;
                 }
                 if (action === "delete") {
                     hooks.applyGroups([]);
+                    localStorage.removeItem(UNSYNCED_STORAGE_KEY);
                     setStatus("Lokala planeringar har tagits bort.", false);
                     return;
                 }
@@ -245,11 +254,13 @@
                     await pushGroups(localNew, true);
                     if (revision !== loadRevision || !canRead()) return;
                     hooks.applyGroups(combined);
+                    localStorage.removeItem(UNSYNCED_STORAGE_KEY);
                     setStatus(`Synkad med databasen (${combined.length} planeringar)`, false);
                     return;
                 }
                 if (action === "delete") {
                     hooks.applyGroups(remote);
+                    localStorage.removeItem(UNSYNCED_STORAGE_KEY);
                     setStatus(`Synkad med databasen (${remote.length} planeringar) – lokala planeringar har tagits bort.`, false);
                     return;
                 }

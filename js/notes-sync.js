@@ -5,6 +5,7 @@
  */
 (function () {
     const STORAGE_KEY = "gtscout_badge_notes";
+    const UNSYNCED_STORAGE_KEY = "gtscout_badge_notes_unsynced";
     const SAVE_DELAY_MS = 800;
 
     let onChange = null;
@@ -43,6 +44,32 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
     }
 
+    function readUnsyncedIds() {
+        try {
+            const ids = JSON.parse(localStorage.getItem(UNSYNCED_STORAGE_KEY) || "[]");
+            if (!Array.isArray(ids)) throw new Error("Ogiltigt format för anteckningarnas synkstatus.");
+            return new Set(ids);
+        } catch (error) {
+            console.error("Kunde inte läsa anteckningarnas synkstatus", error);
+            return new Set(Object.keys(readLocal()));
+        }
+    }
+
+    function markUnsynced(badgeId) {
+        const ids = readUnsyncedIds();
+        ids.add(badgeId);
+        localStorage.setItem(UNSYNCED_STORAGE_KEY, JSON.stringify([...ids]));
+    }
+
+    function markSaved(entries) {
+        const ids = readUnsyncedIds();
+        const local = readLocal();
+        entries.forEach(([badgeId, note]) => {
+            if (String(local[badgeId] || "") === note) ids.delete(badgeId);
+        });
+        localStorage.setItem(UNSYNCED_STORAGE_KEY, JSON.stringify([...ids]));
+    }
+
     // Anteckningar som användaren avböjt uppladdning för hålls lokala tills de redigeras.
     const localOnlyIds = new Set();
 
@@ -77,6 +104,7 @@
                         .upsert(upserts, { onConflict: "kar_id,badge_id" });
                     if (error) throw error;
                 }, writeGuard);
+                if (writeGuard()) markSaved(entries.filter(([, note]) => note.trim()));
             }
             if (removals.length) {
                 await window.GTScoutSyncRetry.withRetry(async () => {
@@ -87,6 +115,7 @@
                         .in("badge_id", removals);
                     if (error) throw error;
                 }, writeGuard);
+                if (writeGuard()) markSaved(entries.filter(([, note]) => !note.trim()));
             }
         } catch (error) {
             console.error("Kunde inte spara anteckningar till databasen", error);
@@ -94,7 +123,9 @@
     }
 
     function scheduleSave(badgeId, note) {
-        if (!canWrite() || !badgeId) return;
+        if (!badgeId) return;
+        markUnsynced(badgeId);
+        if (!canWrite()) return;
         localOnlyIds.delete(badgeId);
         pending.set(badgeId, String(note ?? ""));
         if (saveTimer) clearTimeout(saveTimer);
@@ -124,6 +155,7 @@
             const local = readLocal();
             const localKeys = Object.keys(local).filter(k => local[k] && local[k].trim());
             const newOrDifferentKeys = localKeys.filter(k => !remote[k] || remote[k] !== local[k]);
+            localStorage.setItem(UNSYNCED_STORAGE_KEY, JSON.stringify(newOrDifferentKeys));
 
             if (newOrDifferentKeys.length && canWrite()) {
                 const badges = await getBadges();
@@ -150,6 +182,7 @@
                 if (action === "delete") {
                     newOrDifferentKeys.forEach(k => localOnlyIds.delete(k));
                     writeLocal(remote);
+                    localStorage.setItem(UNSYNCED_STORAGE_KEY, "[]");
                     onChange?.();
                     return;
                 }

@@ -1513,7 +1513,7 @@ function createPage(backend, storage = new Map(), displayStorage = new Map()) {
             supabase: { createClient: () => client },
             location: { search: "" },
             addEventListener() {},
-            confirm: () => false,
+            confirm: message => message.startsWith("Osynkade lokala uppgifter"),
             GTScoutLocalChanges: {
                 confirm: async config => context.window.confirm(`${config.kind}: ${config.items.map(item => item.title).join(", ")}`) ? "upload" : "cancel"
             }
@@ -2072,6 +2072,177 @@ test("kept dialog decisions are cleared at logout and when session restoration c
             await page.auth.signOut();
         }
         assert.equal(sessionStorage.has("gtscout_local_changes_kept"), false);
+    }
+});
+
+for (const confirmLogout of [false, true]) {
+    test(`logout warning ${confirmLogout ? "permits confirmed data loss" : "can be cancelled without clearing data or the login"}`, async () => {
+        const page = createPage(createBackend());
+        await page.auth.init();
+        await page.runTimers();
+        const data = new Map([
+            ["gtscout_badge_notes", JSON.stringify({ "badge-1": "Keep my note" })],
+            ["gtscout_badge_notes_unsynced", JSON.stringify(["badge-1"])],
+            ["gtscout_custom_activities", JSON.stringify([{ id: "egen-1", namn: "Local game" }, { id: "remote", kar_id: "kar-1" }])],
+            ["gtscout_arrangemang", JSON.stringify([{ id: "local", local_only: true }])],
+            ["gtscout_planering", JSON.stringify([{ id: "local", local_only: true }])],
+            ["gtscout_kokbok_recept", JSON.stringify([{ id: "local", namn: "Public recipe", local_only: true }])],
+            ["gtscout_arshjul", JSON.stringify([{ id: "local", local_kar_id: "kar-1", local_only: true }])]
+        ]);
+        data.forEach((value, key) => page.storage.set(key, value));
+        let warning = "";
+        page.window.confirm = message => { warning = message; return confirmLogout; };
+        await page.auth.signOut();
+        assert.match(warning, /Märkesanteckningar: 1/);
+        assert.match(warning, /Aktiviteter: 1/);
+        assert.match(warning, /Arrangemang: 1/);
+        assert.match(warning, /Planeringar: 1/);
+        assert.match(warning, /Behåll lokalt/);
+        assert.match(warning, /kan inte återställas/);
+        assert.doesNotMatch(warning, /Recept|Årshjul/);
+        assert.equal(page.auth.isSignedIn(), !confirmLogout);
+        if (!confirmLogout) {
+            data.forEach((value, key) => assert.equal(page.storage.get(key), value));
+            assert.equal(page.auth.getState().karId, "kar-1");
+        } else {
+            assert.equal(page.storage.has("gtscout_badge_notes"), false);
+            assert.equal(page.storage.has("gtscout_badge_notes_unsynced"), false);
+            assert.equal(page.storage.has("gtscout_custom_activities"), false);
+        }
+        assert.equal(page.storage.get("gtscout_kokbok_recept"), data.get("gtscout_kokbok_recept"));
+        assert.equal(page.storage.get("gtscout_arshjul"), data.get("gtscout_arshjul"));
+    });
+}
+
+test("logout does not warn about verified database caches or local recipes and year wheels that remain stored", async () => {
+    const page = createPage(createBackend());
+    await page.auth.init();
+    await page.runTimers();
+    page.storage.set("gtscout_badge_notes", JSON.stringify({ "badge-1": "Synced note" }));
+    page.storage.set("gtscout_badge_notes_unsynced", "[]");
+    page.storage.set("gtscout_custom_activities", JSON.stringify([{ id: "remote", kar_id: "kar-1" }]));
+    page.storage.set("gtscout_arrangemang", JSON.stringify([{ id: "remote", local_only: false }]));
+    page.storage.set("gtscout_planering", JSON.stringify([{ id: "remote", local_only: false }]));
+    page.storage.set("gtscout_scouts", JSON.stringify([{ id: "remote", kar_id: "kar-1" }]));
+    page.storage.set("gtscout_kokbok_recept", JSON.stringify([{ id: "local", local_only: true }]));
+    page.storage.set("gtscout_arshjul", JSON.stringify([{ id: "local", local_only: true }]));
+    page.window.confirm = () => assert.fail("Synced caches must not cause a warning");
+    await page.auth.signOut();
+    assert.equal(page.auth.isSignedIn(), false);
+});
+
+test("notes retained at login warn about data loss even when logout occurs on another module", async () => {
+    const backend = createBackend();
+    const page = createPage(backend);
+    await page.auth.init();
+    await page.runTimers();
+    page.storage.set("gtscout_badge_notes", JSON.stringify({ "badge-1": "Guest note" }));
+    page.load("notes-sync.js");
+    page.window.GTScoutNotes.init({ onChange() {} });
+    await new Promise(resolve => setImmediate(resolve));
+    const anotherModule = createPage(backend, page.storage);
+    await anotherModule.auth.init();
+    await anotherModule.runTimers();
+    let warning = "";
+    anotherModule.window.confirm = message => { warning = message; return false; };
+    await anotherModule.auth.signOut();
+    assert.match(warning, /Märkesanteckningar: 1 osynkade ändringar/);
+    assert.equal(anotherModule.auth.isSignedIn(), true);
+    assert.equal(page.storage.get("gtscout_badge_notes"), JSON.stringify({ "badge-1": "Guest note" }));
+});
+
+test("a successful note save clears its warning while a failed save retains it", async () => {
+    for (const fails of [false, true]) {
+        const backend = createBackend();
+        const page = createPage(backend);
+        await page.auth.init();
+        await page.runTimers();
+        page.load("notes-sync.js");
+        const notes = page.window.GTScoutNotes;
+        notes.init({ onChange() {} });
+        await new Promise(resolve => setImmediate(resolve));
+        page.storage.set("gtscout_badge_notes", JSON.stringify({ "badge-1": "New note" }));
+        notes.scheduleSave("badge-1", "New note");
+        if (fails) backend.pending = { table: "badge_notes", promise: Promise.resolve({ error: { code: "42501", message: "Denied" } }) };
+        await page.runTimers();
+        assert.deepEqual(JSON.parse(page.storage.get("gtscout_badge_notes_unsynced")), fails ? ["badge-1"] : []);
+        let warned = false;
+        page.window.confirm = () => { warned = true; return false; };
+        await page.auth.signOut();
+        assert.equal(warned, fails);
+        assert.equal(page.auth.isSignedIn(), fails);
+    }
+});
+
+test("queued planning and scout writes warn until the database confirms them", async () => {
+    for (const [filename, moduleName, flag] of [
+        ["planering-sync.js", "GTScoutPlanningSync", "gtscout_planering_unsynced"],
+        ["scouts-sync.js", "GTScoutScouts", "gtscout_scouts_unsynced"]
+    ]) {
+        const page = createPage(createBackend());
+        await page.auth.init();
+        await page.runTimers();
+        page.load(filename);
+        const sync = page.window[moduleName];
+        sync.init({ getGroups: () => [], applyGroups() {}, onChange() {} });
+        await new Promise(resolve => setImmediate(resolve));
+        if (moduleName === "GTScoutPlanningSync") sync.scheduleSave([]);
+        else sync.add({ id: "scout-1", namn: "Testscout", fodelsear: 2015 });
+        assert.ok(page.storage.get(flag));
+        let warned = false;
+        page.window.confirm = () => { warned = true; return false; };
+        await page.auth.signOut();
+        assert.equal(warned, true);
+        assert.equal(page.auth.isSignedIn(), true);
+        await page.runTimers();
+        assert.equal(page.storage.has(flag), false);
+        page.window.confirm = () => assert.fail("Confirmed writes must no longer warn");
+        await page.auth.signOut();
+        assert.equal(page.auth.isSignedIn(), false);
+    }
+});
+
+test("a completed earlier save cannot clear the warning for newer local changes", async () => {
+    for (const [filename, moduleName, table, flag] of [
+        ["notes-sync.js", "GTScoutNotes", "badge_notes", "gtscout_badge_notes_unsynced"],
+        ["planering-sync.js", "GTScoutPlanningSync", "planeringar", "gtscout_planering_unsynced"],
+        ["scouts-sync.js", "GTScoutScouts", "scouts", "gtscout_scouts_unsynced"]
+    ]) {
+        const backend = createBackend();
+        const page = createPage(backend);
+        await page.auth.init();
+        await page.runTimers();
+        page.load(filename);
+        const sync = page.window[moduleName];
+        sync.init({ getGroups: () => [], applyGroups() {}, onChange() {} });
+        await new Promise(resolve => setImmediate(resolve));
+        const change = value => {
+            if (moduleName === "GTScoutNotes") {
+                page.storage.set("gtscout_badge_notes", JSON.stringify({ "badge-1": value }));
+                sync.scheduleSave("badge-1", value);
+            } else if (moduleName === "GTScoutPlanningSync") {
+                sync.scheduleSave([{ id: "plan-1", name: value }]);
+            } else {
+                sync.add({ id: value, namn: value, fodelsear: 2015 });
+            }
+        };
+        change("First");
+        const first = deferred();
+        backend.pending = { table, ...first };
+        const saving = page.runTimers();
+        change("Second");
+        const latestMarker = page.storage.get(flag);
+        first.resolve({ data: [] });
+        await saving;
+        assert.equal(page.storage.get(flag), latestMarker);
+        let warned = false;
+        page.window.confirm = () => { warned = true; return false; };
+        await page.auth.signOut();
+        assert.equal(warned, true);
+        assert.equal(page.auth.isSignedIn(), true);
+        await page.runTimers();
+        if (moduleName === "GTScoutNotes") assert.equal(page.storage.get(flag), "[]");
+        else assert.equal(page.storage.has(flag), false);
     }
 });
 

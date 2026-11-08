@@ -177,6 +177,9 @@
         try {
             localStorage.removeItem("gtscout_planering");
             localStorage.removeItem("gtscout_badge_notes");
+            localStorage.removeItem("gtscout_badge_notes_unsynced");
+            localStorage.removeItem("gtscout_planering_unsynced");
+            localStorage.removeItem("gtscout_scouts_unsynced");
             localStorage.removeItem("gtscout_custom_activities");
             localStorage.removeItem("gtscout_custom_badge_activities");
             localStorage.removeItem("gtscout_arrangemang");
@@ -193,7 +196,51 @@
         if (error) throw error;
     }
 
+    function getLogoutWarnings() {
+        const warnings = [];
+        const read = key => JSON.parse(localStorage.getItem(key) || "null");
+        for (const [key, label, isLocal, pendingKey] of [
+            ["gtscout_planering", "Planeringar", item => item.local_only, "gtscout_planering_unsynced"],
+            ["gtscout_custom_activities", "Aktiviteter", item => !item.kar_id && String(item.id || "").startsWith("egen-")],
+            ["gtscout_custom_badge_activities", "Aktivitetskopplingar", item => !item.kar_id],
+            ["gtscout_arrangemang", "Arrangemang", item => item.local_only],
+            ["gtscout_scouts", "Scouter och märkesstatus", item => !item.kar_id, "gtscout_scouts_unsynced"]
+        ]) {
+            try {
+                const value = read(key);
+                if (value !== null && !Array.isArray(value)) throw new Error(`Ogiltigt format för ${key}.`);
+                const count = (value || []).filter(item => item && isLocal(item)).length;
+                if (count) warnings.push(`${label}: ${count} lokala poster`);
+                else if (pendingKey && localStorage.getItem(pendingKey)) warnings.push(`${label}: osynkade ändringar`);
+            } catch (error) {
+                console.error("Kunde inte kontrollera lokal data före utloggning", error);
+                warnings.push(`${label}: synkstatus kunde inte kontrolleras`);
+            }
+        }
+        try {
+            const notes = read("gtscout_badge_notes");
+            if (notes !== null && (typeof notes !== "object" || Array.isArray(notes))) throw new Error("Ogiltigt format för märkesanteckningar.");
+            const unsynced = read("gtscout_badge_notes_unsynced");
+            if (unsynced !== null && !Array.isArray(unsynced)) throw new Error("Ogiltigt format för anteckningarnas synkstatus.");
+            if (unsynced?.length) warnings.push(`Märkesanteckningar: ${unsynced.length} osynkade ändringar`);
+            else if (unsynced === null && Object.keys(notes || {}).length) warnings.push("Märkesanteckningar: synkstatus är okänd");
+        } catch (error) {
+            console.error("Kunde inte kontrollera märkesanteckningar före utloggning", error);
+            warnings.push("Märkesanteckningar: synkstatus kunde inte kontrolleras");
+        }
+        return warnings;
+    }
+
     async function signOut() {
+        if (session?.user) {
+            const warnings = getLogoutWarnings();
+            if (warnings.length && !window.confirm(
+                `Osynkade lokala uppgifter kan gå förlorade\n\n${warnings.map(item => `• ${item}`).join("\n")}\n\n`
+                + "Dessa lokala uppgifter raderas när du loggar ut, även om du tidigare valt Behåll lokalt. "
+                + "Ändringar som inte sparats i databasen går då förlorade och kan inte återställas. "
+                + "Kårens databasposter påverkas inte.\n\nVill du logga ut ändå?"
+            )) return;
+        }
         authRevision++;
         session = null;
         profile = null;
