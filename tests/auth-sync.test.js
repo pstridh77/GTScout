@@ -1513,7 +1513,10 @@ function createPage(backend, storage = new Map(), displayStorage = new Map()) {
             supabase: { createClient: () => client },
             location: { search: "" },
             addEventListener() {},
-            confirm: () => false
+            confirm: () => false,
+            GTScoutLocalChanges: {
+                confirm: async config => context.window.confirm(`${config.kind}: ${config.items.map(item => item.title).join(", ")}`) ? "upload" : "cancel"
+            }
         },
         document: {
             readyState: "loading",
@@ -1905,6 +1908,204 @@ test("queued planning and note saves do not transfer to the next login", async (
     await page.runTimers();
     assert.equal(backend.requests.some(request => request.operation === "upsert"), false);
 });
+
+const localDialogCases = [
+    {
+        filename: "notes-sync.js", moduleName: "GTScoutNotes", table: "badge_notes", key: "gtscout_badge_notes",
+        local: { "badge-new": "Local note", "badge-conflict": "Local conflict", "badge-same": "Same" },
+        remote: [
+            { badge_id: "badge-conflict", note: "Remote conflict" },
+            { badge_id: "badge-same", note: "Same" },
+            { badge_id: "remote", note: "Remote only" }
+        ],
+        titles: ["Elda", "Bada"]
+    },
+    {
+        filename: "kokbok-sync.js", moduleName: "GTScoutCookbook", table: "kokbok_recept", key: "gtscout_kokbok_recept",
+        local: [{ id: "local-new", namn: "Pinnbröd", kategori: "Bröd", portioner: 8, local_only: true }],
+        remote: [{ id: "remote", namn: "Soppa", kar_id: "kar-1" }],
+        titles: ["Pinnbröd"], detail: "Bröd · 8 portioner"
+    },
+    {
+        filename: "activities-sync.js", moduleName: "GTScoutActivities", table: "aktiviteter", key: "gtscout_custom_activities",
+        local: [{ id: "egen-new", namn: "Repstafett", kategori: "Lek", malgrupp: ["Spårare"] }],
+        remote: [{ id: "remote", namn: "Remote activity", kar_id: "kar-1" }],
+        titles: ["Repstafett"], detail: "Lek · Spårare"
+    },
+    {
+        filename: "arrangemang-sync.js", moduleName: "GTScoutArrangements", table: "arrangemang", key: "gtscout_arrangemang",
+        local: [{ id: "local-new", title: "Hajk", start_date: "2026-10-08", end_date: "2026-10-09", local_only: true }],
+        remote: [{ id: "remote", data: { title: "Remote camp", start_date: "2026-11-08" } }],
+        titles: ["Hajk"], detail: "2026-10-08 – 2026-10-09"
+    },
+    {
+        filename: "planering-sync.js", moduleName: "GTScoutPlanningSync", table: "planeringar", key: "gtscout_planering",
+        local: [{ id: "local-new", name: "Spårarna", year: 2026, term: "HT", local_only: true }],
+        remote: [{ id: "remote", data: { name: "Remote planning" } }],
+        titles: ["Spårarna"], detail: "2026 · HT"
+    },
+    {
+        filename: "arshjul-sync.js", moduleName: "GTScoutYearWheelSync", table: "arshjul", key: "gtscout_arshjul",
+        local: [{ id: "local-new", name: "Kårens årshjul", rings: [{ id: "ring" }], events: [], local_only: true }],
+        remote: [{ id: "remote", name: "Remote wheel", data: { rings: [], events: [] } }],
+        titles: ["Kårens årshjul"], detail: "Ringar: 1 · Händelser: 0"
+    }
+];
+
+for (const spec of localDialogCases) {
+    for (const action of ["cancel", "delete", "upload"]) {
+        test(`${spec.moduleName} lists affected local data and honors ${action} without changing other database posts`, async () => {
+            const backend = createBackend();
+            const page = createPage(backend);
+            await page.auth.init();
+            await page.runTimers();
+            page.storage.set(spec.key, JSON.stringify(spec.local));
+            backend.pending = { table: spec.table, promise: Promise.resolve({ data: spec.remote }) };
+            const dialogs = [];
+            page.window.GTScoutLocalChanges.confirm = async config => { dialogs.push(config); return action; };
+            let groups = structuredClone(spec.local);
+            page.load(spec.filename);
+            const sync = page.window[spec.moduleName];
+            sync.init({
+                getGroups: () => groups,
+                applyGroups: value => { groups = value; page.storage.set(spec.key, JSON.stringify(value)); },
+                getBadges: async () => [
+                    { id: "badge-new", namn: "Elda" }, { id: "badge-conflict", namn: "Bada" }
+                ],
+                onChange() {}
+            });
+            await new Promise(resolve => setImmediate(resolve));
+            await page.runTimers();
+            assert.equal(dialogs.length, 1);
+            assert.deepEqual(Array.from(dialogs[0].items, item => item.title), spec.titles);
+            if (spec.detail) assert.equal(dialogs[0].items[0].detail, spec.detail);
+            if (spec.moduleName === "GTScoutNotes") {
+                assert.equal(dialogs[0].items[0].text, "Local note");
+                assert.equal(dialogs[0].items[1].remoteText, "Remote conflict");
+            }
+            const writes = backend.requests.filter(request => request.table === spec.table && request.operation === "upsert");
+            assert.equal(writes.length > 0, action === "upload");
+            assert.equal(backend.requests.some(request => request.table === spec.table && request.operation === "delete"), false);
+            const stored = JSON.parse(page.storage.get(spec.key));
+            if (spec.moduleName === "GTScoutNotes") {
+                assert.equal(stored["badge-new"], action === "delete" ? undefined : "Local note");
+                assert.equal(stored["badge-conflict"], action === "delete" ? "Remote conflict" : "Local conflict");
+                assert.equal(stored["badge-same"], "Same");
+                assert.equal(stored.remote, "Remote only");
+                if (action === "upload") assert.deepEqual(Array.from(writes[0].rows, row => row.badge_id), ["badge-new", "badge-conflict"]);
+            } else {
+                assert.ok(stored.some(item => item.id === "remote"));
+                assert.equal(stored.some(item => item.id === spec.local[0].id), action !== "delete");
+                if (action === "upload") {
+                    const rows = writes.flatMap(write => [write.rows].flat());
+                    assert.deepEqual(rows.map(row => row.id), [spec.local[0].id]);
+                }
+            }
+        });
+    }
+}
+
+test("read-only members retain local badge notes and recipes without an upload dialog", async () => {
+    for (const spec of localDialogCases.filter(spec => ["GTScoutNotes", "GTScoutCookbook"].includes(spec.moduleName))) {
+        const backend = createBackend(leaderSession, { ...leaderProfile, role: "gast" });
+        const page = createPage(backend);
+        await page.auth.init();
+        await page.runTimers();
+        page.storage.set(spec.key, JSON.stringify(spec.local));
+        backend.pending = { table: spec.table, promise: Promise.resolve({ data: spec.remote }) };
+        page.window.GTScoutLocalChanges.confirm = async () => assert.fail("Read-only members cannot upload");
+        page.load(spec.filename);
+        page.window[spec.moduleName].init({ onChange() {} });
+        await new Promise(resolve => setImmediate(resolve));
+        const stored = JSON.parse(page.storage.get(spec.key));
+        if (spec.moduleName === "GTScoutNotes") assert.equal(stored["badge-new"], "Local note");
+        else assert.ok(stored.some(item => item.id === "local-new"));
+        assert.equal(backend.requests.some(request => request.operation === "upsert"), false);
+    }
+});
+
+test("cookbook offers retained guest recipes when the user signs in on the same page", async () => {
+    const page = createPage(createBackend(null));
+    await page.auth.init();
+    await page.runTimers();
+    page.storage.set("gtscout_kokbok_recept", JSON.stringify([{ id: "guest-recipe", namn: "Pinnbröd" }]));
+    const dialogs = [];
+    page.window.GTScoutLocalChanges.confirm = async config => { dialogs.push(config); return "cancel"; };
+    page.load("kokbok-sync.js");
+    page.window.GTScoutCookbook.init({ onChange() {} });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(dialogs.length, 0);
+    assert.equal(page.window.GTScoutCookbook.getAll()[0].namn, "Pinnbröd");
+    await page.auth.signIn("leader@example.test", "test-password");
+    await page.runTimers();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(dialogs.length, 1);
+    assert.equal(dialogs[0].items[0].title, "Pinnbröd");
+});
+
+test("activities ask once when INITIAL_SESSION and token refresh repeat the same login", async () => {
+    const page = createPage(createBackend());
+    await page.auth.init();
+    page.storage.set("gtscout_custom_activities", JSON.stringify([{ id: "egen-new", namn: "Repstafett" }]));
+    const dialogs = [];
+    page.window.GTScoutLocalChanges.confirm = async config => { dialogs.push(config); return "cancel"; };
+    page.load("activities-sync.js");
+    page.window.GTScoutActivities.init({ onChange() {} });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(dialogs.length, 1);
+    await page.runTimers();
+    await new Promise(resolve => setImmediate(resolve));
+    page.emit("TOKEN_REFRESHED", leaderSession);
+    await page.runTimers();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(dialogs.length, 1);
+});
+
+test("kept dialog decisions are cleared at logout and when session restoration confirms no login", async () => {
+    for (const signedIn of [false, true]) {
+        const sessionStorage = new Map([["gtscout_local_changes_kept", "remembered choices"]]);
+        const page = createPage(createBackend(signedIn ? leaderSession : null), new Map(), sessionStorage);
+        await page.auth.init();
+        await page.runTimers();
+        if (signedIn) {
+            assert.equal(sessionStorage.has("gtscout_local_changes_kept"), true);
+            await page.auth.signOut();
+        }
+        assert.equal(sessionStorage.has("gtscout_local_changes_kept"), false);
+    }
+});
+
+for (const spec of localDialogCases) {
+    test(`${spec.moduleName} ignores an upload decision returned after logout`, async () => {
+        const backend = createBackend();
+        const page = createPage(backend);
+        await page.auth.init();
+        await page.runTimers();
+        page.storage.set(spec.key, JSON.stringify(spec.local));
+        backend.pending = { table: spec.table, promise: Promise.resolve({ data: spec.remote }) };
+        const decision = deferred();
+        page.window.GTScoutLocalChanges.confirm = () => decision.promise;
+        page.load(spec.filename);
+        const sync = page.window[spec.moduleName];
+        sync.init({
+            getGroups: () => spec.local,
+            applyGroups: groups => page.storage.set(spec.key, JSON.stringify(groups)),
+            getBadges: async () => [],
+            onChange() {}
+        });
+        await new Promise(resolve => setImmediate(resolve));
+        await page.auth.signOut();
+        await page.runTimers();
+        decision.resolve("upload");
+        await new Promise(resolve => setImmediate(resolve));
+        await page.runTimers();
+        assert.equal(backend.requests.some(request => request.operation === "upsert"), false);
+        if (spec.moduleName === "GTScoutActivities") {
+            assert.ok(backend.requests.some(request => request.table === "aktiviteter" && request.operation === "select"),
+                "The cancelled activity load must restart for the current auth context");
+        }
+    });
+}
 
 for (const [filename, moduleName, table, key, row] of [
     ["planering-sync.js", "GTScoutPlanningSync", "planeringar", "gtscout_planering", { id: "planning-1", data: { name: "Private planning" } }],

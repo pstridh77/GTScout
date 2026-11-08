@@ -18,6 +18,7 @@
     let loadError = false;
     let loadErrorDetails = "";
     let loadPromise = null;
+    let loadedAuthContext = null;
     const listeners = new Set();
 
     const auth = () => window.GTScoutAuth;
@@ -39,99 +40,6 @@
     function canDeleteActivity(activity) {
         const isLocalActivity = activity?.id?.startsWith("egen-") && !activity?.kar_id;
         return Boolean(isLocalActivity || (auth()?.isAdmin() && canEditActivity(activity)));
-    }
-
-    let uploadDialog = null;
-
-    function createUploadDialog() {
-        const modal = document.createElement("div");
-        modal.id = "activitiesUploadModal";
-        modal.className = "modal hidden";
-        modal.setAttribute("role", "dialog");
-        modal.setAttribute("aria-modal", "true");
-        modal.setAttribute("aria-labelledby", "activitiesUploadDialogTitle");
-
-        const content = document.createElement("div");
-        content.className = "modal-content";
-
-        const closeBtn = document.createElement("button");
-        closeBtn.className = "close-popup";
-        closeBtn.type = "button";
-        closeBtn.setAttribute("aria-label", "Stäng");
-        closeBtn.textContent = "×";
-
-        const title = document.createElement("h2");
-        title.id = "activitiesUploadDialogTitle";
-        title.textContent = "Spara aktiviteter i kårens databas?";
-
-        const messageEl = document.createElement("p");
-        messageEl.className = "sync-upload-dialog-message";
-
-        const actions = document.createElement("div");
-        actions.className = "modal-actions";
-
-        const cancelBtn = document.createElement("button");
-        cancelBtn.className = "btn-secondary";
-        cancelBtn.type = "button";
-        cancelBtn.textContent = "Avbryt";
-
-        const deleteBtn = document.createElement("button");
-        deleteBtn.className = "btn-danger";
-        deleteBtn.type = "button";
-        deleteBtn.textContent = "Ta bort lokala";
-
-        const confirmBtn = document.createElement("button");
-        confirmBtn.className = "btn-primary";
-        confirmBtn.type = "button";
-        confirmBtn.textContent = "Lägg till i databasen";
-
-        actions.appendChild(cancelBtn);
-        actions.appendChild(deleteBtn);
-        actions.appendChild(confirmBtn);
-        content.appendChild(closeBtn);
-        content.appendChild(title);
-        content.appendChild(messageEl);
-        content.appendChild(actions);
-        modal.appendChild(content);
-        document.body.appendChild(modal);
-        return { modal, messageEl, confirmBtn, deleteBtn, cancelBtn, closeBtn, resolve: null };
-    }
-
-    function closeUploadDialog(result) {
-        if (!uploadDialog?.resolve) return;
-        const resolve = uploadDialog.resolve;
-        uploadDialog.resolve = null;
-        uploadDialog.modal.classList.add("hidden");
-        document.removeEventListener("keydown", onUploadDialogKeydown, true);
-        resolve(result);
-    }
-
-    function onUploadDialogKeydown(event) {
-        if (event.key !== "Escape") return;
-        event.stopPropagation();
-        closeUploadDialog("cancel");
-    }
-
-    function confirmUpload(message) {
-        if (typeof document.createElement !== "function" || typeof document.body?.appendChild !== "function") {
-            return Promise.resolve(window.confirm(message) ? "upload" : "cancel");
-        }
-        if (!uploadDialog) {
-            uploadDialog = createUploadDialog();
-            uploadDialog.confirmBtn.addEventListener("click", () => closeUploadDialog("upload"));
-            uploadDialog.deleteBtn.addEventListener("click", () => closeUploadDialog("delete"));
-            uploadDialog.cancelBtn.addEventListener("click", () => closeUploadDialog("cancel"));
-            uploadDialog.closeBtn.addEventListener("click", () => closeUploadDialog("cancel"));
-            uploadDialog.modal.addEventListener("click", event => {
-                if (event.target === uploadDialog.modal) closeUploadDialog("cancel");
-            });
-        }
-        closeUploadDialog("cancel");
-        uploadDialog.messageEl.textContent = message;
-        uploadDialog.modal.classList.remove("hidden");
-        document.addEventListener("keydown", onUploadDialogKeydown, true);
-        uploadDialog.confirmBtn.focus();
-        return new Promise(resolve => { uploadDialog.resolve = resolve; });
     }
 
     function normalizeActivity(activity) {
@@ -293,9 +201,17 @@
             const localBadgeLinks = readLocalBadgeLinks();
             const localCustom = readLocalActivities().filter(a => !a.kar_id && a.id && a.id.startsWith("egen-"));
             if (localCustom.length > 0 && canWrite()) {
-                const action = await confirmUpload(
-                    `Du har skapat ${localCustom.length} aktivitet(er) när du arbetade oinloggad.\n\nVill du spara dem i kårens databas?`
-                );
+                const currentKarId = getKarId();
+                const currentUserId = auth().getUser()?.id;
+                const action = await window.GTScoutLocalChanges.confirm({
+                    kind: "aktiviteter",
+                    localData: localCustom,
+                    items: localCustom.map(activity => ({
+                        title: activity.namn,
+                        detail: [activity.kategori, (activity.malgrupp || []).join(", ")].filter(Boolean).join(" · ")
+                    }))
+                });
+                if (!canWrite() || getKarId() !== currentKarId || auth().getUser()?.id !== currentUserId) return;
                 if (action === "upload") {
                     const karId = getKarId();
                     const userId = auth()?.getUser()?.id || null;
@@ -558,8 +474,18 @@
     }
 
     function onAuthChange() {
+        const context = JSON.stringify([Boolean(client()), auth()?.getUser()?.id || null, getKarId(), canWrite()]);
+        if (context === loadedAuthContext) return;
+        loadedAuthContext = context;
         loaded = false;
-        ensureLoaded();
+        if (loadPromise) {
+            loadPromise.then(() => {
+                loaded = false;
+                ensureLoaded();
+            });
+        } else {
+            ensureLoaded();
+        }
     }
 
     window.GTScoutActivities = {

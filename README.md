@@ -23,7 +23,15 @@ Märkesanteckningar som skrivs som oinloggad gäst sparas i webbläsaren och fin
 
 Vid utloggning rensas lokal kårdata för planeringar, arrangemang, årshjul, scouter, märkesanteckningar och aktivitetskopplingar. Vyinställningar och den publika receptcachen behålls. Pågående hämtningar får inte återställa kårdata efter utloggning.
 
+När lokala recept, märkesanteckningar, arrangemang, planeringar, aktiviteter eller årshjul behöver hanteras visas en gemensam dialog. Den listar exakt de berörda posterna och vilken kår de sparas till. Långa anteckningar kan visas i sin helhet; vid konflikt visas både den lokala texten och kårens text samt en varning om att sparning ersätter kårens anteckning. Årshjul visar namn och antal ringar och händelser eftersom årvalet hör till vyn, inte det sparade hjulet.
+
+**Behåll lokalt**, krysset, Escape och klick utanför dialogen behåller de listade posterna utan uppladdning. **Ta bort lokala poster** kräver en extra bekräftelse och påverkar inte kårens databasposter. **Spara i kårens databas** laddar upp de listade posterna. Befintliga, redan databasanslutna arrangemang och årshjul fortsätter synka sina väntande ändringar som tidigare. Dialoger visas en åt gången och avbryts om användaren loggar ut, byter kår eller förlorar skrivbehörighet.
+
+Valet att behålla lokalt gäller för oförändrade poster under samma inloggning i samma flik, även när du byter modul eller laddar om sidan. Ändrade eller tillkommande poster ger en ny fråga. Valen hålls isär per databas, användare, kår och typ av innehåll och rensas vid utloggning. Endast kontrollsummor sparas i flikens sessionslagring, inte innehållet i posterna. Upprepade besked om samma inloggning startar inte om aktivitetssynkningen.
+
 Kör regressionstesterna med Node.js: `node --test tests/auth-sync.test.js`. Testerna använder en simulerad Supabase-klient och kräver inget konto eller databaskonfiguration.
+
+Dialogerna och deras val testas med `node --test tests/local-changes-dialog.test.js tests/auth-sync.test.js tests/arshjul-sync.test.js tests/kokbok-sync.test.js`.
 
 ## Aktiviteter
 

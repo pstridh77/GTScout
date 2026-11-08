@@ -59,99 +59,6 @@
             && currentKarId === karId() && currentUserId === auth().getUser()?.id;
     }
 
-    let uploadDialog = null;
-
-    function createUploadDialog() {
-        const modal = document.createElement("div");
-        modal.id = "yearWheelUploadModal";
-        modal.className = "modal hidden";
-        modal.setAttribute("role", "dialog");
-        modal.setAttribute("aria-modal", "true");
-        modal.setAttribute("aria-labelledby", "yearWheelUploadDialogTitle");
-
-        const content = document.createElement("div");
-        content.className = "modal-content";
-
-        const closeBtn = document.createElement("button");
-        closeBtn.className = "close-popup";
-        closeBtn.type = "button";
-        closeBtn.setAttribute("aria-label", "Stäng");
-        closeBtn.textContent = "×";
-
-        const title = document.createElement("h2");
-        title.id = "yearWheelUploadDialogTitle";
-        title.textContent = "Spara årshjul i kårens databas?";
-
-        const messageEl = document.createElement("p");
-        messageEl.className = "sync-upload-dialog-message";
-
-        const actions = document.createElement("div");
-        actions.className = "modal-actions";
-
-        const cancelBtn = document.createElement("button");
-        cancelBtn.className = "btn-secondary";
-        cancelBtn.type = "button";
-        cancelBtn.textContent = "Avbryt";
-
-        const deleteBtn = document.createElement("button");
-        deleteBtn.className = "btn-danger";
-        deleteBtn.type = "button";
-        deleteBtn.textContent = "Ta bort lokala";
-
-        const confirmBtn = document.createElement("button");
-        confirmBtn.className = "btn-primary";
-        confirmBtn.type = "button";
-        confirmBtn.textContent = "Lägg till i databasen";
-
-        actions.appendChild(cancelBtn);
-        actions.appendChild(deleteBtn);
-        actions.appendChild(confirmBtn);
-        content.appendChild(closeBtn);
-        content.appendChild(title);
-        content.appendChild(messageEl);
-        content.appendChild(actions);
-        modal.appendChild(content);
-        document.body.appendChild(modal);
-        return { modal, messageEl, confirmBtn, deleteBtn, cancelBtn, closeBtn, resolve: null };
-    }
-
-    function closeUploadDialog(result) {
-        if (!uploadDialog?.resolve) return;
-        const resolve = uploadDialog.resolve;
-        uploadDialog.resolve = null;
-        uploadDialog.modal.classList.add("hidden");
-        document.removeEventListener("keydown", onUploadDialogKeydown, true);
-        resolve(result);
-    }
-
-    function onUploadDialogKeydown(event) {
-        if (event.key !== "Escape") return;
-        event.stopPropagation();
-        closeUploadDialog("cancel");
-    }
-
-    function confirmUpload(message) {
-        if (typeof document.createElement !== "function" || typeof document.body?.appendChild !== "function") {
-            return Promise.resolve(window.confirm(message) ? "upload" : "cancel");
-        }
-        if (!uploadDialog) {
-            uploadDialog = createUploadDialog();
-            uploadDialog.confirmBtn.addEventListener("click", () => closeUploadDialog("upload"));
-            uploadDialog.deleteBtn.addEventListener("click", () => closeUploadDialog("delete"));
-            uploadDialog.cancelBtn.addEventListener("click", () => closeUploadDialog("cancel"));
-            uploadDialog.closeBtn.addEventListener("click", () => closeUploadDialog("cancel"));
-            uploadDialog.modal.addEventListener("click", event => {
-                if (event.target === uploadDialog.modal) closeUploadDialog("cancel");
-            });
-        }
-        closeUploadDialog("cancel");
-        uploadDialog.messageEl.textContent = message;
-        uploadDialog.modal.classList.remove("hidden");
-        document.addEventListener("keydown", onUploadDialogKeydown, true);
-        uploadDialog.confirmBtn.focus();
-        return new Promise(resolve => { uploadDialog.resolve = resolve; });
-    }
-
     async function saveWheel(wheel) {
         const currentRevision = revision;
         const currentKarId = karId();
@@ -167,7 +74,7 @@
         else wheels = [...wheels, payload];
         writeLocal();
         notify();
-        if (sharedToken !== null || !canWrite()) {
+        if (sharedToken !== null || !canWrite() || payload.keep_local) {
             setStatus("Sparat lokalt. Inloggning som ledare krävs för att dela med kåren.");
             return { saved: false, localOnly: true };
         }
@@ -316,6 +223,8 @@
             const localById = new Map(localOnly.map(item => [item.id, item]));
             wheels = remote.map(item => localById.get(item.id) || item);
             wheels.push(...localOnly.filter(item => !remoteIds.has(item.id)));
+            wheels = wheels.map(item => item.local_only && !remoteIds.has(item.id)
+                ? { ...item, keep_local: true } : item);
             writeLocal();
             setStatus(wheels.length ? `Synkad med databasen (${wheels.length} årshjul).` : "Kåren har inga årshjul ännu.");
             if (defaultWheel.error) {
@@ -326,9 +235,15 @@
                 const newLocal = wheels.filter(item => item.local_only && !remoteIds.has(item.id));
                 let action = "cancel";
                 if (newLocal.length) {
-                    action = await confirmUpload(remote.length
-                        ? `Du har skapat ${newLocal.length} årshjul när du arbetade oinloggad.\n\nVill du lägga till dem i kårens databas tillsammans med kårens befintliga årshjul (${remote.length} st)?`
-                        : `Du har ${newLocal.length} årshjul från när du arbetade oinloggad.\n\nVill du lägga till och spara dem i kårens databas?`);
+                    action = await window.GTScoutLocalChanges.confirm({
+                        kind: "årshjul",
+                        localData: newLocal,
+                        isCurrent: () => currentRevision === revision && canWrite(),
+                        items: newLocal.map(item => ({
+                            title: item.name || "Namnlöst årshjul",
+                            detail: `Ringar: ${(item.rings || []).length} · Händelser: ${(item.events || []).length}`
+                        }))
+                    });
                     if (currentRevision !== revision || !canRead()) return;
                 }
                 if (action === "delete") {
@@ -337,13 +252,14 @@
                     notify();
                 } else {
                     for (const pending of wheels.filter(item => item.local_only)) {
+                        if (action !== "upload" && !remoteIds.has(pending.id)) continue;
                         if (currentRevision !== revision || !canRead()) return;
                         if (pendingWrites.has(pending.id)) {
                             await pendingWrites.get(pending.id);
                             continue;
                         }
                         if (wheels.find(item => item.id === pending.id) !== pending) continue;
-                        await saveWheel(pending);
+                        await saveWheel({ ...pending, keep_local: false });
                     }
                 }
             }

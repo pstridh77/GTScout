@@ -8,6 +8,7 @@
     const SAVE_DELAY_MS = 800;
 
     let onChange = null;
+    let getBadges = async () => [];
     let saveTimer = null;
     const pending = new Map();
     let loadedForKarId = null;
@@ -104,99 +105,6 @@
         Object.entries(notes || {}).forEach(([badgeId, note]) => scheduleSave(badgeId, note));
     }
 
-    let uploadDialog = null;
-
-    function createUploadDialog() {
-        const modal = document.createElement("div");
-        modal.id = "notesUploadModal";
-        modal.className = "modal hidden";
-        modal.setAttribute("role", "dialog");
-        modal.setAttribute("aria-modal", "true");
-        modal.setAttribute("aria-labelledby", "notesUploadDialogTitle");
-
-        const content = document.createElement("div");
-        content.className = "modal-content";
-
-        const closeBtn = document.createElement("button");
-        closeBtn.className = "close-popup";
-        closeBtn.type = "button";
-        closeBtn.setAttribute("aria-label", "Stäng");
-        closeBtn.textContent = "×";
-
-        const title = document.createElement("h2");
-        title.id = "notesUploadDialogTitle";
-        title.textContent = "Spara anteckningar i kårens databas?";
-
-        const messageEl = document.createElement("p");
-        messageEl.className = "sync-upload-dialog-message";
-
-        const actions = document.createElement("div");
-        actions.className = "modal-actions";
-
-        const cancelBtn = document.createElement("button");
-        cancelBtn.className = "btn-secondary";
-        cancelBtn.type = "button";
-        cancelBtn.textContent = "Avbryt";
-
-        const deleteBtn = document.createElement("button");
-        deleteBtn.className = "btn-danger";
-        deleteBtn.type = "button";
-        deleteBtn.textContent = "Ta bort lokala";
-
-        const confirmBtn = document.createElement("button");
-        confirmBtn.className = "btn-primary";
-        confirmBtn.type = "button";
-        confirmBtn.textContent = "Lägg till i databasen";
-
-        actions.appendChild(cancelBtn);
-        actions.appendChild(deleteBtn);
-        actions.appendChild(confirmBtn);
-        content.appendChild(closeBtn);
-        content.appendChild(title);
-        content.appendChild(messageEl);
-        content.appendChild(actions);
-        modal.appendChild(content);
-        document.body.appendChild(modal);
-        return { modal, messageEl, confirmBtn, deleteBtn, cancelBtn, closeBtn, resolve: null };
-    }
-
-    function closeUploadDialog(result) {
-        if (!uploadDialog?.resolve) return;
-        const resolve = uploadDialog.resolve;
-        uploadDialog.resolve = null;
-        uploadDialog.modal.classList.add("hidden");
-        document.removeEventListener("keydown", onUploadDialogKeydown, true);
-        resolve(result);
-    }
-
-    function onUploadDialogKeydown(event) {
-        if (event.key !== "Escape") return;
-        event.stopPropagation();
-        closeUploadDialog("cancel");
-    }
-
-    function confirmUpload(message) {
-        if (typeof document.createElement !== "function" || typeof document.body?.appendChild !== "function") {
-            return Promise.resolve(window.confirm(message) ? "upload" : "cancel");
-        }
-        if (!uploadDialog) {
-            uploadDialog = createUploadDialog();
-            uploadDialog.confirmBtn.addEventListener("click", () => closeUploadDialog("upload"));
-            uploadDialog.deleteBtn.addEventListener("click", () => closeUploadDialog("delete"));
-            uploadDialog.cancelBtn.addEventListener("click", () => closeUploadDialog("cancel"));
-            uploadDialog.closeBtn.addEventListener("click", () => closeUploadDialog("cancel"));
-            uploadDialog.modal.addEventListener("click", event => {
-                if (event.target === uploadDialog.modal) closeUploadDialog("cancel");
-            });
-        }
-        closeUploadDialog("cancel");
-        uploadDialog.messageEl.textContent = message;
-        uploadDialog.modal.classList.remove("hidden");
-        document.addEventListener("keydown", onUploadDialogKeydown, true);
-        uploadDialog.confirmBtn.focus();
-        return new Promise(resolve => { uploadDialog.resolve = resolve; });
-    }
-
     async function load() {
         if (!canRead()) return;
         const revision = ++loadRevision;
@@ -218,18 +126,29 @@
             const newOrDifferentKeys = localKeys.filter(k => !remote[k] || remote[k] !== local[k]);
 
             if (newOrDifferentKeys.length && canWrite()) {
-                const action = await confirmUpload(
-                    `Du har skrivit ${newOrDifferentKeys.length} märkesanteckning(ar) när du arbetade oinloggad.\n\nVill du spara dem i kårens databas?`
-                );
+                const badges = await getBadges();
+                if (revision !== loadRevision || !canWrite()) return;
+                const action = await window.GTScoutLocalChanges.confirm({
+                    kind: "märkesanteckningar",
+                    localData: newOrDifferentKeys.map(badgeId => ({ badgeId, note: local[badgeId] })),
+                    isCurrent: () => revision === loadRevision && canWrite(),
+                    items: newOrDifferentKeys.map(badgeId => ({
+                        title: badges.find(badge => String(badge.id) === badgeId)?.namn || `Okänt märke (${badgeId})`,
+                        text: local[badgeId],
+                        remoteText: remote[badgeId]
+                    }))
+                });
+                if (revision !== loadRevision || !canWrite()) return;
                 if (action === "upload") {
                     const merged = { ...remote };
                     newOrDifferentKeys.forEach(k => { merged[k] = local[k]; });
                     writeLocal(merged);
-                    scheduleSaveAll(merged);
+                    newOrDifferentKeys.forEach(badgeId => scheduleSave(badgeId, local[badgeId]));
                     onChange?.();
                     return;
                 }
                 if (action === "delete") {
+                    newOrDifferentKeys.forEach(k => localOnlyIds.delete(k));
                     writeLocal(remote);
                     onChange?.();
                     return;
@@ -240,7 +159,7 @@
                 return;
             }
 
-            writeLocal(remote);
+            writeLocal({ ...remote, ...Object.fromEntries(newOrDifferentKeys.map(k => [k, local[k]])) });
             onChange?.();
         } catch (error) {
             if (revision !== loadRevision || !canRead()) return;
@@ -280,6 +199,7 @@
         reload: load,
         init(config) {
             onChange = config?.onChange || null;
+            getBadges = config?.getBadges || getBadges;
             auth()?.onChange(onAuthChange);
         }
     };

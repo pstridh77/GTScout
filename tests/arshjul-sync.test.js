@@ -181,6 +181,9 @@ function createPage({ wheels = [], arrangements = [], localWheels = [], localArr
     const context = vm.createContext({
              window: { 
             GTScoutAuth: auth,
+            GTScoutLocalChanges: {
+                confirm: async config => confirm(`${config.kind}: ${config.items.map(item => item.title).join(", ")}`) ? "upload" : "cancel"
+            },
             GTScoutYearWheelPrint: { openDocument: options => printCalls.push(options) },
             location: { search, pathname: "/arshjul.html", href: "https://example.test/arshjul.html" },
             navigator: { clipboard: { async writeText(value) { clipboardWrites.push(value); } } },
@@ -3174,6 +3177,28 @@ test("local migration is uploaded with current arrangement data, not the old pen
     assert.equal(page.tables.arshjul[0].data.events[0].title, "Hajk");
     assert.equal(writes.length, 1);
     assert.deepEqual(page.errors, []);
+});
+
+test("keeping a local wheel prevents migration and later source updates from uploading it", async () => {
+    const pending = { ...wheel("local", 2), local_only: true };
+    const page = createPage({ localWheels: [pending], arrangements: [arrangement()], confirm: () => false });
+    await settle();
+    assert.equal(page.stored()[0].schema_version, 5);
+    assert.equal(page.stored()[0].events[0].title, "Hajk");
+    assert.equal(page.stored()[0].keep_local, true);
+    assert.equal(page.stored()[0].local_only, true);
+    assert.equal(page.requests.some(request => request.table === "arshjul" && request.operation === "upsert"), false);
+
+    await page.arrangements.save(arrangement({ title: "Uppdaterad hajk" }));
+    await settle();
+    assert.equal(page.stored()[0].events[0].title, "Uppdaterad hajk");
+    assert.equal(page.requests.some(request => request.table === "arshjul" && request.operation === "upsert"), false);
+    const reopened = createPage({ localWheels: page.stored(), arrangements: [arrangement()], confirm: () => false });
+    await settle();
+    assert.equal(reopened.stored()[0].keep_local, true);
+    assert.equal(reopened.tables.arshjul.length, 0);
+    assert.deepEqual(page.errors, []);
+    assert.deepEqual(reopened.errors, []);
 });
 
 test("overlapping saves preserve the latest local data and serialize database writes", async () => {

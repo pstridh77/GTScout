@@ -1007,9 +1007,13 @@ categoryFilter.addEventListener("change", handleFilterChange);
 typeFilter.addEventListener("change", handleFilterChange);
 programFilter.addEventListener("change", handleFilterChange);
 
-loadMarken();
+const badgeCatalogLoaded = loadMarken();
 
 window.GTScoutNotes?.init({
+    getBadges: async () => {
+        await badgeCatalogLoaded;
+        return allMarken;
+    },
     onChange: () => renderMarken(allMarken)
 });
 

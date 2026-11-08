@@ -178,7 +178,8 @@
             created_by: wheel.created_by || null,
             local_kar_id: wheel.local_kar_id || null,
             updated_at: wheel.updated_at || null,
-            local_only: Boolean(wheel.local_only)
+            local_only: Boolean(wheel.local_only),
+            keep_local: Boolean(wheel.keep_local)
         };
     }
 

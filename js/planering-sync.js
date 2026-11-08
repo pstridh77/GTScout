@@ -98,7 +98,7 @@
         return (group.visibility || "kar_edit") === "kar_edit";
     }
 
-    async function pushGroups(groups) {
+    async function pushGroups(groups, addOnly = false) {
         // Rader som användaren inte får ändra (t.ex. andras privata/kar_view-planeringar)
         // utesluts så att upsert inte stöter på RLS-fel för dem.
         // local_only-rader (avböjd uppladdning) ska inte heller skrivas.
@@ -117,6 +117,7 @@
             }
         }
 
+        if (addOnly) return;
         const keepIds = rows.map(row => row.id);
         if (!auth().isAdmin() && !currentUserId) throw new Error("Kunde inte fastställa användarens identitet för borttagning.");
         try {
@@ -160,97 +161,16 @@
         saveTimer = setTimeout(flush, SAVE_DELAY_MS);
     }
 
-    let uploadDialog = null;
-
-    function createUploadDialog() {
-        const modal = document.createElement("div");
-        modal.id = "planningUploadModal";
-        modal.className = "modal hidden";
-        modal.setAttribute("role", "dialog");
-        modal.setAttribute("aria-modal", "true");
-        modal.setAttribute("aria-labelledby", "planningUploadDialogTitle");
-
-        const content = document.createElement("div");
-        content.className = "modal-content";
-
-        const closeBtn = document.createElement("button");
-        closeBtn.className = "close-popup";
-        closeBtn.type = "button";
-        closeBtn.setAttribute("aria-label", "Stäng");
-        closeBtn.textContent = "×";
-
-        const title = document.createElement("h2");
-        title.id = "planningUploadDialogTitle";
-        title.textContent = "Spara planeringar i kårens databas?";
-
-        const messageEl = document.createElement("p");
-        messageEl.className = "sync-upload-dialog-message";
-
-        const actions = document.createElement("div");
-        actions.className = "modal-actions";
-
-        const cancelBtn = document.createElement("button");
-        cancelBtn.className = "btn-secondary";
-        cancelBtn.type = "button";
-        cancelBtn.textContent = "Avbryt";
-
-        const deleteBtn = document.createElement("button");
-        deleteBtn.className = "btn-danger";
-        deleteBtn.type = "button";
-        deleteBtn.textContent = "Ta bort lokala";
-
-        const confirmBtn = document.createElement("button");
-        confirmBtn.className = "btn-primary";
-        confirmBtn.type = "button";
-        confirmBtn.textContent = "Lägg till i databasen";
-
-        actions.appendChild(cancelBtn);
-        actions.appendChild(deleteBtn);
-        actions.appendChild(confirmBtn);
-        content.appendChild(closeBtn);
-        content.appendChild(title);
-        content.appendChild(messageEl);
-        content.appendChild(actions);
-        modal.appendChild(content);
-        document.body.appendChild(modal);
-        return { modal, messageEl, confirmBtn, deleteBtn, cancelBtn, closeBtn, resolve: null };
-    }
-
-    function closeUploadDialog(result) {
-        if (!uploadDialog?.resolve) return;
-        const resolve = uploadDialog.resolve;
-        uploadDialog.resolve = null;
-        uploadDialog.modal.classList.add("hidden");
-        document.removeEventListener("keydown", onUploadDialogKeydown, true);
-        resolve(result);
-    }
-
-    function onUploadDialogKeydown(event) {
-        if (event.key !== "Escape") return;
-        event.stopPropagation();
-        closeUploadDialog("cancel");
-    }
-
-    function confirmUpload(message) {
-        if (typeof document.createElement !== "function" || typeof document.body?.appendChild !== "function") {
-            return Promise.resolve(window.confirm(message) ? "upload" : "cancel");
-        }
-        if (!uploadDialog) {
-            uploadDialog = createUploadDialog();
-            uploadDialog.confirmBtn.addEventListener("click", () => closeUploadDialog("upload"));
-            uploadDialog.deleteBtn.addEventListener("click", () => closeUploadDialog("delete"));
-            uploadDialog.cancelBtn.addEventListener("click", () => closeUploadDialog("cancel"));
-            uploadDialog.closeBtn.addEventListener("click", () => closeUploadDialog("cancel"));
-            uploadDialog.modal.addEventListener("click", event => {
-                if (event.target === uploadDialog.modal) closeUploadDialog("cancel");
-            });
-        }
-        closeUploadDialog("cancel");
-        uploadDialog.messageEl.textContent = message;
-        uploadDialog.modal.classList.remove("hidden");
-        document.addEventListener("keydown", onUploadDialogKeydown, true);
-        uploadDialog.confirmBtn.focus();
-        return new Promise(resolve => { uploadDialog.resolve = resolve; });
+    function confirmUpload(groups, revision) {
+        return window.GTScoutLocalChanges.confirm({
+            kind: "planeringar",
+            localData: groups,
+            isCurrent: () => revision === loadRevision && canWrite(),
+            items: groups.map(group => ({
+                title: group.name || "Namnlös planering",
+                detail: [group.year, group.term].filter(value => value !== undefined && value !== null && value !== "").join(" · ")
+            }))
+        });
     }
 
     async function load() {
@@ -281,19 +201,19 @@
             };
 
             if (!remote.length && local.length) {
-                const action = await confirmUpload(
-                    `Du har ${local.length} planering(ar) från när du arbetade oinloggad.\n\nVill du lägga till och spara dem i kårens databas?`
-                );
+                const action = await confirmUpload(local, revision);
+                if (revision !== loadRevision || !canWrite()) return;
                 if (action === "upload") {
                     const userId = auth().getUser()?.id || null;
                     const userName = auth().getProfile()?.full_name || auth().getProfile()?.email || "";
                     local.forEach(g => {
+                        delete g.local_only;
                         if (!g.created_by) {
                             g.created_by = userId;
                             g.created_by_name = userName;
                         }
                     });
-                    await pushGroups(local);
+                    await pushGroups(local, true);
                     if (revision !== loadRevision || !canRead()) return;
                     hooks.applyGroups(local);
                     setStatus(`Sparade ${local.length} planeringar i kårens databas`, false);
@@ -309,20 +229,20 @@
             }
 
             if (remote.length && localNew.length) {
-                const action = await confirmUpload(
-                    `Du har skapat ${localNew.length} planering(ar) när du arbetade oinloggad.\n\nVill du lägga till dem i kårens databas tillsammans med kårens befintliga planeringar (${remote.length} st)?`
-                );
+                const action = await confirmUpload(localNew, revision);
+                if (revision !== loadRevision || !canWrite()) return;
                 if (action === "upload") {
                     const userId = auth().getUser()?.id || null;
                     const userName = auth().getProfile()?.full_name || auth().getProfile()?.email || "";
                     localNew.forEach(g => {
+                        delete g.local_only;
                         if (!g.created_by) {
                             g.created_by = userId;
                             g.created_by_name = userName;
                         }
                     });
                     const combined = [...remote, ...localNew];
-                    await pushGroups(combined);
+                    await pushGroups(localNew, true);
                     if (revision !== loadRevision || !canRead()) return;
                     hooks.applyGroups(combined);
                     setStatus(`Synkad med databasen (${combined.length} planeringar)`, false);

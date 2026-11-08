@@ -165,6 +165,14 @@
         karLongitude = nextKarLongitude;
     }
 
+    function clearLocalDialogChoices() {
+        try {
+            sessionStorage.removeItem("gtscout_local_changes_kept");
+        } catch (error) {
+            console.error("Kunde inte rensa dialogval vid utloggning", error);
+        }
+    }
+
     function clearLocalKarData() {
         try {
             localStorage.removeItem("gtscout_planering");
@@ -176,6 +184,7 @@
         } catch (e) {
             console.error("Kunde inte rensa lokal kårdata vid utloggning", e);
         }
+        clearLocalDialogChoices();
     }
 
     async function signIn(email, password) {
@@ -496,6 +505,7 @@
 
             const { data } = await client.auth.getSession();
             session = data?.session || null;
+            if (!session) clearLocalDialogChoices();
             await loadProfile();
 
             client.auth.onAuthStateChange((event, newSession) => {

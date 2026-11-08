@@ -6,107 +6,15 @@
     let loadedForKarId = null;
     let loading = false;
     let loadError = false;
+    let loadRevision = 0;
 
     const auth = () => window.GTScoutAuth;
     const client = () => auth()?.getClient() || null;
     const karId = () => auth()?.getState?.().karId || null;
     const canRead = () => Boolean(client());
     const canWrite = () => !auth()?.isSignedIn?.() || (canRead() && auth()?.isLeader?.());
-    const canSync = () => Boolean(canRead() && auth()?.isLeader?.());
+    const canSync = () => Boolean(canRead() && auth()?.isSignedIn?.() && auth()?.isLeader?.() && karId());
     const canEdit = () => canSync();
-
-    let uploadDialog = null;
-
-    function createUploadDialog() {
-        const modal = document.createElement("div");
-        modal.id = "cookbookUploadModal";
-        modal.className = "modal hidden";
-        modal.setAttribute("role", "dialog");
-        modal.setAttribute("aria-modal", "true");
-        modal.setAttribute("aria-labelledby", "cookbookUploadDialogTitle");
-
-        const content = document.createElement("div");
-        content.className = "modal-content";
-
-        const closeBtn = document.createElement("button");
-        closeBtn.className = "close-popup";
-        closeBtn.type = "button";
-        closeBtn.setAttribute("aria-label", "Stäng");
-        closeBtn.textContent = "×";
-
-        const title = document.createElement("h2");
-        title.id = "cookbookUploadDialogTitle";
-        title.textContent = "Spara recept i kårens databas?";
-
-        const messageEl = document.createElement("p");
-        messageEl.className = "sync-upload-dialog-message";
-
-        const actions = document.createElement("div");
-        actions.className = "modal-actions";
-
-        const cancelBtn = document.createElement("button");
-        cancelBtn.className = "btn-secondary";
-        cancelBtn.type = "button";
-        cancelBtn.textContent = "Avbryt";
-
-        const deleteBtn = document.createElement("button");
-        deleteBtn.className = "btn-danger";
-        deleteBtn.type = "button";
-        deleteBtn.textContent = "Ta bort lokala";
-
-        const confirmBtn = document.createElement("button");
-        confirmBtn.className = "btn-primary";
-        confirmBtn.type = "button";
-        confirmBtn.textContent = "Lägg till i databasen";
-
-        actions.appendChild(cancelBtn);
-        actions.appendChild(deleteBtn);
-        actions.appendChild(confirmBtn);
-        content.appendChild(closeBtn);
-        content.appendChild(title);
-        content.appendChild(messageEl);
-        content.appendChild(actions);
-        modal.appendChild(content);
-        document.body.appendChild(modal);
-        return { modal, messageEl, confirmBtn, deleteBtn, cancelBtn, closeBtn, resolve: null };
-    }
-
-    function closeUploadDialog(result) {
-        if (!uploadDialog?.resolve) return;
-        const resolve = uploadDialog.resolve;
-        uploadDialog.resolve = null;
-        uploadDialog.modal.classList.add("hidden");
-        document.removeEventListener("keydown", onUploadDialogKeydown, true);
-        resolve(result);
-    }
-
-    function onUploadDialogKeydown(event) {
-        if (event.key !== "Escape") return;
-        event.stopPropagation();
-        closeUploadDialog("cancel");
-    }
-
-    function confirmUpload(message) {
-        if (typeof document.createElement !== "function" || typeof document.body?.appendChild !== "function") {
-            return Promise.resolve(window.confirm(message) ? "upload" : "cancel");
-        }
-        if (!uploadDialog) {
-            uploadDialog = createUploadDialog();
-            uploadDialog.confirmBtn.addEventListener("click", () => closeUploadDialog("upload"));
-            uploadDialog.deleteBtn.addEventListener("click", () => closeUploadDialog("delete"));
-            uploadDialog.cancelBtn.addEventListener("click", () => closeUploadDialog("cancel"));
-            uploadDialog.closeBtn.addEventListener("click", () => closeUploadDialog("cancel"));
-            uploadDialog.modal.addEventListener("click", event => {
-                if (event.target === uploadDialog.modal) closeUploadDialog("cancel");
-            });
-        }
-        closeUploadDialog("cancel");
-        uploadDialog.messageEl.textContent = message;
-        uploadDialog.modal.classList.remove("hidden");
-        document.addEventListener("keydown", onUploadDialogKeydown, true);
-        uploadDialog.confirmBtn.focus();
-        return new Promise(resolve => { uploadDialog.resolve = resolve; });
-    }
 
     function normalize(recipe) {
         return {
@@ -144,11 +52,17 @@
 
     async function load() {
         if (!canRead()) return;
+        const revision = ++loadRevision;
+        const currentKarId = karId();
+        const currentUserId = auth()?.getUser()?.id;
+        const isCurrent = () => revision === loadRevision && currentKarId === karId()
+            && currentUserId === auth()?.getUser()?.id;
         loading = true;
         loadError = false;
         onChange?.(recipes);
         try {
             const { data, error } = await client().from("kokbok_recept").select("id, kar_id, created_by, namn, kategori, beskrivning, ingredienser, ingredienser_skalningar, instruktioner, portioner, tid, svarighet, created_at, updated_at").order("namn");
+            if (!isCurrent()) return;
             if (error) throw error;
             const remote = (data || []).map(normalize);
             const remoteIds = new Set(remote.map(recipe => recipe.id));
@@ -156,26 +70,35 @@
             const localOnly = local.filter(recipe => !remoteIds.has(recipe.id)).map(recipe => ({ ...recipe, local_only: true }));
 
             if (localOnly.length && canSync()) {
-                const action = await confirmUpload(remote.length
-                    ? `Du har skapat ${localOnly.length} recept när du arbetade oinloggad.\n\nVill du lägga till dem i kårens databas tillsammans med kårens befintliga recept (${remote.length} st)?`
-                    : `Du har ${localOnly.length} recept från när du arbetade oinloggad.\n\nVill du lägga till och spara dem i kårens databas?`);
+                const action = await window.GTScoutLocalChanges.confirm({
+                    kind: "recept",
+                    localData: localOnly,
+                    isCurrent,
+                    items: localOnly.map(recipe => ({
+                        title: recipe.namn,
+                        detail: `${recipe.kategori} · ${recipe.portioner} portioner`
+                    }))
+                });
+                if (!isCurrent() || !canSync()) return;
                 if (action === "upload") {
                     const userId = auth()?.getUser()?.id || null;
                     for (const recipe of localOnly) {
                         await save({ ...recipe, kar_id: karId(), created_by: recipe.created_by || userId });
+                        if (!isCurrent() || !canSync()) return;
                     }
-                    recipes = [...remote, ...localOnly.map(recipe => ({ ...recipe, kar_id: karId() }))];
+                    recipes = [...remote, ...localOnly.map(recipe => ({ ...recipe, kar_id: karId(), local_only: false }))];
                 } else if (action === "delete") {
                     recipes = remote;
                 } else {
                     recipes = [...remote, ...localOnly];
                 }
             } else {
-                recipes = remote;
+                recipes = [...remote, ...localOnly];
             }
             loading = false;
             writeLocal();
         } catch (error) {
+            if (!isCurrent()) return;
             loading = false;
             loadError = true;
             console.error("Kunde inte hämta recept", error);
@@ -226,9 +149,10 @@
     }
 
     function onAuthChange() {
+        const context = `${auth()?.getUser()?.id || "public"}:${karId() || ""}:${canSync()}`;
         if (!canRead()) { loadedForKarId = null; recipes = readLocal(); onChange?.(recipes); return; }
-        if (loadedForKarId === "public") return;
-        loadedForKarId = "public";
+        if (loadedForKarId === context) return;
+        loadedForKarId = context;
         load();
     }
 

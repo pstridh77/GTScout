@@ -4901,7 +4901,7 @@ createActivityPicker();
 createEditActivitiesMenuAction();
 bindPlanningArrangementPicker();
 loadDefaultPlannings();
-loadMarken();
+const badgeCatalogLoaded = loadMarken();
 window.GTScoutAuth?.onChange(() => renderPlanning());
 
 window.GTScoutArrangements?.init({
@@ -4947,5 +4947,9 @@ window.GTScoutPlanningSync?.init({
 });
 
 window.GTScoutNotes?.init({
+    getBadges: async () => {
+        await badgeCatalogLoaded;
+        return allMarken;
+    },
     onChange: () => renderPlanning()
 });

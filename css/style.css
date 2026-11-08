@@ -5877,6 +5877,23 @@ select:focus {
     white-space: pre-line;
 }
 
+.sync-local-modal { z-index: 1800; }
+.modal-content.sync-local-content { box-sizing: border-box; max-width: 640px; max-height: 90vh; max-height: 90dvh; overflow-y: auto; }
+.sync-local-content > h2 { padding-right: 28px; }
+.sync-local-content > p { margin: 0; }
+.sync-local-list { flex: 1 1 auto; min-height: 80px; overflow-y: auto; margin: 0; padding: 0 8px 0 24px; }
+.sync-local-list li { padding: 10px 0; border-bottom: 1px solid #dce3e9; overflow-wrap: anywhere; }
+.sync-local-list p, .sync-local-help p { margin: 6px 0; }
+.sync-local-text { white-space: pre-wrap; }
+.sync-local-list summary { cursor: pointer; color: #003660; }
+.sync-local-help { font-size: 0.85rem; line-height: 1.4; }
+.sync-local-actions { flex-wrap: wrap; }
+@media (max-width: 600px) {
+    .modal-content.sync-local-content { width: calc(100% - 16px); padding: 28px 12px 16px; gap: 10px; }
+    .sync-local-help { max-height: 100px; overflow-y: auto; }
+    .sync-local-actions { flex-direction: column; }
+}
+
 .site-qr-dialog {
     position: fixed;
     box-sizing: border-box;
