@@ -498,11 +498,12 @@
             session = data?.session || null;
             await loadProfile();
 
-            client.auth.onAuthStateChange((_event, newSession) => {
+            client.auth.onAuthStateChange((event, newSession) => {
                 const revision = ++authRevision;
                 setTimeout(async () => {
                     if (revision !== authRevision) return;
                     const userChanged = session?.user?.id !== newSession?.user?.id;
+                    const signedOut = event === "SIGNED_OUT" || Boolean(session?.user && !newSession?.user);
                     session = newSession;
                     if (userChanged || !session) {
                         profile = null;
@@ -510,7 +511,7 @@
                         karLatitude = null;
                         karLongitude = null;
                     }
-                    if (!session) clearLocalKarData();
+                    if (signedOut) clearLocalKarData();
                     await loadProfile(revision);
                     if (revision !== authRevision) return;
                     renderUi();

@@ -19,6 +19,8 @@ Utvecklas med HTML, CSS och JavaScript.
 
 Inloggningen gäller hela applikationen på samma webbplats och återställs när du byter sida. Varje vy hämtar sin data från Supabase med användarens kår och behörigheter. Utan inloggning finns det lokala läget kvar.
 
+Märkesanteckningar som skrivs som oinloggad gäst sparas i webbläsaren och finns kvar när du byter modul eller laddar om sidan. Att en sida startar utan inloggad session rensar inte lokala data.
+
 Vid utloggning rensas lokal kårdata för planeringar, arrangemang, årshjul, scouter, märkesanteckningar och aktivitetskopplingar. Vyinställningar och den publika receptcachen behålls. Pågående hämtningar får inte återställa kårdata efter utloggning.
 
 Kör regressionstesterna med Node.js: `node --test tests/auth-sync.test.js`. Testerna använder en simulerad Supabase-klient och kräver inget konto eller databaskonfiguration.

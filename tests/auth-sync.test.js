@@ -1756,6 +1756,47 @@ test("login on arrangements restores the same session and database writes on pla
     assert.equal(save.rows[0].created_by, "leader-1");
 });
 
+test("guest badge notes survive initial auth events and navigation between modules", async () => {
+    const backend = createBackend(null);
+    const storage = new Map();
+    const notes = { "badge-1": "Local guest note" };
+    const key = "gtscout_badge_notes";
+    const firstPage = createPage(backend, storage);
+    await firstPage.auth.init();
+    await firstPage.runTimers();
+    firstPage.localStorage.setItem(key, JSON.stringify(notes));
+
+    for (const moduleName of [null, "notes-sync.js"]) {
+        const page = createPage(backend, storage);
+        if (moduleName) {
+            page.load(moduleName);
+            page.window.GTScoutNotes.init({ onChange() {} });
+        }
+        await page.auth.init();
+        await page.runTimers();
+        assert.equal(page.auth.isSignedIn(), false);
+        assert.deepEqual(JSON.parse(storage.get(key)), notes);
+        page.emit("TOKEN_REFRESHED", null);
+        await page.runTimers();
+        assert.deepEqual(JSON.parse(storage.get(key)), notes);
+        if (moduleName) {
+            assert.equal(page.window.GTScoutNotes.isLocalOnly("badge-1"), true);
+        }
+    }
+    assert.equal(backend.requests.some(request => request.table === "badge_notes"), false);
+});
+
+test("a lost authenticated session clears cached badge notes even without a SIGNED_OUT event", async () => {
+    const page = createPage(createBackend());
+    await page.auth.init();
+    await page.runTimers();
+    page.localStorage.setItem("gtscout_badge_notes", JSON.stringify({ "badge-1": "Private note" }));
+    page.emit("TOKEN_REFRESHED", null);
+    await page.runTimers();
+    assert.equal(page.auth.isSignedIn(), false);
+    assert.equal(page.storage.has("gtscout_badge_notes"), false);
+});
+
 test("logout on another page clears private caches but preserves preferences and public recipes", async () => {
     const backend = createBackend();
     const privateKeys = ["gtscout_planering", "gtscout_badge_notes", "gtscout_custom_activities", "gtscout_custom_badge_activities", "gtscout_arrangemang", "gtscout_scouts"];
