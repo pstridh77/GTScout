@@ -21,6 +21,8 @@ Inloggningen gäller hela applikationen på samma webbplats och återställs nä
 
 Märkesanteckningar som skrivs som oinloggad gäst sparas i webbläsaren och finns kvar när du byter modul eller laddar om sidan. Att en sida startar utan inloggad session rensar inte lokala data.
 
+Märkningen **Lokal** visas bara för en befintlig anteckning som ännu inte sparats i databasen. Märkeskort och öppna märkesdialoger uppdateras direkt när en anteckning sparas, tas bort, synkas eller raderas vid utloggning. Ändringar från en annan flik uppdaterar också märkningen.
+
 Vid utloggning rensas lokal kårdata för planeringar, arrangemang, årshjul, scouter, märkesanteckningar och aktivitetskopplingar. Vyinställningar och den publika receptcachen behålls. Pågående hämtningar får inte återställa kårdata efter utloggning.
 
 Om osynkade lokala uppgifter riskerar att raderas visas en varning med berörda typer och antal eller väntande ändringar innan utloggningen genomförs. Välj **Avbryt** för att behålla både inloggningen och alla lokala uppgifter, eller bekräfta för att logga ut och radera dem. Varningen gäller även poster som tidigare behållits lokalt och sparningar som ännu inte bekräftats av databasen. För äldre märkesanteckningar utan känd synkstatus visas en försiktighetsvarning. Lokala recept och osynkade årshjul som finns kvar efter utloggning räknas inte som dataförlust. Automatisk utloggning, till exempel från en annan flik, kan inte avbrytas med denna varning.

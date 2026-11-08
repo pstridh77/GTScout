@@ -1009,14 +1009,6 @@ programFilter.addEventListener("change", handleFilterChange);
 
 const badgeCatalogLoaded = loadMarken();
 
-window.GTScoutNotes?.init({
-    getBadges: async () => {
-        await badgeCatalogLoaded;
-        return allMarken;
-    },
-    onChange: () => renderMarken(allMarken)
-});
-
 function createPopup() {
     const popup = document.createElement("div");
     popup.id = "detailPopup";
@@ -1044,6 +1036,17 @@ function createPopup() {
 }
 
 const popup = createPopup();
+
+window.GTScoutNotes?.init({
+    getBadges: async () => {
+        await badgeCatalogLoaded;
+        return allMarken;
+    },
+    onChange: () => {
+        renderMarken(allMarken);
+        if (activePopupBadge && !popup.classList.contains("hidden")) showPopup(activePopupBadge);
+    }
+});
 
 function createBadgeSharePopup() {
     const sharePopup = document.createElement("div");

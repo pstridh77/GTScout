@@ -4666,6 +4666,8 @@ function createDetailPopup() {
 }
 
 const detailPopup = createDetailPopup();
+let activeDetailBadge = null;
+let activeDetailPlanningId = null;
 
 function createActivityDetailPopup() {
     const popup = document.createElement("div");
@@ -4735,6 +4737,8 @@ function showActivityDetail(activity) {
 }
 
 function showBadgeDetail(marke, planningId = null) {
+    activeDetailBadge = marke;
+    activeDetailPlanningId = planningId;
     const body = detailPopup.querySelector(".popup-body");
     const isCustomBadge = Boolean(marke.isCustom);
     const canAdministerBadge = Boolean(window.GTScoutBadges?.canEditBadge?.(marke));
@@ -4951,5 +4955,15 @@ window.GTScoutNotes?.init({
         await badgeCatalogLoaded;
         return allMarken;
     },
-    onChange: () => renderPlanning()
+    onChange: () => {
+        renderPlanning();
+        if (activeDetailBadge && !detailPopup.classList.contains("hidden")) {
+            const selections = new Map([...detailPopup.querySelectorAll(".planning-activity-selection")]
+                .map(input => [input.value, input.checked]));
+            showBadgeDetail(activeDetailBadge, activeDetailPlanningId);
+            detailPopup.querySelectorAll(".planning-activity-selection").forEach(input => {
+                if (selections.has(input.value)) input.checked = selections.get(input.value);
+            });
+        }
+    }
 });

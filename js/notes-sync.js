@@ -68,18 +68,13 @@
             if (String(local[badgeId] || "") === note) ids.delete(badgeId);
         });
         localStorage.setItem(UNSYNCED_STORAGE_KEY, JSON.stringify([...ids]));
+        onChange?.();
     }
 
-    // Anteckningar som användaren avböjt uppladdning för hålls lokala tills de redigeras.
-    const localOnlyIds = new Set();
-
     function isLocalOnly(badgeId) {
-        if (localOnlyIds.has(badgeId)) return true;
-        if (!auth()?.isSignedIn?.() || !auth()?.isLeader?.()) {
-            const local = readLocal();
-            return Boolean(local[badgeId]?.trim());
-        }
-        return false;
+        const note = readLocal()[badgeId];
+        return Boolean(typeof note === "string" && note.trim()
+            && (!auth()?.isSignedIn?.() || readUnsyncedIds().has(badgeId)));
     }
 
     async function flush() {
@@ -125,8 +120,8 @@
     function scheduleSave(badgeId, note) {
         if (!badgeId) return;
         markUnsynced(badgeId);
+        onChange?.();
         if (!canWrite()) return;
-        localOnlyIds.delete(badgeId);
         pending.set(badgeId, String(note ?? ""));
         if (saveTimer) clearTimeout(saveTimer);
         saveTimer = setTimeout(flush, SAVE_DELAY_MS);
@@ -156,6 +151,7 @@
             const localKeys = Object.keys(local).filter(k => local[k] && local[k].trim());
             const newOrDifferentKeys = localKeys.filter(k => !remote[k] || remote[k] !== local[k]);
             localStorage.setItem(UNSYNCED_STORAGE_KEY, JSON.stringify(newOrDifferentKeys));
+            onChange?.();
 
             if (newOrDifferentKeys.length && canWrite()) {
                 const badges = await getBadges();
@@ -180,13 +176,11 @@
                     return;
                 }
                 if (action === "delete") {
-                    newOrDifferentKeys.forEach(k => localOnlyIds.delete(k));
                     writeLocal(remote);
                     localStorage.setItem(UNSYNCED_STORAGE_KEY, "[]");
                     onChange?.();
                     return;
                 }
-                newOrDifferentKeys.forEach(k => localOnlyIds.add(k));
                 writeLocal({ ...remote, ...Object.fromEntries(newOrDifferentKeys.map(k => [k, local[k]])) });
                 onChange?.();
                 return;
@@ -212,8 +206,8 @@
             if (wasLoaded) {
                 // Endast om användaren tidigare var inloggad i en kår och nu loggat ut
                 writeLocal({});
-                onChange?.();
             }
+            onChange?.();
             return;
         }
         const userId = auth().getUser()?.id || null;
@@ -234,6 +228,9 @@
             onChange = config?.onChange || null;
             getBadges = config?.getBadges || getBadges;
             auth()?.onChange(onAuthChange);
+            window.addEventListener("storage", event => {
+                if (event.key === STORAGE_KEY || event.key === UNSYNCED_STORAGE_KEY || event.key === null) onChange?.();
+            });
         }
     };
 })();

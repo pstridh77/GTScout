@@ -1453,6 +1453,7 @@ function createAuthUi(page) {
 function createPage(backend, storage = new Map(), displayStorage = new Map()) {
     const timers = new Map();
     const elements = new Map();
+    const windowListeners = new Map();
     let nextTimer = 0;
     const localStorage = {
         getItem: key => storage.get(key) ?? null,
@@ -1512,7 +1513,10 @@ function createPage(backend, storage = new Map(), displayStorage = new Map()) {
             GTSCOUT_SUPABASE_CONFIG: { url: "https://example.test", anonKey: "test" },
             supabase: { createClient: () => client },
             location: { search: "" },
-            addEventListener() {},
+            addEventListener(name, callback) {
+                if (!windowListeners.has(name)) windowListeners.set(name, new Set());
+                windowListeners.get(name).add(callback);
+            },
             confirm: message => message.startsWith("Osynkade lokala uppgifter"),
             GTScoutLocalChanges: {
                 confirm: async config => context.window.confirm(`${config.kind}: ${config.items.map(item => item.title).join(", ")}`) ? "upload" : "cancel"
@@ -1549,7 +1553,11 @@ function createPage(backend, storage = new Map(), displayStorage = new Map()) {
     load("sync-retry.js");
     load("participants.js");
     load("auth.js");
-    return { window: context.window, localStorage, storage, displayStorage, elements, load, emit, runTimers, auth: context.window.GTScoutAuth };
+    return {
+        window: context.window, localStorage, storage, displayStorage, elements, load, emit, runTimers,
+        emitStorage: key => windowListeners.get("storage")?.forEach(callback => callback({ key })),
+        auth: context.window.GTScoutAuth
+    };
 }
 
 test("auth UI waits for session and profile without flashing guest or local mode", async () => {
@@ -2172,6 +2180,99 @@ test("a successful note save clears its warning while a failed save retains it",
         assert.equal(warned, fails);
         assert.equal(page.auth.isSignedIn(), fails);
     }
+});
+
+test("guest note changes immediately notify badge views when the local label appears and disappears", async () => {
+    const page = createPage(createBackend(null));
+    await page.auth.init();
+    await page.runTimers();
+    page.load("notes-sync.js");
+    const notes = page.window.GTScoutNotes;
+    const renderedLabels = [];
+    notes.init({ onChange: () => renderedLabels.push(notes.isLocalOnly("badge-1")) });
+    renderedLabels.length = 0;
+    page.storage.set("gtscout_badge_notes", JSON.stringify({ "badge-1": "Guest note" }));
+    notes.scheduleSave("badge-1", "Guest note");
+    assert.deepEqual(renderedLabels, [true]);
+    page.storage.set("gtscout_badge_notes", "{}");
+    notes.scheduleSave("badge-1", "");
+    assert.deepEqual(renderedLabels, [true, false]);
+    assert.equal(notes.isLocalOnly("badge-1"), false);
+});
+
+test("logout removes both the retained note and its local label in the notified view", async () => {
+    const page = createPage(createBackend());
+    await page.auth.init();
+    await page.runTimers();
+    page.storage.set("gtscout_badge_notes", JSON.stringify({ "badge-1": "Kept note" }));
+    page.load("notes-sync.js");
+    const notes = page.window.GTScoutNotes;
+    const renderedLabels = [];
+    notes.init({ onChange: () => renderedLabels.push(notes.isLocalOnly("badge-1")) });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(notes.isLocalOnly("badge-1"), true);
+    await page.auth.signOut();
+    assert.equal(notes.isLocalOnly("badge-1"), false);
+    assert.equal(renderedLabels.at(-1), false);
+});
+
+test("a note stays locally labelled until its database write is confirmed", async () => {
+    const backend = createBackend();
+    const page = createPage(backend);
+    await page.auth.init();
+    await page.runTimers();
+    page.load("notes-sync.js");
+    const notes = page.window.GTScoutNotes;
+    const renderedLabels = [];
+    notes.init({ onChange: () => renderedLabels.push(notes.isLocalOnly("badge-1")) });
+    await new Promise(resolve => setImmediate(resolve));
+    page.storage.set("gtscout_badge_notes", JSON.stringify({ "badge-1": "New note" }));
+    notes.scheduleSave("badge-1", "New note");
+    assert.equal(renderedLabels.at(-1), true);
+    const write = deferred();
+    backend.pending = { table: "badge_notes", ...write };
+    const saving = page.runTimers();
+    assert.equal(notes.isLocalOnly("badge-1"), true);
+    write.resolve({ data: [] });
+    await saving;
+    assert.equal(notes.isLocalOnly("badge-1"), false);
+    assert.equal(renderedLabels.at(-1), false);
+});
+
+test("read-only members see only unsynced notes labelled as local", async () => {
+    const backend = createBackend(leaderSession, { ...leaderProfile, role: "gast" });
+    const page = createPage(backend);
+    await page.auth.init();
+    await page.runTimers();
+    backend.pending = { table: "badge_notes", promise: Promise.resolve({ data: [{ badge_id: "synced", note: "Remote note" }] }) };
+    page.storage.set("gtscout_badge_notes", JSON.stringify({ synced: "Remote note", local: "Local note" }));
+    page.load("notes-sync.js");
+    const notes = page.window.GTScoutNotes;
+    notes.init({ onChange() {} });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(notes.isLocalOnly("synced"), false);
+    assert.equal(notes.isLocalOnly("local"), true);
+});
+
+test("note and sync-status storage changes refresh badge views in another tab", async () => {
+    const page = createPage(createBackend());
+    await page.auth.init();
+    await page.runTimers();
+    page.load("notes-sync.js");
+    const notes = page.window.GTScoutNotes;
+    const renderedLabels = [];
+    notes.init({ onChange: () => renderedLabels.push(notes.isLocalOnly("badge-1")) });
+    await new Promise(resolve => setImmediate(resolve));
+    page.storage.set("gtscout_badge_notes", JSON.stringify({ "badge-1": "Local note" }));
+    page.storage.set("gtscout_badge_notes_unsynced", JSON.stringify(["badge-1"]));
+    page.emitStorage("gtscout_badge_notes");
+    assert.equal(renderedLabels.at(-1), true);
+    page.storage.set("gtscout_badge_notes_unsynced", "[]");
+    page.emitStorage("gtscout_badge_notes_unsynced");
+    assert.equal(renderedLabels.at(-1), false);
+    page.storage.delete("gtscout_badge_notes");
+    page.emitStorage("gtscout_badge_notes");
+    assert.equal(renderedLabels.at(-1), false);
 });
 
 test("queued planning and scout writes warn until the database confirms them", async () => {
