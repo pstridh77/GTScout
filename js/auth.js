@@ -202,7 +202,6 @@
         for (const [key, label, isLocal, pendingKey] of [
             ["gtscout_planering", "Planeringar", item => item.local_only, "gtscout_planering_unsynced"],
             ["gtscout_custom_activities", "Aktiviteter", item => !item.kar_id && String(item.id || "").startsWith("egen-")],
-            ["gtscout_custom_badge_activities", "Aktivitetskopplingar", item => !item.kar_id],
             ["gtscout_arrangemang", "Arrangemang", item => item.local_only],
             ["gtscout_scouts", "Scouter och märkesstatus", item => !item.kar_id, "gtscout_scouts_unsynced"]
         ]) {
@@ -231,9 +230,36 @@
         return warnings;
     }
 
+    async function getBadgeLinkLogoutWarnings() {
+        try {
+            const links = JSON.parse(localStorage.getItem("gtscout_custom_badge_activities") || "null");
+            if (links === null) return [];
+            if (typeof links !== "object" || Array.isArray(links)
+                || Object.values(links).some(ids => !Array.isArray(ids) || ids.some(id => typeof id !== "string"))) {
+                throw new Error("Ogiltigt format för aktivitetskopplingar.");
+            }
+            const pairs = Object.entries(links).flatMap(([badgeId, ids]) =>
+                [...new Set(ids)].map(activityId => JSON.stringify([badgeId, activityId])));
+            if (!pairs.length) return [];
+            if (!client) throw new Error("Databaskoppling saknas.");
+            const { data, error } = await client.from("badge_activities").select("badge_id, activity_id");
+            if (error) throw error;
+            if (!Array.isArray(data)) throw new Error("Ogiltigt databassvar för aktivitetskopplingar.");
+            const saved = new Set(data.map(link => JSON.stringify([link.badge_id, link.activity_id])));
+            const count = pairs.filter(pair => !saved.has(pair)).length;
+            return count ? [`Aktivitetskopplingar: ${count} lokala poster`] : [];
+        } catch (error) {
+            console.error("Kunde inte kontrollera aktivitetskopplingar före utloggning", error);
+            return ["Aktivitetskopplingar: synkstatus kunde inte kontrolleras"];
+        }
+    }
+
     async function signOut() {
         if (session?.user) {
+            const revision = authRevision;
             const warnings = getLogoutWarnings();
+            warnings.push(...await getBadgeLinkLogoutWarnings());
+            if (revision !== authRevision) return;
             if (warnings.length && !window.confirm(
                 `Osynkade lokala uppgifter kan gå förlorade\n\n${warnings.map(item => `• ${item}`).join("\n")}\n\n`
                 + "Dessa lokala uppgifter raderas när du loggar ut, även om du tidigare valt Behåll lokalt. "

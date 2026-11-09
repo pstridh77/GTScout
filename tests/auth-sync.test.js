@@ -2159,6 +2159,102 @@ test("notes retained at login warn about data loss even when logout occurs on an
     assert.equal(page.storage.get("gtscout_badge_notes"), JSON.stringify({ "badge-1": "Guest note" }));
 });
 
+for (const links of [{}, { "badge-1": [] }]) {
+    test(`logout does not warn or query the database for empty activity links ${JSON.stringify(links)}`, async () => {
+        const backend = createBackend();
+        const page = createPage(backend);
+        await page.auth.init();
+        await page.runTimers();
+        page.storage.set("gtscout_custom_badge_activities", JSON.stringify(links));
+        page.window.confirm = () => assert.fail("Empty activity links must not cause a warning");
+        await page.auth.signOut();
+        assert.equal(page.auth.isSignedIn(), false);
+        assert.equal(backend.requests.some(request => request.table === "badge_activities"), false);
+    });
+}
+
+for (const missing of [false, true]) {
+    test(`logout ${missing ? "warns only about missing" : "does not warn about saved"} activity links on another page`, async () => {
+        const backend = createBackend();
+        const page = createPage(backend);
+        await page.auth.init();
+        await page.runTimers();
+        const links = JSON.stringify({ "badge-1": ["saved", "saved"], "badge-2": ["saved"] });
+        page.storage.set("gtscout_custom_badge_activities", links);
+        const response = deferred();
+        backend.pending = { table: "badge_activities", ...response };
+        response.resolve({ data: [
+            { badge_id: "badge-1", activity_id: "saved" },
+            ...(missing ? [] : [{ badge_id: "badge-2", activity_id: "saved" }])
+        ] });
+        let warning = "";
+        page.window.confirm = message => { warning = message; return false; };
+        await page.auth.signOut();
+        assert.equal(page.auth.isSignedIn(), missing);
+        if (missing) {
+            assert.match(warning, /Aktivitetskopplingar: 1 lokala poster/);
+            assert.doesNotMatch(warning, /synkstatus kunde inte kontrolleras/);
+            assert.equal(page.storage.get("gtscout_custom_badge_activities"), links);
+            page.window.confirm = () => true;
+            await page.auth.signOut();
+        } else {
+            assert.equal(warning, "");
+        }
+        assert.equal(page.auth.isSignedIn(), false);
+        assert.equal(page.storage.has("gtscout_custom_badge_activities"), false);
+    });
+}
+
+for (const value of ["{", "[]", '{"badge-1":"invalid"}', '{"badge-1":[null]}', '{"badge-1":["activity-1"]}']) {
+    test(`logout retains a precautionary warning for invalid or unverifiable activity links ${value}`, async () => {
+        const backend = createBackend();
+        const page = createPage(backend);
+        await page.auth.init();
+        await page.runTimers();
+        page.storage.set("gtscout_custom_badge_activities", value);
+        const response = deferred();
+        backend.pending = { table: "badge_activities", ...response };
+        response.resolve({ error: { message: "Network unavailable" } });
+        let warning = "";
+        page.window.confirm = message => { warning = message; return false; };
+        await page.auth.signOut();
+        assert.match(warning, /Aktivitetskopplingar: synkstatus kunde inte kontrolleras/);
+        assert.equal(page.auth.isSignedIn(), true);
+        assert.equal(page.storage.get("gtscout_custom_badge_activities"), value);
+    });
+}
+
+test("logging out after loading activities does not warn about their empty link cache", async () => {
+    const page = createPage(createBackend());
+    await page.auth.init();
+    await page.runTimers();
+    page.load("activities-sync.js");
+    await page.window.GTScoutActivities.ensureLoaded();
+    assert.equal(page.storage.get("gtscout_custom_badge_activities"), "{}");
+    page.window.confirm = () => assert.fail("Loading activities must not create a logout warning");
+    await page.auth.signOut();
+    assert.equal(page.auth.isSignedIn(), false);
+});
+
+test("a pending activity-link check cannot log out a changed auth context", async () => {
+    const backend = createBackend();
+    const page = createPage(backend);
+    await page.auth.init();
+    await page.runTimers();
+    page.storage.set("gtscout_custom_badge_activities", '{"badge-1":["activity-1"]}');
+    const response = deferred();
+    backend.pending = { table: "badge_activities", ...response };
+    page.window.confirm = () => assert.fail("Stale logout must not show a warning");
+    const logout = page.auth.signOut();
+    page.emit("SIGNED_OUT", null);
+    await page.runTimers();
+    await page.auth.signIn("leader@example.test", "password");
+    await page.runTimers();
+    response.resolve({ data: [] });
+    await logout;
+    assert.equal(page.auth.isSignedIn(), true);
+});
+
 test("a successful note save clears its warning while a failed save retains it", async () => {
     for (const fails of [false, true]) {
         const backend = createBackend();
