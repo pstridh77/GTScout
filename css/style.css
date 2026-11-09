@@ -40,24 +40,25 @@ body {
 .activity-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
 .activity-category-group { min-width: 0; }
 .activity-category-group > .recipe-meal-summary { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr); }
-.activity-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 18px; align-items: start; padding-top: 14px; }
-.activity-card { min-width: 0; padding: 22px; border: 1px solid #d7e1eb; border-radius: 10px; background: #fff; box-shadow: 0 7px 22px rgba(0, 54, 96, .06); cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }
-.activity-card h2 { margin: 18px 0 8px; }
-.activity-card > .recipe-category { display: block; overflow-wrap: anywhere; }
+.activity-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 18px; padding-top: 14px; }
+.activity-card { display: grid; grid-template-rows: subgrid; grid-row: span 5; row-gap: 12px; min-width: 0; padding: 22px; border: 1px solid #d7e1eb; border-radius: 10px; background: #fff; box-shadow: 0 7px 22px rgba(0, 54, 96, .06); cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.activity-card h2 { margin: 0; line-height: 1.25; }
 .activity-card-title { padding: 0; border: 0; background: transparent; color: #003660; font: inherit; font-size: 1.35rem; font-weight: 700; text-align: left; overflow-wrap: anywhere; cursor: pointer; }
 .activity-card-title:focus-visible { outline: 2px solid #176b72; outline-offset: 3px; }
 .activity-card-meta, .activity-card-bottom { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: #536477; font-size: .78rem; }
-.activity-card-meta { margin-top: 8px; }
+.activity-card-meta { align-content: start; font-size: .72rem; overflow-wrap: anywhere; }
 .activity-target-tags, .activity-target-options { display: flex; flex-wrap: wrap; gap: 6px; }
 .activity-target-tags { margin-top: 10px; }
+.activity-card > .activity-target-tags { align-content: start; align-items: start; min-height: 42px; margin-top: 0; }
 .activity-detail-targets { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 1em 0; }
 .activity-detail-targets .activity-target-tags { margin-top: 0; }
 .activity-target-fieldset { min-width: 0; margin: 0; padding: 10px 12px 12px; border: 1px solid #d7e1eb; border-radius: 6px; }
 .activity-target-fieldset legend { padding: 0 4px; color: #003660; font-size: .9rem; font-weight: 600; }
 .activity-target-options label { display: inline-flex; align-items: center; gap: 6px; color: #536477; font-size: .9rem; }
-.activity-card-description { color: #536477; line-height: 1.5; overflow-wrap: anywhere; }
-.activity-card-bottom { justify-content: space-between; margin-top: 16px; }
-.activity-card-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.activity-card-description { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; min-height: 4.5em; max-height: 4.5em; margin: 0; color: #536477; line-height: 1.5; overflow-wrap: anywhere; }
+.activity-card-bottom { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-self: end; min-height: 36px; }
+.activity-card-bottom .activity-linked-badge-list { justify-content: flex-end; }
+.activity-card-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .activity-card-actions .activity-tool-button { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; }
 .activity-tool-button svg { width: 20px; height: 20px; }
 .activity-form { display: grid; gap: 12px; }

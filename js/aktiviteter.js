@@ -149,7 +149,15 @@
                 const localBadge = isLocal
                     ? `<span class="activity-local-badge" title="Sparas bara i den här webbläsaren – inte i kårens databas">Lokal</span>`
                     : "";
-                return `<article class="activity-card${isLocal ? " activity-card--local" : ""}"><span class="recipe-category">${escapeHtml(category)}</span><div class="activity-card-meta"><span class="activity-owner-badge ${own ? "activity-owner-badge--mine" : "activity-owner-badge--other"}">${own ? "Min kår" : "Annan kår"}</span>${localBadge}<span>${escapeHtml(owner(activity))}</span></div>${activity.malgrupp?.length ? `<div class="activity-target-tags" aria-label="Målgrupper">${renderTargetGroups(activity)}</div>` : ""}<h2><button class="activity-card-title" type="button" data-activity-action="view" data-activity-id="${escapeHtml(activity.id)}">${escapeHtml(activity.namn)}</button></h2><p class="activity-card-description">${escapeHtml(activity.beskrivning || "")}</p><div class="activity-card-bottom"><span>${escapeHtml(activity.tid || "Ingen tidsangivelse")}</span><div class="activity-linked-badge-list">${renderBadgeIcons(activity)}</div></div><div class="activity-card-actions">${sync.canDeleteActivity(activity) ? `<button class="btn-danger activity-tool-button" type="button" data-activity-action="delete" data-activity-id="${escapeHtml(activity.id)}" aria-label="Radera ${escapeHtml(activity.namn)}" title="Radera">${deleteIcon}</button>` : ""}</div></article>`;
+                const time = String(activity.tid || "").trim();
+                const timeLabel = /^\d+(?:[.,]\d+)?$/.test(time) ? `${time} min` : time || "Ingen tidsangivelse";
+                return `<article class="activity-card${isLocal ? " activity-card--local" : ""}">
+                    <h2><button class="activity-card-title" type="button" data-activity-action="view" data-activity-id="${escapeHtml(activity.id)}">${escapeHtml(activity.namn)}</button></h2>
+                    <div class="activity-card-meta"><span class="activity-owner-badge ${own ? "activity-owner-badge--mine" : "activity-owner-badge--other"}">${own ? "Min kår" : "Annan kår"}</span>${localBadge}<span>${escapeHtml(owner(activity))}</span></div>
+                    <div class="activity-target-tags" aria-label="Målgrupper">${renderTargetGroups(activity)}</div>
+                    <p class="activity-card-description">${escapeHtml(activity.beskrivning || "")}</p>
+                    <div class="activity-card-bottom"><span>${escapeHtml(timeLabel)}</span><div class="activity-linked-badge-list">${renderBadgeIcons(activity)}</div><div class="activity-card-actions">${sync.canDeleteActivity(activity) ? `<button class="btn-danger activity-tool-button" type="button" data-activity-action="delete" data-activity-id="${escapeHtml(activity.id)}" aria-label="Radera ${escapeHtml(activity.namn)}" title="Radera">${deleteIcon}</button>` : ""}</div></div>
+                </article>`;
             }).join("");
             group.addEventListener("toggle", () => {
                 if (group.open) collapsedCategories.delete(category);
