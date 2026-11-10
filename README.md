@@ -15,6 +15,10 @@ Projektet innehåller:
 
 Utvecklas med HTML, CSS och JavaScript.
 
+## Märken
+
+Märkesbiblioteket visar hela katalogen med sökning och filter. Under **Visa** finns **Målgruppsvy** för att gruppera märkena. Standardplaneringarnas märken visas i **Funktioner → Utvecklingstrappa**, inte som ett separat val i märkesbiblioteket.
+
 ## Inloggning och synkning
 
 Inloggningen gäller hela applikationen på samma webbplats och återställs när du byter sida. Varje vy hämtar sin data från Supabase med användarens kår och behörigheter. Utan inloggning finns det lokala läget kvar.
