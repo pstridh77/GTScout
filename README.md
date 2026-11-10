@@ -21,6 +21,8 @@ Märkesbiblioteket visar hela katalogen med sökning och filter. Under **Visa** 
 
 I utvecklingstrappans **Översikt** finns **Skriv ut A3**. Utskriften visar hela den valda standardplaneringens översikt med alla målgrupper, år och terminer på en stående A3-sida. Välj A3, stående format och stäng av webbläsarens sidhuvud och sidfot i utskriftsdialogen om inställningarna inte följer med automatiskt. Utskriften kan även sparas som PDF.
 
+I utskriften visas åren i fallande ordning, med sista året överst (år 3, år 2, år 1). VT visas före HT inom varje år. Översikten på skärmen behåller stigande årsordning med HT före VT.
+
 ## Inloggning och synkning
 
 Inloggningen gäller hela applikationen på samma webbplats och återställs när du byter sida. Varje vy hämtar sin data från Supabase med användarens kår och behörigheter. Utan inloggning finns det lokala läget kvar.

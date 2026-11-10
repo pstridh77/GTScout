@@ -8,6 +8,7 @@ function createPage(narrow, options = {}) {
     const elements = new Map();
     const prints = [];
     const errors = [];
+    const windowHandlers = {};
     function element(id) {
         if (!elements.has(id)) {
             const classes = new Set();
@@ -24,7 +25,9 @@ function createPage(narrow, options = {}) {
                 setAttribute(name, value) { this.attributes[name] = value; },
                 addEventListener(name, handler) { this.handlers[name] = handler; },
                 replaceChildren() {},
-                querySelectorAll: () => options.images || []
+                querySelectorAll: selector => selector === "tbody[data-development-year]"
+                    ? options.yearGroups || []
+                    : options.images || []
             });
         }
         return elements.get(id);
@@ -40,18 +43,22 @@ function createPage(narrow, options = {}) {
     };
     const context = vm.createContext({
         document: { getElementById: element, querySelectorAll: () => buttons },
-        window: { matchMedia: () => media, print: () => prints.push("print") },
+        window: {
+            matchMedia: () => media,
+            print: () => prints.push("print"),
+            addEventListener: (name, handler) => { windowHandlers[name] = handler; }
+        },
         console: { error: (...args) => errors.push(args) },
         Option: function (text, value) { this.text = text; this.value = value; },
         fetch: async url => ({
             ok: !options.loadError,
             json: async () => url.includes("default-planeringar")
-                ? [{ name: "Test", plannings: [] }]
+                ? options.templates || [{ name: "Test", plannings: [] }]
                 : []
         })
     });
     vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "js", "development-ladder.js"), "utf8"), context);
-    return { elements, buttons, media, prints, errors };
+    return { elements, buttons, media, prints, errors, windowHandlers };
 }
 
 for (const narrow of [true, false]) {
@@ -148,3 +155,79 @@ test("printing stays disabled when planning data cannot be loaded", async () => 
     assert.equal(page.prints.length, 0);
     assert.equal(page.elements.get("printDevelopmentOverviewBtn").disabled, true);
 });
+
+test("overview keeps HT and VT together in ascending year groups on screen", async () => {
+    const templates = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "data", "default-planeringar.json"), "utf8"));
+    const page = createPage(false, { templates });
+    await new Promise(resolve => setImmediate(resolve));
+    const html = page.elements.get("developmentLadder").innerHTML;
+    const groups = [...html.matchAll(/<tbody data-development-year="(\d+)">([\s\S]*?)<\/tbody>/g)];
+    assert.deepEqual(groups.map(group => Number(group[1])), [1, 2, 3]);
+    for (const [, year, rows] of groups) {
+        assert.deepEqual([...rows.matchAll(/data-term="(HT|VT)"/g)].map(match => match[1]), ["HT", "VT"]);
+        assert.ok(rows.includes(`rowspan="2">År ${year}</th>`));
+    }
+});
+
+for (const years of [[], [1], [1, 2, 3], [1, 2, 3, 4]]) {
+    test(`printing reverses ${years.length} year groups and restores screen order after print or cancel`, async () => {
+        const groups = years.map(year => {
+            const heading = { rowSpan: 2, parentElement: null };
+            const rows = ["HT", "VT"].map(term => ({
+                term,
+                children: [],
+                querySelector: selector => selector === `[data-term="${term}"]` ? { dataset: { term } } : null,
+                prepend(node) {
+                    if (node.parentElement) {
+                        const children = node.parentElement.children;
+                        children.splice(children.indexOf(node), 1);
+                    }
+                    this.children.unshift(node);
+                    node.parentElement = this;
+                }
+            }));
+            rows[0].prepend(heading);
+            return {
+                dataset: { developmentYear: String(year) },
+                rows,
+                heading,
+                querySelector: () => heading,
+                prepend(row) {
+                    rows.splice(rows.indexOf(row), 1);
+                    rows.unshift(row);
+                }
+            };
+        });
+        const table = {
+            appendChild(group) {
+                groups.splice(groups.indexOf(group), 1);
+                groups.push(group);
+            }
+        };
+        groups.forEach(group => { group.parentElement = table; });
+        const page = createPage(false, { yearGroups: groups });
+        await new Promise(resolve => setImmediate(resolve));
+        const order = () => groups.map(group => Number(group.dataset.developmentYear));
+        const assertTerms = expected => {
+            for (const group of groups) {
+                assert.deepEqual(group.rows.map(row => row.term), expected);
+                assert.equal(group.rows[0].children[0], group.heading);
+                assert.equal(group.rows[1].children.includes(group.heading), false);
+                assert.equal(group.heading.rowSpan, 2);
+            }
+        };
+        assert.deepEqual(order(), years);
+        assertTerms(["HT", "VT"]);
+        for (let attempt = 0; attempt < 2; attempt++) {
+            page.windowHandlers.beforeprint();
+            assert.deepEqual(order(), [...years].reverse());
+            assertTerms(["VT", "HT"]);
+            page.windowHandlers.beforeprint();
+            assert.deepEqual(order(), [...years].reverse());
+            assertTerms(["VT", "HT"]);
+            page.windowHandlers.afterprint();
+            assert.deepEqual(order(), years);
+            assertTerms(["HT", "VT"]);
+        }
+    });
+}

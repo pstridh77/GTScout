@@ -4206,7 +4206,7 @@ select:focus {
     border-right: 0;
 }
 
-.development-overview-table tbody tr:last-child > * {
+.development-overview-table tbody:last-child tr:last-child > * {
     border-bottom: 0;
 }
 

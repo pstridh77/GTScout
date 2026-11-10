@@ -130,9 +130,10 @@
             const icon = LEVEL_ICONS[level];
             return `<th class="development-overview-group" data-target-group="${escapeHtml(level)}" scope="col">${icon ? `<img src="${escapeHtml(icon)}" alt="">` : ""}<span>${escapeHtml(level)}</span></th>`;
         }).join("");
-        const rows = [];
+        const yearGroups = [];
 
         for (let year = 1; year <= maxYear; year += 1) {
+            const rows = [];
             ["HT", "VT"].forEach((term, termIndex) => {
                 const termLabel = term === "HT" ? "Hösttermin · HT" : "Vårtermin · VT";
                 const cells = indexedLevels.map(({ level, badgesByTerm }) => {
@@ -146,10 +147,27 @@
                 }).join("");
                 rows.push(`<tr>${termIndex === 0 ? `<th class="development-overview-year" scope="rowgroup" rowspan="2">År ${year}</th>` : ""}<th class="development-overview-term" scope="row" data-term="${term}">${termLabel}</th>${cells}</tr>`);
             });
+            yearGroups.push(`<tbody data-development-year="${year}">${rows.join("")}</tbody>`);
         }
 
-        return `<div class="development-overview-scroll"><table class="development-overview-table"><caption>Märken per målgrupp, år och termin</caption><thead><tr><th class="development-overview-axis" scope="col" colspan="2">År och termin</th>${headers}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
+        return `<div class="development-overview-scroll"><table class="development-overview-table"><caption>Märken per målgrupp, år och termin</caption><thead><tr><th class="development-overview-axis" scope="col" colspan="2">År och termin</th>${headers}</tr></thead>${yearGroups.join("")}</table></div>`;
     }
+
+    function orderOverviewYears(descending) {
+        const yearGroups = [...ladder.querySelectorAll("tbody[data-development-year]")];
+        yearGroups.sort((a, b) => (Number(a.dataset.developmentYear) - Number(b.dataset.developmentYear)) * (descending ? -1 : 1));
+        yearGroups.forEach(group => {
+            const firstTerm = descending ? "VT" : "HT";
+            const firstRow = [...group.rows].find(row => row.querySelector(`[data-term="${firstTerm}"]`));
+            const yearHeading = group.querySelector(".development-overview-year");
+            firstRow.prepend(yearHeading);
+            group.prepend(firstRow);
+            group.parentElement.appendChild(group);
+        });
+    }
+
+    window.addEventListener("beforeprint", () => orderOverviewYears(true));
+    window.addEventListener("afterprint", () => orderOverviewYears(false));
 
     function render() {
         viewButtons.forEach(button => button.setAttribute("aria-pressed", String(button.dataset.developmentView === viewMode)));

@@ -79,6 +79,10 @@ body {
     break-inside: avoid;
 }
 
+.development-overview-table tbody {
+    break-inside: avoid;
+}
+
 .development-overview-axis {
     width: 32mm;
 }
