@@ -19,6 +19,8 @@ Utvecklas med HTML, CSS och JavaScript.
 
 Märkesbiblioteket visar hela katalogen med sökning och filter. Under **Visa** finns **Målgruppsvy** för att gruppera märkena. Standardplaneringarnas märken visas i **Funktioner → Utvecklingstrappa**, inte som ett separat val i märkesbiblioteket.
 
+I utvecklingstrappans **Översikt** finns **Skriv ut A3**. Utskriften visar hela den valda standardplaneringens översikt med alla målgrupper, år och terminer på en stående A3-sida. Välj A3, stående format och stäng av webbläsarens sidhuvud och sidfot i utskriftsdialogen om inställningarna inte följer med automatiskt. Utskriften kan även sparas som PDF.
+
 ## Inloggning och synkning
 
 Inloggningen gäller hela applikationen på samma webbplats och återställs när du byter sida. Varje vy hämtar sin data från Supabase med användarens kår och behörigheter. Utan inloggning finns det lokala läget kvar.

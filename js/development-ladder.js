@@ -12,6 +12,7 @@
     const ladder = document.getElementById("developmentLadder");
     const summary = document.getElementById("developmentLadderSummary");
     const status = document.getElementById("developmentLadderStatus");
+    const printButton = document.getElementById("printDevelopmentOverviewBtn");
     const viewButtons = [...document.querySelectorAll("[data-development-view]")];
     const badgeDialog = document.getElementById("developmentBadgeDialog");
     const badgeDialogContent = document.getElementById("developmentBadgeDetails");
@@ -19,6 +20,7 @@
     let templates = [];
     let badgesById = new Map();
     let badgeDialogTrigger = null;
+    let preparingPrint = false;
     const narrowScreen = window.matchMedia("(max-width: 600px)");
     let viewMode = narrowScreen.matches ? "list" : "overview";
 
@@ -138,7 +140,7 @@
                     const badges = badgeIds.map(badgeId => {
                         const badge = badgesById.get(badgeId);
                         if (!badge) return `<span class="development-overview-missing" title="Märket ${escapeHtml(badgeId)} saknas i märkeskatalogen">${escapeHtml(badgeId)}</span>`;
-                        return `<button class="development-overview-badge" type="button" data-badge-id="${escapeHtml(badge.id)}" title="${escapeHtml(badge.namn)}" aria-label="Visa information om ${escapeHtml(badge.namn)}, målgrupp ${escapeHtml(level)}"><img src="${escapeHtml(badge.bild || "")}" alt="" loading="lazy"></button>`;
+                        return `<button class="development-overview-badge" type="button" data-badge-id="${escapeHtml(badge.id)}" title="${escapeHtml(badge.namn)}" aria-label="Visa information om ${escapeHtml(badge.namn)}, målgrupp ${escapeHtml(level)}"><img src="${escapeHtml(badge.bild || "")}" alt=""></button>`;
                     }).join("");
                     return `<td data-target-group="${escapeHtml(level)}"><div class="development-overview-cell">${badges}</div></td>`;
                 }).join("");
@@ -152,6 +154,8 @@
     function render() {
         viewButtons.forEach(button => button.setAttribute("aria-pressed", String(button.dataset.developmentView === viewMode)));
         const template = templates[Number(templateSelect.value)] || templates[0];
+        printButton.classList.toggle("hidden", viewMode !== "overview");
+        printButton.disabled = preparingPrint || !template || viewMode !== "overview";
         if (!template) return;
         const templateLevels = new Map((template.plannings || []).map(level => [level.level, level]));
         const badgeCount = (template.plannings || []).reduce((count, level) => count + (level.plans || []).reduce((levelCount, plan) => levelCount + (plan.badges || []).length, 0), 0);
@@ -171,6 +175,29 @@
             viewMode = button.dataset.developmentView;
             render();
         });
+    });
+
+    printButton.addEventListener("click", async () => {
+        if (printButton.disabled) return;
+        const selectedTemplate = templateSelect.value;
+        preparingPrint = true;
+        printButton.disabled = true;
+        try {
+            await Promise.all([...ladder.querySelectorAll("img")].map(image => image.decode()));
+            if (viewMode !== "overview" || templateSelect.value !== selectedTemplate) {
+                throw new Error("Vyn har ändrats. Välj Skriv ut A3 igen.");
+            }
+            status.textContent = `Visar ${(templates[Number(selectedTemplate)] || templates[0]).name}.`;
+            status.classList.remove("development-ladder-status--error");
+            window.print();
+        } catch (error) {
+            console.error("Kunde inte skriva ut utvecklingstrappan.", error);
+            status.textContent = error.message || "Utskriften kunde inte förberedas. Kontrollera att alla märkesbilder går att hämta och försök igen.";
+            status.classList.add("development-ladder-status--error");
+        } finally {
+            preparingPrint = false;
+            printButton.disabled = !templates.length || viewMode !== "overview";
+        }
     });
 
     render();
