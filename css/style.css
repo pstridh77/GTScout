@@ -382,6 +382,11 @@ body {
 .arrangement-equipment-list { display: grid; gap: 0; margin: 0; padding: 0 0 0 8px; list-style: none; }
 .arrangement-equipment-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; padding: 4px 2px; }
 .arrangement-equipment-row > span { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 5px; min-width: 0; overflow-wrap: anywhere; }
+.arrangement-equipment-actions, .arrangement-equipment-edit-actions { display: flex !important; flex: 0 0 auto; align-items: center; gap: 5px; }
+.arrangement-equipment-edit { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 28px; width: 28px; height: 28px; padding: 0; border: 1px solid #d7e1eb; border-radius: 5px; background: #fff; color: #286d60; cursor: pointer; }
+.arrangement-equipment-edit svg { width: 15px; height: 15px; }
+.arrangement-equipment-edit:hover { background: #e8f2ef; }
+.arrangement-equipment-edit:focus-visible { outline: 2px solid #4d8275; outline-offset: 2px; }
 .arrangement-equipment-row strong { color: #263c42; font-size: .82rem; font-weight: 400; }
 .arrangement-equipment-row small { color: #65767b; font-size: .72rem; }
 .arrangement-equipment-remove { flex: 0 0 28px; width: 28px; height: 28px; border: 0; background: transparent; color: #8e4634; font-size: 1.1rem; cursor: pointer; }
@@ -389,6 +394,10 @@ body {
 .arrangement-equipment-entry { display: grid; gap: 7px; padding-top: 8px; border-top: 1px solid #e2e8e8; }
 .arrangement-equipment-entry > h5 { margin: 0; color: #153c4a; font-size: .8rem; }
 .arrangement-equipment-add { display: grid; grid-template-columns: minmax(180px, 2fr) minmax(130px, 1fr) minmax(145px, 1fr) auto; align-items: end; gap: 8px; }
+.arrangement-equipment-edit-form { display: grid; width: 100%; grid-template-columns: minmax(150px, 2fr) minmax(110px, 1fr) minmax(130px, 1fr) auto; align-items: end; gap: 8px; }
+.arrangement-equipment-edit-form label { display: grid; gap: 4px; min-width: 0; color: #52636a; font-size: .72rem; font-weight: 600; }
+.arrangement-equipment-edit-form input, .arrangement-equipment-edit-form select { box-sizing: border-box; width: 100%; min-width: 0; min-height: 36px; padding: 7px 8px; border: 1px solid #c8d5d8; border-radius: 4px; background: #fff; color: #153c4a; font: inherit; font-size: .8rem; }
+.arrangement-equipment-edit-form [data-equipment-status] { grid-column: 1 / -1; margin: 0; }
 .arrangement-equipment-add label { display: grid; gap: 4px; min-width: 0; color: #52636a; font-size: .72rem; font-weight: 600; }
 .arrangement-equipment-add input, .arrangement-equipment-add select { box-sizing: border-box; width: 100%; min-width: 0; min-height: 36px; padding: 7px 8px; border: 1px solid #c8d5d8; border-radius: 4px; background: #fff; color: #153c4a; font: inherit; font-size: .8rem; }
 .arrangement-equipment-add button { min-height: 36px; padding: 6px 10px; }
@@ -406,7 +415,7 @@ body {
 .arrangement-equipment-tent-department:last-child { border-bottom: 0; }
 .arrangement-equipment-tent-department strong { min-width: 100px; color: #263c42; }
 .arrangement-equipment[open] > .arrangement-section-summary::before { transform: rotate(45deg); }
-@media (max-width: 760px) { .arrangement-equipment-add { grid-template-columns: repeat(2, minmax(0, 1fr)); } .arrangement-equipment-add label:first-child, .arrangement-equipment-add [data-equipment-status] { grid-column: 1 / -1; } }
+@media (max-width: 760px) { .arrangement-equipment-add { grid-template-columns: repeat(2, minmax(0, 1fr)); } .arrangement-equipment-add label:first-child, .arrangement-equipment-add [data-equipment-status] { grid-column: 1 / -1; } .arrangement-equipment-edit-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } .arrangement-equipment-edit-form label:first-child, .arrangement-equipment-edit-form [data-equipment-status] { grid-column: 1 / -1; } }
 #arrangementNotesModal { z-index: 3100; }
 #arrangementCoordinatesModal { z-index: 3100; }
 .arrangement-notes-dialog-content { box-sizing: border-box; max-height: calc(100vh - 24px); overflow-y: auto; }

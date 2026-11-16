@@ -147,7 +147,7 @@ test("arrangement materials sort general, department, then program groups", () =
         formatArrangementDate: date => date
     });
     vm.runInContext(source.slice(start, end), context);
-    const html = context.renderArrangementEquipment({
+    const arrangement = {
         id: "materials-sort-test",
         departments: ["Spårare", "Upptäckare"],
         agenda: [
@@ -161,12 +161,13 @@ test("arrangement materials sort general, department, then program groups", () =
             { id: "department-stove", name: "Stormkök", scope: "department", department: "Spårare" },
             { id: "department-map", name: "Karta", scope: "department", department: "Spårare" },
         ], tents_by_department: { "Spårare": { "3-manna": 2, "4-manna": 1 }, "Upptäckare": { "3-manna": 1 } }, excluded_activity_materials: [] }
-    }, false);
+    };
+    const html = context.renderArrangementEquipment(arrangement, false);
     const groupTitles = [...html.matchAll(/<h5><strong>(.*?)<\/strong><\/h5>/g)].map(match => match[1]);
     assert.deepEqual(groupTitles, ["Allmänt", "Matlag", "Spårare"]);
     assert.ok(html.indexOf("Kompass") < html.indexOf("Låda kompass"));
     assert.ok(html.indexOf("Karta") < html.indexOf("Stormkök"));
-    assert.match(html, /arrangement-equipment-group--kitchen[^>]*><h5><strong>Matlag<\/strong><\/h5><ul class="arrangement-equipment-list"><li class="arrangement-equipment-row"><span><strong>Gryta<\/strong>/);
+    assert.match(html, /arrangement-equipment-group--kitchen[^>]*><h5><strong>Matlag<\/strong><\/h5><ul class="arrangement-equipment-list"><li class="arrangement-equipment-row" data-equipment-item="kitchen-pot"><span><strong>Gryta<\/strong>/);
     const generalStart = html.indexOf('class="arrangement-equipment-group arrangement-equipment-group--general"');
     const departmentStart = html.indexOf('class="arrangement-equipment-group arrangement-equipment-group--department');
     const generalMarkup = html.slice(generalStart, departmentStart);
@@ -182,6 +183,10 @@ test("arrangement materials sort general, department, then program groups", () =
     assert.match(html, /<strong>Upptäckare<\/strong><span>1 × 3-manna<\/span>/);
     assert.doesNotMatch(html, /<table class="arrangement-equipment-tent-matrix"|<tfoot>/);
     assert.doesNotMatch(html, /Y-Tält|Militärtält/);
+    const editableHtml = context.renderArrangementEquipment(arrangement, true);
+    assert.match(editableHtml, /data-edit-equipment="kitchen-pot"/);
+    assert.match(editableHtml, /aria-label="Redigera Gryta"/);
+    assert.doesNotMatch(editableHtml, /data-edit-equipment="bake-point"/);
 });
 
 test("agenda material text parses one trimmed item per line", () => {

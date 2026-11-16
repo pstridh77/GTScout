@@ -320,8 +320,12 @@ function renderArrangementEquipment(item, editable) {
         ? `<button type="button" class="arrangement-equipment-remove" ${attributes} aria-label="Ta bort ${escapeArrangementHtml(label)}" title="Ta bort material">&times;</button>`
         : "";
     const compareMaterialNames = (left, right) => left.name.localeCompare(right.name, "sv");
-    const renderManualMaterialRow = (entry, source = "") =>
-        `<li class="arrangement-equipment-row"><span><strong>${escapeArrangementHtml(entry.name)}</strong>${source ? `<small>${escapeArrangementHtml(source)}</small>` : ""}</span>${renderRemoveButton(`data-remove-equipment="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}"`, entry.name)}</li>`;
+    const renderManualMaterialRow = (entry, source = "") => {
+        const actions = editable
+            ? `<span class="arrangement-equipment-actions"><button type="button" class="arrangement-equipment-edit" data-edit-equipment="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}" aria-label="Redigera ${escapeArrangementHtml(entry.name)}" title="Redigera material"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75-11.06 11.06ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/></svg></button>${renderRemoveButton(`data-remove-equipment="${escapeArrangementHtml(entry.id)}" data-arrangement-id="${escapeArrangementHtml(item.id)}"`, entry.name)}</span>`
+            : "";
+        return `<li class="arrangement-equipment-row" data-equipment-item="${escapeArrangementHtml(entry.id)}"><span><strong>${escapeArrangementHtml(entry.name)}</strong>${source ? `<small>${escapeArrangementHtml(source)}</small>` : ""}</span>${actions}</li>`;
+    };
     const renderActivityMaterialRow = entry => {
         const removeAttributes = `data-remove-activity-material="${entry.materialIndex}" data-agenda-id="${escapeArrangementHtml(entry.agendaId)}" data-arrangement-id="${escapeArrangementHtml(item.id)}"`;
         return `<li class="arrangement-equipment-row arrangement-equipment-row--source"><span><strong>${escapeArrangementHtml(entry.name)}</strong><small>${escapeArrangementHtml(entry.agendaName)}</small></span>${renderRemoveButton(removeAttributes, entry.name)}</li>`;
@@ -2087,12 +2091,44 @@ arrangementsGrid.addEventListener("change", async event => {
         return;
     }
     const scope = event.target.closest(".arrangement-equipment-add select[name='scope']");
-    if (!scope) return;
-    const form = scope.closest("form");
-    form.querySelector("[data-equipment-department-field]").classList.toggle("hidden", scope.value !== "department");
+    const editScope = event.target.closest(".arrangement-equipment-edit-form select[name='scope']");
+    const selectedScope = scope || editScope;
+    if (!selectedScope) return;
+    selectedScope.closest("form").querySelector("[data-equipment-department-field]").classList.toggle("hidden", selectedScope.value !== "department");
 });
 
 arrangementsGrid.addEventListener("submit", async event => {
+    const editForm = event.target.closest("[data-edit-equipment-form]");
+    if (editForm) {
+        event.preventDefault();
+        const arrangement = arrangements.find(item => item.id === editForm.dataset.arrangementId);
+        const status = editForm.querySelector("[data-equipment-status]");
+        if (!arrangement || !isArrangementDetailEditable(arrangement)) return;
+        const formData = new FormData(editForm);
+        const name = String(formData.get("name") || "").trim();
+        const scope = String(formData.get("scope") || "general");
+        const department = String(formData.get("department") || "");
+        if (!name || (scope === "department" && !department)) {
+            status.textContent = "Ange material och välj avdelning.";
+            return;
+        }
+        const equipment = cloneArrangementEquipment(arrangement.equipment);
+        const entry = equipment.items.find(material => material.id === editForm.dataset.equipmentItem);
+        if (!entry) {
+            status.textContent = "Materialet kunde inte hittas.";
+            return;
+        }
+        Object.assign(entry, { name, scope, department: scope === "department" ? department : "", agenda_id: "" });
+        const saveButton = editForm.querySelector("[type='submit']");
+        saveButton.disabled = true;
+        try {
+            await saveArrangementEquipment(arrangement, equipment);
+        } catch (error) {
+            status.textContent = error.message || "Materialet kunde inte sparas.";
+            saveButton.disabled = false;
+        }
+        return;
+    }
     const form = event.target.closest("[data-add-equipment]");
     if (!form) return;
     event.preventDefault();
@@ -2126,6 +2162,24 @@ arrangementsGrid.addEventListener("submit", async event => {
 });
 
 arrangementsGrid.addEventListener("click", async event => {
+    const editButton = event.target.closest("[data-edit-equipment]");
+    if (editButton) {
+        const arrangement = arrangements.find(item => item.id === editButton.dataset.arrangementId);
+        const entry = arrangement?.equipment?.items?.find(material => material.id === editButton.dataset.editEquipment);
+        if (!arrangement || !entry || !isArrangementDetailEditable(arrangement)) return;
+        const row = editButton.closest("[data-equipment-item]");
+        if (!row) return;
+        const departmentOptions = arrangement.departments.map(department =>
+            `<option value="${escapeArrangementHtml(department)}"${entry.department === department ? " selected" : ""}>${escapeArrangementHtml(department)}</option>`
+        ).join("");
+        row.innerHTML = `<form class="arrangement-equipment-edit-form" data-edit-equipment-form data-arrangement-id="${escapeArrangementHtml(arrangement.id)}" data-equipment-item="${escapeArrangementHtml(entry.id)}"><label><span>Material</span><input type="text" name="name" maxlength="120" required value="${escapeArrangementHtml(entry.name)}"></label><label><span>Gäller</span><select name="scope"><option value="general"${entry.scope === "general" ? " selected" : ""}>Allmänt</option><option value="kitchen"${entry.scope === "kitchen" ? " selected" : ""}>Matlag</option><option value="department"${entry.scope === "department" ? " selected" : ""}>Avdelning</option></select></label><label class="${entry.scope === "department" ? "" : "hidden"}" data-equipment-department-field><span>Avdelning</span><select name="department">${departmentOptions}</select></label><span class="arrangement-equipment-edit-actions"><button type="submit" class="btn-secondary">Spara</button><button type="button" class="btn-secondary" data-cancel-equipment-edit>Avbryt</button></span><p class="detail-planning-status" data-equipment-status role="status" aria-live="polite"></p></form>`;
+        row.querySelector("input[name='name']").focus();
+        return;
+    }
+    if (event.target.closest("[data-cancel-equipment-edit]")) {
+        renderArrangements();
+        return;
+    }
     const button = event.target.closest("[data-remove-equipment]");
     const activityButton = event.target.closest("[data-remove-activity-material]");
     if (!button && !activityButton) return;
