@@ -93,7 +93,7 @@
         }).filter(entry => entry.person || entry.role || entry.description) : [];
         const equipment = item.equipment && typeof item.equipment === "object" ? item.equipment : {};
         const equipmentItems = Array.isArray(equipment.items) ? equipment.items.map(entry => {
-            const scope = ["general", "department", "agenda"].includes(entry?.scope) ? entry.scope : "general";
+            const scope = ["general", "kitchen", "department", "agenda"].includes(entry?.scope) ? entry.scope : "general";
             return {
                 id: String(entry?.id || crypto.randomUUID()),
                 name: String(entry?.name || "").trim(),

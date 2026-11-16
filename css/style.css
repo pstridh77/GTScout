@@ -373,6 +373,8 @@ body {
 .arrangement-equipment-group { box-sizing: border-box; width: fit-content; max-width: 100%; min-width: 0; padding: 3px 7px; border-left: 2px solid #4d8275; }
 .arrangement-equipment-group--general { border-left-color: #003660; }
 .arrangement-equipment-group--general > h5 { color: #003660; }
+.arrangement-equipment-group--kitchen { border-left-color: #a45b2a; }
+.arrangement-equipment-group--kitchen > h5 { color: #8c4c22; }
 .arrangement-equipment-group--department { border-left-color: var(--department-color, #4d8275); }
 .arrangement-equipment-group--agenda { border-left-color: #0876a8; }
 .arrangement-equipment-group > h5 { display: flex; align-items: baseline; gap: 8px; min-width: 0; margin: 0 0 4px; color: #153c4a; font-size: .8rem; overflow-wrap: anywhere; }

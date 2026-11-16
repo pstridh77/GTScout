@@ -96,6 +96,7 @@ for (const signedIn of [false, true]) {
         const equipment = {
             items: [
                 { id: "general-item", name: "Stormkök", quantity: 2, unit: "st.", scope: "general" },
+                { id: "kitchen-item", name: "Gryta", scope: "kitchen" },
                 { id: "agenda-item", name: "Rep", quantity: 12, unit: "m", scope: "agenda", agenda_id: "program-1" }
             ],
             tents_by_department: { "Spårare": { "3-manna": 2, "4-manna": 1 }, Rover: ["Y-Tält"] },
@@ -106,7 +107,10 @@ for (const signedIn of [false, true]) {
             agenda: [{ id: "program-1", date: "2026-10-09", title: "Lägerbål" }], equipment
         });
         const expected = {
-            items: [{ id: "general-item", name: "Stormkök", scope: "general", department: "", agenda_id: "" }],
+            items: [
+                { id: "general-item", name: "Stormkök", scope: "general", department: "", agenda_id: "" },
+                { id: "kitchen-item", name: "Gryta", scope: "kitchen", department: "", agenda_id: "" }
+            ],
             tents_by_department: { "Spårare": { "3-manna": 2, "4-manna": 1 }, Rover: { "Y-Tält": 1 } },
             excluded_activity_materials: [{ agenda_id: "program-1", index: 1 }]
         };
@@ -153,14 +157,16 @@ test("arrangement materials sort general, department, then program groups", () =
         equipment: { items: [
             { id: "general-lid", name: "Låda kompass", scope: "general" },
             { id: "general-compass", name: "Kompass", scope: "general" },
+            { id: "kitchen-pot", name: "Gryta", scope: "kitchen" },
             { id: "department-stove", name: "Stormkök", scope: "department", department: "Spårare" },
             { id: "department-map", name: "Karta", scope: "department", department: "Spårare" },
         ], tents_by_department: { "Spårare": { "3-manna": 2, "4-manna": 1 }, "Upptäckare": { "3-manna": 1 } }, excluded_activity_materials: [] }
     }, false);
     const groupTitles = [...html.matchAll(/<h5><strong>(.*?)<\/strong><\/h5>/g)].map(match => match[1]);
-    assert.deepEqual(groupTitles, ["Allmänt", "Spårare"]);
+    assert.deepEqual(groupTitles, ["Allmänt", "Matlag", "Spårare"]);
     assert.ok(html.indexOf("Kompass") < html.indexOf("Låda kompass"));
     assert.ok(html.indexOf("Karta") < html.indexOf("Stormkök"));
+    assert.match(html, /arrangement-equipment-group--kitchen[^>]*><h5><strong>Matlag<\/strong><\/h5><ul class="arrangement-equipment-list"><li class="arrangement-equipment-row"><span><strong>Gryta<\/strong>/);
     const generalStart = html.indexOf('class="arrangement-equipment-group arrangement-equipment-group--general"');
     const departmentStart = html.indexOf('class="arrangement-equipment-group arrangement-equipment-group--department');
     const generalMarkup = html.slice(generalStart, departmentStart);

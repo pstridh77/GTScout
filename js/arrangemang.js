@@ -348,6 +348,11 @@ function renderArrangementEquipment(item, editable) {
         ...materials.filter(entry => entry.scope === "general").map(entry => ({ name: entry.name, markup: renderManualMaterialRow(entry) })),
         ...generalProgramRows
     ].sort((left, right) => compareMaterialNames(left, right)).map(entry => entry.markup);
+    const kitchenRows = materials
+        .filter(entry => entry.scope === "kitchen")
+        .map(entry => ({ name: entry.name, markup: renderManualMaterialRow(entry) }))
+        .sort((left, right) => compareMaterialNames(left, right))
+        .map(entry => entry.markup);
     const departmentGroups = item.departments.map(department => {
         const rows = [
             ...materials.filter(entry => entry.scope === "department" && entry.department === department).map(entry => ({ name: entry.name, markup: renderManualMaterialRow(entry) })),
@@ -361,6 +366,7 @@ function renderArrangementEquipment(item, editable) {
     }).filter(Boolean);
     const materialGroups = [
         renderMaterialGroup("Allmänt", generalRows, "arrangement-equipment-group--general"),
+        renderMaterialGroup("Matlag", kitchenRows, "arrangement-equipment-group--kitchen"),
         ...departmentGroups,
     ].filter(Boolean);
     const materialList = materialGroups.length
@@ -386,7 +392,7 @@ function renderArrangementEquipment(item, editable) {
     const tentSections = editable
         ? `<div class="arrangement-equipment-tent-matrix-wrap"><table class="arrangement-equipment-tent-matrix"><thead><tr><th scope="col">Avdelning</th>${tentHeaders}<th scope="col">Totalt</th></tr></thead><tbody>${tentRows}</tbody><tfoot><tr><th scope="row">Totalt</th>${tentTypes.map(type => `<td>${tentTotals[type]}</td>`).join("")}<td>${tentGrandTotal}</td></tr></tfoot></table></div>`
         : hasTents ? `<div class="arrangement-equipment-tent-list">${tentDepartmentList}</div>` : "";
-    const editor = editable ? `<form class="arrangement-equipment-add" data-add-equipment="${escapeArrangementHtml(item.id)}"><label><span>Material</span><input type="text" name="name" maxlength="120" required placeholder="Till exempel stormkök"></label><label><span>Gäller</span><select name="scope"><option value="general">Allmänt</option><option value="department">Avdelning</option></select></label><label class="hidden" data-equipment-department-field><span>Avdelning</span><select name="department">${item.departments.map(department => `<option value="${escapeArrangementHtml(department)}">${escapeArrangementHtml(department)}</option>`).join("")}</select></label><button class="btn-secondary" type="submit">Lägg till</button><p class="detail-planning-status" data-equipment-status role="status" aria-live="polite"></p></form>` : "";
+    const editor = editable ? `<form class="arrangement-equipment-add" data-add-equipment="${escapeArrangementHtml(item.id)}"><label><span>Material</span><input type="text" name="name" maxlength="120" required placeholder="Till exempel stormkök"></label><label><span>Gäller</span><select name="scope"><option value="general">Allmänt</option><option value="kitchen">Matlag</option><option value="department">Avdelning</option></select></label><label class="hidden" data-equipment-department-field><span>Avdelning</span><select name="department">${item.departments.map(department => `<option value="${escapeArrangementHtml(department)}">${escapeArrangementHtml(department)}</option>`).join("")}</select></label><button class="btn-secondary" type="submit">Lägg till</button><p class="detail-planning-status" data-equipment-status role="status" aria-live="polite"></p></form>` : "";
     const selectedTentCount = tentGrandTotal;
     const materialCount = materials.length + programMaterials.length + activityMaterials.length;
     const countLabel = `${materialCount} material${selectedTentCount ? ` · ${selectedTentCount} tält` : ""}`;
@@ -1223,8 +1229,10 @@ function renderArrangements() {
         const participantSummary = canEditDetails || getParticipantTotals(item.departments, item.participants).hasCounts
             ? `<span class="arrangement-participant-count">${escapeArrangementHtml(getParticipantSummary(item.departments, item.participants, true))}</span>`
             : "";
-        const agendaHtml = renderArrangementSchedule(item);
-        const participantsHtml = renderArrangementParticipants(item, canEditDetails);
+        let agendaHtml = renderArrangementSchedule(item);
+        const participantsHtml = "";
+        // The card template renders agendaHtml last, so participants follow the schedule.
+        agendaHtml += renderArrangementParticipants(item, canEditDetails);
         const mealSummaryHtml = renderArrangementMealSummary(item, canEditDetails);
         const link = "";
         const lockAction = canEditDetails ? "Lås redigering" : "Lås upp för redigering";
@@ -1286,7 +1294,7 @@ function renderArrangements() {
         const localBadge = item.local_only
             ? `<span class="arrangement-local-badge" title="Sparas bara i den här webbläsaren – inte i kårens databas">Lokal</span>`
             : "";
-        return `<details class="arrangement-card arrangement-card--${escapeArrangementHtml(item.status)}${cardWidth}${item.local_only ? " arrangement-card--local" : ""}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${statusIcon}${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span>${localBadge}${experienceButton}</div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}${renderArrangementCardSun(item)}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><a href="${item.latitude !== null && item.latitude !== undefined && item.longitude !== null && item.longitude !== undefined ? `https://www.google.com/maps?q=${item.latitude},${item.longitude}` : `https://www.google.com/maps/search/${encodeURIComponent(item.location)}`}" target="_blank" rel="noreferrer" title="Visa på Google Maps">${escapeArrangementHtml(item.location)}</a></p>` : ""}<div class="arrangement-participant-tags">${participantTags}${participantSummary}</div></summary><div class="arrangement-card-details">${detailEditControl}${printActions}${link}<div class="arrangement-card-sections">${participantsHtml}${notesHtml}${checklistHtml}${equipmentHtml}${mealSummaryHtml}${responsibilityHtml}${agendaHtml}</div>${actions}</div></details>`;
+        return `<details class="arrangement-card arrangement-card--${escapeArrangementHtml(item.status)}${cardWidth}${item.local_only ? " arrangement-card--local" : ""}" data-arrangement-id="${escapeArrangementHtml(item.id)}" data-department-count="${item.departments.length}"${detailsOpen ? " open" : ""}><summary class="arrangement-card-summary"><div class="arrangement-card-summary-title"><h2>${escapeArrangementHtml(item.title)}</h2><span class="arrangement-card-type arrangement-card-summary-type">${escapeArrangementHtml(item.type)}</span><span class="arrangement-status arrangement-status--${escapeArrangementHtml(item.status)}">${statusIcon}${escapeArrangementHtml(statusLabels[item.status] || statusLabels.planned)}</span>${localBadge}${experienceButton}</div><p class="arrangement-card-dates"><span>${escapeArrangementHtml(formatDateSpan(item))}</span>${timeRange ? `<span class="arrangement-card-summary-times"> · ${escapeArrangementHtml(timeRange)}</span>` : ""}${renderArrangementCardSun(item)}</p>${description ? `<p class="arrangement-card-description">${escapeArrangementHtml(description)}</p>` : ""}${item.location ? `<p class="arrangement-card-location"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 10a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg><a href="${item.latitude !== null && item.latitude !== undefined && item.longitude !== null && item.longitude !== undefined ? `https://www.google.com/maps?q=${item.latitude},${item.longitude}` : `https://www.google.com/maps/search/${encodeURIComponent(item.location)}`}" target="_blank" rel="noreferrer" title="Visa på Google Maps">${escapeArrangementHtml(item.location)}</a></p>` : ""}<div class="arrangement-participant-tags">${participantTags}${participantSummary}</div></summary><div class="arrangement-card-details">${detailEditControl}${printActions}${link}<div class="arrangement-card-sections">${notesHtml}${responsibilityHtml}${checklistHtml}${mealSummaryHtml}${participantsHtml}${equipmentHtml}${agendaHtml}</div>${actions}</div></details>`;
     });
     const cardsByYear = new Map();
     orderedVisible.forEach((item, index) => {
