@@ -8,7 +8,7 @@
       {
         "name": "Läsår 1 HT",
         "note": "",
-        "badges": ["smaka"],
+        "badges": ["smaka","100_scout"],
         "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
@@ -20,7 +20,7 @@
       {
         "name": "Läsår 2 HT",
         "note": "",
-        "badges": ["aj"],
+        "badges": ["aj","100_scout"],
         "activities": ["terminsuppstart","terminsavslutning"]
       },
       {
@@ -67,7 +67,7 @@
       {
         "name": "Läsår 1 HT",
         "note": "",
-        "badges": ["mattvaan",  "kniv","berattelsen", "100_scout"],
+        "badges": ["mattvaan",  "kniv", "100_scout","berattelsen"],
         "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
@@ -79,7 +79,7 @@
       {
         "name": "Läsår 2 HT",
         "note": "",
-        "badges": ["hjalpa",  "kniv","horisonten","100_scout"],
+        "badges": ["hjalpa",  "kniv","100_scout","horisonten"],
         "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
@@ -91,7 +91,7 @@
       {
         "name": "Läsår 3 HT",
         "note": "",
-        "badges": ["losa","yxa_och_sag", "nara","100_scout"],
+        "badges": ["losa","yxa_och_sag","100_scout", "nara"],
         "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
@@ -108,37 +108,37 @@
       {
         "name": "Läsår 1 HT",
         "note": "",
-        "badges": [ "mattrean","100_scout","hajken"],
+        "badges": [ "mattrean","12_12_sova","100_scout","hajken"],
         "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 1 VT",
         "note": "",
-        "badges": ["tredje_repmarket","HYX","scenen"],
+        "badges": ["tredje_repmarket","12_12_sova","HYX","scenen"],
         "activities": ["terminsuppstart","demokratimote","arsstamma","Hajk-02","terminsavslutning"]
       },
       {
         "name": "Läsår 2 HT",
         "note": "",
-        "badges": ["radda","hlr","12_12","100_scout","miljon"],
+        "badges": ["radda","hlr","12_12_sova","100_scout","miljon","12_12_bada"],
         "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 2 VT",
         "note": "",
-        "badges": ["elda","12_12","HYX","rosten"],
+        "badges": ["elda","12_12_bada","HYX","rosten"],
         "activities": ["terminsuppstart","demokratimote","arsstamma","Hajk-02","terminsavslutning"]
       },
       {
         "name": "Läsår 3 HT",
         "note": "",
-        "badges": ["koda","100_scout","forebilden"],
+        "badges": ["koda","12_12_vandra","100_scout","forebilden"],
         "activities": ["terminsuppstart","Hajk-01","terminsavslutning"]
       },
       {
         "name": "Läsår 3 VT",
         "note": "",
-        "badges": ["navigera","HYX","bygget"],
+        "badges": ["navigera","12_12_vandra","HYX","bygget"],
         "activities": ["terminsuppstart","demokratimote","arsstamma","Hajk-02","terminsavslutning"]
       }
     ]
