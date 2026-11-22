@@ -2916,6 +2916,24 @@
         "Typ":  "Intressemärke"
     },
     {
+        "id":  "12_12_vandra",
+        "namn":  "12/12 Vandra",
+        "bild":  "images/marken/12_12_Vandra.png",
+        "kategori":  "Äventyr",
+        "malgrupp":  [
+                      "Äventyrare"   
+                     ],
+        "inledning":"Vandra 1 gång i månaden under 12 månader i sträck.",
+        "kriterier":  [
+                         
+                         "..."
+                     ],
+        "program":  [
+                        "Gullbrandstorps Scoutkår"
+                    ],
+        "Typ":  "Intressemärke"
+    },
+    {
         "id":  "HYX",
         "namn":  "Hallandsyxan",
         "bild":  "images/marken/hyx.png",
