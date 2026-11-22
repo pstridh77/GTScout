@@ -17,6 +17,25 @@ test("badge menu keeps the development ladder and target group view without the 
     assert.match(html, /id="targetGroupViewBtn"/);
 });
 
+test("activity details open above the badge description", () => {
+    const closeButton = { addEventListener() {} };
+    const popup = {
+        style: {},
+        querySelector: () => closeButton,
+        addEventListener() {}
+    };
+    const context = vm.createContext({
+        document: {
+            createElement: () => popup,
+            body: { appendChild() {} }
+        }
+    });
+
+    loadFunctions(context, "function createActivityPopup() {", "const activityPopup = createActivityPopup();");
+
+    assert.equal(context.createActivityPopup().style.zIndex, "1450");
+});
+
 for (const failure of [null, "http", "network"]) {
     test(`badge loading is independent of planning templates (${failure || "success"})`, async () => {
         const requests = [];

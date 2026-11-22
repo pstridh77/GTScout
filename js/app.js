@@ -1362,7 +1362,7 @@ function createActivityPopup() {
     const activityPopup = document.createElement("div");
     activityPopup.id = "activityPopup";
     activityPopup.className = "detail-popup hidden";
-    activityPopup.style.zIndex = "1300";
+    activityPopup.style.zIndex = "1450";
     activityPopup.innerHTML = `
         <div class="detail-popup-content activity-popup-content">
             <button class="close-popup" type="button" aria-label="Stäng">&times;</button>
