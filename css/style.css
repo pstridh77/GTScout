@@ -66,7 +66,7 @@ body {
 .song-card { display: flex; grid-row: auto; flex-direction: column; align-items: flex-start; gap: 10px; text-align: left; font: inherit; color: inherit; }
 .song-card:focus-visible { outline: 2px solid #176b72; outline-offset: 3px; }
 .song-card-title { font-size: 1.35rem; font-weight: 700; overflow-wrap: anywhere; }
-.song-card-author { color: #536477; font-size: .85rem; }
+.song-card-info { color: #536477; font-size: .85rem; }
 .song-dialog { box-sizing: border-box; width: min(90%, 800px); max-height: calc(100dvh - 48px); overflow-y: auto; border: 0; }
 .song-dialog:not([open]), .song-share-dialog:not([open]) { display: none; }
 .song-dialog::backdrop, .song-share-dialog::backdrop { background: rgba(0, 0, 0, .6); }

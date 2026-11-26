@@ -4,7 +4,7 @@
     const status = document.getElementById("songStatus");
     const dialog = document.getElementById("songDialog");
     const title = document.getElementById("songDetailTitle");
-    const author = document.getElementById("songDetailAuthor");
+    const info = document.getElementById("songDetailInfo");
     const lyrics = document.getElementById("songDetailLyrics");
     const shareDialog = document.getElementById("songShareDialog");
     const shareUrl = document.getElementById("songShareUrl");
@@ -32,8 +32,8 @@
     function openSong(song) {
         activeSong = song;
         title.textContent = song.titel;
-        author.textContent = song.upphovsperson || "";
-        author.hidden = !song.upphovsperson;
+        info.textContent = song.info || "";
+        info.hidden = !song.info;
         renderLyrics(song.text);
         dialog.showModal();
     }
@@ -65,11 +65,11 @@
             name.className = "song-card-title";
             name.textContent = song.titel;
             button.append(name);
-            if (song.upphovsperson) {
-                const byline = document.createElement("span");
-                byline.className = "song-card-author";
-                byline.textContent = song.upphovsperson;
-                button.append(byline);
+            if (song.info) {
+                const songInfo = document.createElement("span");
+                songInfo.className = "song-card-info";
+                songInfo.textContent = song.info;
+                button.append(songInfo);
             }
             button.addEventListener("click", () => openSong(song));
             return button;
@@ -118,7 +118,7 @@
         .then(data => {
             if (!Array.isArray(data) || data.some(song => !song || typeof song.id !== "string" || !song.id.trim()
                 || typeof song.titel !== "string" || !song.titel.trim() || typeof song.text !== "string" || !song.text.trim()
-                || (song.upphovsperson != null && typeof song.upphovsperson !== "string"))
+                || (song.info != null && typeof song.info !== "string"))
                 || new Set(data.map(song => song.id)).size !== data.length) {
                 throw new Error("Sångfilen har ett ogiltigt format.");
             }

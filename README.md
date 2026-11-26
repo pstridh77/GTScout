@@ -62,7 +62,7 @@ Sidan använder samma `GTScoutActivities`-modul och databas som märkesbibliotek
 
 I den öppnade sången finns en delningsknapp som kopierar en länk direkt till sången. Om automatisk kopiering inte fungerar kan länken kopieras manuellt. Mottagaren behöver inte logga in.
 
-Sångerna underhålls i [data/sanger.json](data/sanger.json): varje post har ett unikt `id`, `titel`, `text` med radbrytningar och en valfri `upphovsperson`. Börja med de nyskrivna exempelsångerna och lägg bara till texter som är fria att publicera eller där tillstånd finns. Det finns ännu ingen redigering i appen eller databassynkning.
+Sångerna underhålls i [data/sanger.json](data/sanger.json): varje post har ett unikt `id`, `titel`, `text` med radbrytningar och valfri `info` som visas med sången. Börja med de nyskrivna exempelsångerna och lägg bara till texter som är fria att publicera eller där tillstånd finns. Det finns ännu ingen redigering i appen eller databassynkning.
 
 Skriv `**text**` i sångtexten för att visa texten i fetstil. Markeringen gäller inom en rad; radbrytningar bevaras som tidigare.
 

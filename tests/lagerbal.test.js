@@ -21,7 +21,7 @@ function element(tagName = "") {
 }
 
 async function loadPage(response, options = {}) {
-    const ids = ["songGrid", "songSearch", "songStatus", "songDialog", "songDetailTitle", "songDetailAuthor", "songDetailLyrics", "closeSongDialog", "shareSongBtn", "songShareDialog", "songShareUrl", "songShareStatus", "copySongShareBtn", "closeSongShareDialog", "cancelSongShareBtn"];
+    const ids = ["songGrid", "songSearch", "songStatus", "songDialog", "songDetailTitle", "songDetailInfo", "songDetailLyrics", "closeSongDialog", "shareSongBtn", "songShareDialog", "songShareUrl", "songShareStatus", "copySongShareBtn", "closeSongShareDialog", "cancelSongShareBtn"];
     const elements = Object.fromEntries(ids.map(id => [id, element()]));
     const errors = [];
     vm.runInNewContext(source, {
@@ -38,7 +38,7 @@ async function loadPage(response, options = {}) {
 
 test("songs are sorted, searchable by text, and open safely with their line breaks", async () => {
     const data = [
-        { id: "2", titel: "Öppet", text: "Första\nAndra <versen>", upphovsperson: "En vän" },
+        { id: "2", titel: "Öppet", text: "Första\nAndra <versen>", info: "En vän" },
         { id: "1", titel: "Alfabetet", text: "Annan sång" }
     ];
     const { elements: e } = await loadPage({ ok: true, json: async () => data });
@@ -50,7 +50,7 @@ test("songs are sorted, searchable by text, and open safely with their line brea
     e.songGrid.children[0].dispatch("click");
     assert.equal(e.songDialog.open, true);
     assert.equal(e.songDetailTitle.textContent, "Öppet");
-    assert.equal(e.songDetailAuthor.textContent, "En vän");
+    assert.equal(e.songDetailInfo.textContent, "En vän");
     assert.equal(e.songDetailLyrics.textContent, "Första\nAndra <versen>");
     e.closeSongDialog.dispatch("click");
     assert.equal(e.songDialog.open, false);
