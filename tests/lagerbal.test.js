@@ -7,11 +7,11 @@ const vm = require("node:vm");
 const root = path.join(__dirname, "..");
 const source = fs.readFileSync(path.join(root, "js", "lagerbal.js"), "utf8");
 
-function element() {
+function element(tagName = "") {
     return {
-        children: [], listeners: {}, textContent: "", value: "", hidden: false,
+        tagName, children: [], listeners: {}, textContent: "", value: "", hidden: false,
         append(...children) { this.children.push(...children); },
-        replaceChildren(...children) { this.children = children; },
+        replaceChildren(...children) { this.children = children; this.textContent = children.map(child => child.textContent).join(""); },
         addEventListener(type, callback) { this.listeners[type] = callback; },
         dispatch(type, event = {}) { this.listeners[type]?.(event); },
         showModal() { this.open = true; },
@@ -25,7 +25,7 @@ async function loadPage(response, options = {}) {
     const elements = Object.fromEntries(ids.map(id => [id, element()]));
     const errors = [];
     vm.runInNewContext(source, {
-        document: { getElementById: id => elements[id], createElement: element },
+        document: { getElementById: id => elements[id], createElement: element, createTextNode: text => ({ textContent: text }) },
         fetch: async () => response,
         window: { location: { href: options.url || "https://example.test/gt/lagerbal.html" } },
         navigator: { clipboard: { writeText: options.writeText || (async () => {}) } },
@@ -66,6 +66,17 @@ test("songs are sorted, searchable by text, and open safely with their line brea
     e.songSearch.value = "";
     e.songSearch.dispatch("input");
     assert.equal(e.songStatus.hidden, true);
+});
+
+test("bold markup is rendered as safe text and searches match the displayed lyrics", async () => {
+    const text = "Hej **vår <vän>** igen\n**Refräng** och **sång**\nEnsam **markering";
+    const { elements: e } = await loadPage({ ok: true, json: async () => [{ id: "1", titel: "Sång", text }] });
+    e.songSearch.value = "hej vår <vän> igen";
+    e.songSearch.dispatch("input");
+    assert.equal(e.songGrid.children.length, 1);
+    e.songGrid.children[0].dispatch("click");
+    assert.equal(e.songDetailLyrics.textContent, "Hej vår <vän> igen\nRefräng och sång\nEnsam **markering");
+    assert.deepEqual(e.songDetailLyrics.children.filter(node => node.tagName === "strong").map(node => node.textContent), ["vår <vän>", "Refräng", "sång"]);
 });
 
 test("sharing copies an encoded link and opens the same song for a guest", async () => {

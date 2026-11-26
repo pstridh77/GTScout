@@ -64,6 +64,8 @@ I den öppnade sången finns en delningsknapp som kopierar en länk direkt till 
 
 Sångerna underhålls i [data/sanger.json](data/sanger.json): varje post har ett unikt `id`, `titel`, `text` med radbrytningar och en valfri `upphovsperson`. Börja med de nyskrivna exempelsångerna och lägg bara till texter som är fria att publicera eller där tillstånd finns. Det finns ännu ingen redigering i appen eller databassynkning.
 
+Skriv `**text**` i sångtexten för att visa texten i fetstil. Markeringen gäller inom en rad; radbrytningar bevaras som tidigare.
+
 ## Arrangemang
 
 Arrangemang (till exempel hajker, övernattningar och läger) hanteras separat från terminsplaneringarna. De kan innehålla ett datumspann, en dagsagenda med måltider, aktiviteter och fria programpunkter, status, anteckningar och erfarenheter efteråt. Recept och aktiviteter väljs från respektive bibliotek; egna poster går också att skriva in.

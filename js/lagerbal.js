@@ -10,16 +10,31 @@
     const shareUrl = document.getElementById("songShareUrl");
     const shareStatus = document.getElementById("songShareStatus");
     const sharedSongId = new URL(window.location.href).searchParams.get("song");
+    const boldPattern = /\*\*([^\r\n]+?)\*\*/g;
     let songs = [];
     let loaded = false;
     let activeSong = null;
+
+    function renderLyrics(text) {
+        const nodes = [];
+        let lastIndex = 0;
+        for (const match of text.matchAll(boldPattern)) {
+            nodes.push(document.createTextNode(text.slice(lastIndex, match.index)));
+            const strong = document.createElement("strong");
+            strong.textContent = match[1];
+            nodes.push(strong);
+            lastIndex = match.index + match[0].length;
+        }
+        nodes.push(document.createTextNode(text.slice(lastIndex)));
+        lyrics.replaceChildren(...nodes);
+    }
 
     function openSong(song) {
         activeSong = song;
         title.textContent = song.titel;
         author.textContent = song.upphovsperson || "";
         author.hidden = !song.upphovsperson;
-        lyrics.textContent = song.text;
+        renderLyrics(song.text);
         dialog.showModal();
     }
 
@@ -41,7 +56,7 @@
     function renderSongs() {
         if (!loaded) return;
         const query = search.value.trim().toLocaleLowerCase("sv");
-        const visible = songs.filter(song => `${song.titel}\n${song.text}`.toLocaleLowerCase("sv").includes(query));
+        const visible = songs.filter(song => `${song.titel}\n${song.text.replace(boldPattern, "$1")}`.toLocaleLowerCase("sv").includes(query));
         grid.replaceChildren(...visible.map(song => {
             const button = document.createElement("button");
             button.type = "button";
