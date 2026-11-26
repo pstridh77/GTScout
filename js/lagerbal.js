@@ -1,9 +1,11 @@
 (function () {
     const grid = document.getElementById("songGrid");
     const search = document.getElementById("songSearch");
+    const categoryFilter = document.getElementById("songCategoryFilter");
     const status = document.getElementById("songStatus");
     const dialog = document.getElementById("songDialog");
     const title = document.getElementById("songDetailTitle");
+    const category = document.getElementById("songDetailCategory");
     const info = document.getElementById("songDetailInfo");
     const lyrics = document.getElementById("songDetailLyrics");
     const shareDialog = document.getElementById("songShareDialog");
@@ -11,6 +13,8 @@
     const shareStatus = document.getElementById("songShareStatus");
     const sharedSongId = new URL(window.location.href).searchParams.get("song");
     const boldPattern = /\*\*([^\r\n]+?)\*\*/g;
+    const categories = ["Sång", "Rop", "Lek"];
+    const collapsedCategories = new Set();
     let songs = [];
     let loaded = false;
     let activeSong = null;
@@ -32,6 +36,7 @@
     function openSong(song) {
         activeSong = song;
         title.textContent = song.titel;
+        category.textContent = song.kategori;
         info.textContent = song.info || "";
         info.hidden = !song.info;
         renderLyrics(song.text);
@@ -56,29 +61,61 @@
     function renderSongs() {
         if (!loaded) return;
         const query = search.value.trim().toLocaleLowerCase("sv");
-        const visible = songs.filter(song => `${song.titel}\n${song.text.replace(boldPattern, "$1")}`.toLocaleLowerCase("sv").includes(query));
-        grid.replaceChildren(...visible.map(song => {
-            const button = document.createElement("button");
-            button.type = "button";
-            button.className = "activity-card song-card";
-            const name = document.createElement("span");
-            name.className = "song-card-title";
-            name.textContent = song.titel;
-            button.append(name);
-            if (song.info) {
-                const songInfo = document.createElement("span");
-                songInfo.className = "song-card-info";
-                songInfo.textContent = song.info;
-                button.append(songInfo);
-            }
-            button.addEventListener("click", () => openSong(song));
-            return button;
+        const visible = songs.filter(song =>
+            (!categoryFilter.value || song.kategori === categoryFilter.value)
+            && `${song.titel}\n${song.text.replace(boldPattern, "$1")}`.toLocaleLowerCase("sv").includes(query));
+        const groups = new Map();
+        visible.forEach(song => {
+            if (!groups.has(song.kategori)) groups.set(song.kategori, []);
+            groups.get(song.kategori).push(song);
+        });
+        grid.replaceChildren(...[...groups].sort(([left], [right]) => categories.indexOf(left) - categories.indexOf(right)).map(([groupCategory, items]) => {
+            const group = document.createElement("details");
+            group.className = "recipe-meal-group";
+            group.open = !collapsedCategories.has(groupCategory);
+            const summary = document.createElement("summary");
+            summary.className = "recipe-meal-summary";
+            const heading = document.createElement("strong");
+            heading.textContent = groupCategory;
+            const count = document.createElement("span");
+            count.textContent = `${items.length} st.`;
+            summary.append(heading, count);
+            const cards = document.createElement("div");
+            cards.className = "recipe-meal-cards";
+            cards.replaceChildren(...items.map(song => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "recipe-card song-card";
+                const songCategory = document.createElement("span");
+                songCategory.className = "recipe-category";
+                songCategory.textContent = song.kategori;
+                button.append(songCategory);
+                const name = document.createElement("span");
+                name.className = "song-card-title";
+                name.textContent = song.titel;
+                button.append(name);
+                if (song.info) {
+                    const songInfo = document.createElement("span");
+                    songInfo.className = "recipe-description";
+                    songInfo.textContent = song.info;
+                    button.append(songInfo);
+                }
+                button.addEventListener("click", () => openSong(song));
+                return button;
+            }));
+            group.append(summary, cards);
+            group.addEventListener("toggle", () => {
+                if (group.open) collapsedCategories.delete(groupCategory);
+                else collapsedCategories.add(groupCategory);
+            });
+            return group;
         }));
-        status.textContent = visible.length ? "" : songs.length ? "Inga sånger matchar sökningen." : "Inga sånger ännu.";
+        status.textContent = visible.length ? "" : songs.length ? "Inga sånger matchar filtreringen." : "Inga sånger ännu.";
         status.hidden = visible.length > 0;
     }
 
     search.addEventListener("input", renderSongs);
+    categoryFilter.addEventListener("change", renderSongs);
     document.getElementById("closeSongDialog").addEventListener("click", () => dialog.close());
     document.getElementById("shareSongBtn").addEventListener("click", () => {
         const url = new URL("lagerbal.html", window.location.href);
@@ -118,11 +155,12 @@
         .then(data => {
             if (!Array.isArray(data) || data.some(song => !song || typeof song.id !== "string" || !song.id.trim()
                 || typeof song.titel !== "string" || !song.titel.trim() || typeof song.text !== "string" || !song.text.trim()
+                || !categories.includes(song.kategori)
                 || (song.info != null && typeof song.info !== "string"))
                 || new Set(data.map(song => song.id)).size !== data.length) {
                 throw new Error("Sångfilen har ett ogiltigt format.");
             }
-            songs = data.slice().sort((left, right) => left.titel.localeCompare(right.titel, "sv"));
+            songs = data.slice().sort((left, right) => left.titel.trim().localeCompare(right.titel.trim(), "sv"));
             loaded = true;
             renderSongs();
             if (sharedSongId) {

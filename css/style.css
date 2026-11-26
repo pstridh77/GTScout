@@ -61,13 +61,13 @@ body {
 .activity-card-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .activity-card-actions .activity-tool-button { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; }
 .activity-tool-button svg { width: 20px; height: 20px; }
-.activities-page .cookbook-toolbar.song-search { grid-template-columns: minmax(0, 1fr); }
-.song-cards { padding-top: 0; }
-.song-card { display: flex; grid-row: auto; flex-direction: column; align-items: flex-start; gap: 10px; text-align: left; font: inherit; color: inherit; }
+.activities-page .cookbook-toolbar.song-search { grid-template-columns: minmax(0, 1fr) minmax(150px, .4fr); }
+@media (max-width: 520px) { .activities-page .cookbook-toolbar.song-search { grid-template-columns: minmax(0, 1fr); } }
+.song-card { align-items: flex-start; text-align: left; font: inherit; color: inherit; }
 .song-card:focus-visible { outline: 2px solid #176b72; outline-offset: 3px; }
-.song-card-title { font-size: 1.35rem; font-weight: 700; overflow-wrap: anywhere; }
+.song-card-title { overflow-wrap: anywhere; }
 .song-card-info { color: #536477; font-size: .85rem; }
-.song-dialog { box-sizing: border-box; width: min(90%, 800px); max-height: calc(100dvh - 48px); overflow-y: auto; border: 0; }
+.modal-content.song-dialog { box-sizing: border-box; width: max-content; max-width: 90vw; max-height: calc(100dvh - 48px); overflow-y: auto; border: 0; }
 .song-dialog:not([open]), .song-share-dialog:not([open]) { display: none; }
 .song-dialog::backdrop, .song-share-dialog::backdrop { background: rgba(0, 0, 0, .6); }
 .song-dialog h2 { margin: 0; padding-right: 72px; overflow-wrap: anywhere; }
@@ -97,7 +97,7 @@ body {
 .recipe-local-badge { display: inline-flex; align-items: center; flex: 0 0 auto; padding: 4px 8px; border: 1px solid #d9a441; border-radius: 4px; background: #fdf3dd; color: #7c4a12; font-size: .72rem; font-weight: 750; line-height: 1; }
 
 .recipe-card--local { border-left: 4px solid #d9a441; }
-.recipe-card h2 { margin: 18px 0 8px; color: #003660; font-size: 1.35rem; }
+.recipe-card h2, .song-card-title { margin: 18px 0 8px; color: #003660; font-size: 1.35rem; font-weight: 700; }
 .recipe-description { margin: 0; color: #536477; line-height: 1.5; }
 .recipe-meta { display: none; justify-content: flex-start; margin: 20px 0 12px; }
 .recipe-meta div { padding-right: 16px; border-right: 1px solid #d7e1eb; }

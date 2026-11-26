@@ -2,121 +2,141 @@
     {
         "id": "a-ram-sam-sam",
         "titel": "A ram sam sam",
+        "kategori": "Sång",
         "info": "Lägerbålssång",
         "text": "// A ram sam sam, a ram sam sam\nGoli goli goli goli goli ram sam sam //\n// A rafi a rafi\nGoli goli goli goli goli ram sam sam //"
     },
     {
         "id": "munkar",
         "titel": "Munkar",
+        "kategori": "Sång",
         "info": "Lägerbålssång",
         "text": "Jag vill ha munkar munkar munkar med hål i\nstora feta munkar med hål i\nnär jag kommer hem till dig\nså vill jag inte ha nån leverpastej\n\nJag vill ha biffar … med lök på …\nJag vill ha kola … med papper …\nJag vill ha plättar … med sylt på …\nJag vill ha hallon … med mask i …"
     },
     {
         "id": "temperaturen",
         "titel": "Temperaturen",
+        "kategori": "Sång",
         "info": "Lägerbålssång",
         "text": "Temperaturen är hög uti kroppen\nnärmare fyrtio än trettiosju … komma fem\noch så ska det vara när ångan är oppe\noch så är fallet uti detta nu\n\nSå rulla vi rulla vi rulla vi rulla\nRulla vi rulla vi rulla tjohej\nSå rulla vi rulla vi rulla vi rulla\nrulla di rulla di rulla tjohej"
     },
     {
         "id": "bygger-en-maskin",
         "titel": "Bygger en maskin",
+        "kategori": "Sång",
         "info": "Med rörelser",
         "text": "Jag bygger en maskin,\n(Knutna nävar som bygger)\nSom är så stor och fin,\nSom är så stor och fin,\n(Visar ”stor” med armarna)\nDen har många små delar,\n(Små stjärnor där händer öppnas och stängs)\nOch armar som vevar,\n(Veva med armarna)\n\nJag matar den med plopp,\n(Stopp framför munnen)\nOch ibland så tar den stopp, \n(Handflata fram som ”stopp”) och då får man byta en propp\nKschh Kschh\n(Vrid handen framför dig som att du vrider en propp)"
     },
     {
         "id": "gasflygmaskin",
         "titel": "Gasflygmaskin",
+        "kategori": "Sång",
         "info": "",
         "text": "..."
     },
     {
         "id": "brev-från-kolonien",
         "titel": "Brev från kolonien",
+        "kategori": "Sång",
         "info": "",
         "text": "..."
     },
     {
         "id": "i-medelhavet",
         "titel": "I Medelhavet",
+        "kategori": "Sång",
         "info": "",
         "text": "..."
     },
     {
         "id": "nar-lagerelden-brunnit-ut",
         "titel": "När lägerelden brunnit ut",
+        "kategori": "Sång",
         "info": "",
         "text": "..."
     },
     {
         "id": "kombaya",
         "titel": "Kombaya",
+        "kategori": "Sång",
         "info": "",
         "text": "..."
     },
     {
         "id": "in-i-skogen",
         "titel": "In i skogen",
+        "kategori": "Sång",
         "info": "",
         "text": "in i skogen, den mörka skogen där sover scouterna…"
     },
     {
         "id": "myggan-hubert",
         "titel": "Myggan Hubert",
+        "kategori": "Sång",
         "info": "",
         "text": "..."
     },
     {
         "id": "laurentzia",
         "titel": "Laurentzia",
+        "kategori": "Sång",
         "info": "",
         "text": "..."
     },
     {
         "id": "min-hast",
         "titel": "Min häst",
+        "kategori": "Sång",
         "info": "",
         "text": "min häst den har gula öron och vita små skor av trä…"
     },
     {
         "id": "im-singing-in-the-rain",
         "titel": "I'm singing in the rain",
+        "kategori": "Sång",
         "info": "Michael Jordan, scoobie doo, Michael Jackson. (Finns denna online haha??",
         "text": "..."
     },
     {
         "id": "min-familj",
         "titel": "Min familj",
+        "kategori": "Sång",
         "info": "",
         "text": "Min far han är en søppleman (sopman på norska)\nMin mor hon är en bagare\nMin storasyster är en frissör \nMin lillebror är en cowboy \nÅ jag ja e en scout en scout en scout, ja jag är en scout å vet du vad jag sa \nUsh \nNam \nKrulli\nPang\nAaaaaalltid redo"
     },
     {
         "id": "bengt",
         "titel": "Bengt",
-        "info": "Rop/Lek",
+        "kategori": "Lek",
+        "info": "",
         "text": "..."
     },
     {
         "id": "kurt",
         "titel": "Känner du Kurt?",
-        "info": "Rop/Lek",
+        "kategori": "Lek",
+        "info": "",
         "text": "..."
     },
     {
         "id": "cykel-lykta",
         "titel": " cykel-lykta hoj hoj hoj",
-        "info": "Rop/Lek",
+        "kategori": "Rop",
+        "info": "",
         "text": "..."
     },
     {
         "id": "sapafotboll-splash",
         "titel": "Såpafotboll splash ",
-        "info": "Rop/Lek",
+        "kategori": "Rop",
+        "info": "",
         "text": "..."
     },
     {
         "id": "oggie-oj",
         "titel": "Oggie oj",
-        "info": "Rop/Lek",
+        "kategori": "Rop",
+        "info": "",
         "text": "..."
     }
 

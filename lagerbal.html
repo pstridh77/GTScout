@@ -57,14 +57,16 @@
         </section>
         <div class="cookbook-toolbar song-search">
             <label class="filter-field search-field"><span>Sök sånger</span><input id="songSearch" type="search" placeholder="Sök titel eller sångtext..."></label>
+            <label class="filter-field"><span>Kategori</span><select id="songCategoryFilter"><option value="">Alla kategorier</option><option value="Sång">Sång</option><option value="Rop">Rop</option><option value="Lek">Lek</option></select></label>
         </div>
-        <div id="songGrid" class="activity-cards song-cards"></div>
+        <div id="songGrid" class="activity-grid"></div>
         <p id="songStatus" class="no-results" role="status" aria-live="polite">Hämtar sånger...</p>
     </main>
     <dialog id="songDialog" class="modal-content modal-content--wide song-dialog" aria-labelledby="songDetailTitle">
         <button id="closeSongDialog" class="close-popup" type="button" aria-label="Stäng">&times;</button>
         <button id="shareSongBtn" class="btn-secondary recipe-share-icon-btn song-share-icon-btn" type="button" aria-label="Dela sång" title="Dela sång"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,16.08C17.24,16.08 16.54,16.38 16,16.85L8.91,12.74C8.96,12.5 9,12.25 9,12C9,11.75 8.96,11.5 8.91,11.26L15.92,7.17C16.47,7.66 17.2,7.97 18,7.97C19.66,7.97 21,6.63 21,4.97C21,3.31 19.66,1.97 18,1.97C16.34,1.97 15,1.97 15,4.97C15,5.22 15.04,5.47 15.09,5.71L8.08,9.8C7.53,9.31 6.8,9 6,9C4.34,9 3,10.34 3,12C3,13.66 4.34,15 6,15C6.8,15 7.53,14.69 8.08,14.2L15.17,18.31C15.12,18.54 15,18.77 15,19C15,20.66 16.34,22 18,22C19.66,22 21,20.66 21,19C21,17.34 19.66,16.08 18,16.08Z" /></svg></button>
         <h2 id="songDetailTitle"></h2>
+        <p id="songDetailCategory" class="song-card-info"></p>
         <p id="songDetailInfo" class="song-card-info"></p>
         <p id="songDetailLyrics" class="song-lyrics"></p>
     </dialog>

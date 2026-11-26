@@ -21,7 +21,7 @@ function element(tagName = "") {
 }
 
 async function loadPage(response, options = {}) {
-    const ids = ["songGrid", "songSearch", "songStatus", "songDialog", "songDetailTitle", "songDetailInfo", "songDetailLyrics", "closeSongDialog", "shareSongBtn", "songShareDialog", "songShareUrl", "songShareStatus", "copySongShareBtn", "closeSongShareDialog", "cancelSongShareBtn"];
+    const ids = ["songGrid", "songSearch", "songCategoryFilter", "songStatus", "songDialog", "songDetailTitle", "songDetailCategory", "songDetailInfo", "songDetailLyrics", "closeSongDialog", "shareSongBtn", "songShareDialog", "songShareUrl", "songShareStatus", "copySongShareBtn", "closeSongShareDialog", "cancelSongShareBtn"];
     const elements = Object.fromEntries(ids.map(id => [id, element()]));
     const errors = [];
     vm.runInNewContext(source, {
@@ -36,58 +36,99 @@ async function loadPage(response, options = {}) {
     return { elements, errors };
 }
 
+function cards(elements) {
+    return elements.songGrid.children.flatMap(group => group.children[1].children);
+}
+
 test("songs are sorted, searchable by text, and open safely with their line breaks", async () => {
     const data = [
-        { id: "2", titel: "Öppet", text: "Första\nAndra <versen>", info: "En vän" },
-        { id: "1", titel: "Alfabetet", text: "Annan sång" }
+        { id: "2", titel: "Öppet", kategori: "Sång", text: "Första\nAndra <versen>", info: "En vän" },
+        { id: "1", titel: "Alfabetet", kategori: "Sång", text: "Annan sång" }
     ];
     const { elements: e } = await loadPage({ ok: true, json: async () => data });
-    assert.deepEqual(e.songGrid.children.map(card => card.children[0].textContent), ["Alfabetet", "Öppet"]);
+    assert.deepEqual(cards(e).map(card => card.children[1].textContent), ["Alfabetet", "Öppet"]);
     assert.equal(e.songStatus.hidden, true);
     e.songSearch.value = "ANDRA <VERSEN>";
     e.songSearch.dispatch("input");
-    assert.equal(e.songGrid.children.length, 1);
-    e.songGrid.children[0].dispatch("click");
+    assert.equal(cards(e).length, 1);
+    cards(e)[0].dispatch("click");
     assert.equal(e.songDialog.open, true);
     assert.equal(e.songDetailTitle.textContent, "Öppet");
     assert.equal(e.songDetailInfo.textContent, "En vän");
     assert.equal(e.songDetailLyrics.textContent, "Första\nAndra <versen>");
     e.closeSongDialog.dispatch("click");
     assert.equal(e.songDialog.open, false);
-    e.songGrid.children[0].dispatch("click");
+    cards(e)[0].dispatch("click");
     let prevented = false;
     e.songDialog.dispatch("keydown", { key: "Escape", preventDefault: () => { prevented = true; } });
     assert.equal(prevented, true);
     assert.equal(e.songDialog.open, false);
     e.songSearch.value = "saknas";
     e.songSearch.dispatch("input");
-    assert.equal(e.songStatus.textContent, "Inga sånger matchar sökningen.");
+    assert.equal(e.songStatus.textContent, "Inga sånger matchar filtreringen.");
     assert.equal(e.songStatus.hidden, false);
     e.songSearch.value = "";
     e.songSearch.dispatch("input");
     assert.equal(e.songStatus.hidden, true);
 });
 
+test("categories are grouped and filtered together with search and shown in details", async () => {
+    const data = [
+        { id: "1", titel: " Örn", kategori: "Rop", text: "Gemensam text" },
+        { id: "2", titel: "Båt", kategori: "Lek", text: "Gemensam text" },
+        { id: "3", titel: "Apa", kategori: "Rop", text: "Annan text", info: "Med rörelser" },
+        { id: "4", titel: "Sång", kategori: "Sång", text: "Gemensam text" }
+    ];
+    const { elements: e } = await loadPage({ ok: true, json: async () => data });
+    assert.deepEqual(e.songGrid.children.map(group => group.children[0].children[0].textContent), ["Sång", "Rop", "Lek"]);
+    assert.equal(e.songGrid.children[1].children[0].children[1].textContent, "2 st.");
+    assert.deepEqual(e.songGrid.children[1].children[1].children.map(card => card.children[1].textContent), ["Apa", " Örn"]);
+    assert.equal(e.songGrid.children[1].children[1].children[0].children[0].textContent, "Rop");
+    assert.equal(e.songGrid.children[1].children[1].children[0].children[0].className, "recipe-category");
+
+    e.songGrid.children[1].open = false;
+    e.songGrid.children[1].dispatch("toggle");
+    e.songCategoryFilter.value = "Rop";
+    e.songCategoryFilter.dispatch("change");
+    assert.equal(e.songGrid.children[0].open, false);
+    e.songSearch.value = "annan";
+    e.songSearch.dispatch("input");
+    assert.deepEqual(cards(e).map(card => card.children[1].textContent), ["Apa"]);
+    cards(e)[0].dispatch("click");
+    assert.equal(e.songDetailCategory.textContent, "Rop");
+    assert.equal(e.songDetailInfo.textContent, "Med rörelser");
+    e.songCategoryFilter.value = "Lek";
+    e.songCategoryFilter.dispatch("change");
+    assert.equal(cards(e).length, 0);
+    assert.equal(e.songStatus.hidden, false);
+    e.songSearch.value = "";
+    e.songSearch.dispatch("input");
+    assert.deepEqual(cards(e).map(card => card.children[1].textContent), ["Båt"]);
+    e.songCategoryFilter.value = "";
+    e.songCategoryFilter.dispatch("change");
+    assert.equal(cards(e).length, 4);
+});
+
 test("bold markup is rendered as safe text and searches match the displayed lyrics", async () => {
     const text = "Hej **vår <vän>** igen\n**Refräng** och **sång**\nEnsam **markering";
-    const { elements: e } = await loadPage({ ok: true, json: async () => [{ id: "1", titel: "Sång", text }] });
+    const { elements: e } = await loadPage({ ok: true, json: async () => [{ id: "1", titel: "Sång", kategori: "Sång", text }] });
     e.songSearch.value = "hej vår <vän> igen";
     e.songSearch.dispatch("input");
-    assert.equal(e.songGrid.children.length, 1);
-    e.songGrid.children[0].dispatch("click");
+    assert.equal(cards(e).length, 1);
+    cards(e)[0].dispatch("click");
     assert.equal(e.songDetailLyrics.textContent, "Hej vår <vän> igen\nRefräng och sång\nEnsam **markering");
     assert.deepEqual(e.songDetailLyrics.children.filter(node => node.tagName === "strong").map(node => node.textContent), ["vår <vän>", "Refräng", "sång"]);
 });
 
 test("sharing copies an encoded link and opens the same song for a guest", async () => {
-    const data = [{ id: "sång & 1", titel: "Elden", text: "Text" }];
+    const data = [{ id: "sång & 1", titel: "Elden", kategori: "Sång", text: "Text" }];
     const copied = [];
     const response = { ok: true, json: async () => data };
     const { elements: e } = await loadPage(response, {
         url: "https://example.test/gt/lagerbal.html?other=old#fragment",
         writeText: async text => copied.push(text)
     });
-    e.songGrid.children[0].dispatch("click");
+    cards(e)[0].dispatch("click");
     e.shareSongBtn.dispatch("click");
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(e.songShareDialog.open, true);
@@ -103,9 +144,9 @@ test("sharing copies an encoded link and opens the same song for a guest", async
 });
 
 test("sharing offers manual copying when clipboard access fails", async () => {
-    const response = { ok: true, json: async () => [{ id: "1", titel: "Sång", text: "Text" }] };
+    const response = { ok: true, json: async () => [{ id: "1", titel: "Sång", kategori: "Sång", text: "Text" }] };
     const { elements: e } = await loadPage(response, { writeText: async () => { throw new Error("blocked"); } });
-    e.songGrid.children[0].dispatch("click");
+    cards(e)[0].dispatch("click");
     e.shareSongBtn.dispatch("click");
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(e.songShareUrl.selected, true);
@@ -117,7 +158,7 @@ test("sharing offers manual copying when clipboard access fails", async () => {
 
 test("a missing shared song reports an error without hiding the catalog", async () => {
     const { elements: e } = await loadPage(
-        { ok: true, json: async () => [{ id: "1", titel: "Sång", text: "Text" }] },
+        { ok: true, json: async () => [{ id: "1", titel: "Sång", kategori: "Sång", text: "Text" }] },
         { url: "https://example.test/gt/lagerbal.html?song=missing" }
     );
     assert.equal(e.songDialog.open, undefined);
@@ -133,7 +174,9 @@ test("empty catalog and load or format errors are reported distinctly", async ()
     for (const response of [
         { ok: false, status: 404 },
         { ok: true, json: async () => [{ id: "1", titel: "Saknar text" }] },
-        { ok: true, json: async () => [{ id: "1", titel: "A", text: "A" }, { id: "1", titel: "B", text: "B" }] }
+        { ok: true, json: async () => [{ id: "1", titel: "A", kategori: "Sång", text: "A" }, { id: "1", titel: "B", kategori: "Sång", text: "B" }] },
+        { ok: true, json: async () => [{ id: "1", titel: "A", kategori: "Annat", text: "A" }] },
+        { ok: true, json: async () => [{ id: "1", titel: "A", text: "A" }] }
     ]) {
         const failed = await loadPage(response);
         assert.match(failed.elements.songStatus.textContent, /Kunde inte hämta sångerna/);
@@ -146,8 +189,8 @@ test("the published song catalog can be loaded", async () => {
     const data = JSON.parse(fs.readFileSync(path.join(root, "data", "sanger.json"), "utf8"));
     const { elements, errors } = await loadPage({ ok: true, json: async () => data });
     assert.equal(errors.length, 0);
-    assert.ok(elements.songGrid.children.length > 0);
-    elements.songGrid.children[0].dispatch("click");
+    assert.ok(cards(elements).length > 0);
+    cards(elements)[0].dispatch("click");
     assert.ok(elements.songDetailLyrics.textContent.length > 0);
 });
 
