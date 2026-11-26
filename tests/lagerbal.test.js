@@ -6,6 +6,7 @@ const vm = require("node:vm");
 
 const root = path.join(__dirname, "..");
 const source = fs.readFileSync(path.join(root, "js", "lagerbal.js"), "utf8");
+const catalogSource = fs.readFileSync(path.join(root, "js", "songs-catalog.js"), "utf8");
 
 function element(tagName = "") {
     return {
@@ -24,7 +25,7 @@ async function loadPage(response, options = {}) {
     const ids = ["songGrid", "songSearch", "songCategoryFilter", "songStatus", "songDialog", "songDetailTitle", "songDetailCategory", "songDetailInfo", "songDetailLyrics", "closeSongDialog", "shareSongBtn", "songShareDialog", "songShareUrl", "songShareStatus", "copySongShareBtn", "closeSongShareDialog", "cancelSongShareBtn"];
     const elements = Object.fromEntries(ids.map(id => [id, element()]));
     const errors = [];
-    vm.runInNewContext(source, {
+    const context = vm.createContext({
         document: { getElementById: id => elements[id], createElement: element, createTextNode: text => ({ textContent: text }) },
         fetch: async () => response,
         window: { location: { href: options.url || "https://example.test/gt/lagerbal.html" } },
@@ -32,6 +33,8 @@ async function loadPage(response, options = {}) {
         URL,
         console: { error: (...args) => errors.push(args) }
     });
+    vm.runInContext(catalogSource, context);
+    vm.runInContext(source, context);
     await new Promise(resolve => setImmediate(resolve));
     return { elements, errors };
 }

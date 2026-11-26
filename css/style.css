@@ -645,6 +645,17 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
 .agenda-recipe-choice[hidden] { display: none; }
 .agenda-recipe-choice input { flex: 0 0 auto; margin: 1px 0 0; accent-color: #286d60; }
 .agenda-recipe-choice span { min-width: 0; overflow-wrap: anywhere; }
+.agenda-campfire-selected { display: grid; gap: 5px; margin: 7px 0 0; padding-left: 24px; }
+.agenda-campfire-selected li { padding-left: 2px; color: #153c4a; font-weight: 500; }
+.agenda-campfire-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.agenda-campfire-row > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.agenda-campfire-actions { display: flex; flex: 0 0 auto; gap: 5px; }
+.agenda-campfire-actions button { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; border: 1px solid #cbd7dc; border-radius: 4px; background: #fff; color: #286d60; cursor: pointer; }
+.agenda-campfire-actions button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
+.agenda-campfire-actions button:hover:not(:disabled) { background: #eef5f2; }
+.agenda-campfire-actions button:focus-visible { outline: 2px solid #286d60; outline-offset: 2px; }
+.agenda-campfire-actions button:disabled { opacity: .4; cursor: default; }
+.agenda-campfire-status { margin: 0; font-weight: 500; }
 .agenda-entry-title { grid-column: span 2; }
 .agenda-entry-notes { grid-column: span 2; }
 .agenda-entry-materials { grid-column: 1 / -1; }
@@ -6050,6 +6061,7 @@ select:focus {
 .arrangement-entry-detail-kind--activity { background: #e5f2e8; color: #256339; }
 .arrangement-entry-detail-kind--meal { background: #fff0d9; color: #884b08; }
 .arrangement-entry-detail-kind--program { background: #e1f1f4; color: #14566a; }
+.arrangement-entry-detail-kind--campfire { background: #fff0d9; color: #884b08; }
 .arrangement-entry-detail-content h3 { margin: 0 0 7px; color: #24434a; font-size: .95rem; }
 .arrangement-entry-detail-content p { margin: 0; color: #34484c; line-height: 1.55; }
 .arrangement-entry-detail-text { white-space: pre-line; }

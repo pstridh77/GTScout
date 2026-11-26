@@ -104,18 +104,21 @@
         return ids.map(id => String(entry.recipe_aliases?.[id] || "").trim() || recipes.find(recipe => String(recipe.id) === id)?.namn).filter(Boolean);
     }
 
-    function renderAgendaEntry(entry, arrangement, recipes) {
-        const kindNames = { meal: "Måltid", activity: "Aktivitet", program: "Program" };
+    function renderAgendaEntry(entry, arrangement, recipes, songs = []) {
+        const kindNames = { meal: "Måltid", activity: "Aktivitet", program: "Program", campfire: "Lägerbål" };
         const time = entry.time ? `${escapeHtml(entry.time)}${entry.end_time ? `–${escapeHtml(entry.end_time)}` : ""}` : "Heldag";
         const targetDepartments = getTargetDepartments(entry, arrangement);
         const recipesForMeal = entry.kind === "meal" ? getRecipeNames(entry, recipes) : [];
         const recipeText = recipesForMeal.length ? `<p>Recept: ${recipesForMeal.map(escapeHtml).join(", ")}</p>` : "";
+        const campfireItems = entry.kind === "campfire" ? (entry.campfire_items || []) : [];
+        const campfireText = campfireItems.length
+            ? `<p>Sånger: ${campfireItems.map(item => escapeHtml(songs.find(song => song.id === item.id)?.titel || item.title)).join(", ")}</p>` : "";
         const materials = Array.isArray(entry.materials) && entry.materials.length
             ? `<p>Material: ${entry.materials.map(escapeHtml).join(", ")}</p>` : "";
-        return `<article class="agenda-entry"><div class="agenda-time">${time}</div><div><h3>${escapeHtml(entry.title || kindNames[entry.kind] || "Programpunkt")}</h3><p class="agenda-meta">${escapeHtml(kindNames[entry.kind] || "Programpunkt")}${targetDepartments.length ? ` · ${targetDepartments.map(escapeHtml).join(", ")}` : ""}${entry.responsible ? ` · Ansvarig: ${escapeHtml(entry.responsible)}` : ""}${entry.leaders_only ? " · Endast ledare" : ""}</p>${recipeText}${entry.notes ? `<p>${escapeHtml(entry.notes)}</p>` : ""}${materials}</div></article>`;
+        return `<article class="agenda-entry"><div class="agenda-time">${time}</div><div><h3>${escapeHtml(entry.title || kindNames[entry.kind] || "Programpunkt")}</h3><p class="agenda-meta">${escapeHtml(kindNames[entry.kind] || "Programpunkt")}${targetDepartments.length ? ` · ${targetDepartments.map(escapeHtml).join(", ")}` : ""}${entry.responsible ? ` · Ansvarig: ${escapeHtml(entry.responsible)}` : ""}${entry.leaders_only ? " · Endast ledare" : ""}</p>${recipeText}${campfireText}${entry.notes ? `<p>${escapeHtml(entry.notes)}</p>` : ""}${materials}</div></article>`;
     }
 
-    function renderAgendaDays(arrangement, recipes) {
+    function renderAgendaDays(arrangement, recipes, songs) {
         const byDate = new Map();
         [...(arrangement.agenda || [])]
             .sort((left, right) => String(left.date || "").localeCompare(String(right.date || "")) || String(left.time || "").localeCompare(String(right.time || "")))
@@ -125,7 +128,7 @@
                 byDate.get(date).push(entry);
             });
         if (!byDate.size) return `<p class="empty">Inga programpunkter planerade.</p>`;
-        return [...byDate].map(([date, entries], index) => `<section class="day-section${index ? " page-break" : ""}"><h2>${escapeHtml(formatDate(date) || "Datum saknas")}${renderSunLabel(arrangement, date)}</h2>${entries.map(entry => renderAgendaEntry(entry, arrangement, recipes)).join("")}</section>`).join("");
+        return [...byDate].map(([date, entries], index) => `<section class="day-section${index ? " page-break" : ""}"><h2>${escapeHtml(formatDate(date) || "Datum saknas")}${renderSunLabel(arrangement, date)}</h2>${entries.map(entry => renderAgendaEntry(entry, arrangement, recipes, songs)).join("")}</section>`).join("");
     }
 
     function renderPacking(arrangement, activities) {
@@ -162,8 +165,8 @@
         return `<section class="packing-section page-break"><h2>Packning och förberedelser</h2><div class="packing-grid">${materialSections}</div><section><h3>Tält</h3>${renderList(tentRows, "Ingen tältfördelning angiven.")}</section><section><h3>Checklista</h3>${renderList(checklist, "Ingen checklista angiven.")}</section>${notes ? `<section><h3>Anteckningar</h3><p class="notes">${escapeHtml(notes)}</p></section>` : ""}</section>`;
     }
 
-    function renderPlanningDocument(arrangement, recipes, activities) {
-        return `${renderSummary(arrangement)}<div class="intro-grid">${renderResponsibilities(arrangement)}${arrangement.notes ? `<section><h2>Anteckningar</h2><p>${escapeHtml(arrangement.notes)}</p></section>` : ""}</div><section class="schedule-section"><h2>Schema</h2>${renderAgendaDays(arrangement, recipes)}</section>${renderPacking(arrangement, activities)}`;
+    function renderPlanningDocument(arrangement, recipes, activities, songs) {
+        return `${renderSummary(arrangement)}<div class="intro-grid">${renderResponsibilities(arrangement)}${arrangement.notes ? `<section><h2>Anteckningar</h2><p>${escapeHtml(arrangement.notes)}</p></section>` : ""}</div><section class="schedule-section"><h2>Schema</h2>${renderAgendaDays(arrangement, recipes, songs)}</section>${renderPacking(arrangement, activities)}`;
     }
 
     function getOverviewDates(arrangement) {
@@ -346,7 +349,7 @@
         return `.overview-page{display:flex;flex-direction:column;min-height:0;break-inside:avoid-page}.overview-grid{position:relative;display:grid;grid-template-columns:15mm repeat(var(--overview-day-count),minmax(0,1fr));grid-template-rows:14mm minmax(30px,auto) var(--overview-rows);gap:0;border-top:1px solid #aebfbc;border-left:1px solid #aebfbc;break-inside:avoid-page}.overview-legend-row{display:flex;align-items:center;flex-wrap:wrap;gap:2mm 3mm;margin:0 0 3mm;color:#52686d;font-size:8pt;break-after:avoid-page}.overview-legend-row>strong{flex:0 0 auto;color:#164a4d}.overview-time-heading,.overview-day-heading,.overview-time-cell,.overview-time-slot{min-width:0;box-sizing:border-box;border-right:1px solid #aebfbc;border-bottom:1px solid #aebfbc}.overview-time-heading,.overview-day-heading{display:flex;align-items:center;justify-content:center;padding:1.5mm;background:#eaf1ef;font-weight:700}.overview-day-heading{flex-direction:column;gap:1mm;font-size:9pt;color:#164a4d;text-align:center}.overview-day-heading strong{font-size:11pt}.overview-time-heading{font-size:8pt}.overview-time-cell{padding:1mm 1.5mm;background:#f5f8f7;color:#52636a;font-size:7.5pt;font-weight:700;text-align:right}.overview-all-day-label{display:flex;align-items:center;justify-content:center;text-align:center}.overview-time-slot{display:grid;align-content:start;gap:1mm;min-height:0;padding:1mm;background:#fff}.overview-timed-entry{position:relative;z-index:2;align-self:stretch;width:var(--lane-width);min-width:0;height:100%;margin-left:var(--lane-offset);padding:1.5mm;overflow:hidden;border:0;border-left:1.5mm solid rgba(255,255,255,.75);border-radius:2mm;background:var(--event-color);color:var(--event-text);line-height:1.15}.overview-entry>strong{display:block;margin:0;font-size:8pt;overflow-wrap:anywhere}.overview-entry>small{display:block;margin-top:1mm;color:inherit;font-size:7pt;overflow-wrap:anywhere}.overview-entry--meal{background:#d94c79!important;color:#fff!important}.overview-all-day .overview-entry{padding:1.5mm;border:0;border-radius:2mm;background:var(--event-color);color:var(--event-text)}.overview-legend{display:flex;flex-wrap:wrap;gap:1mm 2mm;margin-top:1mm}.overview-team{display:inline-flex;align-items:center;gap:1mm;padding:.5mm 1.5mm;border:1px solid #c4d1ce;border-radius:1mm;background:var(--team-color);color:var(--team-text);font-size:7pt;font-weight:700}@media print{.overview-grid,.overview-entry{-webkit-print-color-adjust:exact;print-color-adjust:exact}}`;
     }
 
-    function openDocument(item, mode, recipes = [], activities = []) {
+    function openDocument(item, mode, recipes = [], activities = [], songs = []) {
         const title = mode === "overview" ? `${item.title} - schemaöversikt` : `${item.title} - planering och packning`;
         const overviewDates = mode === "overview" ? getOverviewDates(item) : [];
         const selectedDates = new Set(overviewDates);
@@ -370,7 +373,7 @@
         const renderFrame = () => {
             const content = mode === "overview"
                 ? renderOverviewPages(item, recipes, [...selectedDates])
-                : renderPlanningDocument(item, recipes, activities);
+                : renderPlanningDocument(item, recipes, activities, songs);
             preview.querySelector("[data-print-preview]").disabled = true;
             frame.srcdoc = `<!DOCTYPE html><html lang="sv"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title><style>${documentStyles(mode)}${extraStyles}${headerStyles}${guideStyles}</style></head><body>${content}</body></html>`;
         };

@@ -29,6 +29,8 @@ const isSharedArrangementView = new URLSearchParams(window.location.search).has(
 let arrangements = [];
 let recipes = [];
 let activities = [];
+let campfireSongs = [];
+let campfireCatalogState = "loading";
 let draftAgenda = [];
 let activeAgendaArrangementId = "";
 let activeAgendaEntryId = "";
@@ -1199,9 +1201,18 @@ function showReadonlyAgendaEntryDetail(item, entry, trigger) {
                 : `<li>${escapeArrangementHtml(recipeName || id)} (receptet finns inte längre i biblioteket)</li>`;
         }).join("")}</ul>` : "<p>Inget recept är kopplat till måltiden.</p>"}`
         : "";
+    const campfireDetails = entry.kind === "campfire"
+        ? `${campfireCatalogState === "error" ? '<p>Kunde inte hämta lägerbålsbiblioteket. Sparade titlar visas.</p>' : ""}${entry.campfire_items?.length ? `<h3>Sånger</h3><ol>${entry.campfire_items.map(item => {
+            const song = campfireSongs.find(candidate => candidate.id === item.id);
+            const name = song?.titel || item.title;
+            if (song) return `<li><a href="lagerbal.html?song=${encodeURIComponent(item.id)}" target="_blank" rel="noopener noreferrer">${escapeArrangementHtml(name)}</a></li>`;
+            const missing = campfireCatalogState === "loaded" ? " (finns inte längre i biblioteket)" : "";
+            return `<li>${escapeArrangementHtml(name + missing)}</li>`;
+        }).join("")}</ol>` : "<p>Inga sånger valda.</p>"}`
+        : "";
     const title = entry.kind === "activity" ? activity?.namn || entry.title || "Aktivitet" : entry.title || mealLabel;
-    const kindLabel = entry.kind === "meal" ? "Måltid" : entry.kind === "activity" ? "Aktivitet" : "Programpunkt";
-    const kindClass = entry.kind === "meal" ? "meal" : entry.kind === "activity" ? "activity" : "program";
+    const kindLabel = entry.kind === "meal" ? "Måltid" : entry.kind === "activity" ? "Aktivitet" : entry.kind === "campfire" ? "Lägerbål" : "Programpunkt";
+    const kindClass = entry.kind === "meal" ? "meal" : entry.kind === "activity" ? "activity" : entry.kind === "campfire" ? "campfire" : "program";
     const selectedDepartments = item.departments?.length ? item.departments : departments;
     const entryDepartments = entry.shared !== false
         ? selectedDepartments.filter(department => !(entry.excluded_departments || []).includes(department))
@@ -1209,7 +1220,7 @@ function showReadonlyAgendaEntryDetail(item, entry, trigger) {
     const departmentTags = entryDepartments.length
         ? entryDepartments.map(department => `<span class="arrangement-entry-detail-department department-tone-${departments.indexOf(department)}">${escapeArrangementHtml(department)}</span>`).join("")
         : `<span class="arrangement-entry-detail-department arrangement-entry-detail-department--shared">${entry.shared !== false ? "Gemensamt" : "Ingen avdelning vald"}</span>`;
-    const additionalDetails = entry.kind === "activity" ? activityDetails : mealDetails || (!entry.notes ? "<p>Inga ytterligare detaljer angivna.</p>" : "");
+    const additionalDetails = entry.kind === "activity" ? activityDetails : campfireDetails || mealDetails || (!entry.notes ? "<p>Inga ytterligare detaljer angivna.</p>" : "");
     document.getElementById("agendaEntryDetailBody").innerHTML = `<div class="arrangement-entry-detail"><div class="arrangement-entry-detail-topline"><span class="arrangement-entry-detail-kind arrangement-entry-detail-kind--${kindClass}">${escapeArrangementHtml(kindLabel)}</span><time datetime="${escapeArrangementHtml(entry.date)}">${escapeArrangementHtml(formatArrangementDate(entry.date))}</time></div><h2 id="agendaEntryDetailTitle">${escapeArrangementHtml(title)}</h2><div class="arrangement-entry-detail-meta"><div class="arrangement-entry-detail-meta-item"><span>Tid</span><strong>${escapeArrangementHtml(time)}</strong></div>${entry.responsible ? `<div class="arrangement-entry-detail-meta-item"><span>Ansvarig</span><strong>${escapeArrangementHtml(entry.responsible)}</strong></div>` : ""}${entry.leaders_only ? '<span class="arrangement-entry-detail-audience">Endast ledare</span>' : ""}</div><div class="arrangement-entry-detail-departments" aria-label="Berörda avdelningar">${departmentTags}</div><div class="arrangement-entry-detail-content">${additionalDetails}${entry.notes ? `<section class="arrangement-entry-detail-notes"><h3>Anteckningar</h3><p class="arrangement-entry-detail-text">${escapeArrangementHtml(entry.notes)}</p></section>` : ""}</div></div>`;
     agendaEntryDetailItem = item;
     agendaEntryDetailEntry = entry;
@@ -1412,6 +1423,107 @@ function getCatalogOptions(kind, selectedSourceType = "", selectedSourceId = "",
     return `<option value="">Egen post</option>${oldLabel}${catalog.map(item => `<option value="${escapeArrangementHtml(`${item.sourceType}:${item.id}`)}"${item.id === selectedSourceId && item.sourceType === selectedSourceType ? " selected" : ""}>${escapeArrangementHtml(item.name)}</option>`).join("")}`;
 }
 
+function renderCampfireSelection(items) {
+    const summary = items.length ? `${items.length} valda` : "Inga sånger valda";
+    const list = items.length ? `<ol class="agenda-campfire-selected">${items.map((item, index) => {
+        const available = campfireSongs.find(song => song.id === item.id);
+        const title = available?.titel || item.title;
+        const unavailable = campfireCatalogState === "loaded" && !available ? " (finns inte längre i biblioteket)" : "";
+        return `<li data-campfire-selected="${escapeArrangementHtml(item.id)}" data-campfire-title="${escapeArrangementHtml(title)}"><div class="agenda-campfire-row"><span>${escapeArrangementHtml(title + unavailable)}</span><div class="agenda-campfire-actions"><button type="button" data-campfire-move="-1" aria-label="Flytta ${escapeArrangementHtml(title)} uppåt" title="Flytta uppåt"${index === 0 ? " disabled" : ""}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 14 6-6 6 6"/></svg></button><button type="button" data-campfire-move="1" aria-label="Flytta ${escapeArrangementHtml(title)} nedåt" title="Flytta nedåt"${index === items.length - 1 ? " disabled" : ""}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 10 6 6 6-6"/></svg></button><button type="button" data-campfire-remove aria-label="Ta bort ${escapeArrangementHtml(title)}" title="Ta bort"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div></div></li>`;
+    }).join("")}</ol>` : "";
+    return `<div class="agenda-recipe-selection"><span class="agenda-recipe-summary" role="status" aria-live="polite">${summary}</span><button class="agenda-recipe-clear" type="button" data-clear-campfire${items.length ? "" : " disabled"}>Rensa val</button></div>${list}`;
+}
+
+function renderCampfirePicker(entry) {
+    const items = entry.campfire_items || [];
+    const selectedIds = new Set(items.map(item => item.id));
+    const categories = window.GTScoutSongCatalog.categories;
+    const options = categories.map(category => {
+        const songs = campfireSongs.filter(song => song.kategori === category)
+            .sort((left, right) => left.titel.trim().localeCompare(right.titel.trim(), "sv"));
+        if (!songs.length) return "";
+        return `<details class="agenda-recipe-category"><summary>${escapeArrangementHtml(category)}</summary>${songs.map(song =>
+            `<label class="agenda-recipe-choice"><input class="agenda-campfire-target" type="checkbox" value="${escapeArrangementHtml(song.id)}"${selectedIds.has(song.id) ? " checked" : ""}><span>${escapeArrangementHtml(song.titel)}</span></label>`
+        ).join("")}</details>`;
+    }).join("");
+    const message = campfireCatalogState === "loading" ? "Hämtar lägerbålsbiblioteket..."
+        : campfireCatalogState === "error" ? "Kunde inte hämta lägerbålsbiblioteket. Sparade val finns kvar; ladda om sidan för att försöka igen."
+            : !campfireSongs.length ? "Lägerbålsbiblioteket är tomt." : "";
+    return `<div class="agenda-recipe-picker agenda-campfire-picker"><span>Sånger</span>${message ? "" : `<label class="agenda-recipe-search-field"><span>Sök sång</span><input class="agenda-recipe-search agenda-campfire-search" type="search" placeholder="Börja skriva en titel" autocomplete="off"></label>`}<div data-campfire-selection>${renderCampfireSelection(items)}</div>${message ? `<p class="agenda-campfire-status" role="status">${escapeArrangementHtml(message)}</p>` : `<div class="agenda-recipe-options" role="group" aria-label="Lägerbålsbibliotek">${options}</div><small class="agenda-campfire-no-results hidden" role="status">Inga sånger, rop eller lekar matchar sökningen.</small>`}</div>`;
+}
+
+function addCampfireFields(container, entry) {
+    const type = container.querySelector('[data-agenda-field="kind"]');
+    type.append(new Option("Lägerbål", "campfire"));
+    type.value = entry.kind;
+    if (entry.kind === "campfire") type.closest("label").insertAdjacentHTML("afterend", renderCampfirePicker(entry));
+}
+
+function readCampfireItems(container) {
+    return [...(container?.querySelectorAll("[data-campfire-selected]") || [])].map(row => ({
+        id: row.dataset.campfireSelected,
+        title: row.dataset.campfireTitle
+    }));
+}
+
+function updateCampfireSelection(picker, items) {
+    picker.querySelector("[data-campfire-selection]").innerHTML = renderCampfireSelection(items);
+    picker.querySelectorAll(".agenda-campfire-target").forEach(input => {
+        input.checked = items.some(item => item.id === input.value);
+    });
+}
+
+function filterCampfirePicker(picker) {
+    const query = picker.querySelector(".agenda-campfire-search").value.trim().toLocaleLowerCase("sv");
+    const choices = [...picker.querySelectorAll(".agenda-recipe-choice")];
+    choices.forEach(choice => { choice.hidden = !choice.textContent.toLocaleLowerCase("sv").includes(query); });
+    picker.querySelectorAll(".agenda-recipe-category").forEach(group => {
+        const hasVisibleSongs = [...group.querySelectorAll(".agenda-recipe-choice")].some(choice => !choice.hidden);
+        group.hidden = !hasVisibleSongs;
+        group.open = query ? hasVisibleSongs : group.querySelector(".agenda-campfire-target:checked") !== null;
+    });
+    picker.querySelector(".agenda-campfire-no-results").classList.toggle("hidden", !query || choices.some(choice => !choice.hidden));
+}
+
+function changeCampfireSelection(event) {
+    const picker = event.target.closest(".agenda-campfire-picker");
+    if (!picker || !event.target.matches(".agenda-campfire-target")) return false;
+    const items = readCampfireItems(picker).filter(item => item.id !== event.target.value);
+    if (event.target.checked) {
+        const song = campfireSongs.find(item => item.id === event.target.value);
+        if (song) items.push({ id: song.id, title: song.titel });
+    }
+    updateCampfireSelection(picker, items);
+    return true;
+}
+
+function handleCampfireAction(event) {
+    const button = event.target.closest("[data-campfire-move], [data-campfire-remove], [data-clear-campfire]");
+    if (!button) return false;
+    const picker = button.closest(".agenda-campfire-picker");
+    if (button.hasAttribute("data-clear-campfire")) {
+        updateCampfireSelection(picker, []);
+        picker.querySelector(".agenda-campfire-search")?.focus();
+        return true;
+    }
+    const row = button.closest("[data-campfire-selected]");
+    const items = readCampfireItems(picker);
+    const index = items.findIndex(item => item.id === row.dataset.campfireSelected);
+    if (index < 0) return false;
+    if (button.hasAttribute("data-campfire-remove")) items.splice(index, 1);
+    else {
+        const next = index + Number(button.dataset.campfireMove);
+        if (next < 0 || next >= items.length) return false;
+        [items[index], items[next]] = [items[next], items[index]];
+    }
+    updateCampfireSelection(picker, items);
+    const remaining = [...picker.querySelectorAll("[data-campfire-selected]")].find(item => item.dataset.campfireSelected === row.dataset.campfireSelected);
+    const moveButton = remaining?.querySelector(`[data-campfire-move="${button.dataset.campfireMove}"]:not(:disabled)`)
+        || remaining?.querySelector("[data-campfire-move]:not(:disabled)");
+    (moveButton || picker.querySelector(".agenda-campfire-search"))?.focus();
+    return true;
+}
+
 function getMealRecipeIds(entry) {
     if (Array.isArray(entry.recipe_ids)) return entry.recipe_ids.map(String);
     return entry.source_type === "recipe" && entry.source_id ? [String(entry.source_id)] : [];
@@ -1590,11 +1702,12 @@ function renderAgendaEditor() {
         const entry = draftAgenda.find(item => item.id === row.dataset.agendaId);
         if (!entry) return;
         const grid = row.querySelector(".arrangement-agenda-entry-grid");
+        addCampfireFields(grid, entry);
         grid.append(createAgendaMaterialsField(entry.materials));
         appendAgendaLeadersOnlyField(grid, entry);
         row.classList.toggle("arrangement-agenda-entry--leaders-only", entry.kind !== "meal" && Boolean(entry.leaders_only));
     });
-    arrangementAgendaList.querySelectorAll(".agenda-recipe-picker").forEach(updateMealRecipePicker);
+    arrangementAgendaList.querySelectorAll(".agenda-recipe-picker:not(.agenda-campfire-picker)").forEach(updateMealRecipePicker);
     arrangementAgendaEmpty.classList.toggle("hidden", draftAgenda.length > 0);
 }
 
@@ -1635,6 +1748,7 @@ function renderAgendaEntryDialog(arrangement, entry, focusField = "title") {
         ? `<small class="agenda-scope-hidden-note">Posten visas bara om dess avdelning väljs för arrangemanget.</small>`
         : "";
     agendaEntryDialogFields.innerHTML = `<div class="agenda-entry-scope"><span>${shared ? "Avdelningar som deltar" : "Gäller avdelningar"}</span><label class="agenda-shared-choice"><input data-agenda-field="shared" type="checkbox"${shared ? " checked" : ""}>Gemensamt för alla</label>${shared ? "<small class=\"agenda-scope-help\">Avmarkera avdelningar som inte ska delta.</small>" : ""}<div class="agenda-scope-options">${scopeOptions}</div>${inactiveScopeNote}</div><label class="agenda-entry-field agenda-entry-title"><span>Namn</span><input data-agenda-field="title" type="text" maxlength="160" value="${escapeArrangementHtml(entry.title)}" required placeholder="${entry.kind === "meal" ? "Till exempel Frukost" : "Till exempel lägerbål"}"></label><label class="agenda-entry-field"><span>Datum</span><input data-agenda-field="date" type="date" min="${escapeArrangementHtml(arrangement.start_date)}" max="${escapeArrangementHtml(arrangement.end_date)}" value="${escapeArrangementHtml(entry.date)}" required></label><label class="agenda-entry-field"><span>Start</span><input data-agenda-field="time" type="time" value="${escapeArrangementHtml(entry.time || "")}"></label><label class="agenda-entry-field"><span>Slut</span><input data-agenda-field="end_time" type="time" value="${escapeArrangementHtml(entry.end_time || "")}"></label><label class="agenda-entry-field"><span>Typ</span><select data-agenda-field="kind"><option value="meal"${entry.kind === "meal" ? " selected" : ""}>Mat</option><option value="activity"${entry.kind === "activity" ? " selected" : ""}>Aktivitet</option><option value="program"${entry.kind === "program" ? " selected" : ""}>Program</option></select></label>${recipeField}${sourceField}<label class="agenda-entry-field"><span>Ansvarig</span><input data-agenda-field="responsible" type="text" maxlength="120" value="${escapeArrangementHtml(entry.responsible || "")}" placeholder="Namn"></label><label class="agenda-entry-field agenda-entry-notes"><span>Anteckningar</span><textarea data-agenda-field="notes" rows="3" maxlength="240" placeholder="Skriv anteckningar">${escapeArrangementHtml(entry.notes)}</textarea></label>`;
+    addCampfireFields(agendaEntryDialogFields, entry);
     agendaEntryDialogFields.append(createAgendaMaterialsField(entry.materials));
     appendAgendaLeadersOnlyField(agendaEntryDialogFields, entry);
     if (entry.kind === "meal") agendaEntryDialogFields.insertAdjacentHTML("beforeend", renderMealParticipantEditor(arrangement, entry));
@@ -1648,7 +1762,7 @@ function renderAgendaEntryDialog(arrangement, entry, focusField = "title") {
     document.getElementById("saveAgendaEntryBtn").textContent = activeAgendaEntryIsCopy ? "Lägg till kopia" : activeAgendaEntryIsNew ? "Lägg till" : "Spara";
     agendaEntryModal.classList.remove("hidden");
     agendaEntryDialogFields.querySelector(`[data-agenda-field="${focusField}"]`)?.focus();
-    updateMealRecipePicker(agendaEntryDialogFields.querySelector(".agenda-recipe-picker"));
+    updateMealRecipePicker(agendaEntryDialogFields.querySelector(".agenda-recipe-picker:not(.agenda-campfire-picker)"));
 }
 
 function readAgendaEntryDialog() {
@@ -1673,6 +1787,7 @@ function readAgendaEntryDialog() {
         source_type: kind === "meal" ? recipeIds.length ? "recipe" : "" : sourceParts.length ? sourceType : "",
         source_id: kind === "meal" ? recipeIds[0] || "" : sourceParts.join(":"),
         recipe_ids: recipeIds,
+        campfire_items: kind === "campfire" ? readCampfireItems(agendaEntryDialogFields.querySelector(".agenda-campfire-picker")) : [],
         recipe_aliases: readMealRecipeAliases(agendaEntryDialogFields.querySelector(".agenda-recipe-picker"), recipeIds),
         participants_override: kind === "meal" && agendaEntryDialogFields.querySelector('[name="mealParticipantMode"]:checked')?.value === "own"
             ? readParticipantInputs(agendaEntryDialogFields.querySelector("[data-meal-participant-fields]")) : null,
@@ -1709,6 +1824,7 @@ function readAgendaFromDom() {
             source_type: kind === "meal" ? recipeIds.length ? "recipe" : "" : sourceParts.length ? sourceType : "",
             source_id: kind === "meal" ? recipeIds[0] || "" : sourceParts.join(":"),
             recipe_ids: recipeIds,
+            campfire_items: kind === "campfire" ? readCampfireItems(row.querySelector(".agenda-campfire-picker")) : [],
             recipe_aliases: readMealRecipeAliases(row.querySelector(".agenda-recipe-picker"), recipeIds),
             participants_override: kind === "meal" ? existingEntry?.participants_override || null : null,
             shared,
@@ -2612,7 +2728,7 @@ arrangementsGrid.addEventListener("click", event => {
         window.location.assign(url.href);
         return;
     }
-    const opened = window.GTScoutArrangementPrint?.openDocument(arrangement, button.dataset.printArrangement, recipes, activities);
+    const opened = window.GTScoutArrangementPrint?.openDocument(arrangement, button.dataset.printArrangement, recipes, activities, campfireSongs);
     if (!opened) showArrangementToast("Tillåt popup-fönster för att öppna utskriften.", "error");
 });
 document.getElementById("arrangementSearch").addEventListener("input", renderArrangements);
@@ -2956,7 +3072,8 @@ document.getElementById("participantsForm").addEventListener("submit", async eve
 });
 
 arrangementAgendaList.addEventListener("input", event => {
-    if (event.target.matches(".agenda-recipe-search")) updateMealRecipePicker(event.target.closest(".agenda-recipe-picker"));
+    if (event.target.matches(".agenda-campfire-search")) filterCampfirePicker(event.target.closest(".agenda-campfire-picker"));
+    else if (event.target.matches(".agenda-recipe-search")) updateMealRecipePicker(event.target.closest(".agenda-recipe-picker"));
     if (event.target.matches('[data-agenda-field="time"]')) {
         const row = event.target.closest(".arrangement-agenda-entry");
         const entry = draftAgenda.find(item => item.id === row?.dataset.agendaId);
@@ -2968,6 +3085,10 @@ arrangementAgendaList.addEventListener("input", event => {
 arrangementAgendaList.addEventListener("change", event => {
     const row = event.target.closest(".arrangement-agenda-entry");
     if (!row) return;
+    if (changeCampfireSelection(event)) {
+        syncDraftAgenda();
+        return;
+    }
     syncDraftAgenda();
     const item = draftAgenda.find(entry => entry.id === row.dataset.agendaId);
     let shouldRender = false;
@@ -3004,6 +3125,10 @@ arrangementAgendaList.addEventListener("change", event => {
 });
 
 arrangementAgendaList.addEventListener("click", event => {
+    if (handleCampfireAction(event)) {
+        syncDraftAgenda();
+        return;
+    }
     const clearRecipesButton = event.target.closest("[data-clear-agenda-recipes]");
     if (clearRecipesButton) {
         const row = clearRecipesButton.closest(".arrangement-agenda-entry");
@@ -3171,6 +3296,7 @@ responsibilityForm.addEventListener("submit", async event => {
 agendaEntryDialogFields.addEventListener("change", event => {
     const arrangement = arrangements.find(item => item.id === activeAgendaArrangementId);
     if (!arrangement) return;
+    if (changeCampfireSelection(event)) return;
     const entry = readAgendaEntryDialog();
     const field = event.target.dataset.agendaField;
     if (event.target.name === "mealParticipantMode") {
@@ -3199,7 +3325,8 @@ agendaEntryDialogFields.addEventListener("change", event => {
 });
 
 agendaEntryDialogFields.addEventListener("input", event => {
-    if (event.target.matches(".agenda-recipe-search")) updateMealRecipePicker(event.target.closest(".agenda-recipe-picker"));
+    if (event.target.matches(".agenda-campfire-search")) filterCampfirePicker(event.target.closest(".agenda-campfire-picker"));
+    else if (event.target.matches(".agenda-recipe-search")) updateMealRecipePicker(event.target.closest(".agenda-recipe-picker"));
     if (event.target.matches('[data-agenda-field="time"]')) {
         const endInput = agendaEntryDialogFields.querySelector('[data-agenda-field="end_time"]');
         if (endInput) updateAgendaEndTimeFromStart(event.target, endInput, event.target.dataset.previousValue || "");
@@ -3211,6 +3338,7 @@ agendaEntryDialogFields.addEventListener("input", event => {
     }
 });
 agendaEntryDialogFields.addEventListener("click", event => {
+    if (handleCampfireAction(event)) return;
     if (!event.target.closest("[data-reset-meal-participants]")) return;
     agendaEntryDialogFields.querySelectorAll("[data-meal-participant-fields] input").forEach(input => { input.value = ""; });
     agendaEntryDialogFields.querySelector('[name="mealParticipantMode"][value="day"]').checked = true;
@@ -3339,6 +3467,26 @@ document.getElementById("deleteArrangementBtn").addEventListener("click", async 
         document.getElementById("arrangementFormStatus").textContent = error.message || "Kunde inte ta bort arrangemanget.";
     }
 });
+
+window.GTScoutSongCatalog.load()
+    .then(data => {
+        campfireSongs = data;
+        campfireCatalogState = "loaded";
+    })
+    .catch(error => {
+        console.error("Kunde inte hämta lägerbålsbiblioteket", error);
+        campfireCatalogState = "error";
+    })
+    .then(() => {
+        [arrangementAgendaList, agendaEntryDialogFields].forEach(container => {
+            container.querySelectorAll(".agenda-campfire-picker").forEach(picker => {
+                picker.outerHTML = renderCampfirePicker({ campfire_items: readCampfireItems(picker) });
+            });
+        });
+        if (!agendaEntryDetailModal.classList.contains("hidden") && agendaEntryDetailItem && agendaEntryDetailEntry?.kind === "campfire") {
+            showReadonlyAgendaEntryDetail(agendaEntryDetailItem, agendaEntryDetailEntry, agendaEntryDetailTrigger);
+        }
+    });
 
 window.GTScoutActivities?.init({ onChange(state) {
     activities = state.activities || [];

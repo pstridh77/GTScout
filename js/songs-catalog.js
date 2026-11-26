@@ -1,0 +1,19 @@
+(function () {
+    const categories = ["Sång", "Rop", "Lek"];
+
+    async function load() {
+        const response = await fetch("data/sanger.json");
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (!Array.isArray(data) || data.some(song => !song || typeof song.id !== "string" || !song.id.trim()
+            || typeof song.titel !== "string" || !song.titel.trim() || typeof song.text !== "string" || !song.text.trim()
+            || !categories.includes(song.kategori)
+            || (song.info != null && typeof song.info !== "string"))
+            || new Set(data.map(song => song.id)).size !== data.length) {
+            throw new Error("Sångfilen har ett ogiltigt format.");
+        }
+        return data;
+    }
+
+    window.GTScoutSongCatalog = { categories, load };
+})();

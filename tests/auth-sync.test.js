@@ -54,6 +54,57 @@ function deferred() {
     return { promise, resolve };
 }
 
+test("shared arrangements preserve ordered campfire selections", async () => {
+    const page = createPage(createBackend(null));
+    await page.auth.init();
+    await page.runTimers();
+    page.window.location.pathname = "/arrangemang.html";
+    page.window.location.search = "?share=example";
+    const items = [{ id: "rop", title: "Ett rop" }, { id: "sang", title: "En sång" }];
+    page.auth.getClient().rpc = async (name, args) => {
+        assert.equal(name, "get_shared_arrangement");
+        assert.equal(args.requested_token, "example");
+        return { data: [{ id: "shared", data: {
+            title: "Läger", start_date: "2026-10-09", departments: ["Spårare"],
+            agenda: [{ id: "fire", date: "2026-10-09", kind: "campfire", title: "Lägerbål", campfire_items: items }]
+        } }] };
+    };
+    page.load("arrangemang-sync.js");
+    page.window.GTScoutArrangements.init({ onChange() {} });
+    await new Promise(resolve => setImmediate(resolve));
+    const shared = page.window.GTScoutArrangements.getAll()[0];
+    assert.equal(shared.agenda[0].kind, "campfire");
+    assert.deepEqual(JSON.parse(JSON.stringify(shared.agenda[0].campfire_items)), items);
+});
+
+for (const signedIn of [false, true]) {
+    test(`campfire selections survive ${signedIn ? "database writes" : "local storage"} and reload`, async () => {
+        const backend = createBackend(signedIn ? leaderSession : null);
+        const page = createPage(backend);
+        await page.auth.init();
+        await page.runTimers();
+        page.load("arrangemang-sync.js");
+        const items = [{ id: "rop", title: "Ett rop" }, { id: "sang", title: "En sång" }];
+        await page.window.GTScoutArrangements.save({
+            id: "campfire-test", title: "Läger", start_date: "2026-10-09", departments: ["Spårare"],
+            agenda: [{ id: "fire", date: "2026-10-09", kind: "campfire", title: "Lägerbål", campfire_items: items }]
+        });
+        assert.deepEqual(JSON.parse(page.storage.get("gtscout_arrangemang"))[0].agenda[0].campfire_items, items);
+        if (signedIn) {
+            const write = backend.requests.find(request => request.table === "arrangemang" && request.operation === "upsert");
+            assert.deepEqual(JSON.parse(JSON.stringify(write.rows.data.agenda[0].campfire_items)), items);
+        }
+        const reopened = createPage(createBackend(null), page.storage);
+        reopened.load("arrangemang-sync.js");
+        reopened.window.GTScoutArrangements.init({ onChange() {} });
+        const first = reopened.window.GTScoutArrangements.getAll()[0].agenda[0];
+        assert.equal(first.kind, "campfire");
+        assert.deepEqual(JSON.parse(JSON.stringify(first.campfire_items)), items);
+        first.campfire_items[0].title = "Ändrad";
+        assert.equal(reopened.window.GTScoutArrangements.getAll()[0].agenda[0].campfire_items[0].title, "Ett rop");
+    });
+}
+
 for (const signedIn of [false, true]) {
     test(`arrangement participant counts survive ${signedIn ? "database writes" : "local storage"} and reload`, async () => {
         const backend = createBackend(signedIn ? leaderSession : null);

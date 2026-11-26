@@ -48,7 +48,7 @@
             .map(([date, counts]) => [date, window.GTScoutParticipants.normalizeOverride(counts, departments)]).filter(([, counts]) => counts));
         const agenda = Array.isArray(item.agenda) ? item.agenda.map(entry => {
             if (!entry || typeof entry !== "object" || !days.has(String(entry.date || ""))) return null;
-            const kind = ["meal", "activity", "program"].includes(entry.kind) ? entry.kind : "program";
+            const kind = ["meal", "activity", "program", "campfire"].includes(entry.kind) ? entry.kind : "program";
             const recipeIds = Array.isArray(entry.recipe_ids)
                 ? [...new Set(entry.recipe_ids.map(String))]
                 : kind === "meal" && entry.source_type === "recipe" && entry.source_id ? [String(entry.source_id)] : [];
@@ -64,6 +64,12 @@
                 source_type: ["recipe", "activity"].includes(entry.source_type) ? entry.source_type : "",
                 source_id: String(entry.source_id || ""),
                 recipe_ids: recipeIds,
+                campfire_items: kind === "campfire" && Array.isArray(entry.campfire_items)
+                    ? entry.campfire_items.filter(song => typeof song?.id === "string" && song.id.trim()
+                        && typeof song.title === "string" && song.title.trim())
+                        .filter((song, index, list) => list.findIndex(other => other.id === song.id) === index)
+                        .map(song => ({ id: song.id, title: song.title.trim() }))
+                    : [],
                 recipe_aliases: Object.fromEntries(Object.entries(entry.recipe_aliases || {})
                     .map(([id, name]) => [String(id), String(name || "").trim()])
                     .filter(([id, name]) => recipeIds.includes(id) && name)),
@@ -189,7 +195,7 @@
                 officials: item.participants.officials
             },
             participant_days: Object.fromEntries(Object.entries(item.participant_days).map(([date, counts]) => [date, window.GTScoutParticipants.normalizeOverride(counts, item.departments)])),
-            agenda: item.agenda.map(entry => ({ ...entry, participants_override: window.GTScoutParticipants.normalizeOverride(entry.participants_override, item.departments), recipe_ids: [...entry.recipe_ids], recipe_aliases: { ...entry.recipe_aliases }, departments: [...entry.departments], excluded_departments: [...entry.excluded_departments], materials: [...entry.materials] })),
+            agenda: item.agenda.map(entry => ({ ...entry, participants_override: window.GTScoutParticipants.normalizeOverride(entry.participants_override, item.departments), recipe_ids: [...entry.recipe_ids], campfire_items: entry.campfire_items.map(song => ({ ...song })), recipe_aliases: { ...entry.recipe_aliases }, departments: [...entry.departments], excluded_departments: [...entry.excluded_departments], materials: [...entry.materials] })),
             checklist: item.checklist.map(task => ({ ...task })),
             responsibilities: item.responsibilities.map(entry => ({ ...entry })),
             equipment: {
