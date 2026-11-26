@@ -649,6 +649,9 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
 .agenda-campfire-selected li { padding-left: 2px; color: #153c4a; font-weight: 500; }
 .agenda-campfire-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .agenda-campfire-row > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.agenda-campfire-add { display: flex; align-items: end; gap: 8px; min-width: 0; }
+.agenda-campfire-add label { flex: 1; min-width: 0; }
+.agenda-campfire-add button { flex: 0 0 auto; }
 .agenda-campfire-actions { display: flex; flex: 0 0 auto; gap: 5px; }
 .agenda-campfire-actions button { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; border: 1px solid #cbd7dc; border-radius: 4px; background: #fff; color: #286d60; cursor: pointer; }
 .agenda-campfire-actions button svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
@@ -656,6 +659,25 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
 .agenda-campfire-actions button:focus-visible { outline: 2px solid #286d60; outline-offset: 2px; }
 .agenda-campfire-actions button:disabled { opacity: .4; cursor: default; }
 .agenda-campfire-status { margin: 0; font-weight: 500; }
+.campfire-plan-choice { grid-column: 1 / -1; }
+.campfire-plan-choice small { font-weight: 500; }
+.campfire-plans { margin: 20px 0; padding: 18px; border: 1px solid #d7e1eb; border-radius: 8px; background: #fff; }
+.campfire-plans .arrangement-section-heading h2 { margin: 0; color: #153c4a; font-size: 1.05rem; }
+.campfire-plans .arrangement-section-heading button { flex: 0 0 auto; }
+.campfire-plans > p { margin: 0 0 8px; color: #65767b; font-size: .84rem; }
+.campfire-plan { padding: 10px 0; border-top: 1px solid #dbe3e3; }
+.campfire-plan summary { color: #153c4a; cursor: pointer; }
+.campfire-plan summary small { margin-left: 8px; color: #65767b; }
+.campfire-plan p { white-space: pre-line; overflow-wrap: anywhere; }
+.campfire-plan li { overflow-wrap: anywhere; }
+.campfire-plan-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.modal-content.campfire-plan-dialog { position: fixed; inset: 0; margin: auto; box-sizing: border-box; max-height: calc(100dvh - 24px); overflow-y: auto; }
+.campfire-plan-dialog:not([open]) { display: none; }
+.campfire-plan-dialog::backdrop { background: rgba(0, 0, 0, .6); }
+.campfire-plan-form { display: grid; gap: 12px; }
+.campfire-plan-form h2 { padding-right: 35px; }
+.campfire-plan-form p[role="status"] { margin: 0; color: #8e4634; }
+@media (max-width: 520px) { .campfire-plans .arrangement-section-heading { align-items: flex-start; flex-direction: column; } }
 .agenda-entry-title { grid-column: span 2; }
 .agenda-entry-notes { grid-column: span 2; }
 .agenda-entry-materials { grid-column: 1 / -1; }

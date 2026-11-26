@@ -1,11 +1,15 @@
 (function () {
     const categories = ["Sång", "Rop", "Lek"];
+    const customPrefix = "custom:";
+    const isCustomId = id => typeof id === "string" && id.startsWith(customPrefix);
+    const createCustomId = () => customPrefix + crypto.randomUUID();
 
-    async function load() {
+    let loading;
+    async function fetchSongs() {
         const response = await fetch("data/sanger.json");
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        if (!Array.isArray(data) || data.some(song => !song || typeof song.id !== "string" || !song.id.trim()
+        if (!Array.isArray(data) || data.some(song => !song || typeof song.id !== "string" || !song.id.trim() || isCustomId(song.id)
             || typeof song.titel !== "string" || !song.titel.trim() || typeof song.text !== "string" || !song.text.trim()
             || !categories.includes(song.kategori)
             || (song.info != null && typeof song.info !== "string"))
@@ -15,5 +19,10 @@
         return data;
     }
 
-    window.GTScoutSongCatalog = { categories, load };
+    function load() {
+        if (!loading) loading = fetchSongs();
+        return loading;
+    }
+
+    window.GTScoutSongCatalog = { categories, load, isCustomId, createCustomId };
 })();

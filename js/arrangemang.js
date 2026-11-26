@@ -31,6 +31,8 @@ let recipes = [];
 let activities = [];
 let campfireSongs = [];
 let campfireCatalogState = "loading";
+let campfirePlans = [];
+let campfirePlansState = { loading: true, error: false };
 let draftAgenda = [];
 let activeAgendaArrangementId = "";
 let activeAgendaEntryId = "";
@@ -1203,11 +1205,12 @@ function showReadonlyAgendaEntryDetail(item, entry, trigger) {
         : "";
     const campfireDetails = entry.kind === "campfire"
         ? `${campfireCatalogState === "error" ? '<p>Kunde inte hämta lägerbålsbiblioteket. Sparade titlar visas.</p>' : ""}${entry.campfire_items?.length ? `<h3>Sånger</h3><ol>${entry.campfire_items.map(item => {
-            const song = campfireSongs.find(candidate => candidate.id === item.id);
+            const custom = window.GTScoutSongCatalog.isCustomId(item.id);
+            const song = custom ? null : campfireSongs.find(candidate => candidate.id === item.id);
             const name = song?.titel || item.title;
             if (song) return `<li><a href="lagerbal.html?song=${encodeURIComponent(item.id)}" target="_blank" rel="noopener noreferrer">${escapeArrangementHtml(name)}</a></li>`;
-            const missing = campfireCatalogState === "loaded" ? " (finns inte längre i biblioteket)" : "";
-            return `<li>${escapeArrangementHtml(name + missing)}</li>`;
+            const suffix = !custom && campfireCatalogState === "loaded" ? " (finns inte längre i biblioteket)" : "";
+            return `<li>${escapeArrangementHtml(name + suffix)}</li>`;
         }).join("")}</ol>` : "<p>Inga sånger valda.</p>"}`
         : "";
     const title = entry.kind === "activity" ? activity?.namn || entry.title || "Aktivitet" : entry.title || mealLabel;
@@ -1423,105 +1426,49 @@ function getCatalogOptions(kind, selectedSourceType = "", selectedSourceId = "",
     return `<option value="">Egen post</option>${oldLabel}${catalog.map(item => `<option value="${escapeArrangementHtml(`${item.sourceType}:${item.id}`)}"${item.id === selectedSourceId && item.sourceType === selectedSourceType ? " selected" : ""}>${escapeArrangementHtml(item.name)}</option>`).join("")}`;
 }
 
-function renderCampfireSelection(items) {
-    const summary = items.length ? `${items.length} valda` : "Inga sånger valda";
-    const list = items.length ? `<ol class="agenda-campfire-selected">${items.map((item, index) => {
-        const available = campfireSongs.find(song => song.id === item.id);
-        const title = available?.titel || item.title;
-        const unavailable = campfireCatalogState === "loaded" && !available ? " (finns inte längre i biblioteket)" : "";
-        return `<li data-campfire-selected="${escapeArrangementHtml(item.id)}" data-campfire-title="${escapeArrangementHtml(title)}"><div class="agenda-campfire-row"><span>${escapeArrangementHtml(title + unavailable)}</span><div class="agenda-campfire-actions"><button type="button" data-campfire-move="-1" aria-label="Flytta ${escapeArrangementHtml(title)} uppåt" title="Flytta uppåt"${index === 0 ? " disabled" : ""}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 14 6-6 6 6"/></svg></button><button type="button" data-campfire-move="1" aria-label="Flytta ${escapeArrangementHtml(title)} nedåt" title="Flytta nedåt"${index === items.length - 1 ? " disabled" : ""}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 10 6 6 6-6"/></svg></button><button type="button" data-campfire-remove aria-label="Ta bort ${escapeArrangementHtml(title)}" title="Ta bort"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div></div></li>`;
-    }).join("")}</ol>` : "";
-    return `<div class="agenda-recipe-selection"><span class="agenda-recipe-summary" role="status" aria-live="polite">${summary}</span><button class="agenda-recipe-clear" type="button" data-clear-campfire${items.length ? "" : " disabled"}>Rensa val</button></div>${list}`;
+const campfirePicker = window.GTScoutCampfirePicker.create({
+    getSongs: () => campfireSongs,
+    getCatalogState: () => campfireCatalogState,
+    escapeHtml: escapeArrangementHtml
+});
+const renderCampfirePicker = campfirePicker.render;
+const readCampfireItems = campfirePicker.read;
+const updateCampfireSelection = campfirePicker.update;
+const changeCampfireSelection = campfirePicker.change;
+const handleCampfireAction = campfirePicker.action;
+
+function renderCampfirePlanChoice() {
+    const options = campfirePlans.map(plan => `<option value="${escapeArrangementHtml(plan.id)}">${escapeArrangementHtml(plan.title)}</option>`).join("");
+    const message = campfirePlansState.loading ? "Hämtar planerade lägerbål..."
+        : campfirePlansState.storageError ? "Kunde inte läsa lokalt sparade lägerbål."
+        : campfirePlansState.error ? "Kunde inte hämta planerade lägerbål. Lokala listor visas om de finns."
+            : !campfirePlans.length ? "Planera ett lägerbål på Lägerbålssidan för att kunna välja det här." : "Sånglistan kopieras och kan ändras här.";
+    return `<label class="agenda-entry-field campfire-plan-choice"><span>Välj planerat lägerbål</span><select data-campfire-plan${campfirePlans.length ? "" : " disabled"}><option value="">Välj lägerbål...</option>${options}</select><small data-campfire-plan-status>${escapeArrangementHtml(message)}</small></label>`;
 }
 
-function renderCampfirePicker(entry) {
-    const items = entry.campfire_items || [];
-    const selectedIds = new Set(items.map(item => item.id));
-    const categories = window.GTScoutSongCatalog.categories;
-    const options = categories.map(category => {
-        const songs = campfireSongs.filter(song => song.kategori === category)
-            .sort((left, right) => left.titel.trim().localeCompare(right.titel.trim(), "sv"));
-        if (!songs.length) return "";
-        return `<details class="agenda-recipe-category"><summary>${escapeArrangementHtml(category)}</summary>${songs.map(song =>
-            `<label class="agenda-recipe-choice"><input class="agenda-campfire-target" type="checkbox" value="${escapeArrangementHtml(song.id)}"${selectedIds.has(song.id) ? " checked" : ""}><span>${escapeArrangementHtml(song.titel)}</span></label>`
-        ).join("")}</details>`;
-    }).join("");
-    const message = campfireCatalogState === "loading" ? "Hämtar lägerbålsbiblioteket..."
-        : campfireCatalogState === "error" ? "Kunde inte hämta lägerbålsbiblioteket. Sparade val finns kvar; ladda om sidan för att försöka igen."
-            : !campfireSongs.length ? "Lägerbålsbiblioteket är tomt." : "";
-    return `<div class="agenda-recipe-picker agenda-campfire-picker"><span>Sånger</span>${message ? "" : `<label class="agenda-recipe-search-field"><span>Sök sång</span><input class="agenda-recipe-search agenda-campfire-search" type="search" placeholder="Börja skriva en titel" autocomplete="off"></label>`}<div data-campfire-selection>${renderCampfireSelection(items)}</div>${message ? `<p class="agenda-campfire-status" role="status">${escapeArrangementHtml(message)}</p>` : `<div class="agenda-recipe-options" role="group" aria-label="Lägerbålsbibliotek">${options}</div><small class="agenda-campfire-no-results hidden" role="status">Inga sånger, rop eller lekar matchar sökningen.</small>`}</div>`;
+function chooseCampfirePlan(event) {
+    if (!event.target.matches("[data-campfire-plan]")) return false;
+    const select = event.target;
+    const plan = campfirePlans.find(item => item.id === select.value);
+    select.value = "";
+    if (!plan) {
+        select.closest(".campfire-plan-choice").querySelector("[data-campfire-plan-status]").textContent = "Det valda lägerbålet finns inte längre.";
+        return true;
+    }
+    const container = select.closest(".arrangement-agenda-entry-grid") || agendaEntryDialogFields;
+    const picker = container.querySelector(".agenda-campfire-picker");
+    if (readCampfireItems(picker).length && !confirm("Ersätta de valda sångerna med listan från det planerade lägerbålet?")) return true;
+    updateCampfireSelection(picker, plan.items);
+    const title = container.querySelector('[data-agenda-field="title"]');
+    if (title && !title.value.trim()) title.value = plan.title;
+    return true;
 }
 
 function addCampfireFields(container, entry) {
     const type = container.querySelector('[data-agenda-field="kind"]');
     type.append(new Option("Lägerbål", "campfire"));
     type.value = entry.kind;
-    if (entry.kind === "campfire") type.closest("label").insertAdjacentHTML("afterend", renderCampfirePicker(entry));
-}
-
-function readCampfireItems(container) {
-    return [...(container?.querySelectorAll("[data-campfire-selected]") || [])].map(row => ({
-        id: row.dataset.campfireSelected,
-        title: row.dataset.campfireTitle
-    }));
-}
-
-function updateCampfireSelection(picker, items) {
-    picker.querySelector("[data-campfire-selection]").innerHTML = renderCampfireSelection(items);
-    picker.querySelectorAll(".agenda-campfire-target").forEach(input => {
-        input.checked = items.some(item => item.id === input.value);
-    });
-}
-
-function filterCampfirePicker(picker) {
-    const query = picker.querySelector(".agenda-campfire-search").value.trim().toLocaleLowerCase("sv");
-    const choices = [...picker.querySelectorAll(".agenda-recipe-choice")];
-    choices.forEach(choice => { choice.hidden = !choice.textContent.toLocaleLowerCase("sv").includes(query); });
-    picker.querySelectorAll(".agenda-recipe-category").forEach(group => {
-        const hasVisibleSongs = [...group.querySelectorAll(".agenda-recipe-choice")].some(choice => !choice.hidden);
-        group.hidden = !hasVisibleSongs;
-        group.open = query ? hasVisibleSongs : group.querySelector(".agenda-campfire-target:checked") !== null;
-    });
-    picker.querySelector(".agenda-campfire-no-results").classList.toggle("hidden", !query || choices.some(choice => !choice.hidden));
-}
-
-function changeCampfireSelection(event) {
-    const picker = event.target.closest(".agenda-campfire-picker");
-    if (!picker || !event.target.matches(".agenda-campfire-target")) return false;
-    const items = readCampfireItems(picker).filter(item => item.id !== event.target.value);
-    if (event.target.checked) {
-        const song = campfireSongs.find(item => item.id === event.target.value);
-        if (song) items.push({ id: song.id, title: song.titel });
-    }
-    updateCampfireSelection(picker, items);
-    return true;
-}
-
-function handleCampfireAction(event) {
-    const button = event.target.closest("[data-campfire-move], [data-campfire-remove], [data-clear-campfire]");
-    if (!button) return false;
-    const picker = button.closest(".agenda-campfire-picker");
-    if (button.hasAttribute("data-clear-campfire")) {
-        updateCampfireSelection(picker, []);
-        picker.querySelector(".agenda-campfire-search")?.focus();
-        return true;
-    }
-    const row = button.closest("[data-campfire-selected]");
-    const items = readCampfireItems(picker);
-    const index = items.findIndex(item => item.id === row.dataset.campfireSelected);
-    if (index < 0) return false;
-    if (button.hasAttribute("data-campfire-remove")) items.splice(index, 1);
-    else {
-        const next = index + Number(button.dataset.campfireMove);
-        if (next < 0 || next >= items.length) return false;
-        [items[index], items[next]] = [items[next], items[index]];
-    }
-    updateCampfireSelection(picker, items);
-    const remaining = [...picker.querySelectorAll("[data-campfire-selected]")].find(item => item.dataset.campfireSelected === row.dataset.campfireSelected);
-    const moveButton = remaining?.querySelector(`[data-campfire-move="${button.dataset.campfireMove}"]:not(:disabled)`)
-        || remaining?.querySelector("[data-campfire-move]:not(:disabled)");
-    (moveButton || picker.querySelector(".agenda-campfire-search"))?.focus();
-    return true;
+    if (entry.kind === "campfire") type.closest("label").insertAdjacentHTML("afterend", renderCampfirePlanChoice() + renderCampfirePicker(entry));
 }
 
 function getMealRecipeIds(entry) {
@@ -3072,8 +3019,7 @@ document.getElementById("participantsForm").addEventListener("submit", async eve
 });
 
 arrangementAgendaList.addEventListener("input", event => {
-    if (event.target.matches(".agenda-campfire-search")) filterCampfirePicker(event.target.closest(".agenda-campfire-picker"));
-    else if (event.target.matches(".agenda-recipe-search")) updateMealRecipePicker(event.target.closest(".agenda-recipe-picker"));
+    if (!campfirePicker.input(event) && event.target.matches(".agenda-recipe-search")) updateMealRecipePicker(event.target.closest(".agenda-recipe-picker"));
     if (event.target.matches('[data-agenda-field="time"]')) {
         const row = event.target.closest(".arrangement-agenda-entry");
         const entry = draftAgenda.find(item => item.id === row?.dataset.agendaId);
@@ -3082,9 +3028,14 @@ arrangementAgendaList.addEventListener("input", event => {
     }
     syncDraftAgenda();
 });
+arrangementAgendaList.addEventListener("keydown", event => campfirePicker.keydown(event));
 arrangementAgendaList.addEventListener("change", event => {
     const row = event.target.closest(".arrangement-agenda-entry");
     if (!row) return;
+    if (chooseCampfirePlan(event)) {
+        syncDraftAgenda();
+        return;
+    }
     if (changeCampfireSelection(event)) {
         syncDraftAgenda();
         return;
@@ -3296,6 +3247,7 @@ responsibilityForm.addEventListener("submit", async event => {
 agendaEntryDialogFields.addEventListener("change", event => {
     const arrangement = arrangements.find(item => item.id === activeAgendaArrangementId);
     if (!arrangement) return;
+    if (chooseCampfirePlan(event)) return;
     if (changeCampfireSelection(event)) return;
     const entry = readAgendaEntryDialog();
     const field = event.target.dataset.agendaField;
@@ -3325,8 +3277,7 @@ agendaEntryDialogFields.addEventListener("change", event => {
 });
 
 agendaEntryDialogFields.addEventListener("input", event => {
-    if (event.target.matches(".agenda-campfire-search")) filterCampfirePicker(event.target.closest(".agenda-campfire-picker"));
-    else if (event.target.matches(".agenda-recipe-search")) updateMealRecipePicker(event.target.closest(".agenda-recipe-picker"));
+    if (!campfirePicker.input(event) && event.target.matches(".agenda-recipe-search")) updateMealRecipePicker(event.target.closest(".agenda-recipe-picker"));
     if (event.target.matches('[data-agenda-field="time"]')) {
         const endInput = agendaEntryDialogFields.querySelector('[data-agenda-field="end_time"]');
         if (endInput) updateAgendaEndTimeFromStart(event.target, endInput, event.target.dataset.previousValue || "");
@@ -3337,6 +3288,7 @@ agendaEntryDialogFields.addEventListener("input", event => {
         if (arrangement) updateMealParticipantEditor(arrangement);
     }
 });
+agendaEntryDialogFields.addEventListener("keydown", event => campfirePicker.keydown(event));
 agendaEntryDialogFields.addEventListener("click", event => {
     if (handleCampfireAction(event)) return;
     if (!event.target.closest("[data-reset-meal-participants]")) return;
@@ -3480,13 +3432,25 @@ window.GTScoutSongCatalog.load()
     .then(() => {
         [arrangementAgendaList, agendaEntryDialogFields].forEach(container => {
             container.querySelectorAll(".agenda-campfire-picker").forEach(picker => {
-                picker.outerHTML = renderCampfirePicker({ campfire_items: readCampfireItems(picker) });
+                campfirePicker.refresh(picker);
             });
         });
         if (!agendaEntryDetailModal.classList.contains("hidden") && agendaEntryDetailItem && agendaEntryDetailEntry?.kind === "campfire") {
             showReadonlyAgendaEntryDetail(agendaEntryDetailItem, agendaEntryDetailEntry, agendaEntryDetailTrigger);
         }
     });
+
+if (!isSharedArrangementView) {
+    window.GTScoutCampfirePlans.init({ onChange(nextPlans, state) {
+        campfirePlans = nextPlans;
+        campfirePlansState = state;
+        [arrangementAgendaList, agendaEntryDialogFields].forEach(container => {
+            container.querySelectorAll(".campfire-plan-choice").forEach(choice => {
+                choice.outerHTML = renderCampfirePlanChoice();
+            });
+        });
+    } });
+}
 
 window.GTScoutActivities?.init({ onChange(state) {
     activities = state.activities || [];

@@ -62,6 +62,14 @@ Sidan använder samma `GTScoutActivities`-modul och databas som märkesbibliotek
 
 I den öppnade sången finns en delningsknapp som kopierar en länk direkt till sången. Om automatisk kopiering inte fungerar kan länken kopieras manuellt. Mottagaren behöver inte logga in.
 
+Med **Planera lägerbål** kan du skapa en namngiven lista med valfri beskrivning och ordnade sånger, rop och lekar utan ett arrangemang. Listorna kan öppnas, redigeras, kopieras och tas bort. Gästens listor sparas i webbläsaren; inloggade i kåren kan läsa kårens listor och ledare och administratörer kan redigera dem. Vid inloggning får ledare välja vad som ska hända med listor som skapats lokalt. Listor som behålls lokalt syns bara i den webbläsaren. Misslyckad synkning visas och ändringen behålls lokalt.
+
+Med **Egen titel** kan du även lägga till titlar som inte finns i biblioteket. De kan redigeras med pennknappen, flyttas och tas bort i listan och följer med vid kopiering till ett arrangemang, men länkar inte till biblioteket. Egna titlar fungerar även när biblioteket inte kan hämtas. Äldre appversioner kan visa dem som saknade biblioteksposter; ladda om appen på alla enheter.
+
+ID-prefixet `custom:` är reserverat för egna titlar och får inte användas i sångbiblioteket.
+
+För synkning kör du [db/lagerbal-planering.sql](db/lagerbal-planering.sql) efter [db/schema.sql](db/schema.sql) i varje Supabase-miljö. Listorna lagras separat från det gemensamma sångbiblioteket och använder sparade reservtitlar om sångfilen eller en enskild post saknas.
+
 Sångerna underhålls i [data/sanger.json](data/sanger.json): varje post har ett unikt `id`, `titel`, `kategori` (`Sång`, `Rop` eller `Lek`), `text` med radbrytningar och valfri `info` som visas med posten. Lägg bara till texter som är fria att publicera eller där tillstånd finns. Det finns ännu ingen redigering i appen eller databassynkning.
 
 Skriv `**text**` i sångtexten för att visa texten i fetstil. Markeringen gäller inom en rad; radbrytningar bevaras som tidigare.
@@ -72,7 +80,7 @@ Arrangemang (till exempel hajker, övernattningar och läger) hanteras separat f
 
 Välj en eller flera avdelningar per arrangemang. Varje agendapost kan vara gemensam eller riktas till ett urval, och dagsvyn visar posterna i tidsrader med avdelningskolumner.
 
-En programpunkt av typen Lägerbål kan innehålla flera sånger, rop och lekar från lägerbålsbiblioteket. Sök och välj poster och ändra deras ordning med pilarna. Listan visas i programpunktens detaljvy och på planeringsutskriften; i detaljvyn kan en tillgänglig post öppnas i biblioteket. Valen sparas med reservtitlar om en post försvinner eller biblioteket inte kan hämtas. Äldre appversioner känner inte igen typen och kan ta bort valen vid sparning, så ladda om appen på alla enheter innan arrangemanget redigeras.
+En programpunkt av typen Lägerbål kan innehålla flera sånger, rop och lekar från lägerbålsbiblioteket. Sök och välj poster och ändra deras ordning med pilarna. Du kan också välja ett planerat lägerbål: dess sånglista kopieras in och kan ändras utan att originalet påverkas. Ändringar eller radering av originalet påverkar inte programpunkten. Listan visas i programpunktens detaljvy och på planeringsutskriften; i detaljvyn kan en tillgänglig post öppnas i biblioteket. Valen sparas med reservtitlar om en post försvinner eller biblioteket inte kan hämtas. Äldre appversioner känner inte igen typen och kan ta bort valen vid sparning, så ladda om appen på alla enheter innan arrangemanget redigeras.
 
 Soluppgång och solnedgång visas per dag i schemats dagsrubriker och i helhetsschemat, på arrangemangskortet (första och sista dagen) samt i utskrifternas dagsrubriker och schemaöversikt. Tiderna räknas på arrangemangets koordinater om de angivits i formulärets frivilliga fält (till exempel `56.6994, 12.7439`), annars på kårens hemmaplats. Hemmaplatsen anges som latitud och longitud per kår på admin-sidan och styr även soltiderna för möten i planeringen; utan angivna koordinater används Gullbrandstorp som standard. Vid midnattssol eller polarnatt visas ingen tid. Kör den uppdaterade [db/schema.sql](db/schema.sql) i varje Supabase-miljö för att slå på hemmaplatsen – äldre databaser utan koordinatkolumner fortsätter fungera med standardplatsen. Koordinaterna sparas i arrangemangets befintliga JSON-data utan databasändring.
 
