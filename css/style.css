@@ -66,18 +66,19 @@ body {
 .song-card { align-items: flex-start; text-align: left; font: inherit; color: inherit; }
 .song-card:focus-visible { outline: 2px solid #176b72; outline-offset: 3px; }
 .song-card-title { overflow-wrap: anywhere; }
-.song-card-info { color: #536477; font-size: .85rem; }
-.modal-content.song-dialog { box-sizing: border-box; width: max-content; max-width: 90vw; max-height: calc(100dvh - 48px); overflow-y: auto; border: 0; }
+.modal-content.song-dialog { position: fixed; inset: 0; margin: auto; box-sizing: border-box; width: max-content; max-width: 90vw; max-height: calc(100dvh - 48px); overflow-y: auto; gap: 0; color: inherit; }
 .song-dialog:not([open]), .song-share-dialog:not([open]) { display: none; }
 .song-dialog::backdrop, .song-share-dialog::backdrop { background: rgba(0, 0, 0, .6); }
-.song-dialog h2 { margin: 0; padding-right: 72px; overflow-wrap: anywhere; }
+.song-dialog .recipe-category { padding-right: 72px; }
+.song-dialog h2 { overflow-wrap: anywhere; }
 .song-dialog .song-share-icon-btn { right: 48px; padding: 0; }
 .song-share-dialog { box-sizing: border-box; max-height: calc(100dvh - 48px); overflow-y: auto; border: 0; }
-.song-lyrics { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
+.song-lyrics { margin: 16px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
 .activity-form { display: grid; gap: 12px; }
 .activity-form-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
 @media (max-width: 680px) { .activity-form-grid { grid-template-columns: minmax(0, 1fr); } }
-.recipe-card { position: relative; display: flex; flex-direction: column; box-sizing: border-box; padding: 22px; border: 1px solid #d7e1eb; border-radius: 10px; background: #fff; box-shadow: 0 7px 22px rgba(0, 54, 96, .06); cursor: pointer; }
+.recipe-card, .modal-content.song-dialog { box-sizing: border-box; padding: 22px; border: 1px solid #d7e1eb; border-radius: 10px; background: #fff; box-shadow: 0 7px 22px rgba(0, 54, 96, .06); }
+.recipe-card { position: relative; display: flex; flex-direction: column; cursor: pointer; }
 .meal-recipe-modal-content { display: flex; flex-direction: column; box-sizing: border-box; width: min(800px, 100%); max-height: 90vh; max-height: 90dvh; }
 .meal-recipe-modal-content > h2 { padding-right: 28px; }
 #mealRecipeFrame { flex: 1 1 auto; width: 100%; min-height: 0; height: 65vh; height: 65dvh; border: 0; background: #fff; }
@@ -97,7 +98,7 @@ body {
 .recipe-local-badge { display: inline-flex; align-items: center; flex: 0 0 auto; padding: 4px 8px; border: 1px solid #d9a441; border-radius: 4px; background: #fdf3dd; color: #7c4a12; font-size: .72rem; font-weight: 750; line-height: 1; }
 
 .recipe-card--local { border-left: 4px solid #d9a441; }
-.recipe-card h2, .song-card-title { margin: 18px 0 8px; color: #003660; font-size: 1.35rem; font-weight: 700; }
+.recipe-card h2, .song-card-title, .modal-content.song-dialog h2 { margin: 18px 0 8px; color: #003660; font-size: 1.35rem; font-weight: 700; }
 .recipe-description { margin: 0; color: #536477; line-height: 1.5; }
 .recipe-meta { display: none; justify-content: flex-start; margin: 20px 0 12px; }
 .recipe-meta div { padding-right: 16px; border-right: 1px solid #d7e1eb; }
@@ -139,7 +140,7 @@ body {
 @media (max-width: 1100px) { .page-hero { align-items: flex-start; flex-direction: column; } }
 @media (max-width: 800px) { .page-hero h1 { font-size: 2.5rem; } .cookbook-toolbar { grid-template-columns: 1fr 1fr; } .activities-page .cookbook-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); } .recipe-form-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 680px) { .recipe-ingredient-row { grid-template-columns: 1fr 34px; } .recipe-ingredient-row .recipe-ingredient-name { grid-column: 1 / -1; } .recipe-ingredient-amounts { grid-column: 1 / -1; } }
-@media (max-width: 520px) { .cookbook-page, .arrangements-page, .activities-page, .admin-page, .planning-hero, .badges-hero { margin-top: 20px; } .page-hero { padding: 24px; } .page-hero h1 { font-size: 2rem; } .cookbook-toolbar, .recipe-form-grid { grid-template-columns: 1fr; } .activities-page .cookbook-toolbar { grid-template-columns: minmax(0, 1fr); } .recipe-card { padding: 18px; } .recipe-ingredient-amounts { grid-template-columns: repeat(5, minmax(42px, 1fr)); gap: 3px; } }
+@media (max-width: 520px) { .cookbook-page, .arrangements-page, .activities-page, .admin-page, .planning-hero, .badges-hero { margin-top: 20px; } .page-hero { padding: 24px; } .page-hero h1 { font-size: 2rem; } .cookbook-toolbar, .recipe-form-grid { grid-template-columns: 1fr; } .activities-page .cookbook-toolbar { grid-template-columns: minmax(0, 1fr); } .recipe-card, .modal-content.song-dialog { padding: 18px; } .recipe-ingredient-amounts { grid-template-columns: repeat(5, minmax(42px, 1fr)); gap: 3px; } }
 .arrangements-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(170px, 240px); align-items: end; gap: 14px; margin-bottom: 22px; }
 .arrangements-toolbar .filter-field { min-width: 0; }
 .arrangements-grid { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 14px; }
