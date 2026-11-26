@@ -17,6 +17,7 @@
     const MODULES = [
         { id: "marken", label: "Märken", description: "Märkesbiblioteket med kårens egna märken.", href: "marken.html", icon: '<img src="images/marken/varme.png" alt="">' },
         { id: "aktiviteter", label: "Aktiviteter", description: "Aktivitetsbank med genomföranden och material.", href: "aktiviteter.html", icon: '<img src="images/marken/leka.png" alt="">' },
+        { id: "lagerbal", label: "Lägerbål", description: "Sånger att sjunga tillsammans vid lägerbålet.", href: "lagerbal.html", icon: '<img src="images/marken/elda.png" alt="">' },
         { id: "kokbok", label: "Recept", description: "Kårens kokbok med skalbara recept.", href: "kokbok.html", icon: '<img src="images/marken/matettan.png" alt="">' },
         { id: "planering", label: "Planeringar", description: "Terminsplaneringar med möten och märken.", href: "planering.html", icon: '<img src="images/marken/karta.png" alt="">' },
         { id: "arrangemang", label: "Arrangemang", description: "Hajker, övernattningar och läger.", href: "arrangemang.html", icon: '<img src="images/marken/bygga_permanent.png" alt="">' },

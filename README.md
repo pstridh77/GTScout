@@ -10,6 +10,7 @@ Projektet innehåller:
 - Progression
 - Ledarstöd
 - Aktivitetsbibliotek
+- Lägerbål med sånger
 - Terminsplanering
 - Kårens årshjul
 
@@ -54,6 +55,12 @@ Aktivitetsbiblioteket finns på [aktiviteter.html](aktiviteter.html) och i huvud
 Aktivitetskorten har samma höjd och gemensamt linjerade informationsytor inom varje rad, med namnet överst och tid och märken längst ned. Målgrupper har en reserverad yta även när de saknas. Beskrivningar visas på högst tre rader; öppna kortet för att läsa hela texten.
 
 Sidan använder samma `GTScoutActivities`-modul och databas som märkesbiblioteket. Alla kan läsa aktiviteter. Ledare och admin kan skapa och redigera i sin egen kår, och kopiera en annan kårs aktivitet till en ny aktivitet i den egna kåren. Radering av databasaktiviteter kräver admin i den ägande kåren. Utan skrivbehörighet kan nya egna aktiviteter sparas lokalt; lokala aktiviteter kan redigeras och raderas i webbläsaren.
+
+## Lägerbål
+
+[Lägerbål](lagerbal.html) är ett gemensamt sångbibliotek som kan läsas utan inloggning. Sök på titel eller text och öppna ett kort för att läsa sången. Sidan behöver kunna hämta sångfilen från webbplatsen.
+
+Sångerna underhålls i [data/sanger.json](data/sanger.json): varje post har ett unikt `id`, `titel`, `text` med radbrytningar och en valfri `upphovsperson`. Börja med de nyskrivna exempelsångerna och lägg bara till texter som är fria att publicera eller där tillstånd finns. Det finns ännu ingen redigering i appen eller databassynkning.
 
 ## Arrangemang
 

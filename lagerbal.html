@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lägerbål – GTScout</title>
+    <link rel="icon" type="image/png" href="images/icons/GTorp_250px.png">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/supabase-config.js"></script>
+    <script src="js/supabase-config.local.js"></script>
+    <script src="js/auth.js"></script>
+</head>
+<body>
+    <header class="site-header site-header--planning">
+        <div class="utility-bar"><span class="utility-spacer" aria-hidden="true"></span><nav class="utility-nav" aria-label="Externa länkar"><a href="https://www.scouterna.se/" target="_blank" rel="noreferrer">Scouterna</a><a href="https://www.scoutnet.se/" target="_blank" rel="noreferrer">Scoutnet</a><a href="https://www.scoutshop.se/" target="_blank" rel="noreferrer">Scoutshop</a></nav><div id="authArea" class="auth-area"></div><script>window.GTScoutAuth?.renderPreview();</script></div>
+        <div class="header-main">
+            <a class="site-brand" href="index.html" aria-label="Gullbrandstorps scoutkår"><img src="images/icons/GTorp_banner.png" alt="Gullbrandstorps Scoutkår" class="site-brand-banner"></a>
+            <nav class="main-nav" aria-label="Huvudnavigation"><a href="index.html" class="nav-link" data-nav-page="index">Hem</a><a href="marken.html" class="nav-link" data-nav-page="marken">Märken</a><a href="aktiviteter.html" class="nav-link" data-nav-page="aktiviteter">Aktiviteter</a><a href="lagerbal.html" class="nav-link active" data-nav-page="lagerbal" aria-current="page">Lägerbål</a><a href="kokbok.html" class="nav-link" data-nav-page="kokbok">Recept</a><a href="planering.html" class="nav-link" data-nav-page="planering">Planeringar</a><a href="arrangemang.html" class="nav-link" data-nav-page="arrangemang">Arrangemang</a><a href="arshjul.html" class="nav-link" data-nav-page="arshjul">Årshjul</a><a href="scouter.html" class="nav-link hidden" data-nav-page="scouter" data-scout-navigation>Scouter</a><a href="admin.html" class="nav-link hidden" data-nav-page="admin" data-admin-panel>Administration</a></nav>
+            <div class="library-header-actions">
+                <div class="planning-actions-menu">
+                    <button id="planningActionsBtn" class="header-menu-button" type="button" aria-label="Meny" aria-expanded="false" aria-controls="planningActionsDropdown" title="Meny"><span></span><span></span><span></span></button>
+                    <div id="planningActionsDropdown" class="planning-actions-dropdown hidden" role="menu">
+                        <details class="site-menu-section" open>
+                            <summary class="planning-menu-section-label">Navigering</summary>
+                            <a href="index.html" class="site-menu-item" data-nav-page="index" role="menuitem">Hem</a>
+                            <a href="marken.html" class="site-menu-item" data-nav-page="marken" role="menuitem">Märken</a>
+                            <a href="aktiviteter.html" class="site-menu-item" data-nav-page="aktiviteter" role="menuitem">Aktiviteter</a>
+                            <a href="lagerbal.html" class="site-menu-item" data-nav-page="lagerbal" role="menuitem" aria-current="page">Lägerbål</a>
+                            <a href="kokbok.html" class="site-menu-item" data-nav-page="kokbok" role="menuitem">Recept</a>
+                            <a href="planering.html" class="site-menu-item" data-nav-page="planering" role="menuitem">Planeringar</a>
+                            <a href="arrangemang.html" class="site-menu-item" data-nav-page="arrangemang" role="menuitem">Arrangemang</a>
+                            <a href="arshjul.html" class="site-menu-item" data-nav-page="arshjul" role="menuitem">Årshjul</a>
+                            <a href="scouter.html" class="site-menu-item hidden" data-nav-page="scouter" role="menuitem" data-scout-navigation>Scouter</a>
+                            <a href="admin.html" class="site-menu-item hidden" data-nav-page="admin" role="menuitem" data-admin-panel>Administration</a>
+                        </details>
+                        <div class="planning-menu-divider" role="separator"></div>
+                        <details class="site-menu-section">
+                            <summary class="planning-menu-section-label">Funktioner</summary>
+                            <a href="utvecklingstrappa.html" class="site-menu-item" data-nav-page="utvecklingstrappa" role="menuitem">Utvecklingstrappa</a>
+                        </details>
+                        <div class="planning-menu-divider" role="separator"></div>
+                        <details class="site-menu-section">
+                            <summary class="planning-menu-section-label">Visa</summary>
+                            <button class="planning-menu-item" type="button" role="menuitem" data-nav-preferences>Anpassa meny...</button>
+                        </details>
+                        <div class="planning-menu-divider" role="separator"></div>
+                        <div class="site-menu-environment-note database-environment"></div>
+                        <div class="site-menu-version-note"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <main class="activities-page">
+        <section class="page-hero" aria-labelledby="songsTitle">
+            <div><p class="page-kicker">Sång · gemenskap · lägereld</p><h1 id="songsTitle">Lägerbål</h1><p>Sånger att sjunga tillsammans vid lägerbålet.</p></div>
+        </section>
+        <div class="cookbook-toolbar song-search">
+            <label class="filter-field search-field"><span>Sök sånger</span><input id="songSearch" type="search" placeholder="Sök titel eller sångtext..."></label>
+        </div>
+        <div id="songGrid" class="activity-cards song-cards"></div>
+        <p id="songStatus" class="no-results" role="status" aria-live="polite">Hämtar sånger...</p>
+    </main>
+    <dialog id="songDialog" class="modal-content modal-content--wide song-dialog" aria-labelledby="songDetailTitle">
+        <button id="closeSongDialog" class="close-popup" type="button" aria-label="Stäng">&times;</button>
+        <h2 id="songDetailTitle"></h2>
+        <p id="songDetailAuthor" class="song-card-author"></p>
+        <p id="songDetailLyrics" class="song-lyrics"></p>
+    </dialog>
+    <footer class="site-footer" aria-label="Sidfot och version"><div class="site-footer-content"><span class="site-footer-title">GTScout</span><span class="site-footer-dot" aria-hidden="true">•</span><span class="site-footer-version"></span><span class="site-footer-dot" aria-hidden="true">•</span><span class="site-footer-build"></span><span class="site-footer-dot" aria-hidden="true">•</span><span class="database-environment"></span></div></footer>
+    <script src="js/nav-preferences.js"></script>
+    <script src="js/version.js"></script>
+    <script src="js/lagerbal.js"></script>
+    <script src="js/header-controls.js"></script>
+</body>
+</html>

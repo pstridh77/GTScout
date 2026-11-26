@@ -7,11 +7,13 @@
  */
 (function () {
     const STORAGE_KEY = "gtscout_nav_preferences";
+    const LAGERBAL_MIGRATION_KEY = "gtscout_nav_lagerbal_added";
 
     const PAGES = [
         { id: "index", label: "Hem" },
         { id: "marken", label: "Märken" },
         { id: "aktiviteter", label: "Aktiviteter" },
+        { id: "lagerbal", label: "Lägerbål" },
         { id: "kokbok", label: "Recept" },
         { id: "planering", label: "Planeringar" },
         { id: "arrangemang", label: "Arrangemang" },
@@ -22,9 +24,9 @@
     ];
 
     const DEFAULTS = {
-        gast: ["index", "marken", "aktiviteter", "kokbok"],
-        ledare: ["index", "marken", "aktiviteter", "kokbok", "planering", "arrangemang", "arshjul", "scouter", "utvecklingstrappa"],
-        admin: ["index", "marken", "aktiviteter", "kokbok", "planering", "arrangemang", "arshjul", "scouter", "admin", "utvecklingstrappa"]
+        gast: ["index", "marken", "aktiviteter", "lagerbal", "kokbok"],
+        ledare: ["index", "marken", "aktiviteter", "lagerbal", "kokbok", "planering", "arrangemang", "arshjul", "scouter", "utvecklingstrappa"],
+        admin: ["index", "marken", "aktiviteter", "lagerbal", "kokbok", "planering", "arrangemang", "arshjul", "scouter", "admin", "utvecklingstrappa"]
     };
 
     function getDefaultPages(role) {
@@ -47,7 +49,10 @@
                 ? [...new Set(stored.flatMap(id => id === "index" ? ["index", "marken"] : [id]))]
                 : stored;
             const valid = migrated.filter(id => PAGES.some(page => page.id === id));
-            if (valid.length && valid.length !== stored.length) {
+            if (valid.length && !localStorage.getItem(LAGERBAL_MIGRATION_KEY)) {
+                if (!valid.includes("lagerbal")) valid.push("lagerbal");
+                savePages(valid);
+            } else if (valid.length && valid.length !== stored.length) {
                 savePages(valid);
             }
             return valid.length ? valid : null;
@@ -59,6 +64,7 @@
     function savePages(pageIds) {
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(pageIds));
+            localStorage.setItem(LAGERBAL_MIGRATION_KEY, "1");
         } catch (error) {
             console.error("Kunde inte spara navigeringsinställningar", error);
         }
