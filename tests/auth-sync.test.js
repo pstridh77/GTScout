@@ -60,7 +60,7 @@ test("planned campfires persist locally and keep their ordered entries independe
     page.load("campfire-plans-sync.js");
     const sync = page.window.GTScoutCampfirePlans;
     sync.init({ onChange() {} });
-    const items = [{ id: "rop", title: "Ett rop" }, { id: "sang", title: "En sång" }];
+    const items = [{ id: "rop", title: "Ett rop" }, { id: "custom:unique", title: "Egen titel" }, { id: "sang", title: "En sång" }];
     const result = await sync.save({ id: "plan", title: "Kvällsbål", description: "Vid sjön", items });
     assert.equal(result.localOnly, true);
     items[0].title = "Ändrad";
@@ -70,7 +70,7 @@ test("planned campfires persist locally and keep their ordered entries independe
     reopened.load("campfire-plans-sync.js");
     reopened.window.GTScoutCampfirePlans.init({ onChange() {} });
     assert.deepEqual(JSON.parse(JSON.stringify(reopened.window.GTScoutCampfirePlans.getAll()[0].items)),
-        [{ id: "rop", title: "Ett rop" }, { id: "sang", title: "En sång" }]);
+        [{ id: "rop", title: "Ett rop" }, { id: "custom:unique", title: "Egen titel" }, { id: "sang", title: "En sång" }]);
     await reopened.window.GTScoutCampfirePlans.remove("plan");
     assert.deepEqual(JSON.parse(page.storage.get("gtscout_campfire_plans_guest")), []);
 });
@@ -84,7 +84,7 @@ test("planned campfires sync to the current kår and retain local data on write 
     const sync = page.window.GTScoutCampfirePlans;
     sync.init({ onChange() {} });
     await new Promise(resolve => setImmediate(resolve));
-    const items = [{ id: "song", title: "Sång" }];
+    const items = [{ id: "song", title: "Sång" }, { id: "custom:unique", title: "Egen titel" }];
     const saved = await sync.save({ id: "plan", title: "Kvällsbål", items });
     assert.equal(saved.localOnly, false);
     const write = backend.requests.find(request => request.table === "planerade_lagerbal" && request.operation === "upsert");
@@ -207,7 +207,7 @@ test("shared arrangements preserve ordered campfire selections", async () => {
     await page.runTimers();
     page.window.location.pathname = "/arrangemang.html";
     page.window.location.search = "?share=example";
-    const items = [{ id: "rop", title: "Ett rop" }, { id: "sang", title: "En sång" }];
+    const items = [{ id: "rop", title: "Ett rop" }, { id: "custom:unique", title: "Egen titel" }, { id: "sang", title: "En sång" }];
     page.auth.getClient().rpc = async (name, args) => {
         assert.equal(name, "get_shared_arrangement");
         assert.equal(args.requested_token, "example");
@@ -231,7 +231,7 @@ for (const signedIn of [false, true]) {
         await page.auth.init();
         await page.runTimers();
         page.load("arrangemang-sync.js");
-        const items = [{ id: "rop", title: "Ett rop" }, { id: "sang", title: "En sång" }];
+        const items = [{ id: "rop", title: "Ett rop" }, { id: "custom:unique", title: "Egen titel" }, { id: "sang", title: "En sång" }];
         await page.window.GTScoutArrangements.save({
             id: "campfire-test", title: "Läger", start_date: "2026-10-09", departments: ["Spårare"],
             agenda: [{ id: "fire", date: "2026-10-09", kind: "campfire", title: "Lägerbål", campfire_items: items }]

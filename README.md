@@ -64,6 +64,10 @@ I den öppnade sången finns en delningsknapp som kopierar en länk direkt till 
 
 Med **Planera lägerbål** kan du skapa en namngiven lista med valfri beskrivning och ordnade sånger, rop och lekar utan ett arrangemang. Listorna kan öppnas, redigeras, kopieras och tas bort. Gästens listor sparas i webbläsaren; inloggade i kåren kan läsa kårens listor och ledare och administratörer kan redigera dem. Vid inloggning får ledare välja vad som ska hända med listor som skapats lokalt. Listor som behålls lokalt syns bara i den webbläsaren. Misslyckad synkning visas och ändringen behålls lokalt.
 
+Med **Egen titel** kan du även lägga till titlar som inte finns i biblioteket. De kan redigeras med pennknappen, flyttas och tas bort i listan och följer med vid kopiering till ett arrangemang, men länkar inte till biblioteket. Egna titlar fungerar även när biblioteket inte kan hämtas. Äldre appversioner kan visa dem som saknade biblioteksposter; ladda om appen på alla enheter.
+
+ID-prefixet `custom:` är reserverat för egna titlar och får inte användas i sångbiblioteket.
+
 För synkning kör du [db/lagerbal-planering.sql](db/lagerbal-planering.sql) efter [db/schema.sql](db/schema.sql) i varje Supabase-miljö. Listorna lagras separat från det gemensamma sångbiblioteket och använder sparade reservtitlar om sångfilen eller en enskild post saknas.
 
 Sångerna underhålls i [data/sanger.json](data/sanger.json): varje post har ett unikt `id`, `titel`, `kategori` (`Sång`, `Rop` eller `Lek`), `text` med radbrytningar och valfri `info` som visas med posten. Lägg bara till texter som är fria att publicera eller där tillstånd finns. Det finns ännu ingen redigering i appen eller databassynkning.

@@ -178,6 +178,7 @@ test("empty catalog and load or format errors are reported distinctly", async ()
         { ok: false, status: 404 },
         { ok: true, json: async () => [{ id: "1", titel: "Saknar text" }] },
         { ok: true, json: async () => [{ id: "1", titel: "A", kategori: "Sång", text: "A" }, { id: "1", titel: "B", kategori: "Sång", text: "B" }] },
+        { ok: true, json: async () => [{ id: "custom:unique", titel: "A", kategori: "Sång", text: "A" }] },
         { ok: true, json: async () => [{ id: "1", titel: "A", kategori: "Annat", text: "A" }] },
         { ok: true, json: async () => [{ id: "1", titel: "A", text: "A" }] }
     ]) {

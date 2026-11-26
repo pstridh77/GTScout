@@ -1205,11 +1205,12 @@ function showReadonlyAgendaEntryDetail(item, entry, trigger) {
         : "";
     const campfireDetails = entry.kind === "campfire"
         ? `${campfireCatalogState === "error" ? '<p>Kunde inte hämta lägerbålsbiblioteket. Sparade titlar visas.</p>' : ""}${entry.campfire_items?.length ? `<h3>Sånger</h3><ol>${entry.campfire_items.map(item => {
-            const song = campfireSongs.find(candidate => candidate.id === item.id);
+            const custom = window.GTScoutSongCatalog.isCustomId(item.id);
+            const song = custom ? null : campfireSongs.find(candidate => candidate.id === item.id);
             const name = song?.titel || item.title;
             if (song) return `<li><a href="lagerbal.html?song=${encodeURIComponent(item.id)}" target="_blank" rel="noopener noreferrer">${escapeArrangementHtml(name)}</a></li>`;
-            const missing = campfireCatalogState === "loaded" ? " (finns inte längre i biblioteket)" : "";
-            return `<li>${escapeArrangementHtml(name + missing)}</li>`;
+            const suffix = !custom && campfireCatalogState === "loaded" ? " (finns inte längre i biblioteket)" : "";
+            return `<li>${escapeArrangementHtml(name + suffix)}</li>`;
         }).join("")}</ol>` : "<p>Inga sånger valda.</p>"}`
         : "";
     const title = entry.kind === "activity" ? activity?.namn || entry.title || "Aktivitet" : entry.title || mealLabel;
@@ -1433,7 +1434,6 @@ const campfirePicker = window.GTScoutCampfirePicker.create({
 const renderCampfirePicker = campfirePicker.render;
 const readCampfireItems = campfirePicker.read;
 const updateCampfireSelection = campfirePicker.update;
-const filterCampfirePicker = campfirePicker.filter;
 const changeCampfireSelection = campfirePicker.change;
 const handleCampfireAction = campfirePicker.action;
 
@@ -3019,8 +3019,7 @@ document.getElementById("participantsForm").addEventListener("submit", async eve
 });
 
 arrangementAgendaList.addEventListener("input", event => {
-    if (event.target.matches(".agenda-campfire-search")) filterCampfirePicker(event.target.closest(".agenda-campfire-picker"));
-    else if (event.target.matches(".agenda-recipe-search")) updateMealRecipePicker(event.target.closest(".agenda-recipe-picker"));
+    if (!campfirePicker.input(event) && event.target.matches(".agenda-recipe-search")) updateMealRecipePicker(event.target.closest(".agenda-recipe-picker"));
     if (event.target.matches('[data-agenda-field="time"]')) {
         const row = event.target.closest(".arrangement-agenda-entry");
         const entry = draftAgenda.find(item => item.id === row?.dataset.agendaId);
@@ -3029,6 +3028,7 @@ arrangementAgendaList.addEventListener("input", event => {
     }
     syncDraftAgenda();
 });
+arrangementAgendaList.addEventListener("keydown", event => campfirePicker.keydown(event));
 arrangementAgendaList.addEventListener("change", event => {
     const row = event.target.closest(".arrangement-agenda-entry");
     if (!row) return;
@@ -3277,8 +3277,7 @@ agendaEntryDialogFields.addEventListener("change", event => {
 });
 
 agendaEntryDialogFields.addEventListener("input", event => {
-    if (event.target.matches(".agenda-campfire-search")) filterCampfirePicker(event.target.closest(".agenda-campfire-picker"));
-    else if (event.target.matches(".agenda-recipe-search")) updateMealRecipePicker(event.target.closest(".agenda-recipe-picker"));
+    if (!campfirePicker.input(event) && event.target.matches(".agenda-recipe-search")) updateMealRecipePicker(event.target.closest(".agenda-recipe-picker"));
     if (event.target.matches('[data-agenda-field="time"]')) {
         const endInput = agendaEntryDialogFields.querySelector('[data-agenda-field="end_time"]');
         if (endInput) updateAgendaEndTimeFromStart(event.target, endInput, event.target.dataset.previousValue || "");
@@ -3289,6 +3288,7 @@ agendaEntryDialogFields.addEventListener("input", event => {
         if (arrangement) updateMealParticipantEditor(arrangement);
     }
 });
+agendaEntryDialogFields.addEventListener("keydown", event => campfirePicker.keydown(event));
 agendaEntryDialogFields.addEventListener("click", event => {
     if (handleCampfireAction(event)) return;
     if (!event.target.closest("[data-reset-meal-participants]")) return;
@@ -3432,7 +3432,7 @@ window.GTScoutSongCatalog.load()
     .then(() => {
         [arrangementAgendaList, agendaEntryDialogFields].forEach(container => {
             container.querySelectorAll(".agenda-campfire-picker").forEach(picker => {
-                picker.outerHTML = renderCampfirePicker({ campfire_items: readCampfireItems(picker) });
+                campfirePicker.refresh(picker);
             });
         });
         if (!agendaEntryDetailModal.classList.contains("hidden") && agendaEntryDetailItem && agendaEntryDetailEntry?.kind === "campfire") {

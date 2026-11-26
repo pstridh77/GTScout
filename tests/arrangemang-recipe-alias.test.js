@@ -8,8 +8,9 @@ const readScript = name => fs.readFileSync(path.join(__dirname, "..", "js", name
 const departments = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover", "Ledare"];
 const recipe = { id: "recipe-1", namn: "Pasta och köttfärssås" };
 
-function loadCampfirePicker(songs = [], state = "loaded") {
-    const context = vm.createContext({ window: { GTScoutSongCatalog: { categories: ["Sång", "Rop", "Lek"] } } });
+function loadCampfirePicker(songs = [], state = "loaded", dialogs = {}) {
+    const context = vm.createContext({ window: dialogs, crypto: require("node:crypto").webcrypto });
+    vm.runInContext(readScript("songs-catalog.js"), context);
     vm.runInContext(readScript("campfire-picker.js"), context);
     return context.window.GTScoutCampfirePicker.create({
         getSongs: () => songs,
@@ -65,12 +66,93 @@ test("campfire program survives normalization with ordered song IDs and fallback
         id: "arrangement-1", title: "Läger", start_date: "2026-06-01", end_date: "2026-06-01",
         agenda: [{
             id: "campfire-1", date: "2026-06-01", kind: "campfire", title: "Kvällsbål",
-            campfire_items: [{ id: "rop", title: "" }, { id: "rop", title: " Rop " }, { id: "sang", title: "Sång" }, { id: "rop", title: "Dubblett" }]
+            campfire_items: [{ id: "rop", title: "" }, { id: "rop", title: " Rop " }, { id: "custom:unique", title: " Egen " }, { id: "sang", title: "Sång" }, { id: "rop", title: "Dubblett" }]
         }]
     });
     const entry = normalize(item).agenda[0];
     assert.equal(entry.kind, "campfire");
-    assert.deepEqual(JSON.parse(JSON.stringify(entry.campfire_items)), [{ id: "rop", title: "Rop" }, { id: "sang", title: "Sång" }]);
+    assert.deepEqual(JSON.parse(JSON.stringify(entry.campfire_items)), [{ id: "rop", title: "Rop" }, { id: "custom:unique", title: "Egen" }, { id: "sang", title: "Sång" }]);
+});
+
+test("custom campfire titles are editable and not treated as missing, including on catalog failure", () => {
+    for (const state of ["loaded", "error"]) {
+        const picker = loadCampfirePicker([], state);
+        const html = picker.render({ campfire_items: [{ id: "custom:unique", title: 'Egen <"sång">' }, { id: "missing", title: "Saknad" }] });
+        assert.match(html, /<span>Egen &lt;&quot;sång&quot;&gt;<\/span>/);
+        assert.match(html, /data-campfire-edit/);
+        assert.doesNotMatch(html, /data-campfire-custom-title/);
+        assert.match(html, /data-campfire-custom-new/);
+        assert.doesNotMatch(html, /Egen &lt;&quot;sång&quot;&gt; \(finns inte längre i biblioteket\)/);
+        if (state === "loaded") assert.match(html, /Saknad \(finns inte längre i biblioteket\)/);
+        const row = { dataset: { campfireSelected: "custom:unique", campfireTitle: "Egen titel" } };
+        assert.equal(picker.read({ querySelectorAll: () => [row] })[0].title, "Egen titel");
+    }
+});
+
+test("editing a custom title preserves its identity and rejects empty or too long titles", () => {
+    const replies = [" Ändrad titel ", null, "   ", "a".repeat(161)];
+    const errors = [];
+    const campfirePicker = loadCampfirePicker([], "loaded", {
+        prompt: () => replies.shift(), alert: message => errors.push(message)
+    });
+    let items = [{ id: "custom:unique", title: "Original" }, { id: "song", title: "Sång" }];
+    let focused = false;
+    const selection = { set innerHTML(html) {
+        items = [...html.matchAll(/data-campfire-selected="([^"]+)" data-campfire-title="([^"]*)"/g)]
+            .map(match => ({ id: match[1], title: match[2] }));
+    } };
+    const picker = {
+        querySelector: () => selection,
+        querySelectorAll: selector => selector === ".agenda-campfire-target" ? [] : items.map(item => ({
+            dataset: { campfireSelected: item.id, campfireTitle: item.title },
+            querySelector: () => ({ focus: () => { focused = true; } })
+        }))
+    };
+    const row = { dataset: { campfireSelected: "custom:unique" } };
+    const button = {
+        hasAttribute: name => name === "data-campfire-edit",
+        closest: selector => selector === ".agenda-campfire-picker" ? picker : row
+    };
+    const event = { target: { closest: () => button } };
+    campfirePicker.action(event);
+    assert.deepEqual(items, [{ id: "custom:unique", title: "Ändrad titel" }, { id: "song", title: "Sång" }]);
+    assert.equal(focused, true);
+    campfirePicker.action(event);
+    campfirePicker.action(event);
+    campfirePicker.action(event);
+    assert.equal(items[0].title, "Ändrad titel");
+    assert.equal(errors.length, 2);
+});
+
+test("custom title input requires text and adds unique entries in order", () => {
+    const campfirePicker = loadCampfirePicker();
+    let items = [{ id: "song", title: "Sång" }];
+    const selection = { set innerHTML(html) {
+        items = [...html.matchAll(/data-campfire-selected="([^"]+)" data-campfire-title="([^"]*)"/g)]
+            .map(match => ({ id: match[1], title: match[2] }));
+    } };
+    const addInput = { value: "   ", focus() {}, matches: selector => selector === "[data-campfire-custom-new]", closest: () => picker };
+    const button = { disabled: true, hasAttribute: name => name === "data-campfire-custom-add", closest: () => picker };
+    const picker = {
+        querySelector: selector => selector === "[data-campfire-selection]" ? selection : selector === "[data-campfire-custom-new]" ? addInput : button,
+        querySelectorAll: selector => selector === ".agenda-campfire-target" ? [] : items.map(item => ({
+            dataset: { campfireSelected: item.id, campfireTitle: item.title }, querySelector: () => null
+        }))
+    };
+    campfirePicker.input({ target: addInput });
+    assert.equal(button.disabled, true);
+    addInput.value = "  Egen sång  ";
+    campfirePicker.input({ target: addInput });
+    assert.equal(button.disabled, false);
+    campfirePicker.action({ target: { closest: () => button } });
+    assert.equal(items[1].title, "Egen sång");
+    assert.match(items[1].id, /^custom:/);
+    assert.equal(button.disabled, true);
+    addInput.value = "Egen sång";
+    campfirePicker.input({ target: addInput });
+    campfirePicker.action({ target: { closest: () => button } });
+    assert.notEqual(items[1].id, items[2].id);
+    assert.deepEqual(items.map(item => item.title), ["Sång", "Egen sång", "Egen sång"]);
 });
 
 test("campfire picker starts with closed categories and a recipe-style selection summary", () => {
@@ -151,7 +233,7 @@ test("choosing a planned campfire copies its ordered items and protects existing
     const source = readScript("arrangemang.js");
     const start = source.indexOf("function chooseCampfirePlan(event)");
     const end = source.indexOf("function addCampfireFields", start);
-    const plan = { id: "plan", title: "Kvällsbål", items: [{ id: "rop", title: "Rop" }, { id: "sang", title: "Sång" }] };
+    const plan = { id: "plan", title: "Kvällsbål", items: [{ id: "rop", title: "Rop" }, { id: "custom:unique", title: "Egen" }, { id: "sang", title: "Sång" }] };
     const picker = {};
     const title = { value: "" };
     const container = { querySelector: selector => selector === ".agenda-campfire-picker" ? picker : title };
@@ -240,9 +322,9 @@ test("campfire print preserves order and uses saved titles when songs are missin
     vm.runInContext(source.slice(start, end), context);
     const entry = {
         kind: "campfire", title: "Lägerbål",
-        campfire_items: [{ id: "a", title: "Gammalt namn" }, { id: "b", title: "Saknad <sång>" }]
+        campfire_items: [{ id: "a", title: "Gammalt namn" }, { id: "custom:unique", title: "Egen" }, { id: "b", title: "Saknad <sång>" }]
     };
     const html = context.renderAgendaEntry(entry, { departments: [] }, [], [{ id: "a", titel: "Nytt namn" }]);
-    assert.match(html, /Sånger: Nytt namn, Saknad &lt;sång&gt;/);
+    assert.match(html, /Sånger: Nytt namn, Egen, Saknad &lt;sång&gt;/);
     assert.match(html, /agenda-meta">Lägerbål/);
 });

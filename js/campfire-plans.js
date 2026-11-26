@@ -41,11 +41,12 @@
                         : !window.GTScoutCampfirePlans.canEdit() ? "Endast ledare kan redigera kårens lägerbål." : "");
         list.innerHTML = plans.map(plan => {
             const entries = plan.items.map(item => {
-                const song = songs.find(candidate => candidate.id === item.id);
+                const custom = window.GTScoutSongCatalog.isCustomId(item.id);
+                const song = custom ? null : songs.find(candidate => candidate.id === item.id);
                 const name = escapeHtml(song?.titel || item.title);
                 if (song) return `<li><a href="lagerbal.html?song=${encodeURIComponent(item.id)}" target="_blank" rel="noopener noreferrer">${name}</a></li>`;
-                const missing = catalogState === "loaded" ? " (finns inte längre i biblioteket)" : "";
-                return `<li>${name}${missing}</li>`;
+                const suffix = !custom && catalogState === "loaded" ? " (finns inte längre i biblioteket)" : "";
+                return `<li>${name}${suffix}</li>`;
             }).join("");
             return `<details class="campfire-plan" data-plan-id="${escapeHtml(plan.id)}"${expanded.has(plan.id) ? " open" : ""}>
                 <summary><strong>${escapeHtml(plan.title)}</strong><small>${plan.items.length} valda${plan.local_only ? " · Lokal" : ""}</small></summary>
@@ -86,9 +87,8 @@
     newButton.addEventListener("click", () => openEditor(null, false, newButton));
     document.getElementById("closeCampfirePlan").addEventListener("click", closeEditor);
     document.getElementById("cancelCampfirePlan").addEventListener("click", closeEditor);
-    pickerContainer.addEventListener("input", event => {
-        if (event.target.matches(".agenda-campfire-search")) picker.filter(event.target.closest(".agenda-campfire-picker"));
-    });
+    pickerContainer.addEventListener("input", event => picker.input(event));
+    pickerContainer.addEventListener("keydown", event => picker.keydown(event));
     pickerContainer.addEventListener("change", event => picker.change(event));
     pickerContainer.addEventListener("click", event => picker.action(event));
     list.addEventListener("click", async event => {
@@ -164,7 +164,7 @@
             catalogState = "error";
         })
         .then(() => {
-            if (dialog.open) pickerContainer.innerHTML = picker.render({ campfire_items: picker.read(pickerContainer) });
+            if (dialog.open) picker.refresh(pickerContainer.querySelector(".agenda-campfire-picker"));
             renderPlans();
         });
 })();
