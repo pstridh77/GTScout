@@ -39,6 +39,7 @@ test("songs are sorted, searchable by text, and open safely with their line brea
     ];
     const { elements: e } = await loadPage({ ok: true, json: async () => data });
     assert.deepEqual(e.songGrid.children.map(card => card.children[0].textContent), ["Alfabetet", "Öppet"]);
+    assert.equal(e.songStatus.hidden, true);
     e.songSearch.value = "ANDRA <VERSEN>";
     e.songSearch.dispatch("input");
     assert.equal(e.songGrid.children.length, 1);
@@ -57,11 +58,16 @@ test("songs are sorted, searchable by text, and open safely with their line brea
     e.songSearch.value = "saknas";
     e.songSearch.dispatch("input");
     assert.equal(e.songStatus.textContent, "Inga sånger matchar sökningen.");
+    assert.equal(e.songStatus.hidden, false);
+    e.songSearch.value = "";
+    e.songSearch.dispatch("input");
+    assert.equal(e.songStatus.hidden, true);
 });
 
 test("empty catalog and load or format errors are reported distinctly", async () => {
     const empty = await loadPage({ ok: true, json: async () => [] });
     assert.equal(empty.elements.songStatus.textContent, "Inga sånger ännu.");
+    assert.equal(empty.elements.songStatus.hidden, false);
     for (const response of [
         { ok: false, status: 404 },
         { ok: true, json: async () => [{ id: "1", titel: "Saknar text" }] },
@@ -69,6 +75,7 @@ test("empty catalog and load or format errors are reported distinctly", async ()
     ]) {
         const failed = await loadPage(response);
         assert.match(failed.elements.songStatus.textContent, /Kunde inte hämta sångerna/);
+        assert.equal(failed.elements.songStatus.hidden, false);
         assert.equal(failed.errors.length, 1);
     }
 });
@@ -86,6 +93,8 @@ test("all pages link to Lägerbål in both navigation menus", () => {
     const pages = ["index", "marken", "aktiviteter", "lagerbal", "kokbok", "planering", "arrangemang", "arshjul", "scouter", "admin", "utvecklingstrappa"];
     for (const page of pages) {
         const html = fs.readFileSync(path.join(root, `${page}.html`), "utf8");
-        assert.equal((html.match(/data-nav-page="lagerbal"/g) || []).length, 2, page);
+        const links = html.match(/<a\b[^>]*data-nav-page="lagerbal"[^>]*>[^<]*<\/a>/g) || [];
+        assert.equal(links.length, 2, page);
+        for (const link of links) assert.match(link, />Lägerbål<\/a>$/, page);
     }
 });

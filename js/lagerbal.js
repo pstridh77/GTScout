@@ -37,6 +37,7 @@
             return button;
         }));
         status.textContent = visible.length ? "" : songs.length ? "Inga sånger matchar sökningen." : "Inga sånger ännu.";
+        status.hidden = visible.length > 0;
     }
 
     search.addEventListener("input", renderSongs);
