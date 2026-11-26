@@ -68,9 +68,11 @@ body {
 .song-card-title { font-size: 1.35rem; font-weight: 700; overflow-wrap: anywhere; }
 .song-card-author { color: #536477; font-size: .85rem; }
 .song-dialog { box-sizing: border-box; width: min(90%, 800px); max-height: calc(100dvh - 48px); overflow-y: auto; border: 0; }
-.song-dialog:not([open]) { display: none; }
-.song-dialog::backdrop { background: rgba(0, 0, 0, .6); }
-.song-dialog h2 { margin: 0; padding-right: 28px; overflow-wrap: anywhere; }
+.song-dialog:not([open]), .song-share-dialog:not([open]) { display: none; }
+.song-dialog::backdrop, .song-share-dialog::backdrop { background: rgba(0, 0, 0, .6); }
+.song-dialog h2 { margin: 0; padding-right: 72px; overflow-wrap: anywhere; }
+.song-dialog .song-share-icon-btn { right: 48px; padding: 0; }
+.song-share-dialog { box-sizing: border-box; max-height: calc(100dvh - 48px); overflow-y: auto; border: 0; }
 .song-lyrics { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
 .activity-form { display: grid; gap: 12px; }
 .activity-form-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }

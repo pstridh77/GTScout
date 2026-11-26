@@ -15,17 +15,21 @@ function element() {
         addEventListener(type, callback) { this.listeners[type] = callback; },
         dispatch(type, event = {}) { this.listeners[type]?.(event); },
         showModal() { this.open = true; },
-        close() { this.open = false; }
+        close() { this.open = false; },
+        select() { this.selected = true; }
     };
 }
 
-async function loadPage(response) {
-    const ids = ["songGrid", "songSearch", "songStatus", "songDialog", "songDetailTitle", "songDetailAuthor", "songDetailLyrics", "closeSongDialog"];
+async function loadPage(response, options = {}) {
+    const ids = ["songGrid", "songSearch", "songStatus", "songDialog", "songDetailTitle", "songDetailAuthor", "songDetailLyrics", "closeSongDialog", "shareSongBtn", "songShareDialog", "songShareUrl", "songShareStatus", "copySongShareBtn", "closeSongShareDialog", "cancelSongShareBtn"];
     const elements = Object.fromEntries(ids.map(id => [id, element()]));
     const errors = [];
     vm.runInNewContext(source, {
         document: { getElementById: id => elements[id], createElement: element },
         fetch: async () => response,
+        window: { location: { href: options.url || "https://example.test/gt/lagerbal.html" } },
+        navigator: { clipboard: { writeText: options.writeText || (async () => {}) } },
+        URL,
         console: { error: (...args) => errors.push(args) }
     });
     await new Promise(resolve => setImmediate(resolve));
@@ -62,6 +66,53 @@ test("songs are sorted, searchable by text, and open safely with their line brea
     e.songSearch.value = "";
     e.songSearch.dispatch("input");
     assert.equal(e.songStatus.hidden, true);
+});
+
+test("sharing copies an encoded link and opens the same song for a guest", async () => {
+    const data = [{ id: "sång & 1", titel: "Elden", text: "Text" }];
+    const copied = [];
+    const response = { ok: true, json: async () => data };
+    const { elements: e } = await loadPage(response, {
+        url: "https://example.test/gt/lagerbal.html?other=old#fragment",
+        writeText: async text => copied.push(text)
+    });
+    e.songGrid.children[0].dispatch("click");
+    e.shareSongBtn.dispatch("click");
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(e.songShareDialog.open, true);
+    assert.equal(e.songShareUrl.value, "https://example.test/gt/lagerbal.html?song=s%C3%A5ng+%26+1");
+    assert.deepEqual(copied, [e.songShareUrl.value]);
+    assert.match(e.songShareStatus.textContent, /kopierats/);
+    const recipient = await loadPage(response, { url: e.songShareUrl.value });
+    assert.equal(recipient.elements.songDialog.open, true);
+    assert.equal(recipient.elements.songDetailTitle.textContent, "Elden");
+    e.closeSongShareDialog.dispatch("click");
+    assert.equal(e.songShareDialog.open, false);
+    assert.equal(e.songDialog.open, true);
+});
+
+test("sharing offers manual copying when clipboard access fails", async () => {
+    const response = { ok: true, json: async () => [{ id: "1", titel: "Sång", text: "Text" }] };
+    const { elements: e } = await loadPage(response, { writeText: async () => { throw new Error("blocked"); } });
+    e.songGrid.children[0].dispatch("click");
+    e.shareSongBtn.dispatch("click");
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(e.songShareUrl.selected, true);
+    assert.match(e.songShareStatus.textContent, /kopiera manuellt/);
+    e.copySongShareBtn.dispatch("click");
+    await new Promise(resolve => setImmediate(resolve));
+    assert.match(e.songShareStatus.textContent, /kopiera manuellt/);
+});
+
+test("a missing shared song reports an error without hiding the catalog", async () => {
+    const { elements: e } = await loadPage(
+        { ok: true, json: async () => [{ id: "1", titel: "Sång", text: "Text" }] },
+        { url: "https://example.test/gt/lagerbal.html?song=missing" }
+    );
+    assert.equal(e.songDialog.open, undefined);
+    assert.equal(e.songGrid.children.length, 1);
+    assert.equal(e.songStatus.hidden, false);
+    assert.match(e.songStatus.textContent, /kunde inte hittas/);
 });
 
 test("empty catalog and load or format errors are reported distinctly", async () => {
