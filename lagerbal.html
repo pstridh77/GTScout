@@ -17,6 +17,9 @@
             <a class="site-brand" href="index.html" aria-label="Gullbrandstorps scoutkår"><img src="images/icons/GTorp_banner.png" alt="Gullbrandstorps Scoutkår" class="site-brand-banner"></a>
             <nav class="main-nav" aria-label="Huvudnavigation"><a href="index.html" class="nav-link" data-nav-page="index">Hem</a><a href="marken.html" class="nav-link" data-nav-page="marken">Märken</a><a href="aktiviteter.html" class="nav-link" data-nav-page="aktiviteter">Aktiviteter</a><a href="lagerbal.html" class="nav-link active" data-nav-page="lagerbal" aria-current="page">Lägerbål</a><a href="kokbok.html" class="nav-link" data-nav-page="kokbok">Recept</a><a href="planering.html" class="nav-link" data-nav-page="planering">Planeringar</a><a href="arrangemang.html" class="nav-link" data-nav-page="arrangemang">Arrangemang</a><a href="arshjul.html" class="nav-link" data-nav-page="arshjul">Årshjul</a><a href="scouter.html" class="nav-link hidden" data-nav-page="scouter" data-scout-navigation>Scouter</a><a href="admin.html" class="nav-link hidden" data-nav-page="admin" data-admin-panel>Administration</a></nav>
             <div class="library-header-actions">
+                <button id="filtersVisibilityToggle" class="filters-visibility-toggle" type="button" aria-label="Visa sökfält och filter" aria-pressed="false" aria-expanded="false" aria-controls="songFilters" title="Visa sökfält och filter">
+                    <span class="filters-visibility-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" /></svg></span>
+                </button>
                 <div class="planning-actions-menu">
                     <button id="planningActionsBtn" class="header-menu-button" type="button" aria-label="Meny" aria-expanded="false" aria-controls="planningActionsDropdown" title="Meny"><span></span><span></span><span></span></button>
                     <div id="planningActionsDropdown" class="planning-actions-dropdown hidden" role="menu">
@@ -55,7 +58,7 @@
         <section class="page-hero" aria-labelledby="songsTitle">
             <div><p class="page-kicker">Sång · gemenskap · lägereld</p><h1 id="songsTitle">Lägerbål</h1><p>Sånger att sjunga tillsammans vid lägerbålet.</p></div>
         </section>
-        <div class="cookbook-toolbar song-search">
+        <div id="songFilters" class="cookbook-toolbar song-search filters--hidden" data-page-filters>
             <label class="filter-field search-field"><span>Sök sånger</span><input id="songSearch" type="search" placeholder="Sök titel eller sångtext..."></label>
             <label class="filter-field"><span>Kategori</span><select id="songCategoryFilter"><option value="">Alla kategorier</option><option value="Sång">Sång</option><option value="Rop">Rop</option><option value="Lek">Lek</option></select></label>
         </div>

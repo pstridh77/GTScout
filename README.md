@@ -58,7 +58,7 @@ Sidan använder samma `GTScoutActivities`-modul och databas som märkesbibliotek
 
 ## Lägerbål
 
-[Lägerbål](lagerbal.html) är ett gemensamt bibliotek som kan läsas utan inloggning. Sök på titel eller text, filtrera på kategori och öppna ett kort för att läsa. Poster visas alfabetiskt i de fällbara kategorierna Sång, Rop och Lek. Sidan behöver kunna hämta sångfilen från webbplatsen.
+[Lägerbål](lagerbal.html) är ett gemensamt bibliotek som kan läsas utan inloggning. Öppna sökfält och filter med förstoringsglaset, sök på titel eller text, filtrera på kategori och öppna ett kort för att läsa. Poster visas alfabetiskt i de fällbara kategorierna Sång, Rop och Lek. Sidan behöver kunna hämta sångfilen från webbplatsen.
 
 I den öppnade sången finns en delningsknapp som kopierar en länk direkt till sången. Om automatisk kopiering inte fungerar kan länken kopieras manuellt. Mottagaren behöver inte logga in.
 

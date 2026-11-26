@@ -194,6 +194,13 @@ test("the published song catalog can be loaded", async () => {
     assert.ok(elements.songDetailLyrics.textContent.length > 0);
 });
 
+test("search and category filters use the shared initially hidden header control", () => {
+    const html = fs.readFileSync(path.join(root, "lagerbal.html"), "utf8");
+    assert.match(html, /id="filtersVisibilityToggle"[^>]*aria-expanded="false"[^>]*aria-controls="songFilters"/);
+    assert.match(html, /id="songFilters"[^>]*class="[^"]*filters--hidden[^"]*"[^>]*data-page-filters/);
+    assert.match(html, /src="js\/header-controls\.js"/);
+});
+
 test("all pages link to Lägerbål in both navigation menus", () => {
     const pages = ["index", "marken", "aktiviteter", "lagerbal", "kokbok", "planering", "arrangemang", "arshjul", "scouter", "admin", "utvecklingstrappa"];
     for (const page of pages) {
