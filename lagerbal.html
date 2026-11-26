@@ -58,6 +58,14 @@
         <section class="page-hero" aria-labelledby="songsTitle">
             <div><p class="page-kicker">Sång · gemenskap · lägereld</p><h1 id="songsTitle">Lägerbål</h1><p>Sånger att sjunga tillsammans vid lägerbålet.</p></div>
         </section>
+        <section class="campfire-plans" aria-labelledby="campfirePlansTitle">
+            <div class="arrangement-section-heading">
+                <div><h2 id="campfirePlansTitle">Planerade lägerbål</h2><p>Samla sånger, rop och lekar i en färdig lista.</p></div>
+                <button id="newCampfirePlan" class="btn-primary" type="button">Planera lägerbål</button>
+            </div>
+            <p id="campfirePlansStatus" role="status" aria-live="polite"></p>
+            <div id="campfirePlansList"></div>
+        </section>
         <div id="songFilters" class="cookbook-toolbar song-search filters--hidden" data-page-filters>
             <label class="filter-field search-field"><span>Sök sånger</span><input id="songSearch" type="search" placeholder="Sök titel eller sångtext..."></label>
             <label class="filter-field"><span>Kategori</span><select id="songCategoryFilter"><option value="">Alla kategorier</option><option value="Sång">Sång</option><option value="Rop">Rop</option><option value="Lek">Lek</option></select></label>
@@ -65,6 +73,17 @@
         <div id="songGrid" class="activity-grid"></div>
         <p id="songStatus" class="no-results" role="status" aria-live="polite">Hämtar sånger...</p>
     </main>
+    <dialog id="campfirePlanDialog" class="modal-content modal-content--wide campfire-plan-dialog" aria-labelledby="campfirePlanDialogTitle">
+        <form id="campfirePlanForm" class="campfire-plan-form">
+            <button id="closeCampfirePlan" class="close-popup" type="button" aria-label="Stäng">&times;</button>
+            <h2 id="campfirePlanDialogTitle">Planera lägerbål</h2>
+            <label class="modal-field"><span>Namn</span><input id="campfirePlanTitle" type="text" maxlength="160" required></label>
+            <label class="modal-field"><span>Beskrivning (valfritt)</span><textarea id="campfirePlanDescription" rows="2"></textarea></label>
+            <div id="campfirePlanPicker"></div>
+            <p id="campfirePlanFormStatus" role="status" aria-live="polite"></p>
+            <div class="modal-actions"><button id="cancelCampfirePlan" class="btn-secondary" type="button">Avbryt</button><button id="saveCampfirePlan" class="btn-primary" type="submit">Spara</button></div>
+        </form>
+    </dialog>
     <dialog id="songDialog" class="modal-content modal-content--wide song-dialog" aria-labelledby="songDetailTitle">
         <button id="closeSongDialog" class="close-popup" type="button" aria-label="Stäng">&times;</button>
         <button id="shareSongBtn" class="btn-secondary recipe-share-icon-btn song-share-icon-btn" type="button" aria-label="Dela sång" title="Dela sång"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,16.08C17.24,16.08 16.54,16.38 16,16.85L8.91,12.74C8.96,12.5 9,12.25 9,12C9,11.75 8.96,11.5 8.91,11.26L15.92,7.17C16.47,7.66 17.2,7.97 18,7.97C19.66,7.97 21,6.63 21,4.97C21,3.31 19.66,1.97 18,1.97C16.34,1.97 15,1.97 15,4.97C15,5.22 15.04,5.47 15.09,5.71L8.08,9.8C7.53,9.31 6.8,9 6,9C4.34,9 3,10.34 3,12C3,13.66 4.34,15 6,15C6.8,15 7.53,14.69 8.08,14.2L15.17,18.31C15.12,18.54 15,18.77 15,19C15,20.66 16.34,22 18,22C19.66,22 21,20.66 21,19C21,17.34 19.66,16.08 18,16.08Z" /></svg></button>
@@ -84,7 +103,12 @@
     <footer class="site-footer" aria-label="Sidfot och version"><div class="site-footer-content"><span class="site-footer-title">GTScout</span><span class="site-footer-dot" aria-hidden="true">•</span><span class="site-footer-version"></span><span class="site-footer-dot" aria-hidden="true">•</span><span class="site-footer-build"></span><span class="site-footer-dot" aria-hidden="true">•</span><span class="database-environment"></span></div></footer>
     <script src="js/nav-preferences.js"></script>
     <script src="js/version.js"></script>
+    <script src="js/sync-retry.js"></script>
+    <script src="js/local-changes-dialog.js"></script>
     <script src="js/songs-catalog.js"></script>
+    <script src="js/campfire-picker.js"></script>
+    <script src="js/campfire-plans-sync.js"></script>
+    <script src="js/campfire-plans.js"></script>
     <script src="js/lagerbal.js?v=campfire-1"></script>
     <script src="js/header-controls.js"></script>
 </body>

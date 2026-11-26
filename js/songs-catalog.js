@@ -1,7 +1,8 @@
 (function () {
     const categories = ["Sång", "Rop", "Lek"];
 
-    async function load() {
+    let loading;
+    async function fetchSongs() {
         const response = await fetch("data/sanger.json");
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
@@ -13,6 +14,11 @@
             throw new Error("Sångfilen har ett ogiltigt format.");
         }
         return data;
+    }
+
+    function load() {
+        if (!loading) loading = fetchSongs();
+        return loading;
     }
 
     window.GTScoutSongCatalog = { categories, load };

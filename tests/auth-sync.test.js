@@ -54,6 +54,153 @@ function deferred() {
     return { promise, resolve };
 }
 
+test("planned campfires persist locally and keep their ordered entries independent", async () => {
+    const page = createPage(createBackend(null));
+    await page.auth.init();
+    page.load("campfire-plans-sync.js");
+    const sync = page.window.GTScoutCampfirePlans;
+    sync.init({ onChange() {} });
+    const items = [{ id: "rop", title: "Ett rop" }, { id: "sang", title: "En sång" }];
+    const result = await sync.save({ id: "plan", title: "Kvällsbål", description: "Vid sjön", items });
+    assert.equal(result.localOnly, true);
+    items[0].title = "Ändrad";
+    assert.equal(sync.getAll()[0].items[0].title, "Ett rop");
+    const reopened = createPage(createBackend(null), page.storage);
+    await reopened.auth.init();
+    reopened.load("campfire-plans-sync.js");
+    reopened.window.GTScoutCampfirePlans.init({ onChange() {} });
+    assert.deepEqual(JSON.parse(JSON.stringify(reopened.window.GTScoutCampfirePlans.getAll()[0].items)),
+        [{ id: "rop", title: "Ett rop" }, { id: "sang", title: "En sång" }]);
+    await reopened.window.GTScoutCampfirePlans.remove("plan");
+    assert.deepEqual(JSON.parse(page.storage.get("gtscout_campfire_plans_guest")), []);
+});
+
+test("planned campfires sync to the current kår and retain local data on write errors", async () => {
+    const backend = createBackend(leaderSession);
+    const page = createPage(backend);
+    await page.auth.init();
+    await page.runTimers();
+    page.load("campfire-plans-sync.js");
+    const sync = page.window.GTScoutCampfirePlans;
+    sync.init({ onChange() {} });
+    await new Promise(resolve => setImmediate(resolve));
+    const items = [{ id: "song", title: "Sång" }];
+    const saved = await sync.save({ id: "plan", title: "Kvällsbål", items });
+    assert.equal(saved.localOnly, false);
+    const write = backend.requests.find(request => request.table === "planerade_lagerbal" && request.operation === "upsert");
+    assert.equal(write.rows.kar_id, "kar-1");
+    assert.deepEqual(JSON.parse(JSON.stringify(write.rows.data.items)), items);
+    backend.pending = { table: "planerade_lagerbal", promise: Promise.resolve({ error: { code: "42501", message: "Denied" } }) };
+    const failed = await sync.save({ ...sync.getAll()[0], title: "Ändrat" });
+    assert.equal(failed.localOnly, true);
+    assert.ok(failed.error);
+    assert.equal(JSON.parse(page.storage.get("gtscout_campfire_plans_kar_kar-1_leader-1"))[0].title, "Ändrat");
+    await assert.rejects(sync.remove("plan"));
+    assert.equal(sync.getAll()[0].title, "Ändrat");
+    backend.pending = null;
+    await sync.remove("plan");
+    assert.equal(sync.getAll().length, 0);
+    assert.ok(backend.requests.some(request => request.table === "planerade_lagerbal" && request.operation === "delete"));
+});
+
+test("planned campfires import guest lists only after confirmation and members cannot edit", async () => {
+    const guest = { id: "guest-plan", title: "Lokalt", items: [{ id: "song", title: "Sång" }], local_only: true };
+    const storage = new Map([["gtscout_campfire_plans_guest", JSON.stringify([guest])]]);
+    const backend = createBackend(leaderSession);
+    const page = createPage(backend, storage);
+    await page.auth.init();
+    await page.runTimers();
+    let asked = 0;
+    page.window.GTScoutLocalChanges.confirm = async () => { asked++; return "upload"; };
+    page.load("campfire-plans-sync.js");
+    page.window.GTScoutCampfirePlans.init({ onChange() {} });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(asked, 1);
+    assert.equal(page.window.GTScoutCampfirePlans.getAll()[0].title, "Lokalt");
+    assert.deepEqual(JSON.parse(storage.get("gtscout_campfire_plans_guest")), []);
+    assert.ok(backend.requests.some(request => request.table === "planerade_lagerbal" && request.operation === "upsert"));
+
+    const member = createPage(createBackend(leaderSession, { ...leaderProfile, role: "medlem" }));
+    await member.auth.init();
+    await member.runTimers();
+    member.load("campfire-plans-sync.js");
+    member.window.GTScoutCampfirePlans.init({ onChange() {} });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(member.window.GTScoutCampfirePlans.canEdit(), false);
+    await assert.rejects(member.window.GTScoutCampfirePlans.save({ title: "Inte tillåtet" }));
+});
+
+test("kept guest campfire plans remain locally editable without uploading", async () => {
+    const storage = new Map([["gtscout_campfire_plans_guest", JSON.stringify([
+        { id: "guest-plan", title: "Lokalt", items: [{ id: "song", title: "Sång" }], local_only: true }
+    ])]]);
+    const backend = createBackend(leaderSession);
+    const page = createPage(backend, storage);
+    await page.auth.init();
+    await page.runTimers();
+    page.window.GTScoutLocalChanges.confirm = async () => "cancel";
+    page.load("campfire-plans-sync.js");
+    const sync = page.window.GTScoutCampfirePlans;
+    sync.init({ onChange() {} });
+    await new Promise(resolve => setImmediate(resolve));
+    const local = sync.getAll()[0];
+    assert.equal(local.guest_local, true);
+    await sync.save({ ...local, title: "Ändrat lokalt" });
+    assert.equal(JSON.parse(storage.get("gtscout_campfire_plans_guest"))[0].title, "Ändrat lokalt");
+    assert.equal(backend.requests.some(request => request.table === "planerade_lagerbal" && request.operation === "upsert"), false);
+    await sync.remove(local.id);
+    assert.deepEqual(JSON.parse(storage.get("gtscout_campfire_plans_guest")), []);
+});
+
+test("invalid local campfire data is reported and cannot be overwritten", async () => {
+    const storage = new Map([["gtscout_campfire_plans_guest", "{broken"]]);
+    const page = createPage(createBackend(null), storage);
+    await page.auth.init();
+    page.load("campfire-plans-sync.js");
+    let state;
+    const sync = page.window.GTScoutCampfirePlans;
+    sync.init({ onChange: (_plans, next) => { state = next; } });
+    assert.equal(state.storageError, true);
+    assert.equal(sync.canEdit(), false);
+    await assert.rejects(sync.save({ title: "Nytt", items: [] }));
+    assert.equal(storage.get("gtscout_campfire_plans_guest"), "{broken");
+});
+
+test("a delayed campfire fetch cannot restore kår data after logout", async () => {
+    const backend = createBackend(leaderSession);
+    const page = createPage(backend);
+    await page.auth.init();
+    await page.runTimers();
+    const response = deferred();
+    backend.pending = { table: "planerade_lagerbal", ...response };
+    page.load("campfire-plans-sync.js");
+    const sync = page.window.GTScoutCampfirePlans;
+    sync.init({ onChange() {} });
+    await page.auth.signOut();
+    await page.runTimers();
+    response.resolve({ data: [{ id: "remote", data: { title: "Kårens lista", items: [] } }] });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(sync.getAll().length, 0);
+    assert.equal(page.storage.has("gtscout_campfire_plans_kar_kar-1_leader-1"), false);
+});
+
+test("pending campfire changes are not uploaded by a different user in the same kår", async () => {
+    const storage = new Map([["gtscout_campfire_plans_kar_kar-1_leader-1", JSON.stringify([
+        { id: "pending", title: "Osynkad", items: [], local_only: true }
+    ])]]);
+    const backend = createBackend({ user: { id: "leader-2", email: "other@example.test" } });
+    const page = createPage(backend, storage);
+    await page.auth.init();
+    await page.runTimers();
+    page.load("campfire-plans-sync.js");
+    const sync = page.window.GTScoutCampfirePlans;
+    sync.init({ onChange() {} });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(sync.getAll().length, 0);
+    assert.equal(backend.requests.some(request => request.table === "planerade_lagerbal" && request.operation === "upsert"), false);
+    assert.equal(JSON.parse(storage.get("gtscout_campfire_plans_kar_kar-1_leader-1"))[0].title, "Osynkad");
+});
+
 test("shared arrangements preserve ordered campfire selections", async () => {
     const page = createPage(createBackend(null));
     await page.auth.init();

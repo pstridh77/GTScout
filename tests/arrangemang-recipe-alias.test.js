@@ -8,6 +8,18 @@ const readScript = name => fs.readFileSync(path.join(__dirname, "..", "js", name
 const departments = ["Familjescouter", "Spårare", "Upptäckare", "Äventyrare", "Utmanare", "Rover", "Ledare"];
 const recipe = { id: "recipe-1", namn: "Pasta och köttfärssås" };
 
+function loadCampfirePicker(songs = [], state = "loaded") {
+    const context = vm.createContext({ window: { GTScoutSongCatalog: { categories: ["Sång", "Rop", "Lek"] } } });
+    vm.runInContext(readScript("campfire-picker.js"), context);
+    return context.window.GTScoutCampfirePicker.create({
+        getSongs: () => songs,
+        getCatalogState: () => state,
+        escapeHtml: value => String(value ?? "").replace(/[&<>"']/g, character => ({
+            "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+        })[character])
+    });
+}
+
 function loadArrangementNormalizer() {
     const source = readScript("arrangemang-sync.js");
     const start = source.indexOf("    function normalize(item) {");
@@ -62,23 +74,12 @@ test("campfire program survives normalization with ordered song IDs and fallback
 });
 
 test("campfire picker starts with closed categories and a recipe-style selection summary", () => {
-    const source = readScript("arrangemang.js");
-    const start = source.indexOf("function renderCampfireSelection(items)");
-    const end = source.indexOf("function addCampfireFields", start);
-    const context = vm.createContext({
-        window: { GTScoutSongCatalog: { categories: ["Sång", "Rop", "Lek"] } },
-        campfireSongs: [{ id: "song", titel: "Sången", kategori: "Sång" }, { id: "game", titel: "Leken", kategori: "Lek" }],
-        campfireCatalogState: "loaded",
-        escapeArrangementHtml: value => String(value ?? "").replace(/[&<>"']/g, character => ({
-            "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-        })[character])
-    });
-    vm.runInContext(source.slice(start, end), context);
-    const empty = context.renderCampfirePicker({ campfire_items: [] });
-    assert.match(empty, /Inga sånger, rop eller lekar valda/);
+    const picker = loadCampfirePicker([{ id: "song", titel: "Sången", kategori: "Sång" }, { id: "game", titel: "Leken", kategori: "Lek" }]);
+    const empty = picker.render({ campfire_items: [] });
+    assert.match(empty, /Inga sånger valda/);
     assert.match(empty, /data-clear-campfire disabled/);
-    assert.ok(empty.indexOf("Sök sång, rop eller lek") < empty.indexOf("Inga sånger, rop eller lekar valda"));
-    const selected = context.renderCampfirePicker({ campfire_items: [{ id: "missing", title: "Saknad" }, { id: "song", title: "Sången" }] });
+    assert.ok(empty.indexOf("Sök sång") < empty.indexOf("Inga sånger valda"));
+    const selected = picker.render({ campfire_items: [{ id: "missing", title: "Saknad" }, { id: "song", title: "Sången" }] });
     assert.match(selected, /2 valda/);
     assert.match(selected, /Saknad \(finns inte längre i biblioteket\)/);
     assert.ok(selected.indexOf('data-campfire-selected="missing"') < selected.indexOf('data-campfire-selected="song"'));
@@ -87,11 +88,7 @@ test("campfire picker starts with closed categories and a recipe-style selection
 });
 
 test("campfire search opens matching categories and keeps selected categories open when cleared", () => {
-    const source = readScript("arrangemang.js");
-    const start = source.indexOf("function filterCampfirePicker(picker)");
-    const end = source.indexOf("function changeCampfireSelection", start);
-    const context = vm.createContext({});
-    vm.runInContext(source.slice(start, end), context);
+    const campfirePicker = loadCampfirePicker();
     const song = { textContent: "Sången", hidden: false };
     const call = { textContent: "Ropet", hidden: false };
     const group = (choice, checked) => ({
@@ -109,33 +106,35 @@ test("campfire search opens matching categories and keeps selected categories op
         },
         querySelectorAll: selector => selector === ".agenda-recipe-choice" ? [song, call] : [songGroup, callGroup]
     };
-    context.filterCampfirePicker(picker);
+    campfirePicker.filter(picker);
     assert.equal(songGroup.hidden, true);
     assert.equal(callGroup.open, true);
     assert.equal(noResultsHidden, true);
     search.value = "";
-    context.filterCampfirePicker(picker);
+    campfirePicker.filter(picker);
     assert.equal(songGroup.hidden, false);
     assert.equal(songGroup.open, true);
     assert.equal(callGroup.open, false);
 });
 
 test("moving a campfire item keeps focus on an available sort button", () => {
-    const source = readScript("arrangemang.js");
-    const start = source.indexOf("function handleCampfireAction(event)");
-    const end = source.indexOf("function getMealRecipeIds", start);
-    let items = [{ id: "a" }, { id: "b" }, { id: "c" }];
+    const campfirePicker = loadCampfirePicker();
+    let items = [{ id: "a", title: "A" }, { id: "b", title: "B" }, { id: "c", title: "C" }];
     let focused = "";
+    const selection = { set innerHTML(html) {
+        items = [...html.matchAll(/data-campfire-selected="([^"]+)" data-campfire-title="([^"]+)"/g)]
+            .map(match => ({ id: match[1], title: match[2] }));
+    } };
     const picker = {
-        querySelectorAll: () => items.map((item, index) => ({
-            dataset: { campfireSelected: item.id },
+        querySelectorAll: selector => selector === ".agenda-campfire-target" ? [] : items.map((item, index) => ({
+            dataset: { campfireSelected: item.id, campfireTitle: item.title },
             querySelector: selector => {
                 const direction = selector.includes('="-1"') ? -1 : selector.includes('="1"') ? 1 : index ? -1 : 1;
                 if ((direction === -1 && index === 0) || (direction === 1 && index === items.length - 1)) return null;
                 return { focus: () => { focused = `${item.id}:${direction}`; } };
             }
         })),
-        querySelector: () => null
+        querySelector: selector => selector === "[data-campfire-selection]" ? selection : null
     };
     const row = { dataset: { campfireSelected: "b" } };
     const button = {
@@ -143,14 +142,43 @@ test("moving a campfire item keeps focus on an available sort button", () => {
         hasAttribute: () => false,
         closest: selector => selector === ".agenda-campfire-picker" ? picker : row
     };
-    const context = vm.createContext({
-        readCampfireItems: () => items.slice(),
-        updateCampfireSelection: (_picker, next) => { items = next; }
-    });
-    vm.runInContext(source.slice(start, end), context);
-    assert.equal(context.handleCampfireAction({ target: { closest: () => button } }), true);
+    assert.equal(campfirePicker.action({ target: { closest: () => button } }), true);
     assert.deepEqual(items.map(item => item.id), ["b", "a", "c"]);
     assert.equal(focused, "b:1");
+});
+
+test("choosing a planned campfire copies its ordered items and protects existing choices", () => {
+    const source = readScript("arrangemang.js");
+    const start = source.indexOf("function chooseCampfirePlan(event)");
+    const end = source.indexOf("function addCampfireFields", start);
+    const plan = { id: "plan", title: "Kvällsbål", items: [{ id: "rop", title: "Rop" }, { id: "sang", title: "Sång" }] };
+    const picker = {};
+    const title = { value: "" };
+    const container = { querySelector: selector => selector === ".agenda-campfire-picker" ? picker : title };
+    let existing = [{ id: "old", title: "Tidigare" }];
+    let confirmed = false;
+    const select = {
+        value: "plan",
+        matches: selector => selector === "[data-campfire-plan]",
+        closest: () => container
+    };
+    const context = vm.createContext({
+        campfirePlans: [plan],
+        readCampfireItems: () => existing,
+        updateCampfireSelection: (_picker, items) => { existing = items.map(item => ({ ...item })); },
+        confirm: () => confirmed,
+        agendaEntryDialogFields: container
+    });
+    vm.runInContext(source.slice(start, end), context);
+    assert.equal(context.chooseCampfirePlan({ target: select }), true);
+    assert.deepEqual(existing, [{ id: "old", title: "Tidigare" }]);
+    select.value = "plan";
+    confirmed = true;
+    context.chooseCampfirePlan({ target: select });
+    assert.deepEqual(existing, plan.items);
+    assert.equal(title.value, "Kvällsbål");
+    plan.items[0].title = "Ändrat original";
+    assert.equal(existing[0].title, "Rop");
 });
 
 test("meal recipe picker provides an optional alternative name for each selected recipe", () => {
@@ -215,6 +243,6 @@ test("campfire print preserves order and uses saved titles when songs are missin
         campfire_items: [{ id: "a", title: "Gammalt namn" }, { id: "b", title: "Saknad <sång>" }]
     };
     const html = context.renderAgendaEntry(entry, { departments: [] }, [], [{ id: "a", titel: "Nytt namn" }]);
-    assert.match(html, /Sånger, rop och lekar: Nytt namn, Saknad &lt;sång&gt;/);
+    assert.match(html, /Sånger: Nytt namn, Saknad &lt;sång&gt;/);
     assert.match(html, /agenda-meta">Lägerbål/);
 });
