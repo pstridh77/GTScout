@@ -15,6 +15,16 @@
     const pickerContainer = document.getElementById("campfirePlanPicker");
     const formStatus = document.getElementById("campfirePlanFormStatus");
     const saveButton = document.getElementById("saveCampfirePlan");
+    const shareDialog = document.getElementById("campfireShareDialog");
+    const shareUrl = document.getElementById("campfireShareUrl");
+    const shareStatus = document.getElementById("campfireShareStatus");
+    const snapshotParam = new URLSearchParams(window.location.hash.slice(1));
+    const maxShareUrlLength = 8000;
+    window.addEventListener("hashchange", () => {
+        if (snapshotParam.has("campfire") || new URLSearchParams(window.location.hash.slice(1)).has("campfire")) {
+            window.location.reload();
+        }
+    });
     const expanded = new Set();
     let plans = [];
     let syncState = { loading: true, error: false };
@@ -30,6 +40,101 @@
         return String(value ?? "").replace(/[&<>"']/g, character => ({
             "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
         })[character]);
+    }
+
+    function decodeSnapshot(encoded) {
+        if (!encoded || !/^[A-Za-z0-9_-]+$/.test(encoded) || window.location.href.length > maxShareUrlLength) {
+            throw new Error("Ogiltig delningslänk.");
+        }
+        const base64 = encoded.replace(/-/g, "+").replace(/_/g, "/");
+        const binary = atob(base64 + "=".repeat((4 - base64.length % 4) % 4));
+        const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+        const data = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+        if (!data || typeof data.title !== "string" || !data.title.trim()
+            || typeof data.description !== "string" || !Array.isArray(data.items)
+            || data.items.some(item => !item || typeof item.id !== "string" || !item.id.trim()
+                || typeof item.title !== "string" || !item.title.trim())) {
+            throw new Error("Ogiltigt innehåll i delningslänken.");
+        }
+        return data;
+    }
+
+    if (snapshotParam.has("campfire")) {
+        const view = document.getElementById("sharedCampfireView");
+        const sharedStatus = document.getElementById("sharedCampfireStatus");
+        document.body.classList.add("shared-campfire-view");
+        view.hidden = false;
+        let snapshot;
+        try {
+            snapshot = decodeSnapshot(snapshotParam.get("campfire"));
+        } catch (error) {
+            console.error("Kunde inte läsa delat lägerbål", error);
+            sharedStatus.textContent = "Delningslänken är ogiltig eller för lång.";
+            return;
+        }
+        document.getElementById("sharedCampfireTitle").textContent = snapshot.title;
+        const sharedDescription = document.getElementById("sharedCampfireDescription");
+        sharedDescription.textContent = snapshot.description;
+        sharedDescription.hidden = !snapshot.description;
+        const sharedItems = document.getElementById("sharedCampfireItems");
+        function renderSharedItems(catalog) {
+            sharedItems.replaceChildren(...snapshot.items.map(item => {
+                const entry = document.createElement("li");
+                if (!window.GTScoutSongCatalog.isCustomId(item.id) && catalog.some(song => song.id === item.id)) {
+                    const link = document.createElement("a");
+                    link.href = `lagerbal.html?song=${encodeURIComponent(item.id)}`;
+                    link.target = "_blank";
+                    link.rel = "noopener noreferrer";
+                    link.textContent = item.title;
+                    entry.append(link);
+                } else {
+                    entry.textContent = item.title;
+                }
+                return entry;
+            }));
+        }
+        window.GTScoutSongCatalog.load()
+            .then(catalog => {
+                renderSharedItems(catalog);
+                sharedStatus.textContent = snapshot.items.length ? "" : "Inga sånger valda.";
+            })
+            .catch(error => {
+                console.error("Kunde inte hämta sångbiblioteket", error);
+                renderSharedItems([]);
+                sharedStatus.textContent = "Kunde inte hämta sångbiblioteket. Sparade titlar visas.";
+            });
+        return;
+    }
+
+    function createSnapshotUrl(plan) {
+        const snapshot = {
+            title: plan.title,
+            description: plan.description,
+            items: plan.items.map(item => ({
+                id: item.id,
+                title: songs.find(song => song.id === item.id)?.titel || item.title
+            }))
+        };
+        const bytes = new TextEncoder().encode(JSON.stringify(snapshot));
+        if (bytes.length > maxShareUrlLength * 3 / 4) throw new Error("Lägerbålet är för stort för att delas som länk. Korta beskrivningen eller listan.");
+        let binary = "";
+        bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+        const encoded = btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+        const url = new URL("lagerbal.html", window.location.href);
+        url.hash = `campfire=${encoded}`;
+        if (url.href.length > maxShareUrlLength) throw new Error("Lägerbålet är för stort för att delas som länk. Korta beskrivningen eller listan.");
+        return url.href;
+    }
+
+    async function copyShareUrl() {
+        const url = shareUrl.value;
+        shareUrl.select();
+        try {
+            await navigator.clipboard.writeText(url);
+            if (shareDialog.open && shareUrl.value === url) shareStatus.textContent = "Länken har kopierats. Du kan också kopiera den manuellt.";
+        } catch (error) {
+            if (shareDialog.open && shareUrl.value === url) shareStatus.textContent = "Kunde inte kopiera länken. Markera den och kopiera manuellt.";
+        }
     }
 
     const picker = window.GTScoutCampfirePicker.create({
@@ -64,7 +169,7 @@
                 ${plan.description ? `<p>${escapeHtml(plan.description)}</p>` : ""}
                 ${catalogState === "error" ? "<p>Kunde inte hämta sångbiblioteket. Sparade titlar visas.</p>" : ""}
                 ${entries ? `<ol>${entries}</ol>` : "<p>Inga sånger valda.</p>"}
-                ${editable ? `<div class="campfire-plan-actions"><button class="arrangement-delete-icon" type="button" data-plan-action="delete" aria-label="Ta bort ${escapeHtml(plan.title)}" title="Ta bort lägerbål"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button><button class="btn-secondary" type="button" data-plan-action="edit">Redigera</button><button class="btn-secondary" type="button" data-plan-action="copy">Kopiera</button></div>` : ""}
+                <div class="campfire-plan-actions">${editable ? `<button class="arrangement-delete-icon" type="button" data-plan-action="delete" aria-label="Ta bort ${escapeHtml(plan.title)}" title="Ta bort lägerbål"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button><button class="btn-secondary" type="button" data-plan-action="edit">Redigera</button><button class="btn-secondary" type="button" data-plan-action="copy">Kopiera</button>` : ""}<button class="btn-secondary campfire-plan-share" type="button" data-plan-action="share" aria-label="Dela ${escapeHtml(plan.title)}" title="Dela lägerbål"${syncState.loading || syncState.storageError ? " disabled" : ""}><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18,16.08C17.24,16.08 16.54,16.38 16,16.85L8.91,12.74C8.96,12.5 9,12.25 9,12C9,11.75 8.96,11.5 8.91,11.26L15.92,7.17C16.47,7.66 17.2,7.97 18,7.97C19.66,7.97 21,6.63 21,4.97C21,3.31 19.66,1.97 18,1.97C16.34,1.97 15,3.31 15,4.97C15,5.22 15.04,5.47 15.09,5.71L8.08,9.8C7.53,9.31 6.8,9 6,9C4.34,9 3,10.34 3,12C3,13.66 4.34,15 6,15C6.8,15 7.53,14.69 8.08,14.2L15.17,18.31C15.12,18.54 15,18.77 15,19C15,20.66 16.34,22 18,22C19.66,22 21,20.66 21,19C21,17.34 19.66,16.08 18,16.08Z"/></svg></button></div>
             </details>`;
         }).join("");
         list.querySelectorAll(".campfire-plan").forEach(details => {
@@ -118,6 +223,12 @@
     newButton.addEventListener("click", () => openEditor(null, false, newButton));
     document.getElementById("closeCampfirePlan").addEventListener("click", closeEditor);
     document.getElementById("cancelCampfirePlan").addEventListener("click", closeEditor);
+    document.getElementById("closeCampfireShareDialog").addEventListener("click", () => shareDialog.close());
+    document.getElementById("cancelCampfireShareDialog").addEventListener("click", () => shareDialog.close());
+    document.getElementById("copyCampfireShareBtn").addEventListener("click", copyShareUrl);
+    shareDialog.addEventListener("click", event => {
+        if (event.target === shareDialog) shareDialog.close();
+    });
     pickerContainer.addEventListener("input", event => picker.input(event));
     pickerContainer.addEventListener("keydown", event => picker.keydown(event));
     pickerContainer.addEventListener("change", event => picker.change(event));
@@ -127,6 +238,20 @@
         if (!button || busy) return;
         const plan = plans.find(item => item.id === button.closest("[data-plan-id]")?.dataset.planId);
         if (!plan) return;
+        if (button.dataset.planAction === "share") {
+            if (syncState.loading || syncState.storageError) return;
+            try {
+                shareUrl.value = createSnapshotUrl(plan);
+                shareStatus.textContent = "";
+                shareDialog.showModal();
+                copyShareUrl();
+            } catch (error) {
+                console.error("Kunde inte skapa delningslänk för lägerbål", error);
+                actionMessage = error.message || "Kunde inte skapa delningslänken.";
+                renderPlans();
+            }
+            return;
+        }
         if (button.dataset.planAction === "edit" || button.dataset.planAction === "copy") {
             openEditor(plan, button.dataset.planAction === "copy", button);
             return;
@@ -178,6 +303,11 @@
     });
 
     window.GTScoutCampfirePlans.init({ onChange(nextPlans, state) {
+        if (shareDialog.open && syncState.contextVersion !== state.contextVersion) {
+            shareDialog.close();
+            shareUrl.value = "";
+            shareStatus.textContent = "";
+        }
         if (dialog.open && editorContext !== state.contextVersion) {
             dialog.close();
             activePlan = null;

@@ -55,6 +55,14 @@
         </div>
     </header>
     <main class="activities-page">
+        <section id="sharedCampfireView" class="campfire-shared" hidden aria-labelledby="sharedCampfireTitle">
+            <p class="campfire-shared-label">Delat lägerbål · skrivskyddad ögonblicksbild</p>
+            <h1 id="sharedCampfireTitle">Delat lägerbål</h1>
+            <p id="sharedCampfireStatus" role="status" aria-live="polite">Hämtar lägerbålet...</p>
+            <p id="sharedCampfireDescription" class="campfire-shared-description" hidden></p>
+            <ol id="sharedCampfireItems"></ol>
+            <a href="lagerbal.html">Till sångbiblioteket</a>
+        </section>
         <section class="page-hero" aria-labelledby="songsTitle">
             <div><p class="page-kicker">Sång · gemenskap · lägereld</p><h1 id="songsTitle">Lägerbål</h1><p>Sånger att sjunga tillsammans vid lägerbålet.</p></div>
             <button id="newCampfirePlan" class="btn-primary" type="button">+Skapa Lägerbål</button>
@@ -87,6 +95,14 @@
             <div class="modal-actions"><button id="cancelCampfirePlan" class="btn-secondary" type="button">Avbryt</button><button id="saveCampfirePlan" class="btn-primary" type="submit">Spara</button></div>
         </form>
     </dialog>
+    <dialog id="campfireShareDialog" class="modal-content song-share-dialog" aria-labelledby="campfireShareTitle">
+        <button id="closeCampfireShareDialog" class="close-popup" type="button" aria-label="Stäng">&times;</button>
+        <h2 id="campfireShareTitle">Dela lägerbål</h2>
+        <p>Alla med länken kan se en skrivskyddad ögonblicksbild. Senare ändringar följer inte med och länken kan inte återkallas.</p>
+        <label class="modal-field"><span>Länk</span><input id="campfireShareUrl" type="text" readonly aria-label="Länk till lägerbålet"></label>
+        <p id="campfireShareStatus" class="detail-planning-status" role="status"></p>
+        <div class="modal-actions"><button id="copyCampfireShareBtn" class="btn-primary" type="button">Kopiera länk</button><button id="cancelCampfireShareDialog" class="btn-secondary" type="button">Stäng</button></div>
+    </dialog>
     <dialog id="songDialog" class="modal-content modal-content--wide song-dialog" aria-labelledby="songDetailTitle">
         <button id="closeSongDialog" class="close-popup" type="button" aria-label="Stäng">&times;</button>
         <button id="shareSongBtn" class="btn-secondary recipe-share-icon-btn song-share-icon-btn" type="button" aria-label="Dela sång" title="Dela sång"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,16.08C17.24,16.08 16.54,16.38 16,16.85L8.91,12.74C8.96,12.5 9,12.25 9,12C9,11.75 8.96,11.5 8.91,11.26L15.92,7.17C16.47,7.66 17.2,7.97 18,7.97C19.66,7.97 21,6.63 21,4.97C21,3.31 19.66,1.97 18,1.97C16.34,1.97 15,1.97 15,4.97C15,5.22 15.04,5.47 15.09,5.71L8.08,9.8C7.53,9.31 6.8,9 6,9C4.34,9 3,10.34 3,12C3,13.66 4.34,15 6,15C6.8,15 7.53,14.69 8.08,14.2L15.17,18.31C15.12,18.54 15,18.77 15,19C15,20.66 16.34,22 18,22C19.66,22 21,20.66 21,19C21,17.34 19.66,16.08 18,16.08Z" /></svg></button>
@@ -111,7 +127,7 @@
     <script src="js/songs-catalog.js"></script>
     <script src="js/campfire-picker.js"></script>
     <script src="js/campfire-plans-sync.js"></script>
-    <script src="js/campfire-plans.js?v=campfire-4"></script>
+    <script src="js/campfire-plans.js?v=campfire-5"></script>
     <script src="js/lagerbal.js?v=campfire-2"></script>
     <script src="js/header-controls.js"></script>
 </body>

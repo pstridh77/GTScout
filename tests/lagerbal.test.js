@@ -229,7 +229,7 @@ test("the campfire planning button is in the page hero", () => {
 });
 
 test("planned campfires show a total and filter by name without hiding errors", async () => {
-    const ids = ["campfirePlansList", "campfirePlansSection", "campfirePlansCount", "campfirePlansSearchToggle", "campfirePlansSearchField", "campfirePlansSearch", "campfirePlansNoResults", "campfirePlansStatus", "newCampfirePlan", "campfirePlanDialog", "campfirePlanForm", "campfirePlanTitle", "campfirePlanDescription", "campfirePlanPicker", "campfirePlanFormStatus", "saveCampfirePlan", "campfirePlanDialogTitle", "closeCampfirePlan", "cancelCampfirePlan"];
+    const ids = ["campfirePlansList", "campfirePlansSection", "campfirePlansCount", "campfirePlansSearchToggle", "campfirePlansSearchField", "campfirePlansSearch", "campfirePlansNoResults", "campfirePlansStatus", "newCampfirePlan", "campfirePlanDialog", "campfirePlanForm", "campfirePlanTitle", "campfirePlanDescription", "campfirePlanPicker", "campfirePlanFormStatus", "saveCampfirePlan", "campfirePlanDialogTitle", "closeCampfirePlan", "cancelCampfirePlan", "campfireShareDialog", "campfireShareUrl", "campfireShareStatus", "closeCampfireShareDialog", "cancelCampfireShareDialog", "copyCampfireShareBtn"];
     const e = Object.fromEntries(ids.map(id => [id, element()]));
     e.campfirePlansList.querySelectorAll = () => [];
     e.campfirePlansSearchField.hidden = true;
@@ -240,8 +240,8 @@ test("planned campfires show a total and filter by name without hiding errors", 
     e.newCampfirePlan.focus = () => {};
     let update;
     const plans = [
-        { id: "1", title: "Höstläger", items: [] },
-        { id: "2", title: "Vårträff", items: [] }
+        { id: "1", title: "Höstläger", description: "Vid sjön", items: [{ id: "song", title: "Gammalt namn" }, { id: "custom:unique", title: "Egen <titel>" }] },
+        { id: "2", title: "Vårträff", description: "", items: [] }
     ];
     const state = { loading: false, error: false, contextVersion: 1 };
     const sync = {
@@ -249,15 +249,21 @@ test("planned campfires show a total and filter by name without hiding errors", 
         init: ({ onChange }) => { update = onChange; update(plans, state); },
         save: async plan => { update([...plans, plan], state); return { localOnly: true }; }
     };
+    let clipboardFails = false;
+    const errors = [];
     const context = vm.createContext({
         document: { getElementById: id => e[id] },
         window: {
+            location: { href: "https://example.test/gt/lagerbal.html", hash: "" },
+            addEventListener() {},
             GTScoutCampfirePlans: sync,
             GTScoutCampfirePicker: { create: () => ({ render: () => "", read: () => [] }) },
-            GTScoutSongCatalog: { load: async () => [], isCustomId: () => false }
+            GTScoutSongCatalog: { load: async () => [{ id: "song", titel: "Sångens namn" }], isCustomId: id => id.startsWith("custom:") }
         },
+        navigator: { clipboard: { writeText: async () => { if (clipboardFails) throw new Error("blocked"); } } },
+        URL, URLSearchParams, TextEncoder, TextDecoder, btoa, atob,
         crypto: { randomUUID: () => "3" },
-        console
+        console: { error: (...args) => errors.push(args) }
     });
     vm.runInContext(plansSource, context);
     await new Promise(resolve => setImmediate(resolve));
@@ -265,6 +271,67 @@ test("planned campfires show a total and filter by name without hiding errors", 
     assert.equal(e.campfirePlansStatus.hidden, true);
     assert.equal(e.campfirePlansSearchField.hidden, true);
     assert.match(e.campfirePlansList.innerHTML, /class="arrangement-delete-icon"[^>]*data-plan-action="delete"[^>]*aria-label="Ta bort Höstläger"[^>]*><svg[\s\S]*?data-plan-action="edit"[\s\S]*?data-plan-action="copy"/);
+    sync.canEdit = () => false;
+    update(plans, state);
+    assert.match(e.campfirePlansList.innerHTML, /data-plan-action="share"[^>]*aria-label="Dela Höstläger"/);
+    assert.doesNotMatch(e.campfirePlansList.innerHTML, /data-plan-action="delete"/);
+    const shareButton = { dataset: { planAction: "share" }, closest: () => ({ dataset: { planId: "1" } }) };
+    await e.campfirePlansList.listeners.click({ target: { closest: () => shareButton } });
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(e.campfireShareDialog.open, true);
+    assert.match(e.campfireShareStatus.textContent, /kopierats/);
+    const sharedUrl = e.campfireShareUrl.value;
+    assert.match(sharedUrl, /^https:\/\/example\.test\/gt\/lagerbal\.html#campfire=/);
+    const sharedLocation = new URL(sharedUrl);
+    const sharedIds = ["sharedCampfireView", "sharedCampfireStatus", "sharedCampfireTitle", "sharedCampfireDescription", "sharedCampfireItems"];
+    const shared = Object.fromEntries(sharedIds.map(id => [id, element()]));
+    const sharedContext = vm.createContext({
+        document: { getElementById: id => shared[id], createElement: element, body: { classList: { add() {} } } },
+        window: { location: sharedLocation, addEventListener() {}, GTScoutSongCatalog: { load: async () => [{ id: "song", titel: "Ändrat namn" }], isCustomId: id => id.startsWith("custom:") } },
+        URLSearchParams, TextDecoder, atob, console
+    });
+    vm.runInContext(plansSource, sharedContext);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(shared.sharedCampfireTitle.textContent, "Höstläger");
+    assert.equal(shared.sharedCampfireDescription.textContent, "Vid sjön");
+    assert.equal(shared.sharedCampfireItems.children[0].children[0].textContent, "Sångens namn");
+    assert.equal(shared.sharedCampfireItems.children[1].textContent, "Egen <titel>");
+    assert.equal(shared.sharedCampfireStatus.textContent, "");
+    clipboardFails = true;
+    await e.copyCampfireShareBtn.listeners.click();
+    assert.match(e.campfireShareStatus.textContent, /kopiera manuellt/);
+    update(plans, { ...state, contextVersion: 2 });
+    assert.equal(e.campfireShareDialog.open, false);
+    assert.equal(e.campfireShareUrl.value, "");
+    const snapshotLength = length => {
+        const snapshot = {
+            title: plans[0].title, description: "x".repeat(length),
+            items: [{ id: "song", title: "Sångens namn" }, { id: "custom:unique", title: "Egen <titel>" }]
+        };
+        return "https://example.test/gt/lagerbal.html#campfire=".length + Buffer.from(JSON.stringify(snapshot)).toString("base64url").length;
+    };
+    let low = 0;
+    let high = 6001;
+    while (low + 1 < high) {
+        const middle = Math.floor((low + high) / 2);
+        if (snapshotLength(middle) <= 8000) low = middle;
+        else high = middle;
+    }
+    plans[0].description = "x".repeat(low);
+    await e.campfirePlansList.listeners.click({ target: { closest: () => shareButton } });
+    assert.equal(e.campfireShareDialog.open, true);
+    assert.equal(e.campfireShareUrl.value.length, snapshotLength(low));
+    assert.ok(e.campfireShareUrl.value.length <= 8000);
+    e.campfireShareDialog.close();
+    plans[0].description = "x".repeat(high);
+    assert.ok(snapshotLength(high) > 8000);
+    await e.campfirePlansList.listeners.click({ target: { closest: () => shareButton } });
+    assert.equal(e.campfireShareDialog.open, false);
+    assert.match(e.campfirePlansStatus.textContent, /för stort/);
+    assert.equal(errors.length, 1);
+    plans[0].description = "Vid sjön";
+    sync.canEdit = () => true;
+    update(plans, state);
     e.campfirePlansSection.open = true;
     e.campfirePlansSection.dispatch("toggle");
     assert.equal(e.campfirePlansStatus.hidden, false);
@@ -305,6 +372,47 @@ test("planned campfires show a total and filter by name without hiding errors", 
     assert.equal(e.campfirePlansSearch.value, "");
     assert.equal(e.campfirePlansCount.textContent, "3 st.");
     assert.match(e.campfirePlansList.innerHTML, /Nytt lägerbål/);
+});
+
+test("invalid campfire snapshot links show an error without loading local plans", () => {
+    for (const hash of ["#campfire=!", "#campfire=" + Buffer.from('{"title":"Test","description":"","items":[{}]}').toString("base64url"), "#campfire=" + "a".repeat(8001)]) {
+        const sharedStatus = element();
+        const sharedView = element();
+        const context = vm.createContext({
+            document: {
+                getElementById: id => ({ sharedCampfireStatus: sharedStatus, sharedCampfireView: sharedView })[id],
+                body: { classList: { add() {} } }
+            },
+            window: {
+                location: new URL(`https://example.test/lagerbal.html${hash}`),
+                addEventListener() {},
+                GTScoutCampfirePlans: { init() { throw new Error("Local plans must not load"); } }
+            },
+            URLSearchParams, TextDecoder, atob,
+            console: { error() {} }
+        });
+        vm.runInContext(plansSource, context);
+        assert.equal(sharedView.hidden, false);
+        assert.match(sharedStatus.textContent, /ogiltig eller för lång/);
+    }
+});
+
+test("shared campfires keep snapshot titles when the song catalog cannot load", async () => {
+    const snapshot = { title: "Läger", description: "", items: [{ id: "song", title: "Sparad titel" }] };
+    const url = new URL("https://example.test/lagerbal.html#campfire=" + Buffer.from(JSON.stringify(snapshot)).toString("base64url"));
+    const ids = ["sharedCampfireView", "sharedCampfireStatus", "sharedCampfireTitle", "sharedCampfireDescription", "sharedCampfireItems"];
+    const e = Object.fromEntries(ids.map(id => [id, element()]));
+    const errors = [];
+    const context = vm.createContext({
+        document: { getElementById: id => e[id], createElement: element, body: { classList: { add() {} } } },
+        window: { location: url, addEventListener() {}, GTScoutSongCatalog: { load: async () => { throw new Error("offline"); }, isCustomId: () => false } },
+        URLSearchParams, TextDecoder, atob, console: { error: (...args) => errors.push(args) }
+    });
+    vm.runInContext(plansSource, context);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(e.sharedCampfireItems.children[0].textContent, "Sparad titel");
+    assert.match(e.sharedCampfireStatus.textContent, /Kunde inte hämta sångbiblioteket/);
+    assert.equal(errors.length, 1);
 });
 
 test("all pages link to Lägerbål in both navigation menus", () => {

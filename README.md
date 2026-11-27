@@ -62,7 +62,9 @@ Sidan använder samma `GTScoutActivities`-modul och databas som märkesbibliotek
 
 I den öppnade sången finns en delningsknapp som kopierar en länk direkt till sången. Om automatisk kopiering inte fungerar kan länken kopieras manuellt. Mottagaren behöver inte logga in.
 
-Med **Planera lägerbål** kan du skapa en namngiven lista med valfri beskrivning och ordnade sånger, rop och lekar utan ett arrangemang. Listorna kan öppnas, redigeras, kopieras och tas bort. Gästens listor sparas i webbläsaren; inloggade i kåren kan läsa kårens listor och ledare och administratörer kan redigera dem. Vid inloggning får ledare välja vad som ska hända med listor som skapats lokalt. Listor som behålls lokalt syns bara i den webbläsaren. Misslyckad synkning visas och ändringen behålls lokalt.
+Med **+Skapa Lägerbål** kan du skapa en namngiven lista med valfri beskrivning och ordnade sånger, rop och lekar utan ett arrangemang. Listorna kan öppnas, redigeras, kopieras och tas bort. Gästens listor sparas i webbläsaren; inloggade i kåren kan läsa kårens listor och ledare och administratörer kan redigera dem. Vid inloggning får ledare välja vad som ska hända med listor som skapats lokalt. Listor som behålls lokalt syns bara i den webbläsaren tills de delas. Misslyckad synkning visas och ändringen behålls lokalt.
+
+Varje lägerbål kan delas som en skrivskyddad ögonblicksbild, även utan inloggning. Namn, beskrivning och ordnade titlar finns i länken och kan läsas av alla som har den; senare ändringar påverkar inte länken och den kan inte återkallas. Mottagaren kan öppna sånger som finns i biblioteket. Om länken skulle bli längre än 8 000 tecken behöver beskrivningen eller listan kortas.
 
 Med **Egen titel** kan du även lägga till titlar som inte finns i biblioteket. De kan redigeras med pennknappen, flyttas och tas bort i listan och följer med vid kopiering till ett arrangemang, men länkar inte till biblioteket. Egna titlar fungerar även när biblioteket inte kan hämtas. Äldre appversioner kan visa dem som saknade biblioteksposter; ladda om appen på alla enheter.
 
