@@ -63,9 +63,10 @@ body {
 .activity-tool-button svg { width: 20px; height: 20px; }
 .activities-page .cookbook-toolbar.song-search { grid-template-columns: minmax(0, 1fr) minmax(150px, .4fr); }
 @media (max-width: 520px) { .activities-page .cookbook-toolbar.song-search { grid-template-columns: minmax(0, 1fr); } }
-.song-card { align-items: flex-start; text-align: left; font: inherit; color: inherit; }
+.song-card { height: 13.5rem; align-items: flex-start; text-align: left; font: inherit; color: inherit; }
 .song-card:focus-visible { outline: 2px solid #176b72; outline-offset: 3px; }
-.song-card-title { overflow-wrap: anywhere; }
+.song-card .song-card-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; flex: 0 0 auto; line-height: 1.25; overflow-wrap: anywhere; }
+.song-card .recipe-description { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; line-height: 1.5; overflow-wrap: anywhere; }
 .modal-content.song-dialog { position: fixed; inset: 0; margin: auto; box-sizing: border-box; width: max-content; max-width: 90vw; max-height: calc(100dvh - 48px); overflow-y: auto; gap: 0; color: inherit; }
 .song-dialog:not([open]), .song-share-dialog:not([open]) { display: none; }
 .song-dialog::backdrop, .song-share-dialog::backdrop { background: rgba(0, 0, 0, .6); }

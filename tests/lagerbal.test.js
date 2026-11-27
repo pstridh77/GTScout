@@ -123,6 +123,20 @@ test("bold markup is rendered as safe text and searches match the displayed lyri
     assert.deepEqual(e.songDetailLyrics.children.filter(node => node.tagName === "strong").map(node => node.textContent), ["vår <vän>", "Refräng", "sång"]);
 });
 
+test("cards use existing info or a short plain-text lyric preview", async () => {
+    const data = [
+        { id: "1", titel: "A", kategori: "Sång", info: "Med rörelser", text: "Sångtext" },
+        { id: "2", titel: "B", kategori: "Sång", info: "  ", text: "  **Hej <vän>**\n\nNästa rad  " },
+        { id: "3", titel: "C", kategori: "Sång", text: "😀".repeat(161) }
+    ];
+    const { elements: e } = await loadPage({ ok: true, json: async () => data });
+    assert.equal(cards(e)[0].children[2].textContent, "Med rörelser");
+    assert.equal(cards(e)[1].children[2].textContent, "Hej <vän> Nästa rad");
+    assert.equal(cards(e)[2].children[2].textContent, "😀".repeat(160) + "…");
+    cards(e)[1].dispatch("click");
+    assert.equal(e.songDetailLyrics.textContent, "  Hej <vän>\n\nNästa rad  ");
+});
+
 test("sharing copies an encoded link and opens the same song for a guest", async () => {
     const data = [{ id: "sång & 1", titel: "Elden", kategori: "Sång", text: "Text" }];
     const copied = [];

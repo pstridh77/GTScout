@@ -33,6 +33,14 @@
         lyrics.replaceChildren(...nodes);
     }
 
+    function songPreview(song) {
+        if (song.info && song.info.trim()) return song.info;
+        const text = song.text.replace(boldPattern, "$1").replace(/\s+/g, " ").trim();
+        const characters = Array.from(text);
+        if (characters.length <= 160) return text;
+        return characters.slice(0, 160).join("").trimEnd() + "…";
+    }
+
     function openSong(song) {
         activeSong = song;
         title.textContent = song.titel;
@@ -94,12 +102,10 @@
                 name.className = "song-card-title";
                 name.textContent = song.titel;
                 button.append(name);
-                if (song.info) {
-                    const songInfo = document.createElement("span");
-                    songInfo.className = "recipe-description";
-                    songInfo.textContent = song.info;
-                    button.append(songInfo);
-                }
+                const songInfo = document.createElement("span");
+                songInfo.className = "recipe-description";
+                songInfo.textContent = songPreview(song);
+                button.append(songInfo);
                 button.addEventListener("click", () => openSong(song));
                 return button;
             }));
