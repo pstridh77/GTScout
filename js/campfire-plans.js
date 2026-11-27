@@ -2,6 +2,7 @@
     const list = document.getElementById("campfirePlansList");
     const section = document.getElementById("campfirePlansSection");
     const count = document.getElementById("campfirePlansCount");
+    const searchToggle = document.getElementById("campfirePlansSearchToggle");
     const searchField = document.getElementById("campfirePlansSearchField");
     const search = document.getElementById("campfirePlansSearch");
     const noResults = document.getElementById("campfirePlansNoResults");
@@ -39,7 +40,6 @@
         const editable = window.GTScoutCampfirePlans.canEdit() && !syncState.loading;
         newButton.disabled = !editable || busy;
         count.textContent = syncState.loading ? "Hämtar..." : `${plans.length} st.`;
-        searchField.hidden = plans.length === 0;
         const query = search.value.trim().toLocaleLowerCase("sv");
         const visiblePlans = plans.filter(plan => plan.title.toLocaleLowerCase("sv").includes(query));
         noResults.hidden = !query || visiblePlans.length > 0 || plans.length === 0;
@@ -95,9 +95,25 @@
         else newButton.focus();
     }
 
+    function setSearchVisible(visible) {
+        searchField.hidden = !visible;
+        searchToggle.setAttribute("aria-expanded", String(visible));
+        searchToggle.setAttribute("aria-pressed", String(visible));
+        const label = `${visible ? "Dölj" : "Visa"} sökning för planerade lägerbål`;
+        searchToggle.setAttribute("aria-label", label);
+        searchToggle.setAttribute("title", label);
+        if (visible) search.focus();
+        else {
+            search.value = "";
+            renderPlans();
+        }
+    }
+
     section.addEventListener("toggle", () => {
         status.hidden = !section.open && !syncState.error && !syncState.storageError;
+        if (!section.open && !searchField.hidden) setSearchVisible(false);
     });
+    searchToggle.addEventListener("click", () => setSearchVisible(searchField.hidden));
     search.addEventListener("input", renderPlans);
     newButton.addEventListener("click", () => openEditor(null, false, newButton));
     document.getElementById("closeCampfirePlan").addEventListener("click", closeEditor);

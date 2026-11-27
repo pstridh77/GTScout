@@ -663,8 +663,16 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
 .campfire-plan-choice { grid-column: 1 / -1; }
 .campfire-plan-choice small { font-weight: 500; }
 .campfire-plans { margin: 20px 0; padding: 18px; border: 1px solid #d7e1eb; border-radius: 8px; background: #fff; }
-.campfire-plans-summary { color: #153c4a; font-size: 1.05rem; font-weight: 700; cursor: pointer; }
+.campfire-plans > details { position: relative; }
+.campfire-plans-summary { min-height: 36px; box-sizing: border-box; padding: 8px 48px 8px 0; color: #153c4a; font-size: 1.05rem; font-weight: 700; cursor: pointer; }
 .campfire-plans-summary span + span { margin-left: 8px; color: #65767b; font-size: .84rem; font-weight: 500; }
+.campfire-plans-search-toggle { position: absolute; top: 0; right: 0; }
+@media (min-width: 521px) {
+    .campfire-plans > details { display: flow-root; }
+    .campfire-plans-summary { float: left; padding-right: 0; }
+    .campfire-plans-search-toggle { position: static; margin-left: 8px; vertical-align: middle; }
+    .campfire-plans-search, #campfirePlansList { clear: both; }
+}
 .campfire-plans-search { max-width: 360px; margin: 16px 0 12px; }
 .campfire-plans-search[hidden], .campfire-plans-no-results[hidden], .campfire-plans > p[hidden] { display: none; }
 .campfire-plans > p, .campfire-plans-no-results { margin: 12px 0 0; color: #65767b; font-size: .84rem; }

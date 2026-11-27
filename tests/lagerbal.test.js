@@ -229,9 +229,13 @@ test("the campfire planning button is in the page hero", () => {
 });
 
 test("planned campfires show a total and filter by name without hiding errors", async () => {
-    const ids = ["campfirePlansList", "campfirePlansSection", "campfirePlansCount", "campfirePlansSearchField", "campfirePlansSearch", "campfirePlansNoResults", "campfirePlansStatus", "newCampfirePlan", "campfirePlanDialog", "campfirePlanForm", "campfirePlanTitle", "campfirePlanDescription", "campfirePlanPicker", "campfirePlanFormStatus", "saveCampfirePlan", "campfirePlanDialogTitle", "closeCampfirePlan", "cancelCampfirePlan"];
+    const ids = ["campfirePlansList", "campfirePlansSection", "campfirePlansCount", "campfirePlansSearchToggle", "campfirePlansSearchField", "campfirePlansSearch", "campfirePlansNoResults", "campfirePlansStatus", "newCampfirePlan", "campfirePlanDialog", "campfirePlanForm", "campfirePlanTitle", "campfirePlanDescription", "campfirePlanPicker", "campfirePlanFormStatus", "saveCampfirePlan", "campfirePlanDialogTitle", "closeCampfirePlan", "cancelCampfirePlan"];
     const e = Object.fromEntries(ids.map(id => [id, element()]));
     e.campfirePlansList.querySelectorAll = () => [];
+    e.campfirePlansSearchField.hidden = true;
+    e.campfirePlansSearchToggle.attributes = {};
+    e.campfirePlansSearchToggle.setAttribute = (name, value) => { e.campfirePlansSearchToggle.attributes[name] = value; };
+    e.campfirePlansSearch.focus = () => { e.campfirePlansSearch.focused = true; };
     e.campfirePlanTitle.focus = () => {};
     e.newCampfirePlan.focus = () => {};
     let update;
@@ -259,11 +263,15 @@ test("planned campfires show a total and filter by name without hiding errors", 
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(e.campfirePlansCount.textContent, "2 st.");
     assert.equal(e.campfirePlansStatus.hidden, true);
-    assert.equal(e.campfirePlansSearchField.hidden, false);
+    assert.equal(e.campfirePlansSearchField.hidden, true);
     assert.match(e.campfirePlansList.innerHTML, /class="arrangement-delete-icon"[^>]*data-plan-action="delete"[^>]*aria-label="Ta bort Höstläger"[^>]*><svg[\s\S]*?data-plan-action="edit"[\s\S]*?data-plan-action="copy"/);
     e.campfirePlansSection.open = true;
     e.campfirePlansSection.dispatch("toggle");
     assert.equal(e.campfirePlansStatus.hidden, false);
+    e.campfirePlansSearchToggle.dispatch("click");
+    assert.equal(e.campfirePlansSearchField.hidden, false);
+    assert.equal(e.campfirePlansSearchToggle.attributes["aria-expanded"], "true");
+    assert.equal(e.campfirePlansSearch.focused, true);
     e.campfirePlansSearch.value = " HÖST ";
     e.campfirePlansSearch.dispatch("input");
     assert.match(e.campfirePlansList.innerHTML, /Höstläger/);
@@ -272,7 +280,19 @@ test("planned campfires show a total and filter by name without hiding errors", 
     e.campfirePlansSearch.value = "saknas";
     e.campfirePlansSearch.dispatch("input");
     assert.equal(e.campfirePlansNoResults.hidden, false);
+    e.campfirePlansSearchToggle.dispatch("click");
+    assert.equal(e.campfirePlansSearchField.hidden, true);
+    assert.equal(e.campfirePlansSearchToggle.attributes["aria-expanded"], "false");
+    assert.equal(e.campfirePlansSearch.value, "");
+    assert.equal(e.campfirePlansNoResults.hidden, true);
+    assert.match(e.campfirePlansList.innerHTML, /Vårträff/);
+    e.campfirePlansSearchToggle.dispatch("click");
+    e.campfirePlansSearch.value = "Höst";
+    e.campfirePlansSearch.dispatch("input");
     e.campfirePlansSection.open = false;
+    e.campfirePlansSection.dispatch("toggle");
+    assert.equal(e.campfirePlansSearchField.hidden, true);
+    assert.equal(e.campfirePlansSearch.value, "");
     update(plans, { ...state, error: true });
     assert.equal(e.campfirePlansStatus.hidden, false);
     assert.match(e.campfirePlansStatus.textContent, /Kunde inte synka/);
