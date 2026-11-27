@@ -662,7 +662,7 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
 .agenda-campfire-status { margin: 0; font-weight: 500; }
 .campfire-plan-choice { grid-column: 1 / -1; }
 .campfire-plan-choice small { font-weight: 500; }
-.campfire-plans { margin: 20px 0; padding: 18px; border: 1px solid #d7e1eb; border-radius: 8px; background: #fff; }
+.campfire-plans { box-sizing: border-box; max-width: 680px; margin: 20px 0; padding: 18px; border: 1px solid #d7e1eb; border-radius: 8px; background: #fff; }
 .campfire-plans > details { position: relative; }
 .campfire-plans-summary { min-height: 36px; box-sizing: border-box; padding: 8px 48px 8px 0; color: #153c4a; font-size: 1.05rem; font-weight: 700; cursor: pointer; }
 .campfire-plans-summary span + span { margin-left: 8px; color: #65767b; font-size: .84rem; font-weight: 500; }
