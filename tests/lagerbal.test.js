@@ -219,6 +219,14 @@ test("search and category filters use the shared initially hidden header control
     assert.match(html, /src="js\/header-controls\.js"/);
 });
 
+test("the campfire planning button is in the page hero", () => {
+    const html = fs.readFileSync(path.join(root, "lagerbal.html"), "utf8");
+    const hero = html.match(/<section class="page-hero"[\s\S]*?<\/section>/);
+    assert.ok(hero);
+    assert.match(hero[0], /<button id="newCampfirePlan"[^>]*>\+Skapa Lägerbål<\/button>/);
+    assert.equal((html.match(/id="newCampfirePlan"/g) || []).length, 1);
+});
+
 test("all pages link to Lägerbål in both navigation menus", () => {
     const pages = ["index", "marken", "aktiviteter", "lagerbal", "kokbok", "planering", "arrangemang", "arshjul", "scouter", "admin", "utvecklingstrappa"];
     for (const page of pages) {

@@ -664,7 +664,6 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
 .campfire-plan-choice small { font-weight: 500; }
 .campfire-plans { margin: 20px 0; padding: 18px; border: 1px solid #d7e1eb; border-radius: 8px; background: #fff; }
 .campfire-plans .arrangement-section-heading h2 { margin: 0; color: #153c4a; font-size: 1.05rem; }
-.campfire-plans .arrangement-section-heading button { flex: 0 0 auto; }
 .campfire-plans > p { margin: 0 0 8px; color: #65767b; font-size: .84rem; }
 .campfire-plan { padding: 10px 0; border-top: 1px solid #dbe3e3; }
 .campfire-plan summary { color: #153c4a; cursor: pointer; }
@@ -678,7 +677,6 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
 .campfire-plan-form { display: grid; gap: 12px; }
 .campfire-plan-form h2 { padding-right: 35px; }
 .campfire-plan-form p[role="status"] { margin: 0; color: #8e4634; }
-@media (max-width: 520px) { .campfire-plans .arrangement-section-heading { align-items: flex-start; flex-direction: column; } }
 .agenda-entry-title { grid-column: span 2; }
 .agenda-entry-notes { grid-column: span 2; }
 .agenda-entry-materials { grid-column: 1 / -1; }
