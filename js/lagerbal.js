@@ -51,6 +51,8 @@
         dialog.showModal();
     }
 
+    window.GTScoutSongModal = { open: openSong };
+
     async function copyShareUrl(initial = false) {
         const url = shareUrl.value;
         shareUrl.select();

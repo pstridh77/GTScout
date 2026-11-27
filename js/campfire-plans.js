@@ -80,13 +80,41 @@
         function renderSharedItems(catalog) {
             sharedItems.replaceChildren(...snapshot.items.map(item => {
                 const entry = document.createElement("li");
-                if (!window.GTScoutSongCatalog.isCustomId(item.id) && catalog.some(song => song.id === item.id)) {
-                    const link = document.createElement("a");
-                    link.href = `lagerbal.html?song=${encodeURIComponent(item.id)}`;
-                    link.target = "_blank";
-                    link.rel = "noopener noreferrer";
-                    link.textContent = item.title;
-                    entry.append(link);
+                const song = !window.GTScoutSongCatalog.isCustomId(item.id)
+                    ? catalog.find(candidate => candidate.id === item.id)
+                    : null;
+                if (song) {
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.className = "shared-campfire-song";
+                    button.textContent = item.title;
+                    button.addEventListener("click", () => {
+                        if (window.GTScoutSongModal?.open) {
+                            window.GTScoutSongModal.open(song);
+                            return;
+                        }
+                        const dialog = document.getElementById("songDialog");
+                        document.getElementById("songDetailTitle").textContent = song.titel;
+                        document.getElementById("songDetailCategory").textContent = song.kategori;
+                        const info = document.getElementById("songDetailInfo");
+                        info.textContent = song.info || "";
+                        info.hidden = !song.info;
+                        const lyrics = document.getElementById("songDetailLyrics");
+                        const nodes = [];
+                        let lastIndex = 0;
+                            const songText = String(song.text || "");
+                            for (const match of songText.matchAll(/\*\*([^\r\n]+?)\*\*/g)) {
+                                nodes.push(document.createTextNode(songText.slice(lastIndex, match.index)));
+                            const strong = document.createElement("strong");
+                            strong.textContent = match[1];
+                            nodes.push(strong);
+                            lastIndex = match.index + match[0].length;
+                        }
+                            nodes.push(document.createTextNode(songText.slice(lastIndex)));
+                        lyrics.replaceChildren(...nodes);
+                        dialog?.showModal();
+                    });
+                    entry.append(button);
                 } else {
                     entry.textContent = item.title;
                 }

@@ -283,11 +283,11 @@ test("planned campfires show a total and filter by name without hiding errors", 
     const sharedUrl = e.campfireShareUrl.value;
     assert.match(sharedUrl, /^https:\/\/example\.test\/gt\/lagerbal\.html#campfire=/);
     const sharedLocation = new URL(sharedUrl);
-    const sharedIds = ["sharedCampfireView", "sharedCampfireStatus", "sharedCampfireTitle", "sharedCampfireDescription", "sharedCampfireItems"];
+    const sharedIds = ["sharedCampfireView", "sharedCampfireStatus", "sharedCampfireTitle", "sharedCampfireDescription", "sharedCampfireItems", "songDialog", "songDetailTitle", "songDetailCategory", "songDetailInfo", "songDetailLyrics"];
     const shared = Object.fromEntries(sharedIds.map(id => [id, element()]));
     const sharedContext = vm.createContext({
-        document: { getElementById: id => shared[id], createElement: element, body: { classList: { add() {} } } },
-        window: { location: sharedLocation, addEventListener() {}, GTScoutSongCatalog: { load: async () => [{ id: "song", titel: "Ändrat namn" }], isCustomId: id => id.startsWith("custom:") } },
+        document: { getElementById: id => shared[id], createElement: element, createTextNode: text => ({ textContent: text }), body: { classList: { add() {} } } },
+        window: { location: sharedLocation, addEventListener() {}, GTScoutSongCatalog: { load: async () => [{ id: "song", titel: "Ändrat namn", kategori: "Sång", info: "Vid lägerelden", text: "Första\n**Refräng**" }], isCustomId: id => id.startsWith("custom:") } },
         URLSearchParams, TextDecoder, atob, console
     });
     vm.runInContext(plansSource, sharedContext);
@@ -295,8 +295,16 @@ test("planned campfires show a total and filter by name without hiding errors", 
     assert.equal(shared.sharedCampfireTitle.textContent, "Höstläger");
     assert.equal(shared.sharedCampfireDescription.textContent, "Vid sjön");
     assert.equal(shared.sharedCampfireItems.children[0].children[0].textContent, "Sångens namn");
+    assert.equal(shared.sharedCampfireItems.children[0].children[0].tagName, "button");
+    assert.equal(shared.sharedCampfireItems.children[0].children[0].className, "shared-campfire-song");
     assert.equal(shared.sharedCampfireItems.children[1].textContent, "Egen <titel>");
     assert.equal(shared.sharedCampfireStatus.textContent, "");
+    shared.sharedCampfireItems.children[0].children[0].dispatch("click");
+    assert.equal(shared.songDialog.open, true);
+    assert.equal(shared.songDetailTitle.textContent, "Ändrat namn");
+    assert.equal(shared.songDetailCategory.textContent, "Sång");
+    assert.equal(shared.songDetailInfo.textContent, "Vid lägerelden");
+    assert.equal(shared.songDetailLyrics.textContent, "Första\nRefräng");
     clipboardFails = true;
     await e.copyCampfireShareBtn.listeners.click();
     assert.match(e.campfireShareStatus.textContent, /kopiera manuellt/);
