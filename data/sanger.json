@@ -52,15 +52,15 @@
         "id": "nar-lagerelden-brunnit-ut",
         "titel": "När lägerelden brunnit ut",
         "kategori": "Sång",
-        "info": "skriv...",
-        "text": "..."
+        "info": "(mel. Should auld acquaintance be forgot)",
+        "text": "När lägerelden brunnit ner\noch dagen nått sitt slut\nmen allt det vackra som vi känt\nkan aldrig plånas ut\n\nVi tacka för den tid som gått\noch blickar mot en ny\ndå våra löften segra skall\noch större tider gry.\n\n(Nynnas samtidigt som man sakta lämnar lägerbålet eller tyst sitter kvar)"
     },
     {
-        "id": "kombaya",
-        "titel": "Kombaya",
+        "id": "kum-ba-ya",
+        "titel": "Kum ba ya",
         "kategori": "Sång",
-        "info": "skriv...",
-        "text": "..."
+        "info": "",
+        "text": "Kum ba yah my Lord,\nkum ba yah\nkum ba yah my Lord,\nkum ba yah\nKum ba Yah my Lord,\nkum ba yah\nOh Lord, kum ba yah\n\nSomeone's crying Lord, kum ba yah ...\nSomeone's praying Lord, kum ba yah\n...\nSomeone's singing Lord, kum ba yah ..."
     },
     {
         "id": "in-i-skogen",
@@ -144,14 +144,14 @@
         "titel": "Wista",
         "kategori": "Sång",
         "info": "",
-        "text": "Fli\nFli Fly\nFli Fly Flou\nWista\nDe commala de commala de commala wista\nOh nono no no de wista\nInneminne desiminne ohoh ohoh abbeminne\nItchbibliotendoten bobbo obbo annaboten"
+        "text": "Fli\nFli Fly\nFli Fly Flou\nWista\nDe commala de commala de commala wista\nOh nono no no de wista\nInneminne desiminne ohoh ohoh abbeminne\nItchbibliotendoten bobbo obbo annaboten "
     },
     {
-        "id": "ny-sang",
-        "titel": "Ny sång",
+        "id": "trampa-pa-gasen",
+        "titel": "Trampa på gasen",
         "kategori": "Sång",
         "info": "",
-        "text": "..."
+        "text": "Trampa på gasen och lätta ankar\nsätt inunder pannan fyr (fem, sex)\nMed svällande segel och fyllda tankar\ndrar vi ut, drar vi ut\ndrar vi ut på äventyr\nÄr ni med? Vi är med!\nJa visst sjutton är vi det!\nViket tjat, bara gnat\njag ska doppa dig i spa’t\nNej vad falls! Inget alls!\nJag har bara skrovlig hals\nnageltrång och sånt där\nundra på att man är tvär (kär)"
     }
 
 

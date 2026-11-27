@@ -64,6 +64,8 @@ I den öppnade sången finns en delningsknapp som kopierar en länk direkt till 
 
 Med **+Skapa Lägerbål** kan du skapa en namngiven lista med valfri beskrivning och ordnade sånger, rop och lekar utan ett arrangemang. Listorna kan öppnas, redigeras, kopieras och tas bort. Gästens listor sparas i webbläsaren; inloggade i kåren kan läsa kårens listor och ledare och administratörer kan redigera dem. Vid inloggning får ledare välja vad som ska hända med listor som skapats lokalt. Listor som behålls lokalt syns bara i den webbläsaren tills de delas. Misslyckad synkning visas och ändringen behålls lokalt.
 
+I en öppnad sång, ett rop eller en lek öppnar knappen till vänster om delningsknappen en dialog där du kan välja ett befintligt lägerbål och lägga till posten. Samma behörigheter och lokala sparande gäller som vid redigering av listan.
+
 Varje lägerbål kan delas som en skrivskyddad ögonblicksbild, även utan inloggning. Namn, beskrivning och ordnade titlar finns i länken och kan läsas av alla som har den; senare ändringar påverkar inte länken och den kan inte återkallas. Mottagaren kan öppna sånger som finns i biblioteket. Om länken skulle bli längre än 8 000 tecken behöver beskrivningen eller listan kortas.
 
 Med **Egen titel** kan du även lägga till titlar som inte finns i biblioteket. De kan redigeras med pennknappen, flyttas och tas bort i listan och följer med vid kopiering till ett arrangemang, men länkar inte till biblioteket. Egna titlar fungerar även när biblioteket inte kan hämtas. Äldre appversioner kan visa dem som saknade biblioteksposter; ladda om appen på alla enheter.

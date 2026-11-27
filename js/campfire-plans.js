@@ -19,6 +19,11 @@
     const shareDialog = document.getElementById("campfireShareDialog");
     const shareUrl = document.getElementById("campfireShareUrl");
     const shareStatus = document.getElementById("campfireShareStatus");
+    const songPlanDialog = document.getElementById("songPlanDialog");
+    const openSongPlanDialog = document.getElementById("openSongPlanDialog");
+    const songPlanSelect = document.getElementById("songPlanSelect");
+    const songPlanAdd = document.getElementById("songPlanAdd");
+    const songPlanStatus = document.getElementById("songPlanStatus");
     const snapshotParam = new URLSearchParams(window.location.hash.slice(1));
     const maxShareUrlLength = 8000;
     window.addEventListener("hashchange", () => {
@@ -36,6 +41,8 @@
     let trigger = null;
     let busy = false;
     let editorContext = null;
+    let selectedSong = null;
+    let songSelectionVersion = 0;
 
     function escapeHtml(value) {
         return String(value ?? "").replace(/[&<>"']/g, character => ({
@@ -170,6 +177,36 @@
         getSongs: () => songs, getCatalogState: () => catalogState, escapeHtml
     });
 
+    function renderSongPlans() {
+        if (!selectedSong) return;
+        const selectedId = songPlanSelect.value;
+        songPlanSelect.innerHTML = `<option value="">Välj lägerbål</option>${plans.map(plan =>
+            `<option value="${escapeHtml(plan.id)}">${escapeHtml(plan.title)}${plan.local_only ? " · Lokal" : ""}</option>`
+        ).join("")}`;
+        songPlanSelect.value = plans.some(plan => plan.id === selectedId) ? selectedId : "";
+        const editable = window.GTScoutCampfirePlans.canEdit() && !syncState.loading && !busy;
+        songPlanSelect.disabled = !editable || !plans.length;
+        songPlanAdd.disabled = !editable || !songPlanSelect.value;
+        const unavailable = syncState.loading ? "Hämtar planerade lägerbål..."
+            : syncState.storageError ? "Kunde inte läsa lokalt sparade lägerbål."
+                : !window.GTScoutCampfirePlans.canEdit() ? "Endast ledare kan redigera kårens lägerbål."
+                    : !plans.length ? "Skapa ett lägerbål först." : "";
+        if (unavailable) songPlanStatus.textContent = unavailable;
+        else if (songPlanStatus.dataset.unavailable === "true") songPlanStatus.textContent = "";
+        songPlanStatus.dataset.unavailable = String(Boolean(unavailable));
+    }
+
+    window.GTScoutSongPlanSelection = {
+        setSong(song) {
+            selectedSong = song;
+            songSelectionVersion++;
+            openSongPlanDialog.hidden = false;
+            songPlanSelect.value = "";
+            songPlanStatus.textContent = "";
+            renderSongPlans();
+        }
+    };
+
     function renderPlans() {
         const editable = window.GTScoutCampfirePlans.canEdit() && !syncState.loading;
         newButton.disabled = !editable || busy;
@@ -210,6 +247,7 @@
                 else expanded.delete(details.dataset.planId);
             });
         });
+        renderSongPlans();
     }
 
     function openEditor(plan, copy, button) {
@@ -257,6 +295,62 @@
     });
     searchToggle.addEventListener("click", () => setSearchVisible(searchField.hidden));
     search.addEventListener("input", renderPlans);
+    openSongPlanDialog.addEventListener("click", () => {
+        songPlanSelect.value = "";
+        songPlanStatus.textContent = "";
+        renderSongPlans();
+        songPlanDialog.showModal();
+    });
+    document.getElementById("closeSongPlanDialog").addEventListener("click", () => songPlanDialog.close());
+    document.getElementById("cancelSongPlanDialog").addEventListener("click", () => songPlanDialog.close());
+    songPlanDialog.addEventListener("click", event => {
+        if (event.target === songPlanDialog) songPlanDialog.close();
+    });
+    songPlanDialog.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
+            event.preventDefault();
+            songPlanDialog.close();
+        }
+    });
+    songPlanDialog.addEventListener("close", () => { songSelectionVersion++; });
+    songPlanSelect.addEventListener("change", () => {
+        songPlanStatus.textContent = "";
+        renderSongPlans();
+    });
+    songPlanAdd.addEventListener("click", async () => {
+        if (busy || syncState.loading || !window.GTScoutCampfirePlans.canEdit() || !selectedSong) return;
+        const plan = plans.find(item => item.id === songPlanSelect.value);
+        if (!plan) {
+            songPlanStatus.textContent = "Välj ett lägerbål.";
+            return;
+        }
+        if (plan.items.some(item => item.id === selectedSong.id)) {
+            songPlanStatus.textContent = "Posten finns redan i lägerbålet.";
+            return;
+        }
+        const selectionVersion = songSelectionVersion;
+        const contextVersion = syncState.contextVersion;
+        busy = true;
+        songPlanStatus.textContent = "Sparar...";
+        renderPlans();
+        try {
+            const result = await window.GTScoutCampfirePlans.save({
+                ...plan, items: [...plan.items, { id: selectedSong.id, title: selectedSong.titel }]
+            });
+            if (selectionVersion === songSelectionVersion && contextVersion === syncState.contextVersion) {
+                if (result.error) songPlanStatus.textContent = "Posten sparades lokalt men kunde inte synkas.";
+                else songPlanDialog.close();
+            }
+        } catch (error) {
+            console.error("Kunde inte lägga till i lägerbålet", error);
+            if (selectionVersion === songSelectionVersion && contextVersion === syncState.contextVersion) {
+                songPlanStatus.textContent = error.message || "Kunde inte lägga till i lägerbålet.";
+            }
+        } finally {
+            busy = false;
+            renderPlans();
+        }
+    });
     newButton.addEventListener("click", () => openEditor(null, false, newButton));
     document.getElementById("closeCampfirePlan").addEventListener("click", closeEditor);
     document.getElementById("cancelCampfirePlan").addEventListener("click", closeEditor);
@@ -346,6 +440,11 @@
     });
 
     window.GTScoutCampfirePlans.init({ onChange(nextPlans, state) {
+        if (syncState.contextVersion !== state.contextVersion && selectedSong) {
+            songSelectionVersion++;
+            songPlanSelect.value = "";
+            songPlanStatus.textContent = "Inloggningen har ändrats. Välj ett lägerbål igen.";
+        }
         if (shareDialog.open && syncState.contextVersion !== state.contextVersion) {
             shareDialog.close();
             shareUrl.value = "";

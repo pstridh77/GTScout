@@ -107,10 +107,18 @@
     <dialog id="songDialog" class="modal-content modal-content--wide song-dialog" aria-labelledby="songDetailTitle">
         <button id="closeSongDialog" class="close-popup" type="button" aria-label="Stäng">&times;</button>
         <button id="shareSongBtn" class="btn-secondary recipe-share-icon-btn song-share-icon-btn" type="button" aria-label="Dela sång" title="Dela sång"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M18,16.08C17.24,16.08 16.54,16.38 16,16.85L8.91,12.74C8.96,12.5 9,12.25 9,12C9,11.75 8.96,11.5 8.91,11.26L15.92,7.17C16.47,7.66 17.2,7.97 18,7.97C19.66,7.97 21,6.63 21,4.97C21,3.31 19.66,1.97 18,1.97C16.34,1.97 15,1.97 15,4.97C15,5.22 15.04,5.47 15.09,5.71L8.08,9.8C7.53,9.31 6.8,9 6,9C4.34,9 3,10.34 3,12C3,13.66 4.34,15 6,15C6.8,15 7.53,14.69 8.08,14.2L15.17,18.31C15.12,18.54 15,18.77 15,19C15,20.66 16.34,22 18,22C19.66,22 21,20.66 21,19C21,17.34 19.66,16.08 18,16.08Z" /></svg></button>
+        <button id="openSongPlanDialog" class="btn-secondary recipe-share-icon-btn song-plan-icon-btn" type="button" aria-label="Lägg till i lägerbålsplanering" title="Lägg till i lägerbålsplanering" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5h12v2H3zm0 4h12v2H3zm0 4h8v2H3zm14-1h2v3h3v2h-3v3h-2v-3h-3v-2h3z"/></svg></button>
         <span id="songDetailCategory" class="recipe-category"></span>
         <h2 id="songDetailTitle"></h2>
         <p id="songDetailInfo" class="recipe-description"></p>
         <p id="songDetailLyrics" class="song-lyrics"></p>
+    </dialog>
+    <dialog id="songPlanDialog" class="modal-content song-share-dialog" aria-labelledby="songPlanDialogTitle">
+        <button id="closeSongPlanDialog" class="close-popup" type="button" aria-label="Stäng">&times;</button>
+        <h2 id="songPlanDialogTitle">Lägg till i lägerbålsplanering</h2>
+        <label class="modal-field"><span>Lägerbål</span><select id="songPlanSelect" aria-describedby="songPlanStatus"></select></label>
+        <p id="songPlanStatus" class="detail-planning-status" role="status" aria-live="polite"></p>
+        <div class="modal-actions"><button id="songPlanAdd" class="btn-primary" type="button">Lägg till</button><button id="cancelSongPlanDialog" class="btn-secondary" type="button">Stäng</button></div>
     </dialog>
     <dialog id="songShareDialog" class="modal-content song-share-dialog" aria-labelledby="songShareTitle">
         <button id="closeSongShareDialog" class="close-popup" type="button" aria-label="Stäng">&times;</button>
@@ -128,8 +136,8 @@
     <script src="js/songs-catalog.js"></script>
     <script src="js/campfire-picker.js"></script>
     <script src="js/campfire-plans-sync.js"></script>
-    <script src="js/campfire-plans.js?v=campfire-5"></script>
-    <script src="js/lagerbal.js?v=campfire-2"></script>
+    <script src="js/campfire-plans.js?v=campfire-8"></script>
+    <script src="js/lagerbal.js?v=campfire-3"></script>
     <script src="js/header-controls.js"></script>
 </body>
 </html>

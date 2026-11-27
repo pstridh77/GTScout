@@ -48,6 +48,7 @@
         info.textContent = song.info || "";
         info.hidden = !song.info;
         renderLyrics(song.text);
+        window.GTScoutSongPlanSelection?.setSong(song);
         dialog.showModal();
     }
 

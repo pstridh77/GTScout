@@ -70,9 +70,11 @@ body {
 .modal-content.song-dialog { position: fixed; inset: 0; margin: auto; box-sizing: border-box; width: max-content; max-width: 90vw; max-height: calc(100dvh - 48px); overflow-y: auto; gap: 0; color: inherit; }
 .song-dialog:not([open]), .song-share-dialog:not([open]) { display: none; }
 .song-dialog::backdrop, .song-share-dialog::backdrop { background: rgba(0, 0, 0, .6); }
-.song-dialog .recipe-category { padding-right: 72px; }
+.song-dialog .recipe-category { padding-right: 112px; }
 .song-dialog h2 { overflow-wrap: anywhere; }
 .song-dialog .song-share-icon-btn { right: 48px; padding: 0; }
+.song-dialog .song-plan-icon-btn { right: 88px; padding: 0; }
+.song-dialog .song-plan-icon-btn[hidden] { display: none; }
 .song-share-dialog { box-sizing: border-box; max-height: calc(100dvh - 48px); overflow-y: auto; border: 0; }
 .song-lyrics { margin: 16px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
 .activity-form { display: grid; gap: 12px; }

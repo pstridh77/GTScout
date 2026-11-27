@@ -11,14 +11,14 @@ const plansSource = fs.readFileSync(path.join(root, "js", "campfire-plans.js"), 
 
 function element(tagName = "") {
     return {
-        tagName, children: [], listeners: {}, textContent: "", value: "", hidden: false,
+        tagName, children: [], listeners: {}, dataset: {}, textContent: "", value: "", hidden: false,
         classList: { classes: new Set(), toggle(name, force) { if (force) this.classes.add(name); else this.classes.delete(name); }, contains(name) { return this.classes.has(name); } },
         append(...children) { this.children.push(...children); },
         replaceChildren(...children) { this.children = children; this.textContent = children.map(child => child.textContent).join(""); },
         addEventListener(type, callback) { this.listeners[type] = callback; },
         dispatch(type, event = {}) { this.listeners[type]?.(event); },
         showModal() { this.open = true; },
-        close() { this.open = false; },
+        close() { this.open = false; this.dispatch("close"); },
         select() { this.selected = true; }
     };
 }
@@ -30,7 +30,7 @@ async function loadPage(response, options = {}) {
     const context = vm.createContext({
         document: { getElementById: id => elements[id], createElement: element, createTextNode: text => ({ textContent: text }) },
         fetch: async () => response,
-        window: { location: { href: options.url || "https://example.test/gt/lagerbal.html" } },
+        window: { location: { href: options.url || "https://example.test/gt/lagerbal.html" }, GTScoutSongPlanSelection: options.planSelection },
         navigator: { clipboard: { writeText: options.writeText || (async () => {}) } },
         URL,
         console: { error: (...args) => errors.push(args) }
@@ -75,6 +75,17 @@ test("songs are sorted, searchable by text, and open safely with their line brea
     e.songSearch.value = "";
     e.songSearch.dispatch("input");
     assert.equal(e.songStatus.hidden, true);
+});
+
+test("opening a song passes it to the campfire plan selector", async () => {
+    let selected;
+    const { elements: e } = await loadPage(
+        { ok: true, json: async () => [{ id: "rop", titel: "Ett rop", kategori: "Rop", text: "Hej" }] },
+        { planSelection: { setSong: song => { selected = song; } } }
+    );
+    cards(e)[0].dispatch("click");
+    assert.equal(selected.id, "rop");
+    assert.equal(selected.titel, "Ett rop");
 });
 
 test("categories are grouped and filtered together with search and shown in details", async () => {
@@ -229,8 +240,17 @@ test("the campfire planning button is in the page hero", () => {
     assert.equal((html.match(/id="newCampfirePlan"/g) || []).length, 1);
 });
 
+test("the song planning button opens a separate dialog", () => {
+    const html = fs.readFileSync(path.join(root, "lagerbal.html"), "utf8");
+    const songDialog = html.match(/<dialog id="songDialog"[\s\S]*?<\/dialog>/)[0];
+    assert.match(songDialog, /id="openSongPlanDialog"[^>]*aria-label="Lägg till i lägerbålsplanering"[^>]*hidden/);
+    assert.match(songDialog, /id="shareSongBtn"/);
+    assert.doesNotMatch(songDialog, /id="songPlanSelect"/);
+    assert.match(html, /<dialog id="songPlanDialog"[\s\S]*?id="songPlanSelect"[\s\S]*?<\/dialog>/);
+});
+
 test("planned campfires show a total and filter by name without hiding errors", async () => {
-    const ids = ["campfirePlansList", "campfirePlansSection", "campfirePlansCount", "campfirePlansSearchToggle", "campfirePlansSearchField", "campfirePlansSearch", "campfirePlansNoResults", "campfirePlansStatus", "newCampfirePlan", "campfirePlanDialog", "campfirePlanForm", "campfirePlanTitle", "campfirePlanDescription", "campfirePlanPicker", "campfirePlanFormStatus", "saveCampfirePlan", "campfirePlanDialogTitle", "campfireLocalNotice", "closeCampfirePlan", "cancelCampfirePlan", "campfireShareDialog", "campfireShareUrl", "campfireShareStatus", "closeCampfireShareDialog", "cancelCampfireShareDialog", "copyCampfireShareBtn"];
+    const ids = ["campfirePlansList", "campfirePlansSection", "campfirePlansCount", "campfirePlansSearchToggle", "campfirePlansSearchField", "campfirePlansSearch", "campfirePlansNoResults", "campfirePlansStatus", "newCampfirePlan", "campfirePlanDialog", "campfirePlanForm", "campfirePlanTitle", "campfirePlanDescription", "campfirePlanPicker", "campfirePlanFormStatus", "saveCampfirePlan", "campfirePlanDialogTitle", "campfireLocalNotice", "closeCampfirePlan", "cancelCampfirePlan", "campfireShareDialog", "campfireShareUrl", "campfireShareStatus", "closeCampfireShareDialog", "cancelCampfireShareDialog", "copyCampfireShareBtn", "openSongPlanDialog", "songPlanDialog", "closeSongPlanDialog", "cancelSongPlanDialog", "songPlanSelect", "songPlanAdd", "songPlanStatus"];
     const e = Object.fromEntries(ids.map(id => [id, element()]));
     e.campfirePlansList.querySelectorAll = () => [];
     e.campfirePlansSearchField.hidden = true;
@@ -280,8 +300,90 @@ test("planned campfires show a total and filter by name without hiding errors", 
     assert.doesNotMatch(e.campfirePlansList.innerHTML, /lagerbal\.html\?song=/);
     await e.campfirePlansList.listeners.click({ target: { closest: selector => selector === "[data-plan-song]" ? { dataset: { planSong: "song" } } : null } });
     assert.equal(openedSong?.titel, "Sångens namn");
+    const oldSave = sync.save;
+    let saved;
+    sync.save = async plan => {
+        saved = plan;
+        plans[1] = plan;
+        update(plans, state);
+        return { localOnly: true };
+    };
+    context.window.GTScoutSongPlanSelection.setSong({ id: "rop", titel: "Ett rop" });
+    assert.equal(e.openSongPlanDialog.hidden, false);
+    assert.equal(e.songPlanDialog.open, undefined);
+    e.openSongPlanDialog.dispatch("click");
+    assert.equal(e.songPlanDialog.open, true);
+    e.closeSongPlanDialog.dispatch("click");
+    assert.equal(e.songPlanDialog.open, false);
+    e.openSongPlanDialog.dispatch("click");
+    e.cancelSongPlanDialog.dispatch("click");
+    assert.equal(e.songPlanDialog.open, false);
+    e.openSongPlanDialog.dispatch("click");
+    e.songPlanDialog.dispatch("click", { target: e.songPlanDialog });
+    assert.equal(e.songPlanDialog.open, false);
+    e.openSongPlanDialog.dispatch("click");
+    let prevented = false;
+    e.songPlanDialog.dispatch("keydown", { key: "Escape", preventDefault: () => { prevented = true; } });
+    assert.equal(prevented, true);
+    assert.equal(e.songPlanDialog.open, false);
+    e.openSongPlanDialog.dispatch("click");
+    assert.match(e.songPlanSelect.innerHTML, /Vårträff/);
+    assert.equal(e.songPlanAdd.disabled, true);
+    e.songPlanSelect.value = "2";
+    e.songPlanSelect.dispatch("change");
+    assert.equal(e.songPlanAdd.disabled, false);
+    await e.songPlanAdd.listeners.click();
+    assert.equal(saved.id, "2");
+    assert.equal(saved.items[0].id, "rop");
+    assert.equal(saved.items[0].title, "Ett rop");
+    assert.equal(e.songPlanDialog.open, false);
+    saved = null;
+    e.openSongPlanDialog.dispatch("click");
+    e.songPlanSelect.value = "2";
+    e.songPlanSelect.dispatch("change");
+    await e.songPlanAdd.listeners.click();
+    assert.equal(saved, null);
+    assert.match(e.songPlanStatus.textContent, /finns redan/);
+    assert.equal(e.songPlanDialog.open, true);
+    context.window.GTScoutSongPlanSelection.setSong({ id: "lek", titel: "En lek" });
+    e.songPlanSelect.value = "2";
+    e.songPlanSelect.dispatch("change");
+    sync.save = async () => ({ localOnly: true, error: new Error("offline") });
+    await e.songPlanAdd.listeners.click();
+    assert.match(e.songPlanStatus.textContent, /sparades lokalt men kunde inte synkas/);
+    assert.equal(e.songPlanDialog.open, true);
+    sync.save = async () => { throw new Error("Lagring misslyckades"); };
+    await e.songPlanAdd.listeners.click();
+    assert.match(e.songPlanStatus.textContent, /Lagring misslyckades/);
+    assert.equal(e.songPlanDialog.open, true);
+    let finishSave;
+    sync.save = () => new Promise(resolve => { finishSave = resolve; });
+    const pending = e.songPlanAdd.listeners.click();
+    assert.equal(e.songPlanAdd.disabled, true);
+    assert.equal(e.songPlanDialog.open, true);
+    update(plans, { ...state, contextVersion: 2 });
+    assert.equal(e.songPlanSelect.value, "");
+    finishSave({ localOnly: false });
+    await pending;
+    assert.equal(e.songPlanDialog.open, true);
+    assert.match(e.songPlanStatus.textContent, /Inloggningen har ändrats/);
+    update([], state);
+    assert.equal(e.songPlanSelect.disabled, true);
+    assert.match(e.songPlanStatus.textContent, /Skapa ett lägerbål först/);
+    update(plans, state);
+    assert.equal(e.songPlanStatus.textContent, "");
+    e.songPlanSelect.value = "2";
+    e.songPlanSelect.dispatch("change");
+    sync.save = async () => ({ localOnly: false });
+    await e.songPlanAdd.listeners.click();
+    assert.equal(e.songPlanDialog.open, false);
+    errors.length = 0;
+    sync.save = oldSave;
+    plans[1] = { id: "2", title: "Vårträff", description: "", items: [] };
     sync.canEdit = () => false;
     update(plans, state);
+    assert.equal(e.songPlanAdd.disabled, true);
+    assert.match(e.songPlanStatus.textContent, /Endast ledare/);
     assert.match(e.campfirePlansList.innerHTML, /data-plan-action="share"[^>]*aria-label="Dela Höstläger"/);
     assert.doesNotMatch(e.campfirePlansList.innerHTML, /data-plan-action="delete"/);
     const shareButton = { dataset: { planAction: "share" }, closest: () => ({ dataset: { planId: "1" } }) };
