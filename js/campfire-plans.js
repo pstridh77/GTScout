@@ -15,6 +15,7 @@
     const pickerContainer = document.getElementById("campfirePlanPicker");
     const formStatus = document.getElementById("campfirePlanFormStatus");
     const saveButton = document.getElementById("saveCampfirePlan");
+    const localNotice = document.getElementById("campfireLocalNotice");
     const shareDialog = document.getElementById("campfireShareDialog");
     const shareUrl = document.getElementById("campfireShareUrl");
     const shareStatus = document.getElementById("campfireShareStatus");
@@ -176,12 +177,15 @@
         const query = search.value.trim().toLocaleLowerCase("sv");
         const visiblePlans = plans.filter(plan => plan.title.toLocaleLowerCase("sv").includes(query));
         noResults.hidden = !query || visiblePlans.length > 0 || plans.length === 0;
-        status.textContent = syncState.loading ? "Hämtar planerade lägerbål..."
+        const statusText = syncState.loading ? "Hämtar planerade lägerbål..."
             : syncState.storageError ? "Kunde inte läsa lokalt sparade lägerbål. Uppgifterna har inte ändrats."
             : syncState.error ? "Kunde inte synka planerade lägerbål. Lokala uppgifter visas om de finns."
                 : actionMessage || (!plans.length ? "Inga planerade lägerbål ännu."
                     : !window.GTScoutAuth?.isSignedIn?.() ? "Sparas bara i den här webbläsaren."
                         : !window.GTScoutCampfirePlans.canEdit() ? "Endast ledare kan redigera kårens lägerbål." : "");
+        status.textContent = statusText;
+        status.classList?.toggle("detail-note-warning", /lokalt|lokala|webbläsaren/i.test(statusText));
+        status.classList?.toggle("planning-sync-status--error", Boolean(syncState.error || syncState.storageError));
         status.hidden = !section.open && !syncState.error && !syncState.storageError;
         list.innerHTML = visiblePlans.map(plan => {
             const entries = plan.items.map(item => {
@@ -216,6 +220,11 @@
         title.value = copy ? `Kopia av ${plan.title}` : plan?.title || "";
         description.value = plan?.description || "";
         document.getElementById("campfirePlanDialogTitle").textContent = copy ? "Kopiera lägerbål" : plan ? "Redigera lägerbål" : "Planera lägerbål";
+        const isLocal = Boolean(plan?.local_only) || !window.GTScoutAuth?.isSignedIn?.();
+        localNotice.textContent = plan?.local_only
+            ? "Lägerbålet sparas bara i den här webbläsaren – inte i kårens databas."
+            : "Du är inte inloggad – lägerbålet sparas bara i den här webbläsaren.";
+        localNotice.classList.toggle("hidden", !isLocal);
         formStatus.textContent = "";
         pickerContainer.innerHTML = picker.render({ campfire_items: plan?.items || [] });
         dialog.showModal();

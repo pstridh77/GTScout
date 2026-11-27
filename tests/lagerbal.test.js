@@ -12,6 +12,7 @@ const plansSource = fs.readFileSync(path.join(root, "js", "campfire-plans.js"), 
 function element(tagName = "") {
     return {
         tagName, children: [], listeners: {}, textContent: "", value: "", hidden: false,
+        classList: { classes: new Set(), toggle(name, force) { if (force) this.classes.add(name); else this.classes.delete(name); }, contains(name) { return this.classes.has(name); } },
         append(...children) { this.children.push(...children); },
         replaceChildren(...children) { this.children = children; this.textContent = children.map(child => child.textContent).join(""); },
         addEventListener(type, callback) { this.listeners[type] = callback; },
@@ -229,7 +230,7 @@ test("the campfire planning button is in the page hero", () => {
 });
 
 test("planned campfires show a total and filter by name without hiding errors", async () => {
-    const ids = ["campfirePlansList", "campfirePlansSection", "campfirePlansCount", "campfirePlansSearchToggle", "campfirePlansSearchField", "campfirePlansSearch", "campfirePlansNoResults", "campfirePlansStatus", "newCampfirePlan", "campfirePlanDialog", "campfirePlanForm", "campfirePlanTitle", "campfirePlanDescription", "campfirePlanPicker", "campfirePlanFormStatus", "saveCampfirePlan", "campfirePlanDialogTitle", "closeCampfirePlan", "cancelCampfirePlan", "campfireShareDialog", "campfireShareUrl", "campfireShareStatus", "closeCampfireShareDialog", "cancelCampfireShareDialog", "copyCampfireShareBtn"];
+    const ids = ["campfirePlansList", "campfirePlansSection", "campfirePlansCount", "campfirePlansSearchToggle", "campfirePlansSearchField", "campfirePlansSearch", "campfirePlansNoResults", "campfirePlansStatus", "newCampfirePlan", "campfirePlanDialog", "campfirePlanForm", "campfirePlanTitle", "campfirePlanDescription", "campfirePlanPicker", "campfirePlanFormStatus", "saveCampfirePlan", "campfirePlanDialogTitle", "campfireLocalNotice", "closeCampfirePlan", "cancelCampfirePlan", "campfireShareDialog", "campfireShareUrl", "campfireShareStatus", "closeCampfireShareDialog", "cancelCampfireShareDialog", "copyCampfireShareBtn"];
     const e = Object.fromEntries(ids.map(id => [id, element()]));
     e.campfirePlansList.querySelectorAll = () => [];
     e.campfirePlansSearchField.hidden = true;
@@ -269,6 +270,8 @@ test("planned campfires show a total and filter by name without hiding errors", 
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(e.campfirePlansCount.textContent, "2 st.");
     assert.equal(e.campfirePlansStatus.hidden, true);
+    assert.equal(e.campfirePlansStatus.classList.contains("detail-note-warning"), true);
+    assert.match(e.campfirePlansStatus.textContent, /Sparas bara i den här webbläsaren/);
     assert.equal(e.campfirePlansSearchField.hidden, true);
     assert.match(e.campfirePlansList.innerHTML, /class="arrangement-delete-icon"[^>]*data-plan-action="delete"[^>]*aria-label="Ta bort Höstläger"[^>]*><svg[\s\S]*?data-plan-action="edit"[\s\S]*?data-plan-action="copy"/);
     sync.canEdit = () => false;
@@ -374,6 +377,8 @@ test("planned campfires show a total and filter by name without hiding errors", 
 
     update(plans, state);
     e.newCampfirePlan.dispatch("click");
+    assert.equal(e.campfireLocalNotice.classList.contains("hidden"), false);
+    assert.match(e.campfireLocalNotice.textContent, /sparas bara i den här webbläsaren/);
     e.campfirePlanTitle.value = "Nytt lägerbål";
     await e.campfirePlanForm.listeners.submit({ preventDefault() {} });
     assert.equal(e.campfirePlansSection.open, true);
