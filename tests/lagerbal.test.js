@@ -7,6 +7,7 @@ const vm = require("node:vm");
 const root = path.join(__dirname, "..");
 const source = fs.readFileSync(path.join(root, "js", "lagerbal.js"), "utf8");
 const catalogSource = fs.readFileSync(path.join(root, "js", "songs-catalog.js"), "utf8");
+const plansSource = fs.readFileSync(path.join(root, "js", "campfire-plans.js"), "utf8");
 
 function element(tagName = "") {
     return {
@@ -225,6 +226,65 @@ test("the campfire planning button is in the page hero", () => {
     assert.ok(hero);
     assert.match(hero[0], /<button id="newCampfirePlan"[^>]*>\+Skapa Lägerbål<\/button>/);
     assert.equal((html.match(/id="newCampfirePlan"/g) || []).length, 1);
+});
+
+test("planned campfires show a total and filter by name without hiding errors", async () => {
+    const ids = ["campfirePlansList", "campfirePlansSection", "campfirePlansCount", "campfirePlansSearchField", "campfirePlansSearch", "campfirePlansNoResults", "campfirePlansStatus", "newCampfirePlan", "campfirePlanDialog", "campfirePlanForm", "campfirePlanTitle", "campfirePlanDescription", "campfirePlanPicker", "campfirePlanFormStatus", "saveCampfirePlan", "campfirePlanDialogTitle", "closeCampfirePlan", "cancelCampfirePlan"];
+    const e = Object.fromEntries(ids.map(id => [id, element()]));
+    e.campfirePlansList.querySelectorAll = () => [];
+    e.campfirePlanTitle.focus = () => {};
+    e.newCampfirePlan.focus = () => {};
+    let update;
+    const plans = [
+        { id: "1", title: "Höstläger", items: [] },
+        { id: "2", title: "Vårträff", items: [] }
+    ];
+    const state = { loading: false, error: false, contextVersion: 1 };
+    const sync = {
+        canEdit: () => true,
+        init: ({ onChange }) => { update = onChange; update(plans, state); },
+        save: async plan => { update([...plans, plan], state); return { localOnly: true }; }
+    };
+    const context = vm.createContext({
+        document: { getElementById: id => e[id] },
+        window: {
+            GTScoutCampfirePlans: sync,
+            GTScoutCampfirePicker: { create: () => ({ render: () => "", read: () => [] }) },
+            GTScoutSongCatalog: { load: async () => [], isCustomId: () => false }
+        },
+        crypto: { randomUUID: () => "3" },
+        console
+    });
+    vm.runInContext(plansSource, context);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(e.campfirePlansCount.textContent, "2 st.");
+    assert.equal(e.campfirePlansStatus.hidden, true);
+    assert.equal(e.campfirePlansSearchField.hidden, false);
+    assert.match(e.campfirePlansList.innerHTML, /class="arrangement-delete-icon"[^>]*data-plan-action="delete"[^>]*aria-label="Ta bort Höstläger"[^>]*><svg[\s\S]*?data-plan-action="edit"[\s\S]*?data-plan-action="copy"/);
+    e.campfirePlansSection.open = true;
+    e.campfirePlansSection.dispatch("toggle");
+    assert.equal(e.campfirePlansStatus.hidden, false);
+    e.campfirePlansSearch.value = " HÖST ";
+    e.campfirePlansSearch.dispatch("input");
+    assert.match(e.campfirePlansList.innerHTML, /Höstläger/);
+    assert.doesNotMatch(e.campfirePlansList.innerHTML, /Vårträff/);
+    assert.equal(e.campfirePlansCount.textContent, "2 st.");
+    e.campfirePlansSearch.value = "saknas";
+    e.campfirePlansSearch.dispatch("input");
+    assert.equal(e.campfirePlansNoResults.hidden, false);
+    e.campfirePlansSection.open = false;
+    update(plans, { ...state, error: true });
+    assert.equal(e.campfirePlansStatus.hidden, false);
+    assert.match(e.campfirePlansStatus.textContent, /Kunde inte synka/);
+
+    update(plans, state);
+    e.newCampfirePlan.dispatch("click");
+    e.campfirePlanTitle.value = "Nytt lägerbål";
+    await e.campfirePlanForm.listeners.submit({ preventDefault() {} });
+    assert.equal(e.campfirePlansSection.open, true);
+    assert.equal(e.campfirePlansSearch.value, "");
+    assert.equal(e.campfirePlansCount.textContent, "3 st.");
+    assert.match(e.campfirePlansList.innerHTML, /Nytt lägerbål/);
 });
 
 test("all pages link to Lägerbål in both navigation menus", () => {

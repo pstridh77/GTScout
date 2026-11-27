@@ -1,5 +1,10 @@
 (function () {
     const list = document.getElementById("campfirePlansList");
+    const section = document.getElementById("campfirePlansSection");
+    const count = document.getElementById("campfirePlansCount");
+    const searchField = document.getElementById("campfirePlansSearchField");
+    const search = document.getElementById("campfirePlansSearch");
+    const noResults = document.getElementById("campfirePlansNoResults");
     const status = document.getElementById("campfirePlansStatus");
     const newButton = document.getElementById("newCampfirePlan");
     const dialog = document.getElementById("campfirePlanDialog");
@@ -33,13 +38,19 @@
     function renderPlans() {
         const editable = window.GTScoutCampfirePlans.canEdit() && !syncState.loading;
         newButton.disabled = !editable || busy;
+        count.textContent = syncState.loading ? "Hämtar..." : `${plans.length} st.`;
+        searchField.hidden = plans.length === 0;
+        const query = search.value.trim().toLocaleLowerCase("sv");
+        const visiblePlans = plans.filter(plan => plan.title.toLocaleLowerCase("sv").includes(query));
+        noResults.hidden = !query || visiblePlans.length > 0 || plans.length === 0;
         status.textContent = syncState.loading ? "Hämtar planerade lägerbål..."
             : syncState.storageError ? "Kunde inte läsa lokalt sparade lägerbål. Uppgifterna har inte ändrats."
             : syncState.error ? "Kunde inte synka planerade lägerbål. Lokala uppgifter visas om de finns."
                 : actionMessage || (!plans.length ? "Inga planerade lägerbål ännu."
                     : !window.GTScoutAuth?.isSignedIn?.() ? "Sparas bara i den här webbläsaren."
                         : !window.GTScoutCampfirePlans.canEdit() ? "Endast ledare kan redigera kårens lägerbål." : "");
-        list.innerHTML = plans.map(plan => {
+        status.hidden = !section.open && !syncState.error && !syncState.storageError;
+        list.innerHTML = visiblePlans.map(plan => {
             const entries = plan.items.map(item => {
                 const custom = window.GTScoutSongCatalog.isCustomId(item.id);
                 const song = custom ? null : songs.find(candidate => candidate.id === item.id);
@@ -49,11 +60,11 @@
                 return `<li>${name}${suffix}</li>`;
             }).join("");
             return `<details class="campfire-plan" data-plan-id="${escapeHtml(plan.id)}"${expanded.has(plan.id) ? " open" : ""}>
-                <summary><strong>${escapeHtml(plan.title)}</strong><small>${plan.items.length} valda${plan.local_only ? " · Lokal" : ""}</small></summary>
+                <summary><strong>${escapeHtml(plan.title)}</strong> <small>${plan.items.length} valda${plan.local_only ? " · Lokal" : ""}</small></summary>
                 ${plan.description ? `<p>${escapeHtml(plan.description)}</p>` : ""}
                 ${catalogState === "error" ? "<p>Kunde inte hämta sångbiblioteket. Sparade titlar visas.</p>" : ""}
                 ${entries ? `<ol>${entries}</ol>` : "<p>Inga sånger valda.</p>"}
-                ${editable ? `<div class="campfire-plan-actions"><button class="btn-secondary" type="button" data-plan-action="edit">Redigera</button><button class="btn-secondary" type="button" data-plan-action="copy">Kopiera</button><button class="btn-secondary" type="button" data-plan-action="delete">Ta bort</button></div>` : ""}
+                ${editable ? `<div class="campfire-plan-actions"><button class="arrangement-delete-icon" type="button" data-plan-action="delete" aria-label="Ta bort ${escapeHtml(plan.title)}" title="Ta bort lägerbål"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2Zm-3 6h12l-1 12H7L6 9Zm3 2v7h2v-7H9Zm4 0v7h2v-7h-2Z"/></svg></button><button class="btn-secondary" type="button" data-plan-action="edit">Redigera</button><button class="btn-secondary" type="button" data-plan-action="copy">Kopiera</button></div>` : ""}
             </details>`;
         }).join("");
         list.querySelectorAll(".campfire-plan").forEach(details => {
@@ -84,6 +95,10 @@
         else newButton.focus();
     }
 
+    section.addEventListener("toggle", () => {
+        status.hidden = !section.open && !syncState.error && !syncState.storageError;
+    });
+    search.addEventListener("input", renderPlans);
     newButton.addEventListener("click", () => openEditor(null, false, newButton));
     document.getElementById("closeCampfirePlan").addEventListener("click", closeEditor);
     document.getElementById("cancelCampfirePlan").addEventListener("click", closeEditor);
@@ -133,6 +148,8 @@
             });
             actionMessage = result.error ? "Lägerbålet sparades lokalt men kunde inte synkas."
                 : result.localOnly ? "Lägerbålet sparades i den här webbläsaren." : "Lägerbålet sparades i kårens databas.";
+            search.value = "";
+            section.open = true;
             closeEditor();
         } catch (error) {
             console.error("Kunde inte spara planerat lägerbål", error);

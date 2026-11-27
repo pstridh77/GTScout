@@ -663,14 +663,19 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
 .campfire-plan-choice { grid-column: 1 / -1; }
 .campfire-plan-choice small { font-weight: 500; }
 .campfire-plans { margin: 20px 0; padding: 18px; border: 1px solid #d7e1eb; border-radius: 8px; background: #fff; }
-.campfire-plans .arrangement-section-heading h2 { margin: 0; color: #153c4a; font-size: 1.05rem; }
-.campfire-plans > p { margin: 0 0 8px; color: #65767b; font-size: .84rem; }
+.campfire-plans-summary { color: #153c4a; font-size: 1.05rem; font-weight: 700; cursor: pointer; }
+.campfire-plans-summary span + span { margin-left: 8px; color: #65767b; font-size: .84rem; font-weight: 500; }
+.campfire-plans-search { max-width: 360px; margin: 16px 0 12px; }
+.campfire-plans-search[hidden], .campfire-plans-no-results[hidden], .campfire-plans > p[hidden] { display: none; }
+.campfire-plans > p, .campfire-plans-no-results { margin: 12px 0 0; color: #65767b; font-size: .84rem; }
 .campfire-plan { padding: 10px 0; border-top: 1px solid #dbe3e3; }
 .campfire-plan summary { color: #153c4a; cursor: pointer; }
 .campfire-plan summary small { margin-left: 8px; color: #65767b; }
 .campfire-plan p { white-space: pre-line; overflow-wrap: anywhere; }
 .campfire-plan li { overflow-wrap: anywhere; }
-.campfire-plan-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.campfire-plan-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.campfire-plan-actions .arrangement-delete-icon { margin-right: auto; }
+@media (max-width: 520px) { .campfire-plan-actions .btn-secondary { padding: 7px 10px; } }
 .modal-content.campfire-plan-dialog { position: fixed; inset: 0; margin: auto; box-sizing: border-box; max-height: calc(100dvh - 24px); overflow-y: auto; }
 .campfire-plan-dialog:not([open]) { display: none; }
 .campfire-plan-dialog::backdrop { background: rgba(0, 0, 0, .6); }

@@ -60,11 +60,13 @@
             <button id="newCampfirePlan" class="btn-primary" type="button">+Skapa Lägerbål</button>
         </section>
         <section class="campfire-plans" aria-labelledby="campfirePlansTitle">
-            <div class="arrangement-section-heading">
-                <div><h2 id="campfirePlansTitle">Planerade lägerbål</h2><p>Samla sånger, rop och lekar i en färdig lista.</p></div>
-            </div>
+            <details id="campfirePlansSection">
+                <summary class="campfire-plans-summary"><span id="campfirePlansTitle">Planerade lägerbål</span> <span id="campfirePlansCount"></span></summary>
+                <label id="campfirePlansSearchField" class="filter-field campfire-plans-search" hidden><span>Sök planerade lägerbål</span><input id="campfirePlansSearch" type="search" placeholder="Sök namn..."></label>
+                <div id="campfirePlansList"></div>
+                <p id="campfirePlansNoResults" class="campfire-plans-no-results" hidden>Inga lägerbål matchar sökningen.</p>
+            </details>
             <p id="campfirePlansStatus" role="status" aria-live="polite"></p>
-            <div id="campfirePlansList"></div>
         </section>
         <div id="songFilters" class="cookbook-toolbar song-search filters--hidden" data-page-filters>
             <label class="filter-field search-field"><span>Sök sånger</span><input id="songSearch" type="search" placeholder="Sök titel eller sångtext..."></label>
@@ -108,7 +110,7 @@
     <script src="js/songs-catalog.js"></script>
     <script src="js/campfire-picker.js"></script>
     <script src="js/campfire-plans-sync.js"></script>
-    <script src="js/campfire-plans.js"></script>
+    <script src="js/campfire-plans.js?v=campfire-3"></script>
     <script src="js/lagerbal.js?v=campfire-2"></script>
     <script src="js/header-controls.js"></script>
 </body>
