@@ -192,7 +192,7 @@
                 const custom = window.GTScoutSongCatalog.isCustomId(item.id);
                 const song = custom ? null : songs.find(candidate => candidate.id === item.id);
                 const name = escapeHtml(song?.titel || item.title);
-                if (song) return `<li><a href="lagerbal.html?song=${encodeURIComponent(item.id)}" target="_blank" rel="noopener noreferrer">${name}</a></li>`;
+                if (song) return `<li><button type="button" class="campfire-song-button" data-plan-song="${escapeHtml(item.id)}">${name}</button></li>`;
                 const suffix = !custom && catalogState === "loaded" ? " (finns inte längre i biblioteket)" : "";
                 return `<li>${name}${suffix}</li>`;
             }).join("");
@@ -271,6 +271,12 @@
     pickerContainer.addEventListener("change", event => picker.change(event));
     pickerContainer.addEventListener("click", event => picker.action(event));
     list.addEventListener("click", async event => {
+        const songButton = event.target.closest("[data-plan-song]");
+        if (songButton?.dataset?.planSong) {
+            const song = songs.find(item => item.id === songButton.dataset.planSong);
+            if (song) window.GTScoutSongModal?.open(song);
+            return;
+        }
         const button = event.target.closest("[data-plan-action]");
         if (!button || busy) return;
         const plan = plans.find(item => item.id === button.closest("[data-plan-id]")?.dataset.planId);

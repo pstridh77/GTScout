@@ -252,6 +252,7 @@ test("planned campfires show a total and filter by name without hiding errors", 
     };
     let clipboardFails = false;
     const errors = [];
+    let openedSong = null;
     const context = vm.createContext({
         document: { getElementById: id => e[id] },
         window: {
@@ -259,7 +260,8 @@ test("planned campfires show a total and filter by name without hiding errors", 
             addEventListener() {},
             GTScoutCampfirePlans: sync,
             GTScoutCampfirePicker: { create: () => ({ render: () => "", read: () => [] }) },
-            GTScoutSongCatalog: { load: async () => [{ id: "song", titel: "Sångens namn" }], isCustomId: id => id.startsWith("custom:") }
+            GTScoutSongCatalog: { load: async () => [{ id: "song", titel: "Sångens namn" }], isCustomId: id => id.startsWith("custom:") },
+            GTScoutSongModal: { open: song => { openedSong = song; } }
         },
         navigator: { clipboard: { writeText: async () => { if (clipboardFails) throw new Error("blocked"); } } },
         URL, URLSearchParams, TextEncoder, TextDecoder, btoa, atob,
@@ -274,6 +276,10 @@ test("planned campfires show a total and filter by name without hiding errors", 
     assert.match(e.campfirePlansStatus.textContent, /Sparas bara i den här webbläsaren/);
     assert.equal(e.campfirePlansSearchField.hidden, true);
     assert.match(e.campfirePlansList.innerHTML, /class="arrangement-delete-icon"[^>]*data-plan-action="delete"[^>]*aria-label="Ta bort Höstläger"[^>]*><svg[\s\S]*?data-plan-action="edit"[\s\S]*?data-plan-action="copy"/);
+    assert.match(e.campfirePlansList.innerHTML, /class="campfire-song-button" data-plan-song="song">Sångens namn<\/button>/);
+    assert.doesNotMatch(e.campfirePlansList.innerHTML, /lagerbal\.html\?song=/);
+    await e.campfirePlansList.listeners.click({ target: { closest: selector => selector === "[data-plan-song]" ? { dataset: { planSong: "song" } } : null } });
+    assert.equal(openedSong?.titel, "Sångens namn");
     sync.canEdit = () => false;
     update(plans, state);
     assert.match(e.campfirePlansList.innerHTML, /data-plan-action="share"[^>]*aria-label="Dela Höstläger"/);

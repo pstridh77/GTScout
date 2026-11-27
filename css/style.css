@@ -692,8 +692,8 @@ button.arrangement-overview-slot:focus-visible { z-index: 2; outline: 2px solid 
 .campfire-shared-label { color: #176b72; font-weight: 700; }
 .campfire-shared-description { white-space: pre-line; overflow-wrap: anywhere; }
 .campfire-shared li { overflow-wrap: anywhere; }
-.shared-campfire-song { padding: 0; border: 0; background: none; color: #176b72; font: inherit; font-weight: 700; text-align: left; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
-.shared-campfire-song:hover, .shared-campfire-song:focus-visible { color: #0e4f56; }
+.shared-campfire-song, .campfire-song-button { padding: 0; border: 0; background: none; color: #176b72; font: inherit; font-weight: 700; text-align: left; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.shared-campfire-song:hover, .shared-campfire-song:focus-visible, .campfire-song-button:hover, .campfire-song-button:focus-visible { color: #0e4f56; }
 body.shared-campfire-view .page-hero, body.shared-campfire-view .campfire-plans, body.shared-campfire-view #songFilters, body.shared-campfire-view #songGrid, body.shared-campfire-view #songStatus, body.shared-campfire-view #filtersVisibilityToggle { display: none; }
 .modal-content.campfire-plan-dialog { position: fixed; inset: 0; margin: auto; box-sizing: border-box; max-height: calc(100dvh - 24px); overflow-y: auto; }
 .campfire-plan-dialog:not([open]) { display: none; }
